@@ -169,8 +169,10 @@ UI.renderScoutPage = async function() {
   // Inizializza gestione pattuglie (sempre, non solo se il form è bound)
   this.initPattugliaManagement();
   
-  // Inizializza gestione sezioni tracce espandibili
-  this.initTracciaSections();
+  // Inizializza gestione sezioni tracce espandibili (con delay per assicurarsi che il DOM sia pronto)
+  setTimeout(() => {
+    this.initTracciaSections();
+  }, 100);
 };
 
 UI.loadSpecialita = function(specialitaArray) {
@@ -514,39 +516,57 @@ UI.initTracciaSections = function() {
   
   // Aggiungi event listeners a tutti gli header delle tracce
   const tracciaHeaders = document.querySelectorAll('.traccia-header');
-  tracciaHeaders.forEach(header => {
+  console.log('Trovati', tracciaHeaders.length, 'header tracce');
+  
+  tracciaHeaders.forEach((header, index) => {
+    console.log(`Inizializzazione header ${index + 1}:`, header.dataset.traccia);
     header.addEventListener('click', (e) => {
+      console.log('Click su header traccia:', e.target);
+      
       // Non espandere se si clicca su checkbox o input
       if (e.target.type === 'checkbox' || e.target.type === 'date') {
+        console.log('Click su input, ignorato');
         return;
       }
       
       const tracciaNum = header.dataset.traccia;
+      console.log('Toggling traccia:', tracciaNum);
       this.toggleTracciaSection(tracciaNum);
     });
   });
 };
 
 UI.toggleTracciaSection = function(tracciaNum) {
+  console.log('toggleTracciaSection chiamata per traccia:', tracciaNum);
+  
   const header = document.querySelector(`.traccia-header[data-traccia="${tracciaNum}"]`);
   const content = header?.nextElementSibling;
   const icon = header?.querySelector('.expand-icon');
   
-  if (!header || !content || !icon) return;
+  console.log('Elementi trovati:', { header: !!header, content: !!content, icon: !!icon });
+  
+  if (!header || !content || !icon) {
+    console.error('Elementi non trovati per traccia:', tracciaNum);
+    return;
+  }
   
   const isExpanded = content.classList.contains('expanded');
+  console.log('Stato attuale - espanso:', isExpanded);
   
   if (isExpanded) {
     // Contrai
+    console.log('Contraendo sezione...');
     content.classList.remove('expanded');
-    content.classList.add('hidden');
     icon.classList.remove('rotated');
   } else {
     // Espandi
-    content.classList.remove('hidden');
+    console.log('Espandendo sezione...');
     content.classList.add('expanded');
     icon.classList.add('rotated');
   }
+  
+  console.log('Classi finali content:', content.className);
+  console.log('Classi finali icon:', icon.className);
 };
 
 document.addEventListener('DOMContentLoaded', () => {

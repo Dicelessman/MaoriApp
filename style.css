@@ -173,9 +173,13 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
 .traccia-content {
   transition: all 0.3s ease;
   overflow: hidden;
+  max-height: 0;
+  opacity: 0;
 }
 
 .traccia-content.expanded {
+  max-height: 1000px;
+  opacity: 1;
   display: block !important;
 }
 
