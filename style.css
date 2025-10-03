@@ -161,6 +161,32 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
 .badge--warn { background: #fef3c7; color: #92400e; }
 .badge--danger { background: #fee2e2; color: #991b1b; }
 
+/* Traccia expandable sections */
+.traccia-header {
+  transition: background-color 0.2s ease;
+}
+
+.traccia-header:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.traccia-content {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.traccia-content.expanded {
+  display: block !important;
+}
+
+.expand-icon {
+  transition: transform 0.3s ease;
+}
+
+.expand-icon.rotated {
+  transform: rotate(180deg);
+}
+
 /* Print styles */
 @media print {
   body { background: #fff !important; }

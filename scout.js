@@ -168,6 +168,9 @@ UI.renderScoutPage = async function() {
 
   // Inizializza gestione pattuglie (sempre, non solo se il form è bound)
   this.initPattugliaManagement();
+  
+  // Inizializza gestione sezioni tracce espandibili
+  this.initTracciaSections();
 };
 
 UI.loadSpecialita = function(specialitaArray) {
@@ -503,6 +506,47 @@ UI.savePattuglie = function() {
   this.updatePattugliaSelect();
   this.closePattugliaModal();
   alert('Pattuglie salvate con successo!');
+};
+
+// ============== Gestione Sezioni Tracce Espandibili ==============
+UI.initTracciaSections = function() {
+  console.log('Inizializzazione sezioni tracce espandibili...');
+  
+  // Aggiungi event listeners a tutti gli header delle tracce
+  const tracciaHeaders = document.querySelectorAll('.traccia-header');
+  tracciaHeaders.forEach(header => {
+    header.addEventListener('click', (e) => {
+      // Non espandere se si clicca su checkbox o input
+      if (e.target.type === 'checkbox' || e.target.type === 'date') {
+        return;
+      }
+      
+      const tracciaNum = header.dataset.traccia;
+      this.toggleTracciaSection(tracciaNum);
+    });
+  });
+};
+
+UI.toggleTracciaSection = function(tracciaNum) {
+  const header = document.querySelector(`.traccia-header[data-traccia="${tracciaNum}"]`);
+  const content = header?.nextElementSibling;
+  const icon = header?.querySelector('.expand-icon');
+  
+  if (!header || !content || !icon) return;
+  
+  const isExpanded = content.classList.contains('expanded');
+  
+  if (isExpanded) {
+    // Contrai
+    content.classList.remove('expanded');
+    content.classList.add('hidden');
+    icon.classList.remove('rotated');
+  } else {
+    // Espandi
+    content.classList.remove('hidden');
+    content.classList.add('expanded');
+    icon.classList.add('rotated');
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
