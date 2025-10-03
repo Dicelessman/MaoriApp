@@ -766,8 +766,9 @@ UI.printScoutSheet = async function() {
       const dt = trackModel[key].data ? new Date(trackModel[key].data).toLocaleDateString('it-IT') : '';
       const ch = getDirectionChallenge(key, trackModel.n, lv);
       lines.push(`<div class="print-box" style="margin-bottom:8px">`);
-      if (ch?.direzione) lines.push(`<div><strong>${key}</strong> — ${ch.direzione}</div>`);
-      lines.push(`<div><strong>${ch?.code || (key + ' ' + lv)}</strong>${dt ? ' — ' + dt : ''}</div>`);
+      // Codice con direzione sulla stessa riga
+      lines.push(`<div><strong>${ch?.code || (key + '-' + trackModel.n + '.' + lv)}</strong> — ${ch?.direzione || ''}${dt ? ' — ' + dt : ''}</div>`);
+      // Testo sulla riga sotto
       if (ch?.testo) lines.push(`<div>${ch.testo}</div>`);
       lines.push(`</div>`);
     });
@@ -796,7 +797,10 @@ UI.printScoutSheet = async function() {
           if (!prova.done) {
             const d = prova.data ? new Date(prova.data).toLocaleDateString('it-IT') : '';
             const t = getSpecText(sp.nome || '', k);
-            parts.push(`<div><strong>${k.toUpperCase()}</strong>${d ? ' — ' + d : ''}<div>${t}</div></div>`);
+            // Codice prova con data sulla stessa riga
+            parts.push(`<div><strong>${k.toUpperCase()}</strong>${d ? ' — ' + d : ''}</div>`);
+            // Descrizione della prova sulla riga sotto
+            if (t) parts.push(`<div style="margin-left: 10px; margin-bottom: 8px;">${t}</div>`);
           }
         });
         lines.push(parts.join('') || '<div>Tutte le prove completate.</div>');
