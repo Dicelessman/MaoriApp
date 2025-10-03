@@ -548,6 +548,19 @@ UI.initTracciaSections = function() {
   headers.forEach((h, i) => {
     console.log(`Header ${i + 1}:`, h.dataset.traccia, h);
   });
+  
+  // Test manuale: espandi la prima traccia per verificare che funzioni
+  console.log('Test manuale: espandendo Traccia 1...');
+  setTimeout(() => {
+    const testContent = document.querySelector('.traccia-content');
+    if (testContent) {
+      console.log('Test: aggiungendo classe expanded...');
+      testContent.classList.add('expanded');
+      console.log('Classi dopo test:', testContent.className);
+    } else {
+      console.log('Test: nessun contenuto traccia trovato');
+    }
+  }, 500);
 };
 
 UI.toggleTracciaSection = function(tracciaNum) {
