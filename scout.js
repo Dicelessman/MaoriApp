@@ -710,7 +710,9 @@ UI.printScoutSheet = async function() {
       RE: { level: read(nextTrack.reSel), data: read(nextTrack.reDt) },
       IM: { level: read(nextTrack.imSel), data: read(nextTrack.imDt) },
     };
-    const specs = (data.specialita || []).filter(sp => !sp.ottenuta);
+    const allSpecs = data.specialita || [];
+    const specsObtained = allSpecs.filter(sp => sp.ottenuta);
+    const specsInProgress = allSpecs.filter(sp => !sp.ottenuta);
 
     let desc = { progressioni: {}, specialita: {} };
     try {
@@ -771,14 +773,25 @@ UI.printScoutSheet = async function() {
     });
     lines.push(`</div>`);
 
-    lines.push(`<div class="print-section"><div class="print-subtitle">Specialità da conseguire</div>`);
-    if (!specs.length) {
+    // Specialità ottenute
+    lines.push(`<div class="print-section"><div class="print-subtitle">Specialità ottenute</div>`);
+    if (!specsObtained.length) {
       lines.push(`<div class="print-box">Nessuna</div>`);
     } else {
-      specs.forEach(sp => {
+      const obtainedNames = specsObtained.map(sp => sp.nome || 'Specialità').join(', ');
+      lines.push(`<div class="print-box">${obtainedNames}</div>`);
+    }
+    lines.push(`</div>`);
+
+    // Specialità in conseguimento
+    lines.push(`<div class="print-section"><div class="print-subtitle">Specialità in conseguimento</div>`);
+    if (!specsInProgress.length) {
+      lines.push(`<div class="print-box">Nessuna</div>`);
+    } else {
+      specsInProgress.forEach(sp => {
         lines.push(`<div class="print-box" style="margin-bottom:12px"><strong>${sp.nome || 'Specialità'}</strong>`);
         const parts = [];
-        ['p1','p2','p3','cr'].forEach(k => {
+        ['p1','p2','p3'].forEach(k => { // Rimossi PS e CR
           const prova = sp[k] || {};
           if (!prova.done) {
             const d = prova.data ? new Date(prova.data).toLocaleDateString('it-IT') : '';
