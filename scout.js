@@ -169,10 +169,8 @@ UI.renderScoutPage = async function() {
   // Inizializza gestione pattuglie (sempre, non solo se il form è bound)
   this.initPattugliaManagement();
   
-  // Inizializza gestione sezioni tracce espandibili (con delay per assicurarsi che il DOM sia pronto)
-  setTimeout(() => {
-    this.initTracciaSections();
-  }, 100);
+  // Inizializza gestione sezioni tracce espandibili
+  this.initTracciaSections();
 };
 
 UI.loadSpecialita = function(specialitaArray) {
@@ -514,25 +512,41 @@ UI.savePattuglie = function() {
 UI.initTracciaSections = function() {
   console.log('Inizializzazione sezioni tracce espandibili...');
   
-  // Aggiungi event listeners a tutti gli header delle tracce
-  const tracciaHeaders = document.querySelectorAll('.traccia-header');
-  console.log('Trovati', tracciaHeaders.length, 'header tracce');
+  // Evita di aggiungere più event listener
+  if (this._tracciaSectionsInitialized) {
+    console.log('Sezioni tracce già inizializzate');
+    return;
+  }
   
-  tracciaHeaders.forEach((header, index) => {
-    console.log(`Inizializzazione header ${index + 1}:`, header.dataset.traccia);
-    header.addEventListener('click', (e) => {
-      console.log('Click su header traccia:', e.target);
-      
-      // Non espandere se si clicca su checkbox o input
-      if (e.target.type === 'checkbox' || e.target.type === 'date') {
-        console.log('Click su input, ignorato');
-        return;
-      }
-      
-      const tracciaNum = header.dataset.traccia;
-      console.log('Toggling traccia:', tracciaNum);
-      this.toggleTracciaSection(tracciaNum);
-    });
+  // Usa event delegation per gestire i click sui header tracce
+  const container = document.querySelector('#scoutForm') || document.body;
+  
+  container.addEventListener('click', (e) => {
+    // Verifica se il click è su un header traccia
+    const header = e.target.closest('.traccia-header');
+    if (!header) return;
+    
+    console.log('Click su header traccia:', header.dataset.traccia);
+    
+    // Non espandere se si clicca su checkbox o input
+    if (e.target.type === 'checkbox' || e.target.type === 'date') {
+      console.log('Click su input, ignorato');
+      return;
+    }
+    
+    const tracciaNum = header.dataset.traccia;
+    console.log('Toggling traccia:', tracciaNum);
+    this.toggleTracciaSection(tracciaNum);
+  });
+  
+  this._tracciaSectionsInitialized = true;
+  console.log('Event delegation configurato per sezioni tracce');
+  
+  // Test: verifica che gli elementi esistano
+  const headers = document.querySelectorAll('.traccia-header');
+  console.log('Header tracce trovati:', headers.length);
+  headers.forEach((h, i) => {
+    console.log(`Header ${i + 1}:`, h.dataset.traccia, h);
   });
 };
 
