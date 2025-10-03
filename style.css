@@ -1,0 +1,173 @@
+/* Design Tokens */
+:root {
+  --bg: #f3f4f6;
+  --card-bg: #ffffff;
+  --text: #111827;
+  --muted: #6b7280;
+  --brand: #16a34a;
+  --brand-strong: #15803d;
+  --border: #e5e7eb;
+  --radius: 12px;
+  --space: 1rem;
+  --shadow: 0 4px 10px rgba(0,0,0,.08);
+}
+
+/* Base */
+body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; background: var(--bg); color: var(--text); }
+.modal {
+  display: none; position: fixed; z-index: 1000; inset: 0; background: rgba(0,0,0,.6);
+  backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+}
+.modal.show { display: block; }
+.modal-content {
+  background: var(--card-bg); margin: 10vh auto; padding: 24px; border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow); max-width: 90%; animation: fadeIn .25s;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px) } to { opacity: 1; transform: translateY(0) } }
+
+/* Tabs */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+#desktopNav .tab-btn { transition: background .15s ease, color .15s ease, box-shadow .15s ease; }
+#desktopNav .tab-btn:hover { background:#15803d; }
+#desktopNav .tab-btn.bg-green-600 { position:relative; box-shadow: inset 0 -2px 0 rgba(255,255,255,.8); font-weight:600; }
+#desktopNav .tab-btn.bg-green-600::after { content:''; position:absolute; left:12px; right:12px; bottom:4px; height:2px; background:rgba(255,255,255,.9); border-radius:2px; }
+
+#hamburgerMenu { display:flex; flex-direction: column; align-items: flex-end; padding: .5rem 1rem; }
+#hamburgerMenu { position: relative; }
+#hamburgerMenu .nav-links { 
+  display:none; 
+  position: absolute; 
+  top: 100%; 
+  right: 0; 
+  flex-direction: column; 
+  width: 200px; 
+  margin-top: 0.5rem; 
+  background: #15803d; 
+  border-radius: 0.5rem; 
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+  z-index: 1000; 
+  padding: 0.5rem; 
+}
+#hamburgerMenu .nav-links.active { display:flex; }
+#hamburgerMenu .tab-btn { width:100%; text-align:left; color:white; background: #15803d; border: none; font-weight: 600; }
+#hamburgerMenu .tab-btn:hover { background: #16a34a; }
+#hamburgerMenu .tab-btn.bg-green-600 { background: #16a34a; font-weight: 700; }
+.hamburger-icon { 
+  background: #15803d; 
+  color: white; 
+  font-size: 1.5rem; 
+  font-weight: bold; 
+  border: 2px solid white; 
+  border-radius: 0.5rem; 
+  min-width: 3rem; 
+  min-height: 3rem; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3); 
+}
+.hamburger-icon:hover { 
+  background: #16a34a; 
+  transform: scale(1.05); 
+  transition: all 0.2s ease; 
+}
+
+/* Calendar list */
+#calendarList > div { border-left: 4px solid #16a34a; padding-left: .75rem; }
+
+/* Presence table */
+.presence-table { width:100%; border-collapse: separate; border-spacing:0; }
+.presence-table th, .presence-table td { padding:.75rem; border:1px solid var(--border); text-align:center; vertical-align: top; }
+.presence-table thead th { font-weight:600; position:sticky; top:0; z-index:10; background: var(--brand-strong); color:#ffffff; box-shadow:none; }
+/* Assicura che la prima colonna sticky resti sopra alle altre */
+.presence-table th.sticky.left-0, .presence-table td.sticky.left-0 { z-index: 50; background: var(--card-bg); }
+/* Evidenziazione colonna "prossima" senza sovrapporsi */
+.presence-table td.next-col { background: color-mix(in srgb, var(--brand) 10%, var(--card-bg)); box-shadow: inset 0 0 0 2px var(--brand-strong); }
+.presence-table tbody tr:nth-child(odd) td { background: color-mix(in srgb, var(--card-bg) 92%, #0000); }
+.presence-table tbody tr:hover td { background: color-mix(in srgb, var(--brand) 7%, var(--card-bg)); }
+
+.presence-table td select { border:none; background:transparent; padding:.25rem; border-radius:.5rem; text-align:center;
+  appearance:none; -webkit-appearance:none; -moz-appearance:none; cursor:pointer;
+}
+.presence-select { color:#22c55e; } /* green-500 */
+.payment-select { color:#16a34a; } /* green-600 */
+.payment-section { display:flex; flex-direction:column; align-items:center; margin-top:.5rem; font-size:.875rem; }
+
+/* Edge shadows for horizontal scroll */
+#presenceTableContainer { position: relative; }
+#presenceTableContainer::before, #presenceTableContainer::after {
+  content:''; position:absolute; top:0; bottom:0; width:16px; pointer-events:none; opacity:0; transition:opacity .15s ease;
+}
+#presenceTableContainer::before { left:0; background: linear-gradient(to right, rgba(0,0,0,.12), rgba(0,0,0,0)); }
+#presenceTableContainer::after { right:0; background: linear-gradient(to left, rgba(0,0,0,.12), rgba(0,0,0,0)); }
+#presenceTableContainer.scroll-shadow-left::before { opacity:1; }
+#presenceTableContainer.scroll-shadow-right::after { opacity:1; }
+
+/* Focus rings */
+button:focus-visible, select:focus-visible, input:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(134,239,172,.8); border-radius:.5rem; }
+
+/* Skeleton loading */
+.skeleton { position:relative; overflow:hidden; background:#f3f4f6; }
+.skeleton::after { content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(255,255,255,.6) 50%, rgba(0,0,0,0) 100%); transform: translateX(-100%); animation: shimmer 1.2s infinite; }
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.skeleton-row td { height:44px; }
+
+/* Colori per le opzioni dei menu a discesa */
+.presence-select option[value="Presente"] { color: #16a34a; } /* verde */
+.presence-select option[value="Assente"] { color: #dc2626; } /* rosso */
+.presence-select option[value="NR"] { color: #2563eb; } /* blu */
+
+.payment-select option[value=""] { color: #dc2626; } /* rosso - Non Pagato */
+.payment-select option[value="Contanti"] { color: #16a34a; } /* verde */
+.payment-select option[value="Satispay"] { color: #ea580c; } /* arancione */
+.payment-select option[value="Bonifico"] { color: #2563eb; } /* blu */
+
+/* Colori per il testo selezionato nelle select */
+.presence-select[data-selected="Presente"] { color: #16a34a; }
+.presence-select[data-selected="Assente"] { color: #dc2626; }
+.presence-select[data-selected="NR"] { color: #2563eb; }
+
+.payment-select[data-selected=""] { color: #dc2626; }
+.payment-select[data-selected="Contanti"] { color: #16a34a; }
+.payment-select[data-selected="Satispay"] { color: #ea580c; }
+.payment-select[data-selected="Bonifico"] { color: #2563eb; }
+
+/* Buttons */
+.btn-primary { background:var(--brand); color:white; padding:.5rem 1rem; border-radius:.5rem; font-weight:600; transition: transform .06s ease, filter .15s ease, box-shadow .15s ease; }
+.btn-primary:hover { filter: brightness(.95); }
+.btn-primary:active { transform: translateY(1px) scale(.99); }
+.btn-secondary { background:var(--border); color:var(--text); padding:.5rem 1rem; border-radius:.5rem; font-weight:600; transition: background .15s ease, color .15s ease; }
+.btn-secondary:hover { filter: brightness(.95); }
+.btn-danger { background:#dc2626; color:white; padding:.5rem 1rem; border-radius:.5rem; font-weight:600; }
+.btn-danger:hover { filter: brightness(.95); }
+
+/* Mobile friendly cards for presenze (optional: could be toggled) */
+@media (max-width: 640px) {
+  /* Manteniamo la tabella intera; aggiungiamo solo controlli mobile */
+  .mobile-only { display:flex; }
+}
+
+/* Desktop: nascondi i controlli mobile */
+@media (min-width: 641px) {
+  .mobile-only { display:none; }
+}
+
+/* Components */
+.card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--space); }
+.badge { display:inline-block; padding:.15rem .5rem; border-radius:999px; font-size:.75rem; font-weight:600; background: var(--border); color: var(--text); }
+.badge--ok { background: color-mix(in srgb, var(--brand) 18%, var(--card-bg)); color: var(--brand-strong); }
+.badge--warn { background: #fef3c7; color: #92400e; }
+.badge--danger { background: #fee2e2; color: #991b1b; }
+
+/* Print styles */
+@media print {
+  body { background: #fff !important; }
+  #app, #shared-header, #shared-modals { display: none !important; }
+  #printArea { display: block !important; padding: 24px; color: #111; }
+  .print-section { page-break-inside: avoid; margin-bottom: 16px; }
+  .print-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .print-subtitle { font-size: 16px; font-weight: 600; margin-top: 12px; }
+  .print-box { border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fafafa; }
+}
