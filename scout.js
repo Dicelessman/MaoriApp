@@ -171,6 +171,9 @@ UI.renderScoutPage = async function() {
   
   // Inizializza gestione sezioni tracce espandibili
   this.initTracciaSections();
+  
+  // Inizializza gestione sezioni specialità espandibili
+  this.initSpecialitaSections();
 };
 
 UI.loadSpecialita = function(specialitaArray) {
@@ -188,27 +191,41 @@ UI.addSpecialita = function(data = null, index = null) {
   const spId = `sp_${realIndex}`;
   
   const div = document.createElement('div');
-  div.className = 'bg-white p-4 rounded-lg border border-gray-200';
+  div.className = 'bg-white rounded-lg border border-gray-200 overflow-hidden';
   div.innerHTML = `
-    <div class="flex justify-between items-center mb-3">
-      <h4 class="font-semibold text-gray-700"><span id="${spId}_title">${(data?.nome && String(data.nome).trim()) || 'Specialità'}</span></h4>
-      <button type="button" class="removeSpecialitaBtn text-red-600 hover:text-red-800" data-index="${realIndex}">🗑️</button>
+    <!-- Header compatto -->
+    <div class="specialita-header p-4 cursor-pointer hover:bg-gray-50 transition-colors" data-specialita="${realIndex}">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <h4 class="font-semibold text-lg"><span id="${spId}_title">${(data?.nome && String(data.nome).trim()) || 'Specialità'}</span></h4>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" id="${spId}_ott_chk" ${data?.ottenuta ? 'checked' : ''} />
+            <span>Ottenuta</span>
+          </label>
+          <input id="${spId}_data" type="date" class="input" value="${data?.data ? this.toYyyyMmDd(data.data) : ''}" placeholder="Data" />
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" class="removeSpecialitaBtn text-red-600 hover:text-red-800" data-index="${realIndex}">🗑️</button>
+          <span class="expand-icon text-xl">▼</span>
+        </div>
+      </div>
     </div>
-    <div class="grid md:grid-cols-2 gap-4">
-      <div class="md:col-span-2"><label class="block text-sm">Specialità</label><input id="${spId}_nome" class="input" value="${data?.nome || ''}" /></div>
-      <div class="md:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-2 items-center">
-        <label class="flex items-center gap-2"><input type="checkbox" id="${spId}_ott_chk" ${data?.ottenuta ? 'checked' : ''} /> Ottenuta</label>
-        <label class="flex items-center gap-2"><input type="checkbox" id="${spId}_brev_chk" ${data?.brevetto ? 'checked' : ''} /> Brevetto</label>
-        <label class="flex items-center gap-2"><input type="checkbox" id="${spId}_cons_chk" ${data?.consegnata ? 'checked' : ''} /> Consegnata</label>
-        <input id="${spId}_data" type="date" class="input" value="${data?.data ? this.toYyyyMmDd(data.data) : ''}" />
+    <!-- Contenuto espandibile -->
+    <div class="specialita-content p-4 pt-0 space-y-2">
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="md:col-span-2"><label class="block text-sm">Specialità</label><input id="${spId}_nome" class="input" value="${data?.nome || ''}" /></div>
+        <div class="md:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-2 items-center">
+          <label class="flex items-center gap-2"><input type="checkbox" id="${spId}_brev_chk" ${data?.brevetto ? 'checked' : ''} /> Brevetto</label>
+          <label class="flex items-center gap-2"><input type="checkbox" id="${spId}_cons_chk" ${data?.consegnata ? 'checked' : ''} /> Consegnata</label>
+        </div>
+        <div class="md:col-span-2 grid grid-cols-2 gap-2">
+          <label><input type="checkbox" id="${spId}_p1_chk" ${data?.p1?.done ? 'checked' : ''} /> Prova 1</label><input id="${spId}_p1_dt" type="date" class="input" value="${data?.p1?.data ? this.toYyyyMmDd(data.p1.data) : ''}" />
+          <label><input type="checkbox" id="${spId}_p2_chk" ${data?.p2?.done ? 'checked' : ''} /> Prova 2</label><input id="${spId}_p2_dt" type="date" class="input" value="${data?.p2?.data ? this.toYyyyMmDd(data.p2.data) : ''}" />
+          <label><input type="checkbox" id="${spId}_p3_chk" ${data?.p3?.done ? 'checked' : ''} /> Prova 3</label><input id="${spId}_p3_dt" type="date" class="input" value="${data?.p3?.data ? this.toYyyyMmDd(data.p3.data) : ''}" />
+          <label><input type="checkbox" id="${spId}_cr_chk" ${data?.cr?.done ? 'checked' : ''} /> Prova CR</label><input id="${spId}_cr_dt" type="date" class="input" value="${data?.cr?.data ? this.toYyyyMmDd(data.cr.data) : ''}" />
+        </div>
+        <div class="md:col-span-2"><label class="block text-sm">Note</label><textarea id="${spId}_note" class="textarea">${data?.note || ''}</textarea></div>
       </div>
-      <div class="md:col-span-2 grid grid-cols-2 gap-2">
-        <label><input type="checkbox" id="${spId}_p1_chk" ${data?.p1?.done ? 'checked' : ''} /> Prova 1</label><input id="${spId}_p1_dt" type="date" class="input" value="${data?.p1?.data ? this.toYyyyMmDd(data.p1.data) : ''}" />
-        <label><input type="checkbox" id="${spId}_p2_chk" ${data?.p2?.done ? 'checked' : ''} /> Prova 2</label><input id="${spId}_p2_dt" type="date" class="input" value="${data?.p2?.data ? this.toYyyyMmDd(data.p2.data) : ''}" />
-        <label><input type="checkbox" id="${spId}_p3_chk" ${data?.p3?.done ? 'checked' : ''} /> Prova 3</label><input id="${spId}_p3_dt" type="date" class="input" value="${data?.p3?.data ? this.toYyyyMmDd(data.p3.data) : ''}" />
-        <label><input type="checkbox" id="${spId}_cr_chk" ${data?.cr?.done ? 'checked' : ''} /> Prova CR</label><input id="${spId}_cr_dt" type="date" class="input" value="${data?.cr?.data ? this.toYyyyMmDd(data.cr.data) : ''}" />
-      </div>
-      <div class="md:col-span-2"><label class="block text-sm">Note</label><textarea id="${spId}_note" class="textarea">${data?.note || ''}</textarea></div>
     </div>
   `;
   container.appendChild(div);
@@ -234,7 +251,9 @@ UI.renumberSpecialita = function() {
   if (!container) return;
   Array.from(container.children).forEach((div, index) => {
     const btn = div.querySelector('.removeSpecialitaBtn');
+    const header = div.querySelector('.specialita-header');
     if (btn) btn.dataset.index = index;
+    if (header) header.dataset.specialita = index;
   });
 };
 
@@ -561,6 +580,81 @@ UI.initTracciaSections = function() {
       console.log('Test: nessun contenuto traccia trovato');
     }
   }, 500);
+};
+
+// ============== Gestione Sezioni Specialità Espandibili ==============
+UI.initSpecialitaSections = function() {
+  console.log('Inizializzazione sezioni specialità espandibili...');
+  
+  // Evita di aggiungere più event listener
+  if (this._specialitaSectionsInitialized) {
+    console.log('Sezioni specialità già inizializzate');
+    return;
+  }
+  
+  // Usa event delegation per gestire i click sui header delle specialità
+  const container = document.querySelector('#specialitaContainer') || document.body;
+  
+  container.addEventListener('click', (e) => {
+    // Verifica se il click è su un header specialità
+    const header = e.target.closest('.specialita-header');
+    if (!header) return;
+    
+    console.log('Click su header specialità:', header.dataset.specialita);
+    
+    // Non espandere se si clicca su checkbox, input o button
+    if (e.target.type === 'checkbox' || e.target.type === 'date' || e.target.classList.contains('removeSpecialitaBtn')) {
+      console.log('Click su input/button, ignorato');
+      return;
+    }
+    
+    const specialitaIndex = header.dataset.specialita;
+    console.log('Toggling specialità:', specialitaIndex);
+    this.toggleSpecialitaSection(specialitaIndex);
+  });
+  
+  this._specialitaSectionsInitialized = true;
+  console.log('Event delegation configurato per sezioni specialità');
+  
+  // Test: verifica che gli elementi esistano
+  const headers = document.querySelectorAll('.specialita-header');
+  console.log('Header specialità trovati:', headers.length);
+  headers.forEach((h, i) => {
+    console.log(`Header specialità ${i + 1}:`, h.dataset.specialita, h);
+  });
+};
+
+UI.toggleSpecialitaSection = function(specialitaIndex) {
+  console.log('toggleSpecialitaSection chiamata per specialità:', specialitaIndex);
+  
+  const header = document.querySelector(`.specialita-header[data-specialita="${specialitaIndex}"]`);
+  const content = header?.nextElementSibling;
+  const icon = header?.querySelector('.expand-icon');
+  
+  console.log('Elementi trovati:', { header: !!header, content: !!content, icon: !!icon });
+  
+  if (!header || !content || !icon) {
+    console.error('Elementi non trovati per specialità:', specialitaIndex);
+    return;
+  }
+  
+  const isExpanded = content.classList.contains('expanded');
+  console.log('Stato attuale - espanso:', isExpanded);
+  
+  if (isExpanded) {
+    // Contrai
+    console.log('Contraendo sezione specialità...');
+    content.classList.remove('expanded');
+    icon.classList.remove('rotated');
+  } else {
+    // Espandi
+    console.log('Espandendo sezione specialità...');
+    content.classList.add('expanded');
+    icon.classList.add('rotated');
+  }
+  
+  console.log('Classi finali content:', content.className);
+  console.log('Classi finali icon:', icon.className);
 };
 
 UI.toggleTracciaSection = function(tracciaNum) {

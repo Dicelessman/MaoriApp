@@ -191,6 +191,28 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
   transform: rotate(180deg);
 }
 
+/* Specialità expandable sections */
+.specialita-header {
+  transition: background-color 0.2s ease;
+}
+
+.specialita-header:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.specialita-content {
+  transition: all 0.3s ease;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+}
+
+.specialita-content.expanded {
+  max-height: 1000px;
+  opacity: 1;
+  display: block !important;
+}
+
 /* Print styles */
 @media print {
   body { background: #fff !important; }
