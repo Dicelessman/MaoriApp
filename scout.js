@@ -62,13 +62,26 @@ UI.renderScoutPage = async function() {
   this.setCheckDate('pv_traccia1', s.pv_traccia1);
   this.setCheckDate('pv_traccia2', s.pv_traccia2);
   this.setCheckDate('pv_traccia3', s.pv_traccia3);
-  // Popola i nuovi select IO/RE/IM per ogni traccia (1..3) leggendo i campi legacy
+  // Popola i nuovi select IO/RE/IM per ogni traccia (1..3) leggendo i campi legacy e i nuovi
   const setLevel = (cat, track, vals) => {
     const sel = this.qs(`#pv_${cat}_${track}_sel`);
     const dt = this.qs(`#pv_${cat}_${track}_dt`);
     if (!sel || !dt) return;
     const getData = (obj) => (obj?.data ? this.toYyyyMmDd(obj.data) : this.toYyyyMmDd(obj));
-    // priorità livello più alto disponibile
+    
+    // Prima controlla se ci sono dati nei nuovi campi pv_selected
+    const newData = s.pv_selected?.[String(track)]?.[cat.toUpperCase()];
+    if (newData && newData.code) {
+      // Estrae il livello dal codice (es: "IO-1.3" -> "3")
+      const levelMatch = newData.code.match(/\.(\d+)$/);
+      if (levelMatch) {
+        sel.value = levelMatch[1];
+        dt.value = newData.data ? this.toYyyyMmDd(newData.data) : '';
+        return;
+      }
+    }
+    
+    // Fallback: usa i campi legacy (priorità livello più alto disponibile)
     const level = vals.find(v => !!(v.obj?.done || v.obj?.data || v.obj))?.lvl || '';
     sel.value = level ? String(level) : '';
     const chosen = vals.find(v => String(v.lvl) === String(sel.value));
