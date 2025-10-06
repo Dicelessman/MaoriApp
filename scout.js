@@ -756,9 +756,9 @@ UI.printScoutSheet = async function() {
     };
 
     const lines = [];
-    lines.push(`<div class="print-section"><div class="print-title">Scheda Esploratore</div><div><strong>Nome:</strong> ${data.nome || ''} ${data.cognome || ''}</div></div>`);
+    lines.push(`<div class="print-section"><div class="print-title"><strong>Il Sentiero di ${data.nome || ''} ${data.cognome || ''}</strong></div></div>`);
     const theme = getTrackTheme(trackModel.n);
-    lines.push(`<div class="print-section"><div class="print-subtitle">Traccia da conseguire (Traccia ${trackModel.n})</div>`);
+    lines.push(`<div class="print-section"><div class="print-subtitle"><strong>STAI PERCORRENDO LA (Traccia ${trackModel.n}) TRACCIA</strong></div>`);
     if (theme) lines.push(`<div class="print-box" style="margin-bottom:8px"><em>${theme}</em></div>`);
     ['IO','RE','IM'].forEach(key => {
       const lv = trackModel[key].level || '';
@@ -775,7 +775,7 @@ UI.printScoutSheet = async function() {
     lines.push(`</div>`);
 
     // Specialità ottenute
-    lines.push(`<div class="print-section"><div class="print-subtitle">Specialità ottenute</div>`);
+    lines.push(`<div class="print-section"><div class="print-subtitle"><strong>SPECIALITA' OTTENUTE</strong></div>`);
     if (!specsObtained.length) {
       lines.push(`<div class="print-box">Nessuna</div>`);
     } else {
@@ -785,7 +785,7 @@ UI.printScoutSheet = async function() {
     lines.push(`</div>`);
 
     // Specialità in conseguimento
-    lines.push(`<div class="print-section"><div class="print-subtitle">Specialità in conseguimento</div>`);
+    lines.push(`<div class="print-section"><div class="print-subtitle"><strong>SPECIALITA' DA CONQUISTARE</strong></div>`);
     if (!specsInProgress.length) {
       lines.push(`<div class="print-box">Nessuna</div>`);
     } else {
