@@ -758,7 +758,7 @@ UI.printScoutSheet = async function() {
     const lines = [];
     lines.push(`<div class="print-section"><div class="print-title"><strong>Il Sentiero di ${data.nome || ''} ${data.cognome || ''}</strong></div></div>`);
     const theme = getTrackTheme(trackModel.n);
-    lines.push(`<div class="print-section"><div class="print-subtitle"><strong>STAI PERCORRENDO LA (Traccia ${trackModel.n}) TRACCIA</strong></div>`);
+    lines.push(`<div class="print-section"><div class="print-subtitle"><strong>STAI PERCORRENDO LA ${trackModel.n} TRACCIA</strong></div>`);
     if (theme) lines.push(`<div class="print-box" style="margin-bottom:8px"><em>${theme}</em></div>`);
     ['IO','RE','IM'].forEach(key => {
       const lv = trackModel[key].level || '';
