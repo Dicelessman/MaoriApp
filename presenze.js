@@ -21,7 +21,7 @@ UI.renderCurrentPage = function() {
     //if (!picker) return;
     //const max = Math.max(0, (picker.options.length || 1) - 1);
     //const idx = Math.min(max, picker.selectedIndex + 1);
-    picker.selectedIndex = idx;
+    //picker.selectedIndex = idx;
     //UI.scrollToActivityIndex(idx);
   //});
   //if (picker && !picker._bound) {

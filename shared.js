@@ -663,10 +663,10 @@ const UI = {
     this.renderCurrentPage();
   },
   
-  renderCurrentPage() {
+ // renderCurrentPage() {
     // Questa funzione sarà sovrascritta da ogni pagina specifica
-    console.log('Rendering current page...');
-  },
+   // console.log('Rendering current page...');
+  //},
   
   // Funzioni condivise per modali, rendering, etc.
   showModal(modalId) {
