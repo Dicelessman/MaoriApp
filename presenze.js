@@ -6,55 +6,55 @@ UI.renderCurrentPage = function() {
   this.setupPresenceEventListeners();
 };
 
-UI.setupPresenceEventListeners = function() {
+// UI.setupPresenceEventListeners = function() {
   // Event listeners specifici per le presenze (mobile nav)
-  const prev = this.qs('#mobileActivityPrev');
-  const next = this.qs('#mobileActivityNext');
-  const picker = this.qs('#mobileActivityPicker');
-  if (prev) prev.addEventListener('click', () => {
-    if (!picker) return;
-    const idx = Math.max(0, picker.selectedIndex - 1);
+  //const prev = this.qs('#mobileActivityPrev');
+  //const next = this.qs('#mobileActivityNext');
+  //const picker = this.qs('#mobileActivityPicker');
+  //if (prev) prev.addEventListener('click', () => {
+    //if (!picker) return;
+    //const idx = Math.max(0, picker.selectedIndex - 1);
+    //picker.selectedIndex = idx;
+    //UI.scrollToActivityIndex(idx);
+  //});
+  //if (next) next.addEventListener('click', () => {
+    //if (!picker) return;
+    //const max = Math.max(0, (picker.options.length || 1) - 1);
+    //const idx = Math.min(max, picker.selectedIndex + 1);
     picker.selectedIndex = idx;
-    UI.scrollToActivityIndex(idx);
-  });
-  if (next) next.addEventListener('click', () => {
-    if (!picker) return;
-    const max = Math.max(0, (picker.options.length || 1) - 1);
-    const idx = Math.min(max, picker.selectedIndex + 1);
-    picker.selectedIndex = idx;
-    UI.scrollToActivityIndex(idx);
-  });
-  if (picker && !picker._bound) {
-    picker._bound = true;
-    picker.addEventListener('change', () => UI.scrollToActivityIndex(picker.selectedIndex));
-  }
+    //UI.scrollToActivityIndex(idx);
+  //});
+  //if (picker && !picker._bound) {
+    //picker._bound = true;
+    //picker.addEventListener('change', () => UI.scrollToActivityIndex(picker.selectedIndex));
+    //}
 
   // Toggle Oggi/Prossima
-  const jumpBtn = this.qs('#jumpToggle');
-  if (jumpBtn && !jumpBtn._bound) {
-    jumpBtn._bound = true;
-    jumpBtn.addEventListener('click', () => {
-      const acts = UI.getActivitiesSorted();
-      if (!acts.length) return;
-      const { todayIndex, nextIndex } = UI._getTodayAndNextIndexes(acts);
+  //const jumpBtn = this.qs('#jumpToggle');
+  //if (jumpBtn && !jumpBtn._bound) {
+    //jumpBtn._bound = true;
+    //jumpBtn.addEventListener('click', () => {
+      //const acts = UI.getActivitiesSorted();
+      //if (!acts.length) return;
+      //const { todayIndex, nextIndex } = UI._getTodayAndNextIndexes(acts);
       // Se il bottone dice "Vai a Prossima" -> vai a nextIndex, altrimenti vai a todayIndex
-      const target = jumpBtn.dataset.mode === 'next' ? todayIndex : nextIndex;
-      if (target >= 0) {
-        UI.scrollToActivityIndex(target);
-        const picker = UI.qs('#mobileActivityPicker');
-        if (picker) picker.selectedIndex = target;
-      }
+      //const target = jumpBtn.dataset.mode === 'next' ? todayIndex : nextIndex;
+      //if (target >= 0) {
+        //UI.scrollToActivityIndex(target);
+        //const picker = UI.qs('#mobileActivityPicker');
+        //if (picker) picker.selectedIndex = target;
+      //}
       // toggle label e mode
-      if (jumpBtn.dataset.mode === 'next') {
-        jumpBtn.textContent = 'Vai a Prossima';
-        jumpBtn.dataset.mode = 'today';
-      } else {
-        jumpBtn.textContent = 'Vai a Oggi';
-        jumpBtn.dataset.mode = 'next';
-      }
-    });
-  }
-};
+      //if (jumpBtn.dataset.mode === 'next') {
+        //jumpBtn.textContent = 'Vai a Prossima';
+        //jumpBtn.dataset.mode = 'today';
+      //} else {
+        //jumpBtn.textContent = 'Vai a Oggi';
+        //jumpBtn.dataset.mode = 'next';
+      //}
+    //});
+  //}
+//};
 
 UI._getTodayAndNextIndexes = function(acts) {
   const toDate = (v) => (v && v.toDate) ? v.toDate() : new Date(v);
@@ -133,18 +133,18 @@ UI.renderPresenceTable = function() {
   });
 
   // Popola picker mobile
-  const picker = this.qs('#mobileActivityPicker');
-  if (picker) {
-    picker.innerHTML = '';
-    acts.forEach((a, idx) => {
-      const opt = document.createElement('option');
-      opt.value = a.id;
-      opt.textContent = UI.formatDisplayDate(a.data);
-      opt.dataset.index = String(idx);
-      picker.appendChild(opt);
-    });
-    picker.selectedIndex = nextActivityIndex >= 0 ? nextActivityIndex : 0;
-  }
+ // const picker = this.qs('#mobileActivityPicker');
+ // if (picker) {
+   // picker.innerHTML = '';
+   // acts.forEach((a, idx) => {
+      //const opt = document.createElement('option');
+      //opt.value = a.id;
+      //opt.textContent = UI.formatDisplayDate(a.data);
+      //opt.dataset.index = String(idx);
+      //picker.appendChild(opt);
+    //});
+    //picker.selectedIndex = nextActivityIndex >= 0 ? nextActivityIndex : 0;
+  //}
 
   // Header
   acts.forEach(a => {
