@@ -24,17 +24,53 @@ UI.renderDashboardCharts = function() {
 
   this._destroyCharts();
 
-  // Dati per grafico Presenza per Esploratore (percentuale presenze sul totale attività)
+  // Dati per grafico Presenza per Esploratore (percentuale presenze - stessa logica di presenze.html)
   const dedup = presences;
+  const toDate = (v) => (v && v.toDate) ? v.toDate() : new Date(v);
+  const sortedActivities = [...activities].sort((a, b) => toDate(a.data) - toDate(b.data));
+  
+  // Calcola la prossima attività (>= oggi)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let nextActivityId = null;
+  sortedActivities.forEach(a => {
+    const ad = (a.data && a.data.toDate) ? a.data.toDate() : new Date(a.data);
+    const aday = new Date(ad);
+    aday.setHours(0, 0, 0, 0);
+    if (nextActivityId === null && aday >= today) {
+      nextActivityId = a.id;
+    }
+  });
+  
   const scoutLabels = scouts.map(s => `${s.nome} ${s.cognome}`);
   const scoutPerc = scouts.map(s => {
-    const presentCount = dedup.filter(p => p.esploratoreId === s.id && p.stato === 'Presente').length;
-    return activities.length ? (presentCount / activities.length) * 100 : 0;
+    // Calcola il set di attività considerate: tutte le già svolte (< oggi) + la prossima in programma
+    const pastIds = sortedActivities.filter(a => {
+      const ad = (a.data && a.data.toDate) ? a.data.toDate() : new Date(a.data);
+      const aday = new Date(ad);
+      aday.setHours(0, 0, 0, 0);
+      return aday < today;
+    }).map(a => a.id);
+    const consideredIds = nextActivityId ? [...pastIds, nextActivityId] : pastIds;
+    
+    // Considera solo le attività dove lo stato è "Presente" o "Assente" (esclude NR e X)
+    const validActIds = consideredIds.filter(aid => {
+      const pr = dedup.find(p => p.esploratoreId === s.id && p.attivitaId === aid);
+      return pr && (pr.stato === 'Presente' || pr.stato === 'Assente');
+    });
+    const totalActsConsidered = validActIds.length;
+    const presentCount = dedup.filter(p => p.esploratoreId === s.id && p.stato === 'Presente' && validActIds.includes(p.attivitaId)).length;
+    return totalActsConsidered ? Math.round((presentCount / totalActsConsidered) * 100) : 0;
+  });
+  
+  // Colori per le barre in base alla percentuale
+  const scoutColors = scoutPerc.map(perc => {
+    if (perc >= 75) return '#16a34a'; // verde
+    if (perc >= 60) return '#eab308'; // giallo
+    return '#dc2626'; // rosso
   });
 
   // Dati per grafico Presenze per Attività (conteggio presenti) ordinati per data
-  const toDate = (v) => (v && v.toDate) ? v.toDate() : new Date(v);
-  const sortedActivities = [...activities].sort((a, b) => toDate(a.data) - toDate(b.data));
   const actLabels = sortedActivities.map(a => {
     const d = toDate(a.data);
     const ds = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
@@ -68,7 +104,11 @@ UI.renderDashboardCharts = function() {
     type: 'bar',
     data: {
       labels: scoutLabels,
-      datasets: [{ label: 'Presenza %', data: scoutPerc, backgroundColor: '#16a34a' }]
+      datasets: [{ 
+        label: 'Presenza %', 
+        data: scoutPerc, 
+        backgroundColor: scoutColors 
+      }]
     },
     options: {
       ...commonOptions,
