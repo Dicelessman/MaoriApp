@@ -158,9 +158,20 @@ UI.renderPresenceTable = function() {
     const isNext = a.id === nextActivityId;
     const thDateClasses = isNext ? 'bg-green-900' : 'bg-green-800';
     const thNameClasses = isNext ? 'bg-green-900' : 'bg-green-800';
-    const link = `attivita.html?id=${a.id}`;
-    thDates.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${thDateClasses} text-white font-semibold sticky top-0 border-r border-white/40"><a href="${link}" class="text-white hover:underline" title="Apri dettaglio attività">${displayDate}${isNext ? ' <span class=\"text-xs\">(Prossima)</span>' : ''}</a></th>`);
-    thNames.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${thNameClasses} text-white font-semibold sticky top-0 border-r border-white/40"><a href="${link}" class="text-white hover:underline" title="Apri dettaglio attività">${a.tipo}</a><div class="text-xs font-normal text-white/90">${perc}% (${presentCount}/${expectedCount})</div></th>`);
+    thDates.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${thDateClasses} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${displayDate}${isNext ? ' <span class=\"text-xs\">(Prossima)</span>' : ''}</a></th>`);
+    thNames.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${thNameClasses} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${a.tipo}</a><div class="text-xs font-normal text-white/90">${perc}% (${presentCount}/${expectedCount})</div></th>`);
+  });
+
+  // Event listeners per i link delle intestazioni
+  const headerLinks = document.querySelectorAll('.activity-header-link');
+  headerLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const activityId = link.getAttribute('data-activity-id');
+      if (activityId) {
+        this.showActivityDetailModal(activityId);
+      }
+    });
   });
 
   // Sort handler su intestazione Esploratore
@@ -237,7 +248,134 @@ UI.renderPresenceTable = function() {
     body.insertAdjacentHTML('beforeend', row);
   });
 
-  // Nessuno scroll automatico qui: l’utente usa picker/prev/next o il toggle
+  // Nessuno scroll automatico qui: l'utente usa picker/prev/next o il toggle
+};
+
+UI.showActivityDetailModal = function(activityId) {
+  const activity = (this.state.activities || []).find(a => a.id === activityId);
+  if (!activity) return;
+
+  // Header
+  const d = this.toJsDate(activity.data);
+  const ds = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' });
+  const titleEl = this.qs('#activityDetailTitle');
+  const metaEl = this.qs('#activityDetailMeta');
+  if (titleEl) titleEl.textContent = `${activity.tipo || 'Attività'}${activity.descrizione ? ' — ' + activity.descrizione : ''}`;
+  if (metaEl) metaEl.textContent = `${ds}${activity.costo ? ` — Costo: €${activity.costo}` : ''}`;
+
+  // Prepara indici
+  const presenze = this.getDedupedPresences().filter(p => p.attivitaId === activityId);
+
+  // Utility: format DOB
+  const fmtDob = (s) => {
+    const raw = s?.anag_dob;
+    if (!raw) return '';
+    const date = this.toJsDate(raw);
+    if (isNaN(date)) return '';
+    return date.toLocaleDateString('it-IT');
+  };
+
+  // Separa presenti/assenti
+  const presenti = [];
+  const assenti = [];
+  const pagamenti = [];
+
+  (this.state.scouts || []).forEach(s => {
+    const p = presenze.find(x => x.esploratoreId === s.id);
+    const nome = `${s.nome || ''} ${s.cognome || ''}`.trim();
+    const dob = fmtDob(s);
+    if (p && p.stato === 'Presente') {
+      presenti.push({ nome, dob });
+    } else if (p && p.stato === 'Assente') {
+      assenti.push({ nome, dob });
+    }
+    if (p && p.pagato) {
+      pagamenti.push({ nome, metodo: p.tipoPagamento || 'Pagato' });
+    }
+  });
+
+  // Render liste e contatori
+  const mkLi = (t) => `<li>${t}</li>`;
+  const presentiList = this.qs('#presentiModalList');
+  const assentiList = this.qs('#assentiModalList');
+  const pagamentiList = this.qs('#pagamentiModalList');
+  const presentiCount = this.qs('#presentiModalCount');
+  const assentiCount = this.qs('#assentiModalCount');
+  const pagamentiCount = this.qs('#pagamentiModalCount');
+
+  if (presentiList) presentiList.innerHTML = presenti
+    .sort((a,b)=>a.nome.localeCompare(b.nome))
+    .map(x => mkLi(`${x.nome}${x.dob ? ' — ' + x.dob : ''}`)).join('');
+  if (presentiCount) presentiCount.textContent = `${presenti.length} elementi`;
+
+  if (assentiList) assentiList.innerHTML = assenti
+    .sort((a,b)=>a.nome.localeCompare(b.nome))
+    .map(x => mkLi(`${x.nome}${x.dob ? ' — ' + x.dob : ''}`)).join('');
+  if (assentiCount) assentiCount.textContent = `${assenti.length} elementi`;
+
+  if (pagamentiList) pagamentiList.innerHTML = pagamenti
+    .sort((a,b)=>a.nome.localeCompare(b.nome))
+    .map(x => mkLi(`${x.nome} — ${x.metodo}`)).join('');
+  if (pagamentiCount) pagamentiCount.textContent = `${pagamenti.length} pagamenti`;
+
+  // Bottoni copia
+  const copy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Copiato negli appunti');
+    } catch (e) {
+      console.error('Clipboard error:', e);
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      alert('Copiato negli appunti');
+    }
+  };
+
+  const copyPresentiBtn = this.qs('#copyPresentiModalBtn');
+  const copyAssentiBtn = this.qs('#copyAssentiModalBtn');
+  const copyPagamentiBtn = this.qs('#copyPagamentiModalBtn');
+
+  const joinLines = (arr, mapFn) => arr
+    .sort((a,b)=>a.nome.localeCompare(b.nome))
+    .map(mapFn)
+    .join('\n');
+
+  if (copyPresentiBtn) {
+    copyPresentiBtn.onclick = () => {
+      const txt = joinLines(presenti, x => `${x.nome}${x.dob ? ' — ' + x.dob : ''}`);
+      copy(txt);
+    };
+  }
+  if (copyAssentiBtn) {
+    copyAssentiBtn.onclick = () => {
+      const txt = joinLines(assenti, x => `${x.nome}${x.dob ? ' — ' + x.dob : ''}`);
+      copy(txt);
+    };
+  }
+  if (copyPagamentiBtn) {
+    copyPagamentiBtn.onclick = () => {
+      const txt = joinLines(pagamenti, x => `${x.nome} — ${x.metodo}`);
+      copy(txt);
+    };
+  }
+
+  // Mostra il modale
+  this.showModal('activityDetailModal');
+  
+  // Chiudi modale quando si clicca sul backdrop
+  const modal = this.qs('#activityDetailModal');
+  if (modal && !modal._backdropBound) {
+    modal._backdropBound = true;
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.closeModal('activityDetailModal');
+      }
+    });
+  }
 };
 
 // Inizializza la pagina presenze
