@@ -213,6 +213,7 @@ UI.renderPresenceTable = function() {
             <option value=\"Presente\" ${presence.stato==='Presente'?'selected':''}>P</option>
             <option value=\"Assente\" ${presence.stato==='Assente'?'selected':''}>A</option>
             <option value=\"NR\" ${presence.stato==='NR'?'selected':''}>NR</option>
+            <option value=\"X\" ${presence.stato==='X'?'selected':''}>X</option>
           </select>
           ${needsPayment ? `
           <div class=\"payment-section\">

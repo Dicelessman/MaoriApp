@@ -118,6 +118,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
 .presence-select option[value="Presente"] { color: #16a34a; } /* verde */
 .presence-select option[value="Assente"] { color: #dc2626; } /* rosso */
 .presence-select option[value="NR"] { color: #2563eb; } /* blu */
+.presence-select option[value="X"] { color: #6b7280; } /* grigio */
 
 .payment-select option[value=""] { color: #dc2626; } /* rosso - Non Pagato */
 .payment-select option[value="Contanti"] { color: #16a34a; } /* verde */
@@ -128,6 +129,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
 .presence-select[data-selected="Presente"] { color: #16a34a; }
 .presence-select[data-selected="Assente"] { color: #dc2626; }
 .presence-select[data-selected="NR"] { color: #2563eb; }
+.presence-select[data-selected="X"] { color: #6b7280; }
 
 .payment-select[data-selected=""] { color: #dc2626; }
 .payment-select[data-selected="Contanti"] { color: #16a34a; }
