@@ -1,11 +1,1142 @@
 [
   {
-    "nome": "Nome Specialità 1",
+    "nome": "Abilità Aquatiche",
     "prove": [
-      {"nome": "Prova 1", "id": "p1"},
-      {"nome": "Prova 2", "id": "p2"},
-      {"nome": "Prova 3", "id": "p3"}
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le attrezzature principali per lo snorkeling, le loro componenti, lo scopo e le buone pratiche per mantenerle in buono stato. Conoscere le tecniche di apnea e gli effetti provocati sul corpo umano (rischi, compensazione, scambi gassosi, ...)"
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Sapersi calare in acqua indossando correttamente l'attrezzatura (pinne, maschera, boccaglio, ecc.) per condurre l’esplorazione di ambienti acquatici vicino alla riva in sicurezza."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Con l'aiuto della ptg/eqp simulare un intervento di soccorso in acqua dimostrando di saper recuperare un compagno privo di sensi riportandolo in superficie, a riva o su un’imbarcazione."
+      }
+    ]
+  },
+  {
+    "nome": "Agroecologia",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Illustrare le principali caratteristiche e varietà di una piccola produzione agricola/zootecnica, individuandone i principali fattori di impatto ambientale."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Ideare, progettare e mettere in pratica tecniche produttive adattandole al proprio contesto (piccolo orto/allevamento in giardino, coltivazione in vaso, idroponica)"
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare con la/il propria/o ptg/eqp/reparto un orto o un allevamento condiviso nella propria sede/ quartiere/città per ricavarne una piccola produzione utile."
+      }
+    ]
+  },
+  {
+    "nome": "Amicizia Internazionale",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere altre realtà scout nel panorama mondiale illustrandone le principali differenze e aspetti comuni rispetto alla nostra associazione."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Corrispondere con una persona di un’altra nazionalità. Scambiarsi informazioni sulle proprie culture d'origine, tradizioni, usanze e imparare un gioco, canzone o ban da proporre al proprio Reparto."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Partecipare ad un evento di portata internazionale (Jota-Joti, Jamboree, campo all’estero, ecc.) o entrare in contatto con una delle comunità straniere presenti sul tuo territorio, svolgendo con loro almeno un’attività/evento."
+      }
+    ]
+  },
+  {
+    "nome": "Animazione",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere e sperimentare le principali tecniche di espressione (canto, mimo, ombre cinesi, quadri plastici/elastici, musical, danza, ecc.). Conoscere la curva del fuoco."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Gestire un momento di animazione con una o più tecniche a scelta."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Programmare ed animare un fuoco di bivacco con l’aiuto della propria ptg/eqp o un piccolo gruppo, utilizzando diverse tecniche di espressione e ponendo attenzione a scenografia, costumi, trucco, tempo di scena, coinvolgimento del pubblico, messaggi lanciati, etc."
+      }
+    ]
+  },
+  {
+    "nome": "Archeostoria",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le caratteristiche di un oggetto tipico di un'epoca: come e quando è stato rinvenuto, in che materiale è realizzato, a quale epoca appartiene, quale era la sua funzione principale, etc."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Utilizzare una tecnica antica per la realizzazione di un manufatto o di un prodotto alimentare."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Organizzare e promuovere un’attività interattiva di approfondimento su un periodo o evento storico, ad esempio visitando un museo o una mostra."
+      }
+    ]
+  },
+  {
+    "nome": "Arrampicata",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le diverse discipline dell’arrampicata. Descrivere l’attrezzatura necessaria per scalare, in palestra o in natura, e le relative pratiche di manutenzione. Conoscere le varie tipologie di prese e la loro nomenclatura."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Sapersi muovere correttamente in parete, utilizzando almeno 4 diverse tecniche basilari (cambio piede, cambio mano, laterale, incrocio, aggancio di punta, tallonaggio, ecc), specificando in quali situazioni possono essere utili. Saper fare sicura, descrivendo i passaggi necessari, e le norme di sicurezza da rispettare."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Coinvolgere la tua ptg/eqp o reparto nel vivere un’attività di arrampicata con l’aiuto di un adulto esperto."
+      }
+    ]
+  },
+  {
+    "nome": "Arte",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le principali tecniche artistiche (pittura, scultura, etc ...) e i relativi strumenti."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper utilizzare gli strumenti e i materiali della tecnica prescelta. Realizzare un portfolio/raccolta/ esibizione/mostra delle proprie opere da presentare al reparto o ptg/eqp, descrivendone alcune dal punto di vista tecnico e artistico."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Partecipare attivamente all’arredamento/decorazione della sede/angolo o realizzare altre opere che possano essere utili al reparto o ptg/eqp (es. stemma di ptg, scenografia per un fuoco, etc ...)."
+      }
+    ]
+  },
+  {
+    "nome": "Arti Grafiche",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Illustrare come avviene il processo di elaborazione grafica o fumettistica dall'ideazione alla stampa; illustrare la storia della grafica o del fumetto."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Realizzare un progetto grafico con tema e tecnica a piacere, stampandolo su un supporto a scelta oppure scrivere disegnare, inchiostrare e stampare una storia a fumetti."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare e curare tutto il materiale promozionale ed espositivo per un evento di ptg/eqp e/o reparto (mostra, autofinanziamento, ecc.)"
+      }
+    ]
+  },
+  {
+    "nome": "Artigianato",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le caratteristiche del materiale scelto (cuoio, argilla, metallo, etc..) per la realizzazione di piccoli manufatti."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper usare i principali strumenti per la realizzazione di un manufatto, mostrando le diverse fasi della lavorazione e le tecniche utilizzate."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Progettare e realizzare un oggetto utile per la vita di ptg/eqp e/o reparto o per un’attività di autofinanziamento."
+      }
+    ]
+  },
+  {
+    "nome": "Astronomia",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere i pianeti, le principali costellazioni (circumpolari e dell’eclittica) e la loro mitologia. Conoscere il sistema solare, le leggi che lo governano e l’evoluzione delle stelle."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper utilizzare una meridiana, un astrolabio, un sestante e/o un telescopio (possibilmente auto-costruito) e spiegarne l'utilizzo. Saper rintracciare i pianeti e saper indicare gli allineamenti per il riconoscimento."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare un'attività serale con la pattuglia o con il reparto per condividere le proprie conoscenze astronomiche su un argomento a propria scelta (pianeti, satelliti, buchi neri, nebulose, ecc.)."
+      }
+    ]
+  },
+  {
+    "nome": "Avventura",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere l’attrezzatura personale utile per compiere in sicurezza un percorso (da svolgere a piedi, in bicicletta, in natante o con altri mezzi). Conoscere i pericoli e le difficoltà che si possono incontrare nella sua realizzazione."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper costruire strumenti in grado di far fronte alle necessità (rifugio di fortuna, utensili, zaino di fortuna, sistema per raccolta dell’acqua, ecc.)"
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Progettare e realizzare il percorso, assieme ad altri esploratori o esploratrici, portando con sé lo stretto indispensabile per almeno un pernotto e un momento di riflessione."
+      }
+    ]
+  },
+  {
+    "nome": "Benessere",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le buone pratiche per mantenere il proprio benessere (psico)fisico. Conoscere le proprietà delle piante officinali e i loro utilizzi. Conoscere le origini ed il funzionamento di almeno una delle discipline del benessere (yoga, pilates, ecc.)"
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Utilizzare almeno tre diverse piante officinali per confezionare preparati (infusi, unguenti, ecc.), specificandone le proprietà benefiche. Dimostrare di saper praticare almeno una delle discipline del benessere."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare un momento per la ptg/eqp e/o reparto di pratica della disciplina conosciuta, includendo esercizi di respirazione, di rilassamento, di flessibilità e di tono muscolare."
+      }
+    ]
+  },
+  {
+    "nome": "Campismo",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere tutte le parti di una tenda, partecipare attivamente al montaggio della propria insieme alla pattuglia/equipaggio ed essere in grado di mantenerla correttamente; conoscere i principali strumenti e materiali da campo (accetta, sega, cuneo, piccone, badile, etc ...) e la loro manutenzione."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Ideare, realizzare e possedere un kit personale (acciarino, cordino, cuneo, ecc.) con gli strumenti indispensabili per affrontare un campo. Saper utilizzare l’attrezzatura di ptg/eqp e reparto in sicurezza."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Progettare e realizzare la disposizione di un sottocampo tenendo conto della conformazione dell'area e delle esigenze di ptg/eqp e Reparto, ideando e realizzando soluzioni pratiche per rendere la vita al campo più confortevole."
+      }
+    ]
+  },
+  {
+    "nome": "Canottaggio",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Dimostrare di conoscere: ▶ i remi e come utilizzarli; ▶ le caratteristiche strutturali di un'imbarcazione, le condizioni di stabilità, la nomenclatura delle sue parti; ▶ i principali tipi di imbarcazioni a remi; ▶ i nodi di ormeggio e saperli realizzare."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Utilizzare e manovrare con destrezza un'imbarcazione a remi (barca, canoa, kayak, ecc. ) o praticare uno sport con imbarcazione (in singolo o in equipaggio), sapendo come comportarsi in caso di rovesciamento/scuffiamento."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare con la propria Ptg/Eqp o Reparto, utilizzando imbarcazioni a remi, un gioco o un'attività nell'ambiente acquatico."
+      }
+    ]
+  },
+  {
+    "nome": "Carpenteria",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere i principali tipi di legno, gli strumenti di lavorazione e loro peculiarità e i dispositivi di sicurezza necessari."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Dimostrare di saper utilizzare gli utensili (scalpello, lima, raspa, incisore, ecc.) più adatti a seconda delle necessità, mostrando le diverse fasi della lavorazione del legno e le tecniche utilizzate."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Ideare, progettare e realizzare un manufatto in legno utilizzando materiali sostenibili (certificati) o di recupero, utile alla propria ptg/eqp/reparto."
+      }
+    ]
+  },
+  {
+    "nome": "Carpenteria Navale",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere tutte le parti di un’imbarcazione a vela, remi o a motore; le navi, la nomenclatura delle loro parti e i principi di galleggiamento. Conoscere i moderni materiali per le costruzioni nautiche (compensato marino, legno massello adatto alla costruzione di alberi, parti strutturali, resine, nastri in fibra di vetro, vernici...)."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Dimostrare di saper eseguire piccole riparazioni in funzione del materiale dell’imbarcazione scelta."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Costruire una piccola imbarcazione e un’attrezzatura nautica di vario genere (es. scandaglio a mano, parabordi, gancio d'accosto, remi...) con l’aiuto della propria ptg/eqp, da utilizzare in un’attività."
+      }
+    ]
+  },
+  {
+    "nome": "Ciclismo",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le parti meccaniche/elettriche di una bicicletta (anche a pedalata assistita) ed il loro funzionamento. Conoscere le basilari norme del codice stradale in riferimento all’uso della bicicletta. Conoscere la viabilità adatta all’utilizzo della bicicletta nel proprio territorio."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper utilizzare una bicicletta (city bike, mtb, da corsa, etc.) e l’attrezzatura necessaria per la manutenzione e la sicurezza personale. Saper riparare dei piccoli e comuni guasti relativi ad una bicicletta (es. caduta della catena, foratura, etc..)."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Promuovere l’utilizzo regolare della bicicletta come mezzo di trasporto per ridurre il proprio impatto ambientale e/o per mantenere la propria forma fisica (ad esempio svolgendo un’attività di ptg/eq/ reparto in bicicletta)."
+      }
+    ]
+  },
+  {
+    "nome": "Cittadinanza Digitale",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere quali sono i dati sensibili da proteggere, cosa sono i sistemi di tracciamento online (cookies, ecc.) e cos’è l’impronta digitale e i pericoli della rete (cyberbullismo, molestie, fake news, etc..). Saper creare delle password sicure."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Raccontare o illustrare, sulle piattaforme social che usi, almeno 3 attività di ptg/eqp e/o reparto."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Proporre un’attività di ptg/eqp per sensibilizzare sul tema della cittadinanza digitale attiva e sicura."
+      }
+    ]
+  },
+  {
+    "nome": "Coding",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le nozioni fondamentali di un diagramma di flusso e di un linguaggio di programmazione a tua scelta."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Progettare ed illustrare un programma con un modello, prevedendo i casi d’uso."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Programmare un software o un’app utile al reparto o alla ptg/eqp con qualsiasi linguaggio di programmazione."
+      }
+    ]
+  },
+  {
+    "nome": "Collezionismo",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Curare una collezione a proprio piacimento, tenendola ordinata e classificata."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Progettare lo sviluppo della propria collezione, identificando dove e come acquisire o scambiare nuovi pezzi della stessa."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Organizzare un momento per mostrare la collezione, illustrando tutto ciò che è stato appreso nel curarla, presentando alcuni pezzi scelti sulla base del valore affettivo e/o economico, raccontandone la storia."
+      }
+    ]
+  },
+  {
+    "nome": "Comunicazione",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere a memoria almeno un codice di comunicazione a distanza oltre al parlato (morse, semaforico, nautico, fraseologia radio, ecc..), la storia della crittografia e almeno 3 codici cifrati con i relativi metodi di decifrazione."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Trasmettere con un codice a scelta e a una buona velocità (5 parole al minuto circa), e dimostrare di conoscere la procedura corretta per inviare e ricevere un messaggio. Decifrare un messaggio non noto e criptarne un altro con almeno due tecniche distinte."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Ideare e organizzare un gioco o attività con la ptg/eqp basata sulle tecniche di trasmissione e la decifrazione tramite un codice inventato."
+      }
+    ]
+  },
+  {
+    "nome": "Conservazione Mondiale",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere la flora, la fauna, gli habitat e le aree protette e le principali minacce ambientali del proprio territorio e del Mondo. Informarsi su quali sono le strategie di difesa messe in campo."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Incontrare una realtà (comune, associazione o azienda) o scoprire un progetto che nella tua zona utilizza tecnologie innovative per lo sviluppo sostenibile."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Organizzare con la tua pattuglia un'attività di sensibilizzazione a tema ambientale da proporre alla tua comunità, scegliendo le modalità (video, volantini, giochi, conferenze, collaborazioni con associazioni) e la tematica (consumo di suolo o di acqua, energie rinnovabili, riscaldamento globale, raccolta differenziata, tutela della biodiversità, …) in base a ciò di cui ha più bisogno il territorio in cui vivi."
+      }
+    ]
+  },
+  {
+    "nome": "Cucina",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le caratteristiche di un pasto bilanciato che tenga conto delle proprietà nutritive dei principali alimenti e della sostenibilità ambientale. Conoscere le modalità di conservazione degli alimenti e la loro reperibilità stagionale."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Cucinare una preparazione base della cucina (salse, sughi, impasti, creme, fritti, etc..) conoscendo le caratteristiche delle diverse tecniche di cottura (forno, vapore, fornello, fuoco, trapper, etc..). Manutenere e saper utilizzare correttamente l’attrezzatura da cucina della ptg/eqp ed escogitare le strategie per la conservazione del cibo più adatte al contesto."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Progettare e realizzare un menù giornaliero per la ptg/eqp utilizzando almeno due diverse tecniche di cottura. Tenere in considerazione le possibili varianti delle principali esigenze alimentari (vegetariana, vegana, no latticini, etc...), e la stagionalità e provenienza degli alimenti."
+      }
+    ]
+  },
+  {
+    "nome": "Difesa Personale",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere a grandi linee le origini o la filosofia alla base di una disciplina di difesa personale. Conoscere il significato e la funzione delle forme, stili, mosse o tecniche di combattimento imparate."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Aver raggiunto un riconoscimento del proprio livello (es. cintura) nello sport di difesa personale (se praticato) o sapere come ottenerlo. Realizzare forme o simulare situazioni di combattimento."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare una dimostrazione (allenamento o simulazione) coinvolgendo in sicurezza la tua ptg/eqp o il Reparto."
+      }
+    ]
+  },
+  {
+    "nome": "Esplorazione",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere l’attrezzatura personale utile per compiere in sicurezza un’esplorazione in un ambiente terrestre. Conoscere gli strumenti necessari per documentare la propria esplorazione."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Progettare e realizzare un hike in un luogo di proprio interesse ancora inesplorato."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Documentare e geo-referenziare, nel modo che si ritiene più opportuno (racconti scritti, raccolte di fotografie, disegni, video, etc.), gli aspetti naturalistici e antropici che catturano il proprio interesse. Realizzare un reportage dell'esplorazione compiuta e presentarlo al Reparto."
+      }
+    ]
+  },
+  {
+    "nome": "Espressione Corporea",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Spiegare i movimenti che stanno alla base della disciplina praticata illustrando eventuali aspetti culturali legati ad essa (storia, curiosità, personaggi)"
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Mostrare al Reparto una esibizione delle tue abilità nella disciplina praticata."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Coinvolgere la propria Ptg/Eqp o il Reparto, nello svolgere insieme la disciplina scelta."
+      }
+    ]
+  },
+  {
+    "nome": "Fai Da Te",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere i simboli e i segnali di pericolo (pericolo tossico, infiammabile, irritante, elettrico o superficie scivolosa), i dispositivi di sicurezza individuali (occhiali, guanti, maschere, cuffie antirumore, abbigliamento) e i principali utensili ed elettroutensili per le riparazioni domestiche."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Dimostrare di saper eseguire almeno 5 differenti riparazioni e/o manutenzioni domestiche di idraulica, elettricità e muratura (sturare lavabo, riparare un tubo, riparare un circuito elettrico, stuccare e dipingere un muro, montare una mensola, ecc.) utilizzando le risorse a disposizione anche con metodi non convenzionali."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Contribuire a riparare e a manutenere la sede e/o la casa e la relativa mobilia. Effettuare un intervento che migliori gli spazi in cui vivo, mettendo in campo la propria inventiva."
+      }
+    ]
+  },
+  {
+    "nome": "Folklore",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le principali tradizioni popolari (feste, cerimonie, sagre, mercati, etc...) di una specifica area geografica (di provenienza o di interesse) e conoscerne le origini."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Far vivere al Reparto o alla tua Ptg/Eqp un’attività della tradizione di una specifica area geografica (balli, canti, piatti tipici, festeggiamenti, etc..)"
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Valorizzare le tradizioni attuali della tua Ptg/Eqp, Reparto, e/o Gruppo, riscoprire quelle in disuso, proporre nuove tradizioni o arricchire quelle in essere."
+      }
+    ]
+  },
+  {
+    "nome": "Fotografia",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Illustrare le caratteristiche dei principali strumenti fotografici (digitali, reflex, mirrorless, smartphone, ...) ed i diversi parametri regolabili (ISO, diaframma, tempo di esposizione, etc.). Conoscere i concetti di messa a fuoco e profondità di campo."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Dimostrare di saper utilizzare le principali tecniche e regole della composizione fotografica; saper fare uso di un software di postproduzione."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare una raccolta di fotografie su un'attività scout o su un tema scelto e presentale al reparto, (Es. mostra, reportage, etc..) spiegando le scelte stilistiche. ."
+      }
+    ]
+  },
+  {
+    "nome": "Fuochismo",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere: ▶ il triangolo del fuoco e le principali tecniche di contenimento e spegnimento. ▶ le tipologie di legna e le loro peculiarità (luce, calore, braci, fumo). ▶ le strutture e la finalità per le diverse tipologie di fuoco (capanna, boscaiolo, polinesiano, riflettente, trapper, trincea, ...)"
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Preparare la legna per il fuoco tagliandola e/o spaccandola utilizzando correttamente gli strumenti a disposizione. Predisporre almeno tre tipologie diverse di fuoco, sapendone accendere almeno uno anche in condizioni avverse o mediante tecniche non convenzionali (acciarino, archetto, ecc.)."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Gestire in più occasioni della vita di reparto o ptg/eqp, tutte le fasi di un fuoco: dalla ricerca e taglio della legna, al suo spegnimento, tenendo conto delle norme di sicurezza personali e ambientali."
+      }
+    ]
+  },
+  {
+    "nome": "Giochi di Squadra",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le regole ed i ruoli di una squadra dello sport praticato, spiegando in particolare l'importanza del proprio ruolo. Conoscere la storia, le curiosità e i maggiori esponenti di questo sport."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Praticare correntemente uno sport o gioco di squadra. Dimostrare attraverso una sfida tecnica di propria scelta le proprie abilità nello sport praticato."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Organizzare un torneo dello sport praticato con la propria ptg/eqp e/o reparto, sperimentandosi anche nell'arbitraggio."
+      }
+    ]
+  },
+  {
+    "nome": "Giornalismo",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le principali testate, siti web, pagine social giornalistiche, podcast e la loro struttura e nomenclatura."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Redigere un articolo o condurre un’intervista (anche con supporti multimediali) su un avvenimento significativo accaduto in Reparto o Ptg/Eqp. Saper effettuare il fact checking di una notizia."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Proporre al Reparto delle iniziative giornalistiche di informazione (es: creare una bacheca, scrivere un articolo per la rivista associativa “Scautismo”, realizzare un podcast in un'uscita o al campo, realizzare un reportage, ecc.) ponendo particolare attenzione alle fonti di informazioni attendibili e non."
+      }
+    ]
+  },
+  {
+    "nome": "Guida",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Illustrare la storia, i luoghi di interesse culturale e sociale (ospedale, scuola, parchi, ...) della tua città, nonché le modalità di trasporto pubblico o sostenibile con cui è possibile raggiungerli."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Progettare un programma di visita della città per un piccolo gruppo di persone curando gli spostamenti ed evidenziando i punti di interesse. Prestare attenzione anche alla logistica della visita (punti d'acqua, parchi in cui fare una sosta, bagni, ...)."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Condurre un itinerario di visita guidata della tua città, focalizzandosi su uno di questi aspetti: naturalistico, sociale, culturale o storico."
+      }
+    ]
+  },
+  {
+    "nome": "Hebertismo",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere la storia dell'hebertismo e le 10 famiglie che lo caratterizzano (marcia, corsa, salto, quadrupedia, arrampicata, equilibrio, sollevamento e trasporto, lancio, lotta, nuoto), dimostrando di padroneggiarle.individuandone i principali fattori di impatto ambientale."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Durante un'attività all’aperto, saper utilizzare gli elementi naturali per praticare esercizio fisico (in caso di attività in città, saper sfruttare gli elementi antropici) monitorando i propri miglioramenti nel tempo."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Progettare, realizzare ed eseguire un percorso Hebert per la ptg/eqp e/o Reparto, come modo di tenersi in forma o per svolgere un'attività."
+      }
+    ]
+  },
+  {
+    "nome": "Impatto Ambientale",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere la flora, la fauna, gli habitat e le aree protette e le principali minacce ambientali del proprio territorio e del Mondo. Informarsi su quali sono le strategie di difesa messe in campo."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Incontrare una realtà (comune, associazione o azienda) o scoprire un progetto che nella tua zona utilizza tecnologie innovative per lo sviluppo sostenibile."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Organizzare con la tua pattuglia un'attività di sensibilizzazione a tema ambientale da proporre alla tua comunità, scegliendo le modalità (video, volantini, giochi, conferenze, collaborazioni con associazioni) e la tematica (consumo di suolo o di acqua, energie rinnovabili, riscaldamento globale, raccolta differenziata, tutela della biodiversità, ecc.) in base a ciò di cui ha più bisogno il territorio in cui vivi."
+      }
+    ]
+  },
+  {
+    "nome": "Impatto nella Comunità",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere gli avvenimenti storici che hanno portato alla nascita della Repubblica Italiana, della sua Costituzione e delle principali festività civiche (Festa della Liberazione, Festa della Repubblica, Festa dei Lavoratori, etc..). Conoscere il funzionamento bicamerale italiano e le principali cariche attuali dello Stato"
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Partecipare ad almeno un momento di cittadinanza attiva organizzato da realtà istituzionali o sociali del proprio territorio (es. consiglio comunale dei giovani, collettivi, assemblee cittadine, ecc.)"
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Promuovere uno o più momenti di confronto e sensibilizzazione su un tema di interesse della comunità e partecipare alle iniziative locali (manifestazioni, banchetti informativi, sit in, ecc.)"
+      }
+    ]
+  },
+  {
+    "nome": "Informatica",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Dimostrare di conoscere: ▶ la struttura, la componentistica e il funzionamento di un hardware (computer, device mobili e periferiche); ▶ i principali sistemi operativi in uso; ▶ internet e il suo funzionamento infrastrutturale; ▶ i rischi informatici legati alla navigazione (malware, trojan, phishing, etc..)."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Conoscere le principali operazioni di gestione dei file (compressione, esportazione, modifica, archiviazione, condivisione su cloud, etc..). Saper utilizzare un browser, un motore di ricerca, l'email personale."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Contribuire alla digitalizzazione di un aspetto della vita di Reparto (archiviazione foto, scrittura di documenti, cassa di Ptg/Eqp, account social...)."
+      }
+    ]
+  },
+  {
+    "nome": "Interprete",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Saper sostenere una conversazione e fornire indicazioni in una lingua diversa dall’italiano, inclusa la lingua dei segni."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Tradurre e commentare in ptg/eqp o al reparto un testo scritto (poesia, racconto, articolo di giornale, etc..) o contenuto multimediale a propria scelta."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Insegnare al Reparto una canzone, ban, o gioco nella lingua prescelta, traducendo e spiegandone il testo in italiano."
+      }
+    ]
+  },
+  {
+    "nome": "Lettura",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere i diversi generi letterari e la struttura di un libro. Conoscere e presentare uno scrittore di interesse."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Raccontare al reparto i propri libri preferiti e le emozioni che hanno suscitato, citando alcuni passi dei libri. Aver letto \"Scautismo per ragazzi\" di BP e saperlo confrontare con lo scautismo attuale."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare o curare (se già esistente) la biblioteca di reparto, fisica e/o digitale o proporre un’altra attività di incoraggiamento o stimolo alla lettura (es: club letterario)."
+      }
+    ]
+  },
+  {
+    "nome": "Meccatronica",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere i principali componenti elettronici e meccanici, spiegarne il funzionamento all’interno dei circuiti elettrici e dei sistemi meccanici. Saper leggere lo schema di un circuito e conoscere i principali strumenti di misurazione necessari."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Costruire tre semplici circuiti e sistemi. Uno basato sull’elettronica digitale, uno sull’elettronica analogica e un sistema meccanico, dimostrando di saper lavorare in sicurezza con le componenti elettroniche e meccaniche. Spiegare i principi fisici alla base delle tre esperienze effettuate."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare un sistema elettronico e meccanico per automatizzare un processo che coinvolge la vita di pattuglia e/o reparto, ad esempio attraverso la realizzazione di un semplice robot."
+      }
+    ]
+  },
+  {
+    "nome": "Meteo",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere: ▶ la rosa dei venti, la tipologia delle nubi, la scala Beaufort ed il suo effetto sullo stato del mare; ▶ fronte caldo, freddo e occlusione; ▶ zone di alta e bassa pressione (la loro influenza sul tempo e sul movimento dei fronti); ▶ i fattori che influenzano le condizioni meteo: temperatura, pressione, umidità, orografia."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Realizzare una piccola stazione meteorologica, con anemometro segnavento, barometro e/o un termometro. Analizzare i dati forniti dagli strumenti di misurazione realizzati e saper interpretare tutti i fattori osservati per effettuare una previsione meteo nel breve termine."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Saper consultare gli aggiornamenti sui bollettini meteo ufficiali per la pianificazione di un’attività all’aperto e con l’equipaggiamento adeguato."
+      }
+    ]
+  },
+  {
+    "nome": "Musica",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le nozioni fondamentali della musica. Conoscere e presentare un artista del genere musicale a scelta."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper suonare uno strumento musicale, curandone la manutenzione ordinaria oppure saper cantare seguendo uno spartito."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Preparare, organizzare e realizzare un intrattenimento musicale proponendo nuove canzoni al Reparto."
+      }
+    ]
+  },
+  {
+    "nome": "Navigazione",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere i diversi venti e l’effetto sulle vele, la presa di terzaroli, l’effetto evolutivo del timone, i nomi delle manovre e delle vele e i nodi marinareschi. Conoscere le dotazioni di sicurezza ed il loro impiego a bordo di un'imbarcazione."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper effettuare operazioni di carteggio nautico e di conduzione di una barca a vela a tutte le andature. Saper armare, disarmare e ormeggiare un’imbarcazione a vela; saper utilizzare i nodi marinareschi e lo scandaglio a mano."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Organizzare con il Reparto o ptg/eqp un’attività di navigazione o partecipare ad una regata."
+      }
+    ]
+  },
+  {
+    "nome": "Nuoto",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere i rischi della pratica del nuoto in acque libere, sia derivanti dalle condizioni meteorologiche, sia dalle condizioni proprie fisiche personali (sforzi commisurati alle proprie capacità, alimentazione, ...). Conoscere le norme igieniche per la pratica dello sport."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper nuotare secondo i principali stili, conoscendo la tecnica e la muscolatura interessata."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Organizzare giochi da fare in sicurezza in acqua, in prossimità della riva, con la propria ptg/eqp e/o Reparto, che non richiedano particolari abilità acquatiche."
+      }
+    ]
+  },
+  {
+    "nome": "Olimpia",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Illustrare le regole e le attrezzature dello sport praticato, la storia, le curiosità ed i maggiori esponenti. Conoscere le principali funzioni del corpo umano (respirazione, circolazione, apparato muscolare, ecc.) e I principi della nutrizione in relazione allo sport praticato."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Praticare correntemente uno sport individuale. Dimostrare attraverso una sfida tecnica le abilità nello sport praticato. Elaborare un piano di miglioramento delle proprie prestazioni nello sport praticato di almeno tre mesi, mostrandone i risultati."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Organizzare una sessione di allenamento dello sport praticato con la propria ptg/eqp e/o reparto."
+      }
+    ]
+  },
+  {
+    "nome": "Orientamento",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le cartine topografiche e/o nautiche. Distinguere le varie parti che le compongono, i segni topografici, individuare la scala. Conoscere il funzionamento, i pregi e limiti dei tradizionali strumenti e tecniche di orientamento (convenzionali e non) e di almeno un moderno strumento di geolocalizzazione (GPS, App per smartphone, ecc.) per la navigazione terrestre (o marina)."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper leggere e utilizzare una mappa topografica (calcolo delle distanze lineari e dislivelli, orientamento della carta con e senza bussola, individuazione del punto in carta sulla base degli elementi del paesaggio o di coordinate)"
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Saper progettare una breve escursione per una Ptg/Eqp utilizzando strumenti classici o digitali, tenendo in considerazione distanze, dislivelli e tempi di percorrenza, preferibilmente realizzandone il profilo topografico o percorso rettificato."
+      }
+    ]
+  },
+  {
+    "nome": "Osservazione",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Utilizzare i 5 sensi per ricercare, riconoscere e identificare le principali tracce di macchine, animali e persone. Conoscere i segni di pista e il loro significato."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Dimostrare di saper effettuare delle stime di distanza, peso, lunghezza e altezza; di saper dedurre le dinamiche di un evento in base all’ambiente e alle tracce osservate: di saper riconoscere tramite l’utilizzo dei 5 sensi almeno 10 oggetti per ognuno di essi."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Organizzare un’attività/percorso/gioco di osservazione da far svolgere al resto della ptg/eqp e/o reparto che preveda lo sviluppo di almeno tre sensi."
+      }
+    ]
+  },
+  {
+    "nome": "Pionierismo",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere i principali tipi di corda e di nodi (arresto, ancoraggio, giunzione, occhiello, scorsoi, di accorciamento) e le principali legature (quadra, a treppiede, diagonale, ritorta, a fascia), conoscendone le finalità di utilizzo."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper realizzare correttamente almeno due/tre nodi per tipologia e le principali legature. Progettare e realizzare le principali costruzioni da campo (tavolo, cucina, sedute, coperture..)"
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Progettare e realizzare una grande costruzione, coordinando la ptg/eqp o il reparto."
+      }
+    ]
+  },
+  {
+    "nome": "Primo Soccorso",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere a grandi linee la fisiologia umana (apparato circolatorio, respiratorio, locomotore, digerente, etc). Conoscere i principali fattori di rischio per la salute e gli incidenti più frequenti che si possono verificare durante l’attività scout."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper effettuare piccole medicazioni e interventi di soccorso (scottature, distorsioni, colpi di sole, ferite da taglio, escoriazioni, epistassi, trasporto, etc) utilizzando anche strumenti di fortuna. Saper valutare l'opportunità di un intervento e saper effettuare una chiamata di soccorso."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Mantenere la cassetta di primo soccorso di Ptg/Egp in ordine e in efficienza, con i dispositivi sanitari utili. Sperimentarsi nel posto d’azione di ambulanziere almeno due volte durante l'anno."
+      }
+    ]
+  },
+  {
+    "nome": "Sartoria",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere le principali tecniche di cucito a mano e/o a macchina, i principali utensili, le varie tipologie di tessuto e le loro caratteristiche."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Dimostrare di saper effettuare piccole riparazioni e rammendi. Saper cucire i distintivi sulla camicia ed eseguire un piccolo ricamo."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare dei prodotti sartoriali sulla base di un cartamodello, utili per la ptg/eqp o il reparto, per autofinanziamento, per un’attività, etc."
+      }
+    ]
+  },
+  {
+    "nome": "Scienze di Laboratorio",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere i principali fenomeni relativi ad un ambito scientifico di interesse (fisica, chimica, biologia, ecc.)."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Saper utilizzare i principali strumenti presenti in un laboratorio scientifico, conoscendone le diverse caratteristiche e facendo una dimostrazione."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare un esperimento scientifico che possa avere dei risvolti nella vita di tutti i giorni, da presentare al reparto/ptg/eqp, esponendo i risultati ottenuti e descrivendo il fenomeno dal punto di vista fisico/chimico."
+      }
+    ]
+  },
+  {
+    "nome": "Scrittura",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Dimostrare di conoscere i generi narrativi, letterari e poetici riscrivendo una breve storia in 6 stili differenti."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Creare un breve racconto di circa 600 parole o un'opera teatrale/sketch drammatico della durata di almeno 10 minuti, oppure una poesia di almeno otto versi."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Scrivere i racconti delle avventure vissute dalla ptg/eqp o reparto, scegliendo il genere, lo stile e il registro linguistico e raccogliendoli nell’albo d’oro."
+      }
+    ]
+  },
+  {
+    "nome": "Sfide Globali",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere quali sono le principali sfide globali (sociali, culturali, ambientali) e il loro stato dell’arte."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Approfondire almeno due delle principali sfide globali tramite film, articoli, libri, documentari, etc.. condividendo con la ptg/eqp o reparto gli esiti della ricerca e la posizione maturata in merito."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Essere promotori e/o partecipare a iniziative locali con la propria ptg/eqp o reparto per sensibilizzare e contribuire in modo concreto al superamento di una di queste sfide."
+      }
+    ]
+  },
+  {
+    "nome": "Spiritualità nel Mondo",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Scoprire la vita di un fondatore, di un leader o di un esponente di almeno due fedi, culti e filosofie del mondo; leggerne i principali testi (scegliendone alcuni estratti o brani specifici) e illustrare i principali insegnamenti e precetti legati ad esse."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Partecipare a eventi legati a fedi, culti e filosofie che non conosci. Attraverso l’interazione con persone di una fede, culto o filosofia, raccogli informazioni su come queste influiscano sulla loro vita quotidiana (incluse eventuali leggi alimentari o dietetiche, rituali, preghiere e adorazioni o osservanze religiose)."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Proporre alla ptg/eqp e/o al reparto un momento di riflessione usando testi, canzoni, danze legate alle fedi, culti, filosofia che hai conosciuto, basato su un tema a scelta"
+      }
+    ]
+  },
+  {
+    "nome": "Sport di Strada",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere la nascita e l’evoluzione di almeno uno sport di strada (skateboard, longboard, parkour, monopattino, bmx, rollers, ecc.), l’attrezzatura necessaria e i luoghi dove è possibile praticarlo in sicurezza."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Dimostrare di saper praticare correttamente lo sport di strada scelto, di saperne manutenere l'attrezzatura e di avere cura e rispetto del luogo di pratica."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Organizzare una piccola dimostrazione dello sport scelto, mostrando le tue abilità nell'eseguire tricks e tecniche."
+      }
+    ]
+  },
+  {
+    "nome": "Trappeur",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Conoscere ed illustrare alcune tecniche di sopravvivenza necessarie per affrontare la vita all’aria aperta, che riguardino il costruirsi un rifugio, cucinare con utensili autoprodotti, accendere un fuoco e filtrare l’acqua."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Utilizzare un acciarino ed esche raccolte in natura per accendere un fuoco sapendolo mantenere. Saper utilizzare e manutenere con cura un coltellino multiuso e/o da outdoor. Costruire uno o più oggetti utili al bivacco con materiali rinvenuti in natura (naturali e/o elementi di riciclo) e confezionare un piccolo kit di sopravvivenza personale."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Organizzare una cucina alla trappeur di ptg/eqp e/o reparto preparando il menu, utilizzando ricette trappeur, e utensili autoprodotti."
+      }
+    ]
+  },
+  {
+    "nome": "Videomaking",
+    "prove": [
+      {
+        "nome": "Prova 1",
+        "id": "p1",
+        "text": "Illustrare la storia del cinema e l'evoluzione della tecnologia cinematografica, individuando una lista di film significativi da vedere; organizzare la visione e discussione di almeno 2 film tra quelli scelti alla ptg/eqp e/o di Reparto."
+      },
+      {
+        "nome": "Prova 2",
+        "id": "p2",
+        "text": "Dimostrare di conoscere le principali tecniche di ripresa come panoramica, zoom, primi piani, campi lunghi e realizzandone degli esempi. Dimostrare di conoscere le principali tecniche di montaggio audiovisivo come il montaggio in continuità, il taglio sul movimento e sull’asse, l’utilizzo dei jump cut, l’accavallamento dell’audio, l’inserimento di musiche, effetti audio/video, scritte, realizzando un breve esempio con materiali a scelta (reperiti sul web o già realizzate o da realizzare) esportando il prodotto finito."
+      },
+      {
+        "nome": "Prova 3",
+        "id": "p3",
+        "text": "Realizzare un video originale e creativo (tra i 3 e i 5 minuti) con l’aiuto del Reparto e/o Ptg/Eqp, partendo da una sceneggiatura e uno storyboard che raccontino un episodio a scelta, individuando le risorse materiali e umane necessarie."
+      }
     ]
   }
 ]
-

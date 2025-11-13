@@ -291,10 +291,15 @@ UI.addSpecialita = async function(data = null, index = null) {
             ${specialitaList.map(spec => `<option value="${spec.nome}" ${data?.nome === spec.nome ? 'selected' : ''}>${spec.nome}</option>`).join('')}
           </select>
         </div>
-        <div class="md:col-span-2 grid grid-cols-2 gap-2">
+        <div class="md:col-span-2 space-y-2">
           ${prove.map((prova, idx) => `
-            <label class="block text-sm">${prova.nome}</label>
-            <input id="${spId}_${prova.id}_data" type="date" class="input" value="${data?.[`${prova.id}_data`] ? this.toYyyyMmDd(data[`${prova.id}_data`]) : ''}" />
+            <div class="space-y-1">
+              <div class="grid grid-cols-2 gap-2">
+                <label class="block text-sm">${prova.nome}</label>
+                <input id="${spId}_${prova.id}_data" type="date" class="input" value="${data?.[`${prova.id}_data`] ? this.toYyyyMmDd(data[`${prova.id}_data`]) : ''}" />
+              </div>
+              <textarea id="${spId}_${prova.id}_text" class="textarea text-sm" readonly placeholder="Testo della prova...">${prova.text || ''}</textarea>
+            </div>
           `).join('')}
         </div>
         <div class="md:col-span-2 grid grid-cols-2 gap-2">
@@ -323,12 +328,12 @@ UI.addSpecialita = async function(data = null, index = null) {
       const v = nomeSelect.value || '';
       titleSpan.textContent = v || 'Specialità';
       
-      // Aggiorna i nomi delle prove quando cambia la specialità
+      // Aggiorna i nomi e i testi delle prove quando cambia la specialità
       const specialitaList = await this.loadSpecialitaList();
       const selectedSpec = specialitaList.find(s => s.nome === v);
       if (selectedSpec && selectedSpec.prove) {
         selectedSpec.prove.forEach((prova) => {
-          // Trova il label che precede l'input della data nel grid
+          // Trova il label che precede l'input della data
           const dataInput = div.querySelector(`#${spId}_${prova.id}_data`);
           if (dataInput) {
             // Il label è il sibling precedente nel grid
@@ -339,6 +344,11 @@ UI.addSpecialita = async function(data = null, index = null) {
             if (prev && prev.tagName === 'LABEL') {
               prev.textContent = prova.nome;
             }
+          }
+          // Aggiorna il testo della prova
+          const textarea = div.querySelector(`#${spId}_${prova.id}_text`);
+          if (textarea) {
+            textarea.value = prova.text || '';
           }
         });
       }

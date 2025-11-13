@@ -143,6 +143,13 @@ UI.renderScouts = function(filterLetter = null) {
             >
               ✏️
             </a>
+            <a 
+              href="scout2.html?id=${scout.id}"
+              class="p-2 text-gray-500 hover:text-blue-600 rounded-full"
+              title="Apri scheda v2"
+            >
+              📋
+            </a>
             <button 
               onclick="UI.confirmDeleteScout('${scout.id}')" 
               class="p-2 text-gray-500 hover:text-red-600 rounded-full"
