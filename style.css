@@ -225,6 +225,12 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
   box-sizing: border-box;
 }
 
+/* Assicura che tutte le textarea riempiano il container */
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* Sfondo più chiaro per i textarea delle descrizioni delle sfide */
 .bg-blue-100 .textarea-auto-resize[readonly] {
   background-color: rgba(219, 234, 254, 0.5); /* blue-100 più chiaro */
