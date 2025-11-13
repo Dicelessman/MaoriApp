@@ -30,6 +30,15 @@ UI.loadSpecialitaList = async function() {
   }
 };
 
+// Funzione per adattare l'altezza del textarea al contenuto
+UI.autoResizeTextarea = function(textarea) {
+  if (!textarea) return;
+  // Reset height per ottenere scrollHeight corretto
+  textarea.style.height = 'auto';
+  // Imposta l'altezza in base al contenuto
+  textarea.style.height = textarea.scrollHeight + 'px';
+};
+
 UI.renderCurrentPage = function() {
   this.renderScoutPage();
 };
@@ -100,6 +109,18 @@ UI.renderScoutPage = async function() {
   // Popola dropdown sfide e carica dati
   this.populateChallengeDropdowns();
   this.loadChallengeData(s);
+  
+  // Adatta l'altezza dei textarea dopo il caricamento
+  setTimeout(() => {
+    const direzioni = ['io', 're', 'im'];
+    const passi = ['1', '2', '3'];
+    passi.forEach(passo => {
+      direzioni.forEach(dir => {
+        const textarea = this.qs(`#pv_sfida_${dir}_${passo}_text`);
+        if (textarea) this.autoResizeTextarea(textarea);
+      });
+    });
+  }, 200);
 
   setVal('#pv_note', s.pv_note);
   setVal('#pv_traccia1_note', s.pv_traccia1_note);
@@ -201,6 +222,8 @@ UI.populateChallengeDropdowns = function() {
         if (textarea) {
           const selectedSfida = sfide.find(s => s.code === selectedCode);
           textarea.value = selectedSfida ? selectedSfida.text : '';
+          // Adatta l'altezza al contenuto
+          this.autoResizeTextarea(textarea);
         }
       });
     });
@@ -228,6 +251,11 @@ UI.loadChallengeData = function(s) {
         select.value = code;
         // Trigger change per aggiornare il testo
         select.dispatchEvent(new Event('change'));
+        // Adatta l'altezza del textarea dopo il cambio
+        setTimeout(() => {
+          const textarea = this.qs(`#${textKey}`);
+          if (textarea) this.autoResizeTextarea(textarea);
+        }, 100);
       }
       if (dateInput && data) {
         dateInput.value = this.toYyyyMmDd(data);
@@ -298,7 +326,7 @@ UI.addSpecialita = async function(data = null, index = null) {
                 <label class="block text-sm">${prova.nome}</label>
                 <input id="${spId}_${prova.id}_data" type="date" class="input" value="${data?.[`${prova.id}_data`] ? this.toYyyyMmDd(data[`${prova.id}_data`]) : ''}" />
               </div>
-              <textarea id="${spId}_${prova.id}_text" class="textarea text-sm" readonly placeholder="Testo della prova...">${prova.text || ''}</textarea>
+              <textarea id="${spId}_${prova.id}_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della prova...">${prova.text || ''}</textarea>
             </div>
           `).join('')}
         </div>
@@ -313,6 +341,14 @@ UI.addSpecialita = async function(data = null, index = null) {
     </div>
   `;
   container.appendChild(div);
+  
+  // Adatta l'altezza dei textarea delle prove dopo il rendering
+  setTimeout(() => {
+    prove.forEach((prova) => {
+      const textarea = div.querySelector(`#${spId}_${prova.id}_text`);
+      if (textarea) this.autoResizeTextarea(textarea);
+    });
+  }, 50);
   
   // Event listener per rimuovere
   div.querySelector('.removeSpecialitaBtn')?.addEventListener('click', () => {
@@ -349,6 +385,8 @@ UI.addSpecialita = async function(data = null, index = null) {
           const textarea = div.querySelector(`#${spId}_${prova.id}_text`);
           if (textarea) {
             textarea.value = prova.text || '';
+            // Adatta l'altezza al contenuto
+            this.autoResizeTextarea(textarea);
           }
         });
       }

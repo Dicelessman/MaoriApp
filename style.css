@@ -215,6 +215,14 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
   display: block !important;
 }
 
+/* Auto-resize textarea per descrizioni */
+.textarea-auto-resize {
+  resize: none;
+  overflow: hidden;
+  min-height: 60px;
+  max-height: none;
+}
+
 /* Print styles */
 @media print {
   body { background: #fff !important; }
