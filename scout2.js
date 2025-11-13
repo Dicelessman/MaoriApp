@@ -126,6 +126,15 @@ UI.renderScoutPage = async function() {
   setVal('#pv_traccia1_note', s.pv_traccia1_note);
   setVal('#pv_traccia2_note', s.pv_traccia2_note);
   setVal('#pv_traccia3_note', s.pv_traccia3_note);
+  
+  // Adatta l'altezza dei textarea "note" dopo il caricamento
+  setTimeout(() => {
+    const noteTextareas = ['pv_note', 'pv_traccia1_note', 'pv_traccia2_note', 'pv_traccia3_note', 'ev_note', 'doc_note'];
+    noteTextareas.forEach(id => {
+      const textarea = this.qs(`#${id}`);
+      if (textarea) this.autoResizeTextarea(textarea);
+    });
+  }, 250);
   setVal('#pv_sfida_bianca_1', s.pv_sfida_bianca_1);
   setVal('#pv_sfida_bianca_2', s.pv_sfida_bianca_2);
   setVal('#pv_sfida_bianca_3', s.pv_sfida_bianca_3);
@@ -336,7 +345,7 @@ UI.addSpecialita = async function(data = null, index = null) {
           <label class="block text-sm">Data Prova CR</label>
           <input id="${spId}_cr_data" type="date" class="input" value="${data?.cr_data ? this.toYyyyMmDd(data.cr_data) : ''}" />
         </div>
-        <div class="md:col-span-2"><label class="block text-sm">Note</label><textarea id="${spId}_note" class="textarea">${data?.note || ''}</textarea></div>
+        <div class="md:col-span-2"><label class="block text-sm">Note</label><textarea id="${spId}_note" class="textarea textarea-auto-resize">${data?.note || ''}</textarea></div>
       </div>
     </div>
   `;
@@ -348,6 +357,9 @@ UI.addSpecialita = async function(data = null, index = null) {
       const textarea = div.querySelector(`#${spId}_${prova.id}_text`);
       if (textarea) this.autoResizeTextarea(textarea);
     });
+    // Adatta anche il textarea "note" della specialità
+    const noteTextarea = div.querySelector(`#${spId}_note`);
+    if (noteTextarea) this.autoResizeTextarea(noteTextarea);
   }, 50);
   
   // Event listener per rimuovere

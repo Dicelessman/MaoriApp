@@ -225,6 +225,19 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
   box-sizing: border-box;
 }
 
+/* Sfondo più chiaro per i textarea delle descrizioni delle sfide */
+.bg-blue-100 .textarea-auto-resize[readonly] {
+  background-color: rgba(219, 234, 254, 0.5); /* blue-100 più chiaro */
+}
+
+.bg-orange-100 .textarea-auto-resize[readonly] {
+  background-color: rgba(255, 237, 213, 0.5); /* orange-100 più chiaro */
+}
+
+.bg-red-100 .textarea-auto-resize[readonly] {
+  background-color: rgba(254, 226, 226, 0.5); /* red-100 più chiaro */
+}
+
 /* Print styles */
 @media print {
   body { background: #fff !important; }
