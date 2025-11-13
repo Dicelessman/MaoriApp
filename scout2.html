@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scheda Esploratore - Scout Maori</title>
+  <meta name="theme-color" content="#16a34a" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-4">
+    <div id="shared-header"></div>
+    <main class="p-6 space-y-6">
+      <div id="shared-modals"></div>
+      
+      <!-- Modal per gestione pattuglie -->
+      <div id="pattugliaModal" class="modal">
+        <div class="modal-content">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Gestione Pattuglie</h3>
+            <button type="button" id="closePattugliaModal" class="text-gray-500 hover:text-gray-700">✕</button>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm mb-2">Aggiungi nuova pattuglia</label>
+              <div class="flex gap-2">
+                <input id="newPattugliaInput" type="text" class="input flex-1" placeholder="Nome pattuglia..." />
+                <button type="button" id="addPattugliaBtn" class="btn-primary">Aggiungi</button>
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-sm mb-2">Pattuglie esistenti</label>
+              <div id="pattugliaList" class="space-y-2">
+                <!-- Le pattuglie verranno caricate dinamicamente -->
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex justify-end gap-2 mt-6">
+            <button type="button" id="cancelPattugliaBtn" class="btn-secondary">Annulla</button>
+            <button type="button" id="savePattugliaBtn" class="btn-primary">Salva</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <h2 id="scoutTitle" class="text-2xl font-semibold text-gray-700">Scheda Esploratore</h2>
+        <div class="flex items-center gap-2">
+          <a href="esploratori.html" class="btn-secondary">← Torna alla lista</a>
+          <button type="submit" form="scoutForm" class="btn-primary">Salva</button>
+          <button type="button" id="printScoutBtn" class="btn-secondary">Stampa / Esporta PDF</button>
+        </div>
+      </div>
+
+      <form id="scoutForm" class="space-y-8">
+        <input type="hidden" id="scoutId" />
+
+        <section class="bg-gray-50 p-6 rounded-lg shadow-inner">
+          <h3 class="text-xl font-semibold text-gray-700 mb-4">Dati anagrafici</h3>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div><label class="block text-sm">Nome</label><input id="anag_nome" class="input" /></div>
+            <div><label class="block text-sm">Cognome</label><input id="anag_cognome" class="input" /></div>
+            <div><label class="block text-sm">Data di Nascita</label><input id="anag_dob" type="date" class="input" /></div>
+            <div><label class="block text-sm">Codice Fiscale</label><input id="anag_cf" class="input" /></div>
+            <div><label class="block text-sm">Indirizzo</label><input id="anag_indirizzo" class="input" /></div>
+            <div><label class="block text-sm">Città</label><input id="anag_citta" class="input" /></div>
+            <div><label class="block text-sm">Email</label><input id="anag_email" class="input" /></div>
+            <div><label class="block text-sm">Telefono</label><input id="anag_telefono" type="number" class="input" /></div>
+          </div>
+        </section>
+
+        <section class="bg-gray-50 p-6 rounded-lg shadow-inner">
+          <h3 class="text-xl font-semibold text-gray-700 mb-4">Contatti</h3>
+          <div class="grid md:grid-cols-3 gap-4">
+            <div><label class="block text-sm">Genitore 1</label><input id="ct_g1_nome" class="input" /></div>
+            <div><label class="block text-sm">Telefono</label><input id="ct_g1_tel" type="number" class="input" /></div>
+            <div><label class="block text-sm">Email</label><input id="ct_g1_email" class="input" /></div>
+            <div><label class="block text-sm">Genitore 2</label><input id="ct_g2_nome" class="input" /></div>
+            <div><label class="block text-sm">Telefono</label><input id="ct_g2_tel" type="number" class="input" /></div>
+            <div><label class="block text-sm">Email</label><input id="ct_g2_email" class="input" /></div>
+          </div>
+        </section>
+
+        <section class="bg-gray-50 p-6 rounded-lg shadow-inner">
+          <h3 class="text-xl font-semibold text-gray-700 mb-4">Informazioni Sanitarie</h3>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div><label class="block text-sm">Gruppo Sanguigno</label><input id="san_gruppo" class="input" /></div>
+            <div class="md:col-span-2"><label class="block text-sm">Intolleranze e Esigenze Alimentari</label><textarea id="san_intolleranze" class="textarea"></textarea></div>
+            <div class="md:col-span-2"><label class="block text-sm">Allergie</label><textarea id="san_allergie" class="textarea"></textarea></div>
+            <div class="md:col-span-2"><label class="block text-sm">Farmaci</label><textarea id="san_farmaci" class="textarea"></textarea></div>
+            <div class="md:col-span-2"><label class="block text-sm">Vaccinazioni</label><textarea id="san_vaccinazioni" class="textarea"></textarea></div>
+            <div class="md:col-span-2"><label class="block text-sm">Certificazioni</label><textarea id="san_cert" class="textarea"></textarea></div>
+            <div class="md:col-span-2"><label class="block text-sm">Altro</label><textarea id="san_altro" class="textarea"></textarea></div>
+          </div>
+        </section>
+
+        <section class="bg-green-100 p-6 rounded-lg shadow-inner">
+          <h3 class="text-xl font-semibold text-gray-700 mb-4">Progressione Verticale</h3>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div><label class="block text-sm">Promessa</label><input id="pv_promessa" type="date" class="input" /></div>
+            <div>
+              <label class="block text-sm">VCP/CP</label>
+              <div class="flex gap-4">
+                <label><input type="radio" name="pv_vcp_cp" value="VCP" /> VCP</label>
+                <label><input type="radio" name="pv_vcp_cp" value="CP" /> CP</label>
+              </div>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm mb-2">Pattuglia</label>
+              <div class="flex gap-2 items-center">
+                <select id="pv_pattuglia" class="input flex-1">
+                  <option value="">Seleziona pattuglia...</option>
+                  <option value="Aironi">Aironi</option>
+                  <option value="Marmotte">Marmotte</option>
+                </select>
+                <button type="button" id="managePattugliaBtn" class="btn-secondary px-3 py-2" title="Gestisci pattuglie">
+                  ⚙️
+                </button>
+              </div>
+            </div>
+            <div class="md:col-span-2 bg-yellow-100 p-4 rounded-lg">
+              <div class="grid md:grid-cols-2 gap-4">
+                <div><label class="block text-sm">Giglio/Trifoglio (data)</label><input id="pv_giglio_data" type="date" class="input" /></div>
+                <div><label class="block text-sm">Note</label><input id="pv_giglio_note" class="input" /></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-4 mt-4">
+            <div class="bg-blue-100 rounded-lg overflow-hidden">
+              <!-- Header compatto -->
+              <div class="traccia-header p-4 cursor-pointer hover:bg-blue-200 transition-colors" data-traccia="1">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4">
+                    <h4 class="font-semibold text-lg">Passo 1</h4>
+                    <label class="flex items-center gap-2">
+                      <input type="checkbox" id="pv_traccia1_chk" />
+                      <span>Completata</span>
+                    </label>
+                    <input id="pv_traccia1_dt" type="date" class="input" placeholder="Data completamento" />
+                  </div>
+                  <span class="expand-icon text-xl">▼</span>
+                </div>
+              </div>
+              <!-- Contenuto espandibile -->
+              <div class="traccia-content p-4 pt-0 space-y-2">
+                <div class="space-y-4 ml-4">
+                  <!-- IO -->
+                  <div class="space-y-2">
+                    <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                      <span class="font-medium">IO</span>
+                      <select id="pv_sfida_io_1" class="input md:col-span-2">
+                        <option value="">Seleziona sfida...</option>
+                      </select>
+                      <input id="pv_sfida_io_1_data" type="date" class="input md:col-span-3" />
+                    </div>
+                    <textarea id="pv_sfida_io_1_text" class="textarea text-sm" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                  </div>
+                  <!-- RE -->
+                  <div class="space-y-2">
+                    <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                      <span class="font-medium">RE</span>
+                      <select id="pv_sfida_re_1" class="input md:col-span-2">
+                        <option value="">Seleziona sfida...</option>
+                      </select>
+                      <input id="pv_sfida_re_1_data" type="date" class="input md:col-span-3" />
+                    </div>
+                    <textarea id="pv_sfida_re_1_text" class="textarea text-sm" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                  </div>
+                  <!-- IM -->
+                  <div class="space-y-2">
+                    <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                      <span class="font-medium">IM</span>
+                      <select id="pv_sfida_im_1" class="input md:col-span-2">
+                        <option value="">Seleziona sfida...</option>
+                      </select>
+                      <input id="pv_sfida_im_1_data" type="date" class="input md:col-span-3" />
+                    </div>
+                    <textarea id="pv_sfida_im_1_text" class="textarea text-sm" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                  </div>
+                  <!-- Sfida bianca -->
+                  <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                    <span class="font-medium">Sfida bianca</span>
+                    <input id="pv_sfida_bianca_1" type="text" class="input md:col-span-5" />
+                  </div>
+                </div>
+                <div class="mt-2 ml-4">
+                  <label class="block text-sm">Note Passo 1</label>
+                  <textarea id="pv_traccia1_note" class="textarea"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-orange-100 rounded-lg overflow-hidden">
+              <!-- Header compatto -->
+              <div class="traccia-header p-4 cursor-pointer hover:bg-orange-200 transition-colors" data-traccia="2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4">
+                    <h4 class="font-semibold text-lg">Passo 2</h4>
+                    <label class="flex items-center gap-2">
+                      <input type="checkbox" id="pv_traccia2_chk" />
+                      <span>Completata</span>
+                    </label>
+                    <input id="pv_traccia2_dt" type="date" class="input" placeholder="Data completamento" />
+                  </div>
+                  <span class="expand-icon text-xl">▼</span>
+                </div>
+              </div>
+              <!-- Contenuto espandibile -->
+              <div class="traccia-content p-4 pt-0 space-y-2">
+                <div class="space-y-4 ml-4">
+                  <!-- IO -->
+                  <div class="space-y-2">
+                    <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                      <span class="font-medium">IO</span>
+                      <select id="pv_sfida_io_2" class="input md:col-span-2">
+                        <option value="">Seleziona sfida...</option>
+                      </select>
+                      <input id="pv_sfida_io_2_data" type="date" class="input md:col-span-3" />
+                    </div>
+                    <textarea id="pv_sfida_io_2_text" class="textarea text-sm" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                  </div>
+                  <!-- RE -->
+                  <div class="space-y-2">
+                    <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                      <span class="font-medium">RE</span>
+                      <select id="pv_sfida_re_2" class="input md:col-span-2">
+                        <option value="">Seleziona sfida...</option>
+                      </select>
+                      <input id="pv_sfida_re_2_data" type="date" class="input md:col-span-3" />
+                    </div>
+                    <textarea id="pv_sfida_re_2_text" class="textarea text-sm" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                  </div>
+                  <!-- IM -->
+                  <div class="space-y-2">
+                    <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                      <span class="font-medium">IM</span>
+                      <select id="pv_sfida_im_2" class="input md:col-span-2">
+                        <option value="">Seleziona sfida...</option>
+                      </select>
+                      <input id="pv_sfida_im_2_data" type="date" class="input md:col-span-3" />
+                    </div>
+                    <textarea id="pv_sfida_im_2_text" class="textarea text-sm" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                  </div>
+                  <!-- Sfida bianca -->
+                  <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                    <span class="font-medium">Sfida bianca</span>
+                    <input id="pv_sfida_bianca_2" type="text" class="input md:col-span-5" />
+                  </div>
+                </div>
+                <div class="mt-2 ml-4">
+                  <label class="block text-sm">Note Passo 2</label>
+                  <textarea id="pv_traccia2_note" class="textarea"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-red-100 rounded-lg overflow-hidden">
+              <!-- Header compatto -->
+              <div class="traccia-header p-4 cursor-pointer hover:bg-red-200 transition-colors" data-traccia="3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4">
+                    <h4 class="font-semibold text-lg">Passo 3</h4>
+                    <label class="flex items-center gap-2">
+                      <input type="checkbox" id="pv_traccia3_chk" />
+                      <span>Completata</span>
+                    </label>
+                    <input id="pv_traccia3_dt" type="date" class="input" placeholder="Data completamento" />
+                  </div>
+                  <span class="expand-icon text-xl">▼</span>
+                </div>
+              </div>
+              <!-- Contenuto espandibile -->
+              <div class="traccia-content p-4 pt-0 space-y-2">
+                <div class="space-y-4 ml-4">
+                  <!-- IO -->
+                  <div class="space-y-2">
+                    <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                      <span class="font-medium">IO</span>
+                      <select id="pv_sfida_io_3" class="input md:col-span-2">
+                        <option value="">Seleziona sfida...</option>
+                      </select>
+                      <input id="pv_sfida_io_3_data" type="date" class="input md:col-span-3" />
+                    </div>
+                    <textarea id="pv_sfida_io_3_text" class="textarea text-sm" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                  </div>
+                  <!-- RE -->
+                  <div class="space-y-2">
+                    <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                      <span class="font-medium">RE</span>
+                      <select id="pv_sfida_re_3" class="input md:col-span-2">
+                        <option value="">Seleziona sfida...</option>
+                      </select>
+                      <input id="pv_sfida_re_3_data" type="date" class="input md:col-span-3" />
+                    </div>
+                    <textarea id="pv_sfida_re_3_text" class="textarea text-sm" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                  </div>
+                  <!-- IM -->
+                  <div class="space-y-2">
+                    <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                      <span class="font-medium">IM</span>
+                      <select id="pv_sfida_im_3" class="input md:col-span-2">
+                        <option value="">Seleziona sfida...</option>
+                      </select>
+                      <input id="pv_sfida_im_3_data" type="date" class="input md:col-span-3" />
+                    </div>
+                    <textarea id="pv_sfida_im_3_text" class="textarea text-sm" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                  </div>
+                  <!-- Sfida bianca -->
+                  <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
+                    <span class="font-medium">Sfida bianca</span>
+                    <input id="pv_sfida_bianca_3" type="text" class="input md:col-span-5" />
+                  </div>
+                </div>
+                <div class="mt-2 ml-4">
+                  <label class="block text-sm">Note Passo 3</label>
+                  <textarea id="pv_traccia3_note" class="textarea"></textarea>
+                </div>
+                <div class="mt-4"><label class="block text-sm">Note</label><textarea id="pv_note" class="textarea"></textarea></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="bg-green-100 p-6 rounded-lg shadow-inner">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-700">Specialità (PO)</h3>
+            <button type="button" id="addSpecialitaBtn" class="btn-primary">+ Aggiungi Specialità</button>
+          </div>
+          <div id="specialitaContainer" class="space-y-4">
+            <!-- Le specialità verranno aggiunte dinamicamente qui -->
+          </div>
+        </section>
+
+        <section class="bg-green-300 p-6 rounded-lg shadow-inner">
+          <h3 class="text-xl font-semibold text-gray-700 mb-4">Eventi</h3>
+          <div class="space-y-4">
+            <div><label class="block text-sm">Campo Estivo 1</label><div class="grid grid-cols-2 gap-2"><input id="ev_ce1_dt" type="date" class="input" /><input id="ev_ce1_tx" class="input" /></div></div>
+            <div><label class="block text-sm">Campo Estivo 2</label><div class="grid grid-cols-2 gap-2"><input id="ev_ce2_dt" type="date" class="input" /><input id="ev_ce2_tx" class="input" /></div></div>
+            <div><label class="block text-sm">Campo Estivo 3</label><div class="grid grid-cols-2 gap-2"><input id="ev_ce3_dt" type="date" class="input" /><input id="ev_ce3_tx" class="input" /></div></div>
+            <div><label class="block text-sm">Campo Estivo 4</label><div class="grid grid-cols-2 gap-2"><input id="ev_ce4_dt" type="date" class="input" /><input id="ev_ce4_tx" class="input" /></div></div>
+            <div><label class="block text-sm">Tecnicamp 1</label><div class="grid grid-cols-2 gap-2"><input id="ev_tc1_dt" type="date" class="input" /><input id="ev_tc1_tx" class="input" /></div></div>
+            <div><label class="block text-sm">Tecnicamp 2</label><div class="grid grid-cols-2 gap-2"><input id="ev_tc2_dt" type="date" class="input" /><input id="ev_tc2_tx" class="input" /></div></div>
+            <div><label class="block text-sm">Tecnicamp 3</label><div class="grid grid-cols-2 gap-2"><input id="ev_tc3_dt" type="date" class="input" /><input id="ev_tc3_tx" class="input" /></div></div>
+            <div><label class="block text-sm">Tecnicamp 4</label><div class="grid grid-cols-2 gap-2"><input id="ev_tc4_dt" type="date" class="input" /><input id="ev_tc4_tx" class="input" /></div></div>
+            <div><label class="block text-sm">CCP</label><div class="grid grid-cols-2 gap-2"><input id="ev_ccp_dt" type="date" class="input" /><input id="ev_ccp_tx" class="input" /></div></div>
+            <div><label class="block text-sm">Jamboree</label><div class="grid grid-cols-2 gap-2"><input id="ev_jam_dt" type="date" class="input" /><input id="ev_jam_tx" class="input" /></div></div>
+            <div><label class="block text-sm">Note</label><textarea id="ev_note" class="textarea"></textarea></div>
+          </div>
+        </section>
+
+        <section class="bg-purple-300 p-6 rounded-lg shadow-inner">
+          <h3 class="text-xl font-semibold text-gray-700 mb-4">Documenti</h3>
+          <div class="space-y-4">
+            <div><label class="block text-sm">Quota Annua 1</label><input id="doc_quota1" type="date" class="input" /></div>
+            <div><label class="block text-sm">Quota Annua 2</label><input id="doc_quota2" type="date" class="input" /></div>
+            <div><label class="block text-sm">Quota Annua 3</label><input id="doc_quota3" type="date" class="input" /></div>
+            <div><label class="block text-sm">Quota Annua 4</label><input id="doc_quota4" type="date" class="input" /></div>
+            <div><label class="block text-sm">Iscrizione</label><input id="doc_iscr" type="date" class="input" /></div>
+            <div><label class="block text-sm">Modulo sanitario</label><input id="doc_san" type="date" class="input" /></div>
+            <div><label class="block text-sm">Modulo Privacy</label><input id="doc_priv" type="date" class="input" /></div>
+            <div><label class="block text-sm">Note</label><textarea id="doc_note" class="textarea"></textarea></div>
+          </div>
+        </section>
+
+        <div class="flex justify-end gap-2">
+          <button type="button" id="btnAnnulla" class="btn-secondary">Torna alla Lista</button>
+          <button class="btn-primary">Salva</button>
+        </div>
+      </form>
+    </main>
+  </div>
+  <div id="printArea" style="display:none"></div>
+
+  <script type="module" src="shared.js"></script>
+  <script type="module" src="scout2.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js")
+        .then(reg => console.log("Service Worker registrato:", reg.scope))
+        .catch(err => console.error("SW registration failed:", err));
+    }
+  </script>
+</body>
+</html>
+

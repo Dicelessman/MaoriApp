@@ -1,0 +1,11 @@
+[
+  {
+    "nome": "Nome Specialità 1",
+    "prove": [
+      {"nome": "Prova 1", "id": "p1"},
+      {"nome": "Prova 2", "id": "p2"},
+      {"nome": "Prova 3", "id": "p3"}
+    ]
+  }
+]
+
