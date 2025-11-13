@@ -12,3 +12,4 @@ crea una pagina che conprenda queste statistiche:
 - Specialità
 - tempo medio per superare una prova di specialità
 - tempo medio per ottenere una specialità
+
