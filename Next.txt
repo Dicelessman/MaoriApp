@@ -14,3 +14,355 @@ crea una pagina che conprenda queste statistiche:
 - tempo medio per ottenere una specialità
 
 Specialità con bordo e sfondo
+
+
+Certamente. Di seguito trovi la struttura JSON che replica la tabella fornita in precedenza, includendo per ogni specialità (in ordine alfabetico) il nome, l'area di competenza (corrispondente al colore del bordo) e il tipo di specialità (corrispondente al colore dello sfondo).
+
+Queste specialità fanno parte della **Progressione Orizzontale (PO)** della Branca Esploratori. La PO prevede che le specialità siano suddivise in base al colore del bordo, che indica l'area del PEG (Corporeità=Verde, Creatività=Giallo, Impegno Civile=Rosso, Carattere=Blu), e al colore dello sfondo (Verde per tecniche scout, Giallo per interessi personali).
+
+```json
+[
+  {
+    "nome": "Abilità Aquatiche",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Agroecologia",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Amicizia Internazionale",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Animazione",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Archeostoria",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Arrampicata",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Arte",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Arti Grafiche",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Artigianato",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Astronomia",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Avventura",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Benessere",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Campismo",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Canottaggio",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Carpenteria",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Carpenteria Navale",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Ciclismo",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Cittadinanza Digitale",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Coding",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Collezionismo",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Comunicazione",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Conservazione Mondiale",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Cucina",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Difesa Personale",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Esplorazione",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Espressione Corporea",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Fai Da Te",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Folklore",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Fotografia",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Fuochismo",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Giochi di Squadra",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Giornalismo",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Guida",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Hebertismo",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Impatto Ambientale",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Impatto nella Comunità",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Informatica",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Interprete",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Lettura",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Meccatronica",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Meteo",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Musica",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Navigazione",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Nuoto",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Olimpia",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Orientamento",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Osservazione",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Pionierismo",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Primo Soccorso",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Sartoria",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Scienze di Laboratorio",
+    "bordo_colore": "Giallo",
+    "area_peg": "Creatività",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Scrittura",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Sfide Globali",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Spiritualità nel Mondo",
+    "bordo_colore": "Rosso",
+    "area_peg": "Impegno Civile",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Sport di Strada",
+    "bordo_colore": "Verde",
+    "area_peg": "Corporeità",
+    "sfondo_colore": "Giallo"
+  },
+  {
+    "nome": "Trappeur",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Verde"
+  },
+  {
+    "nome": "Videomaking",
+    "bordo_colore": "Blu",
+    "area_peg": "Carattere",
+    "sfondo_colore": "Giallo"
+  }
+]
+```
