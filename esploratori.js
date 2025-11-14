@@ -130,25 +130,18 @@ UI.renderScouts = function(filterLetter = null) {
       return `
         <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center">
           <div class="flex-1">
-            <h4 class="font-medium text-gray-900"><a href="scout.html?id=${scout.id}" class="hover:underline">${scout.nome} ${scout.cognome}</a></h4>
+            <h4 class="font-medium text-gray-900"><a href="scout2.html?id=${scout.id}" class="hover:underline">${scout.nome} ${scout.cognome}</a></h4>
             <div class="text-sm flex flex-wrap gap-x-4 gap-y-1 mt-1">
               ${fields.join('')}
             </div>
           </div>
           <div class="flex gap-2">
             <a 
-              href="scout.html?id=${scout.id}"
+              href="scout2.html?id=${scout.id}"
               class="p-2 text-gray-500 hover:text-green-600 rounded-full"
               title="Apri scheda"
             >
               ✏️
-            </a>
-            <a 
-              href="scout2.html?id=${scout.id}"
-              class="p-2 text-gray-500 hover:text-blue-600 rounded-full"
-              title="Apri scheda v2"
-            >
-              📋
             </a>
             <button 
               onclick="UI.confirmDeleteScout('${scout.id}')" 
