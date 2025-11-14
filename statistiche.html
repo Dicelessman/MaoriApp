@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Statistiche - Scout Maori</title>
+    <meta name="description" content="Statistiche dettagliate Reparto Scout Maori" />
+    <meta name="theme-color" content="#16a34a" />
+    
+    <!-- Favicon e icone -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="manifest.json" />
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="app" class="max-w-6xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-4">
+    
+    <!-- Header condiviso -->
+    <div id="shared-header"></div>
+    
+    <!-- Main -->
+    <main class="p-6">
+      <!-- Modali condivisi -->
+      <div id="shared-modals"></div>
+      
+      <h2 class="text-2xl font-semibold text-gray-700 mb-6">Statistiche Reparto</h2>
+      
+      <!-- Sezione: Composizione del Reparto -->
+      <section class="mb-8">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4">Composizione del Reparto</h3>
+        <div class="grid md:grid-cols-2 gap-6">
+          <!-- Grafico per sesso -->
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+            <h4 class="text-lg font-semibold text-gray-700 mb-4">Distribuzione per Sesso</h4>
+            <div class="w-full" style="height: 300px;">
+              <canvas id="sessoChart"></canvas>
+            </div>
+            <div id="sessoStats" class="mt-4 text-sm text-gray-600"></div>
+          </div>
+          
+          <!-- Grafico per anno -->
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+            <h4 class="text-lg font-semibold text-gray-700 mb-4">Distribuzione per Anno</h4>
+            <div class="w-full" style="height: 300px;">
+              <canvas id="annoChart"></canvas>
+            </div>
+            <div id="annoStats" class="mt-4 text-sm text-gray-600"></div>
+          </div>
+        </div>
+        
+        <!-- Totali -->
+        <div class="bg-gray-50 p-6 rounded-lg shadow-inner mt-4">
+          <h4 class="text-lg font-semibold text-gray-700 mb-4">Totali</h4>
+          <div id="totaliStats" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+        </div>
+      </section>
+      
+      <!-- Sezione: Passi -->
+      <section class="mb-8">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4">Passi</h3>
+        <div class="grid md:grid-cols-2 gap-6">
+          <!-- Divisione esploratori per Passo -->
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+            <h4 class="text-lg font-semibold text-gray-700 mb-4">Esploratori per Passo</h4>
+            <div class="w-full" style="height: 300px;">
+              <canvas id="passiEsploratoriChart"></canvas>
+            </div>
+            <div id="passiEsploratoriStats" class="mt-4 text-sm text-gray-600"></div>
+          </div>
+          
+          <!-- Divisione sfide per Passo -->
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+            <h4 class="text-lg font-semibold text-gray-700 mb-4">Sfide per Passo</h4>
+            <div class="w-full" style="height: 300px;">
+              <canvas id="passiSfideChart"></canvas>
+            </div>
+            <div id="passiSfideStats" class="mt-4 text-sm text-gray-600"></div>
+          </div>
+        </div>
+        
+        <!-- Tempi medi -->
+        <div class="bg-gray-50 p-6 rounded-lg shadow-inner mt-4">
+          <h4 class="text-lg font-semibold text-gray-700 mb-4">Tempi Medi</h4>
+          <div id="tempiPassiStats" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+      </section>
+      
+      <!-- Sezione: Specialità -->
+      <section class="mb-8">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4">Specialità</h3>
+        
+        <!-- Totale specialità per anno e pattuglia -->
+        <div class="bg-gray-50 p-6 rounded-lg shadow-inner mb-4">
+          <h4 class="text-lg font-semibold text-gray-700 mb-4">Specialità per Anno e Pattuglia</h4>
+          <div id="specialitaAnnoPattuglia" class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="border-b">
+                  <th class="text-left p-2">Anno</th>
+                  <th class="text-left p-2">Pattuglia</th>
+                  <th class="text-right p-2">Totale Specialità</th>
+                </tr>
+              </thead>
+              <tbody id="specialitaAnnoPattugliaBody"></tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Distribuzione per colori -->
+        <div class="grid md:grid-cols-2 gap-6 mb-4">
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+            <h4 class="text-lg font-semibold text-gray-700 mb-4">Distribuzione per Colore Sfondo</h4>
+            <div class="w-full" style="height: 300px;">
+              <canvas id="specialitaColoreSfondoChart"></canvas>
+            </div>
+          </div>
+          
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+            <h4 class="text-lg font-semibold text-gray-700 mb-4">Distribuzione per Colore Bordo</h4>
+            <div class="w-full" style="height: 300px;">
+              <canvas id="specialitaColoreBordoChart"></canvas>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tempi medi specialità -->
+        <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+          <h4 class="text-lg font-semibold text-gray-700 mb-4">Tempi Medi</h4>
+          <div id="tempiSpecialitaStats" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+      </section>
+      
+    </main>
+  </div>
+  
+  <!-- Scripts -->
+  <script type="module" src="shared.js"></script>
+  <script type="module" src="statistiche.js"></script>
+</body>
+</html>
+
