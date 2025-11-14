@@ -280,6 +280,25 @@ UI.loadSpecialita = function(specialitaArray) {
   specialitaArray.forEach((sp, index) => this.addSpecialita(sp, index));
 };
 
+// Funzione helper per applicare i colori al container della specialità
+UI.applySpecialitaColors = function(containerDiv, specialita) {
+  if (!containerDiv) return;
+  
+  // Colori di default se non specificati
+  const defaultSfondo = 'white';
+  const defaultBordo = 'gray';
+  
+  // Ottieni i colori dalla specialità o usa i default
+  const sfondoColore = specialita?.sfondo_colore || defaultSfondo;
+  const bordoColore = specialita?.bordo_colore || defaultBordo;
+  
+  // Applica gli stili inline
+  containerDiv.style.backgroundColor = sfondoColore;
+  containerDiv.style.border = `3px solid ${bordoColore}`;
+  containerDiv.style.borderRadius = '0.5rem'; // rounded-lg
+  containerDiv.style.overflow = 'hidden';
+};
+
 UI.addSpecialita = async function(data = null, index = null) {
   const container = this.qs('#specialitaContainer');
   if (!container) return;
@@ -299,7 +318,9 @@ UI.addSpecialita = async function(data = null, index = null) {
   ];
   
   const div = document.createElement('div');
-  div.className = 'bg-white rounded-lg border border-gray-200 overflow-hidden';
+  div.className = 'rounded-lg overflow-hidden';
+  // Applica i colori dinamicamente
+  this.applySpecialitaColors(div, selectedSpec);
   div.innerHTML = `
     <!-- Header compatto -->
     <div class="specialita-header p-4 cursor-pointer hover:bg-gray-50 transition-colors" data-specialita="${realIndex}">
@@ -379,6 +400,10 @@ UI.addSpecialita = async function(data = null, index = null) {
       // Aggiorna i nomi e i testi delle prove quando cambia la specialità
       const specialitaList = await this.loadSpecialitaList();
       const selectedSpec = specialitaList.find(s => s.nome === v);
+      
+      // Aggiorna i colori del container quando cambia la specialità
+      this.applySpecialitaColors(div, selectedSpec);
+      
       if (selectedSpec && selectedSpec.prove) {
         selectedSpec.prove.forEach((prova) => {
           // Trova il label che precede l'input della data
