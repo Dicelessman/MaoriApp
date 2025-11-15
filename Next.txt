@@ -1,3 +1,13 @@
+Aggiungi il campo Sesso alla pagina scout.html
+
+Per ogni specialità aggiungi i campi:
+- brevetto 
+- distintivo
+
+Cambia i nomi delle direzioni
+
+Rivedi le statistiche significative veramente
+
 Plan 1
 crea una pagina che conprenda queste statistiche:
 - composizione del reparto:
