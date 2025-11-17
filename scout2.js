@@ -332,6 +332,14 @@ UI.addSpecialita = async function(data = null, index = null) {
             <input type="checkbox" id="${spId}_ott_chk" ${data?.ottenuta ? 'checked' : ''} />
             <span>Ottenuta</span>
           </label>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" id="${spId}_brevetto" ${data?.brevetto ? 'checked' : ''} />
+            <span>Brevetto</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" id="${spId}_distintivo" ${data?.distintivo ? 'checked' : ''} />
+            <span>Distintivo</span>
+          </label>
           <input id="${spId}_data" type="date" class="input" value="${data?.data ? this.toYyyyMmDd(data.data) : ''}" placeholder="Data" />
         </div>
         <div class="flex items-center gap-2">
@@ -450,10 +458,13 @@ UI.collectSpecialita = function() {
   return Array.from(container.children).map(div => {
     const spId = div.querySelector('select[id$="_nome"]')?.id.replace('_nome', '') || '';
     const get = (suffix) => this.qs(`#${spId}${suffix}`)?.value?.trim() || '';
+    const getChk = (suffix) => !!this.qs(`#${spId}${suffix}`)?.checked;
     
     return {
       nome: get('_nome'),
       ottenuta: !!this.qs(`#${spId}_ott_chk`)?.checked,
+      brevetto: getChk('_brevetto'),
+      distintivo: getChk('_distintivo'),
       data: get('_data') || null,
       p1_data: get('_p1_data') || null,
       p2_data: get('_p2_data') || null,
@@ -468,10 +479,16 @@ UI.collectSpecialita = function() {
 UI.setCheckDate = function(prefix, val) {
   const data = val?.data ? this.toYyyyMmDd(val.data) : this.toYyyyMmDd(val);
   const done = val?.done ?? (val && typeof val === 'object' ? false : !!val);
+  const brevetto = val?.brevetto ?? false;
+  const distintivo = val?.distintivo ?? false;
   const chk = this.qs(`#${prefix}_chk`);
   const dt = this.qs(`#${prefix}_dt`);
+  const brevettoChk = this.qs(`#${prefix}_brevetto`);
+  const distintivoChk = this.qs(`#${prefix}_distintivo`);
   if (chk) chk.checked = !!done;
   if (dt) dt.value = data || '';
+  if (brevettoChk) brevettoChk.checked = !!brevetto;
+  if (distintivoChk) distintivoChk.checked = !!distintivo;
 };
 
 UI.setPair = function(prefix, val) {
@@ -492,7 +509,12 @@ UI.collectForm = function() {
   const getNum = (sel) => this.qs(sel)?.value || '';
   const getChk = (sel) => !!this.qs(sel)?.checked;
   const pair = (p) => ({ data: get(`${p}_dt`) || null, testo: get(`${p}_tx`) || '' });
-  const cd = (p) => ({ done: getChk(`#${p}_chk`), data: get(`#${p}_dt`) || null });
+  const cd = (p) => ({ 
+    done: getChk(`#${p}_chk`), 
+    data: get(`#${p}_dt`) || null,
+    brevetto: getChk(`#${p}_brevetto`),
+    distintivo: getChk(`#${p}_distintivo`)
+  });
   
   const payload = {
     nome: get('#anag_nome'),
