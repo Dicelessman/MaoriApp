@@ -70,6 +70,13 @@
             <div><label class="block text-sm">Nome</label><input id="anag_nome" class="input" /></div>
             <div><label class="block text-sm">Cognome</label><input id="anag_cognome" class="input" /></div>
             <div><label class="block text-sm">Data di Nascita</label><input id="anag_dob" type="date" class="input" /></div>
+            <div><label class="block text-sm">Sesso</label><select id="anag_sesso" class="input">
+              <option value="">Seleziona sesso...</option>
+              <option value="non registrato">non registrato</option>
+              <option value="maschio">maschio</option>
+              <option value="femmina">femmina</option>
+              <option value="non binario">non binario</option>
+            </select></div>
             <div><label class="block text-sm">Codice Fiscale</label><input id="anag_cf" class="input" /></div>
             <div><label class="block text-sm">Indirizzo</label><input id="anag_indirizzo" class="input" /></div>
             <div><label class="block text-sm">Città</label><input id="anag_citta" class="input" /></div>
@@ -175,27 +182,27 @@
                     </div>
                     <textarea id="pv_sfida_io_1_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
                   </div>
-                  <!-- RE -->
+                  <!-- AL (ex RE) -->
                   <div class="space-y-2">
                     <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
-                      <span class="font-medium">RE</span>
-                      <select id="pv_sfida_re_1" class="input md:col-span-2">
+                      <span class="font-medium">Gli Altri</span>
+                      <select id="pv_sfida_al_1" class="input md:col-span-2">
                         <option value="">Seleziona sfida...</option>
                       </select>
-                      <input id="pv_sfida_re_1_data" type="date" class="input md:col-span-3" />
+                      <input id="pv_sfida_al_1_data" type="date" class="input md:col-span-3" />
                     </div>
-                    <textarea id="pv_sfida_re_1_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                    <textarea id="pv_sfida_al_1_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
                   </div>
-                  <!-- IM -->
+                  <!-- MT (ex IM) -->
                   <div class="space-y-2">
                     <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
-                      <span class="font-medium">IM</span>
-                      <select id="pv_sfida_im_1" class="input md:col-span-2">
+                      <span class="font-medium">La Mia Traccia</span>
+                      <select id="pv_sfida_mt_1" class="input md:col-span-2">
                         <option value="">Seleziona sfida...</option>
                       </select>
-                      <input id="pv_sfida_im_1_data" type="date" class="input md:col-span-3" />
+                      <input id="pv_sfida_mt_1_data" type="date" class="input md:col-span-3" />
                     </div>
-                    <textarea id="pv_sfida_im_1_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                    <textarea id="pv_sfida_mt_1_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
                   </div>
                   <!-- Sfida bianca -->
                   <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
@@ -239,27 +246,27 @@
                     </div>
                     <textarea id="pv_sfida_io_2_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
                   </div>
-                  <!-- RE -->
+                  <!-- AL (ex RE) -->
                   <div class="space-y-2">
                     <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
-                      <span class="font-medium">RE</span>
-                      <select id="pv_sfida_re_2" class="input md:col-span-2">
+                      <span class="font-medium">Gli Altri</span>
+                      <select id="pv_sfida_al_2" class="input md:col-span-2">
                         <option value="">Seleziona sfida...</option>
                       </select>
-                      <input id="pv_sfida_re_2_data" type="date" class="input md:col-span-3" />
+                      <input id="pv_sfida_al_2_data" type="date" class="input md:col-span-3" />
                     </div>
-                    <textarea id="pv_sfida_re_2_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                    <textarea id="pv_sfida_al_2_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
                   </div>
-                  <!-- IM -->
+                  <!-- MT (ex IM) -->
                   <div class="space-y-2">
                     <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
-                      <span class="font-medium">IM</span>
-                      <select id="pv_sfida_im_2" class="input md:col-span-2">
+                      <span class="font-medium">La Mia Traccia</span>
+                      <select id="pv_sfida_mt_2" class="input md:col-span-2">
                         <option value="">Seleziona sfida...</option>
                       </select>
-                      <input id="pv_sfida_im_2_data" type="date" class="input md:col-span-3" />
+                      <input id="pv_sfida_mt_2_data" type="date" class="input md:col-span-3" />
                     </div>
-                    <textarea id="pv_sfida_im_2_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                    <textarea id="pv_sfida_mt_2_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
                   </div>
                   <!-- Sfida bianca -->
                   <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
@@ -303,27 +310,27 @@
                     </div>
                     <textarea id="pv_sfida_io_3_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
                   </div>
-                  <!-- RE -->
+                  <!-- AL (ex RE) -->
                   <div class="space-y-2">
                     <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
-                      <span class="font-medium">RE</span>
-                      <select id="pv_sfida_re_3" class="input md:col-span-2">
+                      <span class="font-medium">Gli Altri</span>
+                      <select id="pv_sfida_al_3" class="input md:col-span-2">
                         <option value="">Seleziona sfida...</option>
                       </select>
-                      <input id="pv_sfida_re_3_data" type="date" class="input md:col-span-3" />
+                      <input id="pv_sfida_al_3_data" type="date" class="input md:col-span-3" />
                     </div>
-                    <textarea id="pv_sfida_re_3_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                    <textarea id="pv_sfida_al_3_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
                   </div>
-                  <!-- IM -->
+                  <!-- MT (ex IM) -->
                   <div class="space-y-2">
                     <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">
-                      <span class="font-medium">IM</span>
-                      <select id="pv_sfida_im_3" class="input md:col-span-2">
+                      <span class="font-medium">La Mia Traccia</span>
+                      <select id="pv_sfida_mt_3" class="input md:col-span-2">
                         <option value="">Seleziona sfida...</option>
                       </select>
-                      <input id="pv_sfida_im_3_data" type="date" class="input md:col-span-3" />
+                      <input id="pv_sfida_mt_3_data" type="date" class="input md:col-span-3" />
                     </div>
-                    <textarea id="pv_sfida_im_3_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
+                    <textarea id="pv_sfida_mt_3_text" class="textarea text-sm textarea-auto-resize" readonly placeholder="Testo della sfida selezionata..."></textarea>
                   </div>
                   <!-- Sfida bianca -->
                   <div class="grid grid-cols-3 md:grid-cols-6 items-center gap-2">

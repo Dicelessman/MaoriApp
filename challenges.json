@@ -18,40 +18,40 @@
         "text": "Trovo, o costruisco, un oggetto insolito ma utile al mio equipaggiamento per la vita di Reparto, hike o campi, e dopo averlo testato più volte lo presento e ne spiego il funzionamento in un momento di Reparto."
       }
     ],
-    "RE": [
+    "AL": [
       {
-        "code": "1-RE-1",
+        "code": "1-AL-1",
         "text": "Scelgo 3 articoli della legge portando per ognuno un esempio, della vita di tutti i giorni, in cui viene rispettato, e uno non, durante riunione di Reparto."
       },
       {
-        "code": "1-RE-2",
+        "code": "1-AL-2",
         "text": "Mi occupo insieme alla mia Ptg/Eqp di organizzare un momento di animazione per il Reparto collaborando attivamente con tutti, e usarlo come spunto per migliorare la proposta di una seconda attività."
       },
       {
-        "code": "1-RE-3",
+        "code": "1-AL-3",
         "text": "Sperimento almeno 3 Posti d'Azione e 2 Incarichi diversi, seguendo l'esempio di chi li ha tenuti prima di me."
       },
       {
-        "code": "1-RE-4",
+        "code": "1-AL-4",
         "text": "Per tre mesi mi occupo di raccontare le personalità dei membri della mia Ptg/Eqp attraverso racconti/immagini/video (da allegare al libronone di Ptg, oppure ad un social, ecc)."
       }
     ],
-    "IM": [
+    "MT": [
       {
-        "code": "1-IM-1",
+        "code": "1-MT-1",
         "text": "Propongo un gioco nuovo al mio Reparto o Ptg/Eqp, spiegando il regolamento ed aiutando i capi nel gestirlo."
       },
       {
-        "code": "1-IM-2",
+        "code": "1-MT-2",
         "text": "Conquisto almeno 3 specialità di mio interesse."
       },
       {
-        "code": "1-IM-3",
+        "code": "1-MT-3",
         "text": "In Ptg/Eqp propongo, disegno e realizzo (in collaborazione con gli altri se ho bisogno) almeno due migliorie utili alla vita di ptg/eqp/ al campo/ all'angolo in sede."
       },
       {
-        "code": "1-IM-4",
-        "text": "Dopo aver vissuto un’esperienza scout con o senza il mio Rep/Ptg/Eqp, documento e racconto come l’ho vissuta."
+        "code": "1-MT-4",
+        "text": "Dopo aver vissuto un'esperienza scout con o senza il mio Rep/Ptg/Eqp, documento e racconto come l'ho vissuta."
       }
     ]
   },
@@ -74,39 +74,39 @@
         "text": "Propongo per una riunione di Ptg/Eqp un’esperienza che riguardi un tema per me importante (es. evento, cineforum, ecc), al termine del quale aiuto a condurre un confronto su come io e gli altri lo abbiamo vissuto."
       }
     ],
-    "RE": [
+    "AL": [
       {
-        "code": "2-RE-1",
+        "code": "2-AL-1",
         "text": "Aiuto nel definire e far rispettare un patto scritto di regole interno alla Ptg/Eqp o Reparto per almeno un evento (es. hike, uscita, impresa, campo..)."
       },
       {
-        "code": "2-RE-2",
+        "code": "2-AL-2",
         "text": "Partecipo attivamente alla progettazione e realizzazione dell'animazione di un fuoco di bivacco prima di Ptg/Eqp e poi di Reparto/Gruppo, curandone tema e messaggi."
       },
       {
-        "code": "2-RE-3",
+        "code": "2-AL-3",
         "text": "Propongo un'uscita di Ptg/Eqp di conoscenza fuori dal Reparto (gemellaggio altri scout, servizio altra associazione, con esterni ecc) e collaboro attivamente alla sua riuscita."
       },
       {
-        "code": "2-RE-4",
+        "code": "2-AL-4",
         "text": "Mi impegno a conquistare due specialità di Impegno Civile facendo squadra ogni volta con un altro/a Esplo con cui ho legato meno del Reparto."
       }
     ],
-    "IM": [
+    "MT": [
       {
-        "code": "2-IM-1",
+        "code": "2-MT-1",
         "text": "Porto una mia idea motivata in consiglio di Ptg/Eqp per un progetto o attività da fare insieme e contribuisco alla sua realizzazione (es. Impresa, Riunioni, migliorie ecc)."
       },
       {
-        "code": "2-IM-2",
-        "text": "Organizzo un momento per gli altri, da solo o con l’aiuto della Ptg/Eqp, in cui porto e condivido le mie competenze in un ambito che mi piace (sport, hobby, tecniche...)."
+        "code": "2-MT-2",
+        "text": "Organizzo un momento per gli altri, da solo o con l'aiuto della Ptg/Eqp, in cui porto e condivido le mie competenze in un ambito che mi piace (sport, hobby, tecniche...)."
       },
       {
-        "code": "2-IM-3",
-        "text": "Contribuisco a identificare aspetti da poter migliorare nella vita di Ptg/Eqp durante almeno due CdP e mi propongo nei ruoli che li risolvano, verificando poi com’è andata."
+        "code": "2-MT-3",
+        "text": "Contribuisco a identificare aspetti da poter migliorare nella vita di Ptg/Eqp durante almeno due CdP e mi propongo nei ruoli che li risolvano, verificando poi com'è andata."
       },
       {
-        "code": "2-IM-4",
+        "code": "2-MT-4",
         "text": "Svolgo una ricerca utile alla mia Ptg/Eqp oppure Reparto organizzando e conducendo diverse interviste (o usando fonti, siti, altre associazioni..), mettendo insieme il risultato per presentarlo in una riunione."
       }
     ]
@@ -130,40 +130,40 @@
         "text": "Organizzo almeno tre momenti di verifica con la mia Ptg/Eqp riportando o facendo riportare sul verbale le soluzioni alternative ai problemi che abbiamo individuato, riferendo poi tutto al CR."
       }
     ],
-    "RE": [
+    "AL": [
       {
-        "code": "3-RE-1",
+        "code": "3-AL-1",
         "text": "Organizzo e conduco 2 momenti o attività di confronto e discussione di cui uno di Ptg/Eqp ed dopo uno con tutto il Reparto."
       },
       {
-        "code": "3-RE-2",
+        "code": "3-AL-2",
         "text": "Con l'aiuto dello staff, organizzo e poi gestisco un'attività sulla sessualità ed affettività da proporre durante un'uscita in Reparto."
       },
       {
-        "code": "3-RE-3",
-        "text": "Coordino gli altri CP/VCP per organizzare e gestire, con l’aiuto dello Staff, un’attività di accoglienza o conoscenza (es. passaggi, ingresso di esterni, percorso promessa, gemellaggio..)."
+        "code": "3-AL-3",
+        "text": "Coordino gli altri CP/VCP per organizzare e gestire, con l'aiuto dello Staff, un'attività di accoglienza o conoscenza (es. passaggi, ingresso di esterni, percorso promessa, gemellaggio..)."
       },
       {
-        "code": "3-RE-4",
+        "code": "3-AL-4",
         "text": "Per tre mesi mi occupo di raccontare le esperienze vissute in Ptg/Eqp/Reparto (quaderno di ptg, libro d'oro, articoli, social..), ricordando le gesta e caratteristiche dei miei compagni."
       }
     ],
-    "IM": [
+    "MT": [
       {
-        "code": "3-IM-1",
+        "code": "3-MT-1",
         "text": "Propongo e guido la mia Ptg/Eqp nella conquista di una specialità di Ptg/Eqp."
       },
       {
-        "code": "3-IM-2",
+        "code": "3-MT-2",
         "text": "Organizzo un momento di trapasso nozioni in Ptg/Eqp/Reparto su un aspetto specifico o innovativo per una tecnica (anche non scout) in cui sono competente."
       },
       {
-        "code": "3-IM-3",
+        "code": "3-MT-3",
         "text": "Propongo, progetto e conduco un confronto o dibattito in cui coinvolgo Ptg/Eqp/III tracce/CdR/Alta ptg, su un tema a me caro."
       },
       {
-        "code": "3-IM-4",
-        "text": "Pianifico e gestisco la partecipazione di Ptg/Eqp/CdR/Alta ptg ad un evento legato ad un tema che a me interessa, proponendoci per svolgere per l’occasione un servizio."
+        "code": "3-MT-4",
+        "text": "Pianifico e gestisco la partecipazione di Ptg/Eqp/CdR/Alta ptg ad un evento legato ad un tema che a me interessa, proponendoci per svolgere per l'occasione un servizio."
       }
     ]
   }

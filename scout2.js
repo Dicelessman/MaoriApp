@@ -73,6 +73,7 @@ UI.renderScoutPage = async function() {
   setVal('#anag_nome', s.nome);
   setVal('#anag_cognome', s.cognome);
   setVal('#anag_dob', this.toYyyyMmDd(s.anag_dob));
+  setVal('#anag_sesso', s.anag_sesso);
   setVal('#anag_cf', s.anag_cf);
   setVal('#anag_indirizzo', s.anag_indirizzo);
   setVal('#anag_citta', s.anag_citta);
@@ -112,7 +113,7 @@ UI.renderScoutPage = async function() {
   
   // Adatta l'altezza dei textarea dopo il caricamento
   setTimeout(() => {
-    const direzioni = ['io', 're', 'im'];
+    const direzioni = ['io', 'al', 'mt'];
     const passi = ['1', '2', '3'];
     passi.forEach(passo => {
       direzioni.forEach(dir => {
@@ -201,7 +202,7 @@ UI.populateChallengeDropdowns = function() {
   const challenges = this.challengesData;
   if (!challenges) return;
 
-  const direzioni = ['io', 're', 'im'];
+  const direzioni = ['io', 'al', 'mt'];
   const passi = ['1', '2', '3'];
 
   passi.forEach(passo => {
@@ -241,7 +242,7 @@ UI.populateChallengeDropdowns = function() {
 
 // Carica i dati delle sfide salvate
 UI.loadChallengeData = function(s) {
-  const direzioni = ['io', 're', 'im'];
+  const direzioni = ['io', 'al', 'mt'];
   const passi = ['1', '2', '3'];
 
   passi.forEach(passo => {
@@ -497,6 +498,7 @@ UI.collectForm = function() {
     nome: get('#anag_nome'),
     cognome: get('#anag_cognome'),
     anag_dob: get('#anag_dob') || null,
+    anag_sesso: get('#anag_sesso'),
     anag_cf: get('#anag_cf'),
     anag_indirizzo: get('#anag_indirizzo'),
     anag_citta: get('#anag_citta'),
@@ -539,7 +541,7 @@ UI.collectForm = function() {
   };
 
   // Aggiungi i dati delle sfide codificate
-  const direzioni = ['io', 're', 'im'];
+  const direzioni = ['io', 'al', 'mt'];
   const passi = ['1', '2', '3'];
   
   passi.forEach(passo => {
