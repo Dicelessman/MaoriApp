@@ -703,6 +703,18 @@ UI.renderSpecialitaStats = async function(scouts) {
 
 // ============== Tabella Pattuglie ==============
 UI.renderPattuglieTable = function(scouts) {
+  // Salva scouts nello stato per accesso dagli event listeners
+  if (scouts) {
+    this._pattuglieTableScouts = scouts;
+  } else {
+    scouts = this._pattuglieTableScouts || [];
+  }
+  
+  // Inizializza lo stato di ordinamento se non esiste
+  if (!this._pattuglieSortState) {
+    this._pattuglieSortState = { field: 'nome', direction: 'asc' };
+  }
+  
   // Raggruppa esploratori per pattuglia
   const pattuglieMap = {};
   
@@ -713,15 +725,55 @@ UI.renderPattuglieTable = function(scouts) {
     }
     
     const annoScout = this.getAnnoScout(scout.anag_dob);
+    
+    // Calcola il passo raggiunto
+    let passo = '-';
+    if (scout.pv_traccia3?.done) passo = '3';
+    else if (scout.pv_traccia2?.done) passo = '2';
+    else if (scout.pv_traccia1?.done) passo = '1';
+    
+    // Calcola numero specialità raggiunte
+    let numSpecialita = 0;
+    if (scout.specialita && Array.isArray(scout.specialita)) {
+      numSpecialita = scout.specialita.filter(s => s.ottenuta).length;
+    }
+    
+    // CP/VCP
+    const cpVcp = scout.pv_vcp_cp || '';
+    
     pattuglieMap[pattuglia].push({
       nome: `${scout.nome || ''} ${scout.cognome || ''}`.trim() || 'Nome non disponibile',
-      annoScout: annoScout || 'N/A'
+      annoScout: annoScout || 'N/A',
+      cpVcp: cpVcp,
+      passo: passo,
+      numSpecialita: numSpecialita
     });
   });
   
-  // Ordina gli esploratori per nome all'interno di ogni pattuglia
+  // Ordina gli esploratori all'interno di ogni pattuglia
+  const sortField = this._pattuglieSortState.field;
+  const sortDir = this._pattuglieSortState.direction;
+  
   Object.keys(pattuglieMap).forEach(pattuglia => {
-    pattuglieMap[pattuglia].sort((a, b) => a.nome.localeCompare(b.nome));
+    pattuglieMap[pattuglia].sort((a, b) => {
+      let comparison = 0;
+      
+      if (sortField === 'nome') {
+        comparison = a.nome.localeCompare(b.nome);
+      } else if (sortField === 'annoScout') {
+        // Ordina per anno scout: I°, II°, III°, IV°, N/A
+        const order = { 'I°': 1, 'II°': 2, 'III°': 3, 'IV°': 4, 'N/A': 5 };
+        const aOrder = order[a.annoScout] || 5;
+        const bOrder = order[b.annoScout] || 5;
+        comparison = aOrder - bOrder;
+        // Se stesso anno scout, ordina per nome
+        if (comparison === 0) {
+          comparison = a.nome.localeCompare(b.nome);
+        }
+      }
+      
+      return sortDir === 'asc' ? comparison : -comparison;
+    });
   });
   
   // Ordina le pattuglie per nome
@@ -731,6 +783,24 @@ UI.renderPattuglieTable = function(scouts) {
     if (b === 'Non assegnata') return -1;
     return a.localeCompare(b);
   });
+  
+  // Aggiorna icone di ordinamento
+  const sortNomeIcon = document.getElementById('sortNomeIcon');
+  const sortAnnoScoutIcon = document.getElementById('sortAnnoScoutIcon');
+  if (sortNomeIcon) {
+    if (sortField === 'nome') {
+      sortNomeIcon.textContent = sortDir === 'asc' ? '↑' : '↓';
+    } else {
+      sortNomeIcon.textContent = '↕';
+    }
+  }
+  if (sortAnnoScoutIcon) {
+    if (sortField === 'annoScout') {
+      sortAnnoScoutIcon.textContent = sortDir === 'asc' ? '↑' : '↓';
+    } else {
+      sortAnnoScoutIcon.textContent = '↕';
+    }
+  }
   
   // Renderizza la tabella
   const tbody = document.getElementById('pattuglieTableBody');
@@ -745,12 +815,47 @@ UI.renderPattuglieTable = function(scouts) {
           ${index === 0 ? `<td class="p-2 font-semibold" rowspan="${esploratori.length}">${pattuglia}</td>` : ''}
           <td class="p-2">${esploratore.nome}</td>
           <td class="p-2">${esploratore.annoScout}</td>
+          <td class="p-2">${esploratore.cpVcp}</td>
+          <td class="p-2">${esploratore.passo}</td>
+          <td class="p-2">${esploratore.numSpecialita}</td>
         </tr>
       `;
     });
   });
   
-  tbody.innerHTML = html || '<tr><td colspan="3" class="p-4 text-center text-gray-500">Nessun esploratore trovato</td></tr>';
+  tbody.innerHTML = html || '<tr><td colspan="6" class="p-4 text-center text-gray-500">Nessun esploratore trovato</td></tr>';
+  
+  // Aggiungi event listeners per l'ordinamento (solo se non già aggiunti)
+  if (!this._pattuglieSortListenersAdded) {
+    const sortNome = document.getElementById('sortNome');
+    const sortAnnoScout = document.getElementById('sortAnnoScout');
+    
+    if (sortNome) {
+      sortNome.addEventListener('click', () => {
+        if (this._pattuglieSortState.field === 'nome') {
+          this._pattuglieSortState.direction = this._pattuglieSortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          this._pattuglieSortState.field = 'nome';
+          this._pattuglieSortState.direction = 'asc';
+        }
+        this.renderPattuglieTable();
+      });
+    }
+    
+    if (sortAnnoScout) {
+      sortAnnoScout.addEventListener('click', () => {
+        if (this._pattuglieSortState.field === 'annoScout') {
+          this._pattuglieSortState.direction = this._pattuglieSortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          this._pattuglieSortState.field = 'annoScout';
+          this._pattuglieSortState.direction = 'asc';
+        }
+        this.renderPattuglieTable();
+      });
+    }
+    
+    this._pattuglieSortListenersAdded = true;
+  }
 };
 
 // Funzione helper per distruggere un grafico
