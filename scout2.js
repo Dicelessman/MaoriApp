@@ -459,9 +459,10 @@ UI.collectSpecialita = function() {
     const spId = div.querySelector('select[id$="_nome"]')?.id.replace('_nome', '') || '';
     const get = (suffix) => {
       const el = this.qs(`#${spId}${suffix}`);
-      if (!el) return '';
+      if (!el) return null;
       const val = el.value?.trim() || '';
-      return val || null;
+      // Restituisce null se vuoto, altrimenti la stringa (data in formato YYYY-MM-DD)
+      return val === '' ? null : val;
     };
     const getChk = (suffix) => !!this.qs(`#${spId}${suffix}`)?.checked;
     
