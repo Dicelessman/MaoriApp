@@ -59,6 +59,18 @@ UI.getAnnoEsploratore = function(dob) {
   return age;
 };
 
+// Funzione helper per calcolare l'anno scout in base all'età
+UI.getAnnoScout = function(dob) {
+  const age = this.getAnnoEsploratore(dob);
+  if (age === null) return null;
+  
+  if (age >= 11 && age <= 12) return 'I°';
+  if (age === 13) return 'II°';
+  if (age === 14) return 'III°';
+  if (age === 15) return 'IV°';
+  return null; // Fuori dal range degli esploratori
+};
+
 // Sovrascrive la funzione per il rendering della pagina corrente
 UI.renderCurrentPage = function() {
   this.renderStatistiche();
@@ -90,6 +102,9 @@ UI.renderStatistiche = async function() {
   
   // Calcola statistiche specialità
   await this.renderSpecialitaStats(scouts);
+  
+  // Renderizza tabella pattuglie
+  this.renderPattuglieTable(scouts);
 };
 
 // ============== Composizione del Reparto ==============
@@ -684,6 +699,58 @@ UI.renderSpecialitaStats = async function(scouts) {
     }
     tempiSpecialitaStatsEl.innerHTML = html || '<div class="text-gray-500">Dati insufficienti per calcolare i tempi medi</div>';
   }
+};
+
+// ============== Tabella Pattuglie ==============
+UI.renderPattuglieTable = function(scouts) {
+  // Raggruppa esploratori per pattuglia
+  const pattuglieMap = {};
+  
+  scouts.forEach(scout => {
+    const pattuglia = scout.pv_pattuglia || 'Non assegnata';
+    if (!pattuglieMap[pattuglia]) {
+      pattuglieMap[pattuglia] = [];
+    }
+    
+    const annoScout = this.getAnnoScout(scout.anag_dob);
+    pattuglieMap[pattuglia].push({
+      nome: `${scout.nome || ''} ${scout.cognome || ''}`.trim() || 'Nome non disponibile',
+      annoScout: annoScout || 'N/A'
+    });
+  });
+  
+  // Ordina gli esploratori per nome all'interno di ogni pattuglia
+  Object.keys(pattuglieMap).forEach(pattuglia => {
+    pattuglieMap[pattuglia].sort((a, b) => a.nome.localeCompare(b.nome));
+  });
+  
+  // Ordina le pattuglie per nome
+  const pattuglieSorted = Object.keys(pattuglieMap).sort((a, b) => {
+    // "Non assegnata" va alla fine
+    if (a === 'Non assegnata') return 1;
+    if (b === 'Non assegnata') return -1;
+    return a.localeCompare(b);
+  });
+  
+  // Renderizza la tabella
+  const tbody = document.getElementById('pattuglieTableBody');
+  if (!tbody) return;
+  
+  let html = '';
+  pattuglieSorted.forEach(pattuglia => {
+    const esploratori = pattuglieMap[pattuglia];
+    esploratori.forEach((esploratore, index) => {
+      html += `
+        <tr class="border-b hover:bg-gray-50">
+          ${index === 0 ? `<td class="p-2 font-semibold" rowspan="${esploratori.length}">${pattuglia}</td>` : ''}
+          <td class="p-2">${esploratore.nome}</td>
+          <td class="p-2">${esploratore.annoScout}</td>
+        </tr>
+      `;
+    });
+  });
+  
+  tbody.innerHTML = html || '<tr><td colspan="3" class="p-4 text-center text-gray-500">Nessun esploratore trovato</td></tr>';
 };
 
 // Funzione helper per distruggere un grafico
