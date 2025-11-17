@@ -856,6 +856,7 @@ UI.printScoutSheet = async function() {
   try {
     const data = this.collectForm();
     const challenges = await this.loadChallenges();
+    const specialitaList = await this.loadSpecialitaList();
     
     // Funzioni helper per formattare i dati
     const fmtDate = (d) => {
@@ -864,8 +865,8 @@ UI.printScoutSheet = async function() {
       return isNaN(date) ? '' : date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
     
-    const fmtCheck = (val) => val ? '✓' : '';
-    const fmtValue = (val) => val || '-';
+    const fmtCheck = (val) => val ? '☑' : '☐';
+    const fmtValue = (val) => val || '';
     
     // Ottieni il testo completo delle sfide
     const getSfidaText = (passo, dir, code) => {
@@ -878,238 +879,192 @@ UI.printScoutSheet = async function() {
     
     const direzioniLabels = { io: 'IO', al: 'Gli Altri', mt: 'La Mia Traccia' };
     
+    // Determina il passo raggiunto e il prossimo passo
+    let passoRaggiunto = 0;
+    let prossimoPasso = 1;
+    
+    if (data.pv_traccia3?.done) {
+      passoRaggiunto = 3;
+      prossimoPasso = null; // Ha completato tutto
+    } else if (data.pv_traccia2?.done) {
+      passoRaggiunto = 2;
+      prossimoPasso = 3;
+    } else if (data.pv_traccia1?.done) {
+      passoRaggiunto = 1;
+      prossimoPasso = 2;
+    } else {
+      passoRaggiunto = 0;
+      prossimoPasso = 1;
+    }
+    
     // Costruisci HTML per la stampa
     let html = `
       <div class="print-section">
-        <div class="print-title">SCHEDA ESPLORATORE</div>
-        <div style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">${data.nome || ''} ${data.cognome || ''}</div>
-      </div>
-      
-      <!-- Dati Anagrafici -->
-      <div class="print-section print-box">
-        <div class="print-subtitle">Dati Anagrafici</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
-          <div><strong>Nome:</strong> ${fmtValue(data.nome)}</div>
-          <div><strong>Cognome:</strong> ${fmtValue(data.cognome)}</div>
-          <div><strong>Data di Nascita:</strong> ${fmtDate(data.anag_dob)}</div>
-          <div><strong>Sesso:</strong> ${fmtValue(data.anag_sesso)}</div>
-          <div><strong>Codice Fiscale:</strong> ${fmtValue(data.anag_cf)}</div>
-          <div><strong>Indirizzo:</strong> ${fmtValue(data.anag_indirizzo)}</div>
-          <div><strong>Città:</strong> ${fmtValue(data.anag_citta)}</div>
-          <div><strong>Email:</strong> ${fmtValue(data.anag_email)}</div>
-          <div><strong>Telefono:</strong> ${fmtValue(data.anag_telefono)}</div>
-        </div>
-      </div>
-      
-      <!-- Contatti -->
-      <div class="print-section print-box">
-        <div class="print-subtitle">Contatti</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px;">
-          <div><strong>Genitore 1:</strong> ${fmtValue(data.ct_g1_nome)}</div>
-          <div><strong>Telefono:</strong> ${fmtValue(data.ct_g1_tel)}</div>
-          <div><strong>Email:</strong> ${fmtValue(data.ct_g1_email)}</div>
-          <div><strong>Genitore 2:</strong> ${fmtValue(data.ct_g2_nome)}</div>
-          <div><strong>Telefono:</strong> ${fmtValue(data.ct_g2_tel)}</div>
-          <div><strong>Email:</strong> ${fmtValue(data.ct_g2_email)}</div>
-        </div>
-      </div>
-      
-      <!-- Informazioni Sanitarie -->
-      <div class="print-section print-box">
-        <div class="print-subtitle">Informazioni Sanitarie</div>
-        <div style="margin-top: 8px;">
-          <div><strong>Gruppo Sanguigno:</strong> ${fmtValue(data.san_gruppo)}</div>
-          <div style="margin-top: 8px;"><strong>Intolleranze e Esigenze Alimentari:</strong><br/>${fmtValue(data.san_intolleranze)}</div>
-          <div style="margin-top: 8px;"><strong>Allergie:</strong><br/>${fmtValue(data.san_allergie)}</div>
-          <div style="margin-top: 8px;"><strong>Farmaci:</strong><br/>${fmtValue(data.san_farmaci)}</div>
-          <div style="margin-top: 8px;"><strong>Vaccinazioni:</strong><br/>${fmtValue(data.san_vaccinazioni)}</div>
-          <div style="margin-top: 8px;"><strong>Certificazioni:</strong><br/>${fmtValue(data.san_cert)}</div>
-          <div style="margin-top: 8px;"><strong>Altro:</strong><br/>${fmtValue(data.san_altro)}</div>
-        </div>
+        <div class="print-title">Il sentiero di ${data.nome || ''} ${data.cognome || ''}</div>
       </div>
       
       <!-- Progressione Verticale -->
       <div class="print-section print-box">
-        <div class="print-subtitle">Progressione Verticale</div>
-        <div style="margin-top: 8px;">
-          <div><strong>Promessa:</strong> ${fmtDate(data.pv_promessa)}</div>
-          <div style="margin-top: 8px;"><strong>VCP/CP:</strong> ${fmtValue(data.pv_vcp_cp)}</div>
-          <div style="margin-top: 8px;"><strong>Pattuglia:</strong> ${fmtValue(data.pv_pattuglia)}</div>
-          ${data.pv_giglio_data ? `<div style="margin-top: 8px;"><strong>Giglio/Trifoglio:</strong> ${fmtDate(data.pv_giglio_data)} ${data.pv_giglio_note ? ' - ' + data.pv_giglio_note : ''}</div>` : ''}
+        <div class="print-subtitle">PROGRESSIONE VERTICALE</div>
+        <div style="margin-top: 12px;">
+          ${data.pv_promessa ? `<div style="margin-bottom: 8px;">✓ Hai fatto la Promessa</div>` : ''}
+          ${passoRaggiunto > 0 ? `<div style="margin-bottom: 8px;">✓ Hai raggiunto il ${passoRaggiunto === 1 ? 'primo' : passoRaggiunto === 2 ? 'secondo' : 'terzo'} Passo</div>` : ''}
+          ${prossimoPasso ? `<div style="margin-bottom: 8px;">→ Stai camminando verso il ${prossimoPasso === 1 ? 'primo' : prossimoPasso === 2 ? 'secondo' : 'terzo'} Passo</div>` : ''}
         </div>
+      </div>
     `;
     
-    // Passi
-    for (let passo = 1; passo <= 3; passo++) {
-      const traccia = data[`pv_traccia${passo}`];
-      if (traccia && (traccia.done || traccia.data || traccia.brevetto || traccia.distintivo)) {
-        html += `
-          <div style="margin-top: 16px; padding: 8px; background: #f0f0f0; border-radius: 4px;">
-            <div style="font-weight: 600; margin-bottom: 8px;">Passo ${passo}</div>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px;">
-              <div><strong>Completata:</strong> ${fmtCheck(traccia.done)}</div>
-              <div><strong>Data:</strong> ${fmtDate(traccia.data)}</div>
-              <div><strong>Brevetto:</strong> ${fmtCheck(traccia.brevetto)}</div>
-              <div><strong>Distintivo:</strong> ${fmtCheck(traccia.distintivo)}</div>
-            </div>
-        `;
-        
-        // Sfide per questo passo
-        const direzioni = ['io', 'al', 'mt'];
-        direzioni.forEach(dir => {
-          const code = data[`pv_sfida_${dir}_${passo}`];
-          const dataSfida = data[`pv_sfida_${dir}_${passo}_data`];
-          if (code || dataSfida) {
-            const sfidaText = getSfidaText(passo, dir, code);
-            html += `
-              <div style="margin-top: 8px; padding: 8px; background: #fff; border-left: 3px solid #16a34a;">
-                <div><strong>${direzioniLabels[dir]}:</strong> ${fmtValue(code)} ${dataSfida ? ' - ' + fmtDate(dataSfida) : ''}</div>
-                ${sfidaText ? `<div style="margin-top: 4px; font-size: 12px; color: #666;">${sfidaText}</div>` : ''}
-              </div>
-            `;
-          }
-        });
-        
-        // Sfida bianca
-        const sfidaBianca = data[`pv_sfida_bianca_${passo}`];
-        if (sfidaBianca) {
-          html += `
-            <div style="margin-top: 8px; padding: 8px; background: #fff; border-left: 3px solid #ccc;">
-              <div><strong>Sfida bianca:</strong> ${sfidaBianca}</div>
-            </div>
-          `;
-        }
-        
-        // Note passo
-        const notePasso = data[`pv_traccia${passo}_note`];
-        if (notePasso) {
-          html += `<div style="margin-top: 8px;"><strong>Note:</strong> ${notePasso}</div>`;
-        }
-        
-        html += `</div>`;
-      }
-    }
-    
-    // Note generali progressione verticale
-    if (data.pv_note) {
-      html += `<div style="margin-top: 8px;"><strong>Note:</strong> ${data.pv_note}</div>`;
-    }
-    
-    html += `</div>`;
-    
-    // Specialità
-    if (data.specialita && data.specialita.length > 0) {
+    // SFIDE DA SUPERARE PER RAGGIUNGERE IL PROSSIMO PASSO
+    if (prossimoPasso) {
       html += `
         <div class="print-section print-box">
-          <div class="print-subtitle">Specialità (PO)</div>
+          <div class="print-subtitle">SFIDE DA SUPERARE PER RAGGIUNGERE IL PROSSIMO PASSO</div>
+          <div style="margin-top: 12px;">
       `;
       
-      data.specialita.forEach((sp, idx) => {
-        if (sp.nome) {
+      const direzioni = ['io', 'al', 'mt'];
+      let hasSfide = false;
+      
+      direzioni.forEach(dir => {
+        const code = data[`pv_sfida_${dir}_${prossimoPasso}`];
+        const dataSfida = data[`pv_sfida_${dir}_${prossimoPasso}_data`];
+        if (code) {
+          hasSfide = true;
+          const sfidaText = getSfidaText(prossimoPasso, dir, code);
           html += `
-            <div style="margin-top: ${idx > 0 ? '16px' : '8px'}; padding: 8px; background: #f0f0f0; border-radius: 4px;">
-              <div style="font-weight: 600; margin-bottom: 8px;">${sp.nome}</div>
-              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px;">
-                <div><strong>Ottenuta:</strong> ${fmtCheck(sp.ottenuta)}</div>
-                <div><strong>Data:</strong> ${fmtDate(sp.data)}</div>
-                <div><strong>Brevetto:</strong> ${fmtCheck(sp.brevetto)}</div>
-                <div><strong>Distintivo:</strong> ${fmtCheck(sp.distintivo)}</div>
+            <div style="margin-bottom: 12px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <div style="display: flex; align-items: start; gap: 8px;">
+                <div style="min-width: 30px;">${fmtCheck(dataSfida)}</div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 600; margin-bottom: 4px;">${direzioniLabels[dir]} - ${code}</div>
+                  <div style="margin-bottom: 4px; font-size: 13px; color: #555;">${sfidaText}</div>
+                  ${dataSfida ? `<div style="font-size: 12px; color: #666;">Data: ${fmtDate(dataSfida)}</div>` : ''}
+                </div>
               </div>
+            </div>
           `;
-          
-          // Prove
-          for (let p = 1; p <= 3; p++) {
-            const provaData = sp[`p${p}_data`];
-            if (provaData) {
-              html += `<div style="margin-top: 4px;"><strong>Prova ${p}:</strong> ${fmtDate(provaData)}</div>`;
-            }
-          }
-          
-          // Prova CR
-          if (sp.cr_text || sp.cr_data) {
-            html += `<div style="margin-top: 4px;"><strong>Prova CR:</strong> ${fmtValue(sp.cr_text)} ${sp.cr_data ? ' - ' + fmtDate(sp.cr_data) : ''}</div>`;
-          }
-          
-          // Note
-          if (sp.note) {
-            html += `<div style="margin-top: 4px;"><strong>Note:</strong> ${sp.note}</div>`;
-          }
-          
-          html += `</div>`;
         }
       });
       
-      html += `</div>`;
-    }
-    
-    // Eventi
-    html += `
-      <div class="print-section print-box">
-        <div class="print-subtitle">Eventi</div>
-        <div style="margin-top: 8px;">
-    `;
-    
-    const eventi = [
-      { key: 'ev_ce1', label: 'Campo Estivo 1' },
-      { key: 'ev_ce2', label: 'Campo Estivo 2' },
-      { key: 'ev_ce3', label: 'Campo Estivo 3' },
-      { key: 'ev_ce4', label: 'Campo Estivo 4' },
-      { key: 'ev_tc1', label: 'Tecnicamp 1' },
-      { key: 'ev_tc2', label: 'Tecnicamp 2' },
-      { key: 'ev_tc3', label: 'Tecnicamp 3' },
-      { key: 'ev_tc4', label: 'Tecnicamp 4' },
-      { key: 'ev_ccp', label: 'CCP' },
-      { key: 'ev_jam', label: 'Jamboree' }
-    ];
-    
-    eventi.forEach(ev => {
-      const evento = data[ev.key];
-      if (evento && (evento.data || evento.testo)) {
-        html += `<div><strong>${ev.label}:</strong> ${fmtDate(evento.data)} ${evento.testo ? ' - ' + evento.testo : ''}</div>`;
+      // Sfida bianca del prossimo passo
+      const sfidaBianca = data[`pv_sfida_bianca_${prossimoPasso}`];
+      if (sfidaBianca) {
+        hasSfide = true;
+        html += `
+          <div style="margin-bottom: 12px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <div style="display: flex; align-items: start; gap: 8px;">
+              <div style="min-width: 30px;">☐</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 600; margin-bottom: 4px;">Sfida bianca</div>
+                <div style="font-size: 13px; color: #555;">${sfidaBianca}</div>
+              </div>
+            </div>
+          </div>
+        `;
       }
-    });
-    
-    if (data.ev_note) {
-      html += `<div style="margin-top: 8px;"><strong>Note:</strong> ${data.ev_note}</div>`;
-    }
-    
-    html += `
-        </div>
-      </div>
-    `;
-    
-    // Documenti
-    html += `
-      <div class="print-section print-box">
-        <div class="print-subtitle">Documenti</div>
-        <div style="margin-top: 8px;">
-    `;
-    
-    const documenti = [
-      { key: 'doc_quota1', label: 'Quota Annua 1' },
-      { key: 'doc_quota2', label: 'Quota Annua 2' },
-      { key: 'doc_quota3', label: 'Quota Annua 3' },
-      { key: 'doc_quota4', label: 'Quota Annua 4' },
-      { key: 'doc_iscr', label: 'Iscrizione' },
-      { key: 'doc_san', label: 'Modulo sanitario' },
-      { key: 'doc_priv', label: 'Modulo Privacy' }
-    ];
-    
-    documenti.forEach(doc => {
-      const dataDoc = data[doc.key];
-      if (dataDoc) {
-        html += `<div><strong>${doc.label}:</strong> ${fmtDate(dataDoc)}</div>`;
+      
+      if (!hasSfide) {
+        html += `<div style="color: #666; font-style: italic;">Nessuna sfida selezionata per il prossimo passo</div>`;
       }
-    });
-    
-    if (data.doc_note) {
-      html += `<div style="margin-top: 8px;"><strong>Note:</strong> ${data.doc_note}</div>`;
+      
+      html += `
+          </div>
+        </div>
+      `;
     }
     
-    html += `
+    // SPECIALITA' CHE HAI GIA' OTTENUTO
+    const specialitaOttenute = (data.specialita || []).filter(sp => sp.nome && sp.ottenuta);
+    if (specialitaOttenute.length > 0) {
+      html += `
+        <div class="print-section print-box">
+          <div class="print-subtitle">SPECIALITA' CHE HAI GIA' OTTENUTO</div>
+          <div style="margin-top: 12px;">
+            <div style="margin-bottom: 8px;">${specialitaOttenute.map(sp => sp.nome).join(', ')}</div>
+            ${specialitaOttenute.some(sp => sp.note) ? `
+              <div style="margin-top: 8px; padding: 8px; background: #f9f9f9; border-radius: 4px;">
+                ${specialitaOttenute.filter(sp => sp.note).map(sp => `<div style="margin-bottom: 4px;"><strong>${sp.nome}:</strong> ${sp.note}</div>`).join('')}
+              </div>
+            ` : ''}
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    }
+    
+    // SPECIALITA' CHE VUOI OTTENERE
+    const specialitaDaOttenere = (data.specialita || []).filter(sp => sp.nome && !sp.ottenuta);
+    if (specialitaDaOttenere.length > 0) {
+      html += `
+        <div class="print-section print-box">
+          <div class="print-subtitle">SPECIALITA' CHE VUOI OTTENERE</div>
+          <div style="margin-top: 12px;">
+      `;
+      
+      specialitaDaOttenere.forEach((sp, idx) => {
+        // Trova la specialità nella lista per ottenere le prove
+        const specInfo = specialitaList.find(s => s.nome === sp.nome);
+        const prove = specInfo?.prove || [
+          { nome: 'Prova 1', id: 'p1' },
+          { nome: 'Prova 2', id: 'p2' },
+          { nome: 'Prova 3', id: 'p3' }
+        ];
+        
+        html += `
+          <div style="margin-bottom: ${idx < specialitaDaOttenere.length - 1 ? '20px' : '8px'}; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+            <div style="font-weight: 600; font-size: 16px; margin-bottom: 12px;">${sp.nome}</div>
+        `;
+        
+        // Mostra tutte le prove
+        prove.forEach((prova, pIdx) => {
+          const provaData = sp[`p${prova.id}_data`];
+          html += `
+            <div style="margin-bottom: 8px; padding: 6px; background: #f9f9f9; border-radius: 3px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="min-width: 30px;">${fmtCheck(provaData)}</div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 500;">${prova.nome}</div>
+                  ${prova.text ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">${prova.text}</div>` : ''}
+                  ${provaData ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">Data: ${fmtDate(provaData)}</div>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        
+        // Prova CR
+        if (sp.cr_text || sp.cr_data) {
+          html += `
+            <div style="margin-bottom: 8px; padding: 6px; background: #f9f9f9; border-radius: 3px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="min-width: 30px;">${fmtCheck(sp.cr_data)}</div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 500;">Prova CR</div>
+                  ${sp.cr_text ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">${sp.cr_text}</div>` : ''}
+                  ${sp.cr_data ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">Data: ${fmtDate(sp.cr_data)}</div>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        
+        // Note
+        if (sp.note) {
+          html += `
+            <div style="margin-top: 8px; padding: 8px; background: #fff; border-left: 3px solid #16a34a; border-radius: 3px;">
+              <div style="font-weight: 500; margin-bottom: 4px;">Note:</div>
+              <div style="font-size: 13px; color: #555;">${sp.note}</div>
+            </div>
+          `;
+        }
+        
+        html += `</div>`;
+      });
+      
+      html += `
+          </div>
+        </div>
+      `;
+    }
     
     // Inserisci nel printArea e stampa
     const pa = this.qs('#printArea');
