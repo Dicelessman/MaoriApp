@@ -248,9 +248,10 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
 @media print {
   body { background: #fff !important; }
   #app, #shared-header, #shared-modals { display: none !important; }
-  #printArea { display: block !important; padding: 24px; color: #111; }
-  .print-section { page-break-inside: avoid; margin-bottom: 16px; }
-  .print-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
-  .print-subtitle { font-size: 16px; font-weight: 600; margin-top: 12px; }
-  .print-box { border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fafafa; }
+  #printArea { display: block !important; padding: 16px; color: #111; }
+  .print-section { page-break-inside: avoid; margin-bottom: 12px; }
+  .print-title { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+  .print-subtitle { font-size: 14px; font-weight: 600; margin-top: 8px; margin-bottom: 6px; }
+  .print-box { border: 1px solid #ddd; border-radius: 6px; padding: 10px; background: #fafafa; }
+  @page { margin: 1cm; }
 }

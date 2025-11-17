@@ -915,23 +915,19 @@ UI.printScoutSheet = async function() {
         <div class="print-title">Il sentiero di ${data.nome || ''}</div>
       </div>
       
-      <!-- Progressione Verticale -->
+      <!-- Progressione Verticale e Sfide nello stesso container -->
       <div class="print-section print-box">
         <div class="print-subtitle">PROGRESSIONE VERTICALE</div>
-        <div style="margin-top: 12px;">
-          ${versoCosa ? `<div style="margin-bottom: 8px;">→ Stai camminando verso ${versoCosa}</div>` : ''}
+        <div style="margin-top: 8px; margin-bottom: 12px;">
+          ${versoCosa ? `<div>→ Stai camminando verso ${versoCosa}</div>` : ''}
         </div>
-      </div>
+        
+        <div class="print-subtitle" style="margin-top: 16px; margin-bottom: 8px;">SFIDE DA SUPERARE PER RAGGIUNGERE IL PROSSIMO PASSO</div>
+        <div style="margin-top: 8px;">
     `;
     
     // SFIDE DA SUPERARE PER RAGGIUNGERE IL PROSSIMO PASSO
     if (prossimoPasso) {
-      html += `
-        <div class="print-section print-box">
-          <div class="print-subtitle">SFIDE DA SUPERARE PER RAGGIUNGERE IL PROSSIMO PASSO</div>
-          <div style="margin-top: 12px;">
-      `;
-      
       const direzioni = ['io', 'al', 'mt'];
       let hasSfide = false;
       
@@ -942,13 +938,13 @@ UI.printScoutSheet = async function() {
           hasSfide = true;
           const sfidaText = getSfidaText(prossimoPasso, dir, code);
           html += `
-            <div style="margin-bottom: 12px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-              <div style="display: flex; align-items: start; gap: 8px;">
-                <div style="min-width: 30px;">${fmtCheck(dataSfida)}</div>
+            <div style="margin-bottom: 8px; padding: 6px; border: 1px solid #ddd; border-radius: 3px;">
+              <div style="display: flex; align-items: start; gap: 6px;">
+                <div style="min-width: 24px; font-size: 14px;">${fmtCheck(dataSfida)}</div>
                 <div style="flex: 1;">
-                  <div style="font-weight: 600; margin-bottom: 4px;">${direzioniLabels[dir]} - ${code}</div>
-                  <div style="margin-bottom: 4px; font-size: 13px; color: #555;">${sfidaText}</div>
-                  ${dataSfida ? `<div style="font-size: 12px; color: #666;">Data: ${fmtDate(dataSfida)}</div>` : ''}
+                  <div style="font-weight: 600; font-size: 13px; margin-bottom: 2px;">${direzioniLabels[dir]} - ${code}</div>
+                  <div style="font-size: 11px; color: #555; line-height: 1.3;">${sfidaText}</div>
+                  ${dataSfida ? `<div style="font-size: 10px; color: #666; margin-top: 2px;">Data: ${fmtDate(dataSfida)}</div>` : ''}
                 </div>
               </div>
             </div>
@@ -961,12 +957,12 @@ UI.printScoutSheet = async function() {
       if (sfidaBianca) {
         hasSfide = true;
         html += `
-          <div style="margin-bottom: 12px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-            <div style="display: flex; align-items: start; gap: 8px;">
-              <div style="min-width: 30px;">☐</div>
+          <div style="margin-bottom: 8px; padding: 6px; border: 1px solid #ddd; border-radius: 3px;">
+            <div style="display: flex; align-items: start; gap: 6px;">
+              <div style="min-width: 24px; font-size: 14px;">☐</div>
               <div style="flex: 1;">
-                <div style="font-weight: 600; margin-bottom: 4px;">Sfida bianca</div>
-                <div style="font-size: 13px; color: #555;">${sfidaBianca}</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 2px;">Sfida bianca</div>
+                <div style="font-size: 11px; color: #555; line-height: 1.3;">${sfidaBianca}</div>
               </div>
             </div>
           </div>
@@ -974,106 +970,114 @@ UI.printScoutSheet = async function() {
       }
       
       if (!hasSfide) {
-        html += `<div style="color: #666; font-style: italic;">Nessuna sfida selezionata per il prossimo passo</div>`;
+        html += `<div style="color: #666; font-style: italic; font-size: 12px;">Nessuna sfida selezionata per il prossimo passo</div>`;
       }
-      
-      html += `
-          </div>
-        </div>
-      `;
     }
     
-    // SPECIALITA' CHE HAI GIA' OTTENUTO
+    html += `
+        </div>
+      </div>
+    `;
+    
+    // SPECIALITA' CHE HAI GIA' OTTENUTO e CHE VUOI OTTENERE nello stesso container
     const specialitaOttenute = (data.specialita || []).filter(sp => sp.nome && sp.ottenuta);
-    if (specialitaOttenute.length > 0) {
+    const specialitaDaOttenere = (data.specialita || []).filter(sp => sp.nome && !sp.ottenuta);
+    
+    if (specialitaOttenute.length > 0 || specialitaDaOttenere.length > 0) {
       html += `
         <div class="print-section print-box">
+      `;
+      
+      // SPECIALITA' CHE HAI GIA' OTTENUTO
+      if (specialitaOttenute.length > 0) {
+        html += `
           <div class="print-subtitle">SPECIALITA' CHE HAI GIA' OTTENUTO</div>
-          <div style="margin-top: 12px;">
-            <div style="margin-bottom: 8px;">${specialitaOttenute.map(sp => sp.nome).join(', ')}</div>
+          <div style="margin-top: 8px; margin-bottom: 12px;">
+            <div style="font-size: 13px; line-height: 1.4;">${specialitaOttenute.map(sp => sp.nome).join(', ')}</div>
             ${specialitaOttenute.some(sp => sp.note) ? `
-              <div style="margin-top: 8px; padding: 8px; background: #f9f9f9; border-radius: 4px;">
-                ${specialitaOttenute.filter(sp => sp.note).map(sp => `<div style="margin-bottom: 4px;"><strong>${sp.nome}:</strong> ${sp.note}</div>`).join('')}
+              <div style="margin-top: 6px; padding: 6px; background: #f9f9f9; border-radius: 3px; font-size: 11px;">
+                ${specialitaOttenute.filter(sp => sp.note).map(sp => `<div style="margin-bottom: 3px;"><strong>${sp.nome}:</strong> ${sp.note}</div>`).join('')}
               </div>
             ` : ''}
           </div>
-        </div>
-      `;
-    }
-    
-    // SPECIALITA' CHE VUOI OTTENERE
-    const specialitaDaOttenere = (data.specialita || []).filter(sp => sp.nome && !sp.ottenuta);
-    if (specialitaDaOttenere.length > 0) {
-      html += `
-        <div class="print-section print-box">
-          <div class="print-subtitle">SPECIALITA' CHE VUOI OTTENERE</div>
-          <div style="margin-top: 12px;">
-      `;
+        `;
+      }
       
-      specialitaDaOttenere.forEach((sp, idx) => {
-        // Trova la specialità nella lista per ottenere le prove
-        const specInfo = specialitaList.find(s => s.nome === sp.nome);
-        const prove = specInfo?.prove || [
-          { nome: 'Prova 1', id: 'p1' },
-          { nome: 'Prova 2', id: 'p2' },
-          { nome: 'Prova 3', id: 'p3' }
-        ];
-        
+      // SPECIALITA' CHE VUOI OTTENERE
+      if (specialitaDaOttenere.length > 0) {
         html += `
-          <div style="margin-bottom: ${idx < specialitaDaOttenere.length - 1 ? '20px' : '8px'}; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
-            <div style="font-weight: 600; font-size: 16px; margin-bottom: 12px;">${sp.nome}</div>
+          <div class="print-subtitle" style="margin-top: ${specialitaOttenute.length > 0 ? '16px' : '0'}; margin-bottom: 8px;">SPECIALITA' CHE VUOI OTTENERE</div>
+          <div style="margin-top: 8px;">
         `;
         
-        // Mostra tutte le prove
-        prove.forEach((prova, pIdx) => {
-          const provaData = sp[`p${prova.id}_data`];
-          // Se c'è una data valorizzata, segna la checkbox come completata
-          const isCompletata = !!provaData;
+        specialitaDaOttenere.forEach((sp, idx) => {
+          // Trova la specialità nella lista per ottenere le prove
+          const specInfo = specialitaList.find(s => s.nome === sp.nome);
+          const prove = specInfo?.prove || [
+            { nome: 'Prova 1', id: 'p1' },
+            { nome: 'Prova 2', id: 'p2' },
+            { nome: 'Prova 3', id: 'p3' }
+          ];
+          
           html += `
-            <div style="margin-bottom: 8px; padding: 6px; background: #f9f9f9; border-radius: 3px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="min-width: 30px;">${fmtCheck(isCompletata)}</div>
-                <div style="flex: 1;">
-                  <div style="font-weight: 500;">${prova.nome}</div>
-                  ${prova.text ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">${prova.text}</div>` : ''}
-                  ${provaData ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">Data: ${fmtDate(provaData)}</div>` : ''}
+            <div style="margin-bottom: ${idx < specialitaDaOttenere.length - 1 ? '14px' : '4px'}; padding: 8px; border: 1px solid #ddd; border-radius: 3px;">
+              <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">${sp.nome}</div>
+          `;
+          
+          // Mostra tutte le prove
+          prove.forEach((prova, pIdx) => {
+            const provaData = sp[`p${prova.id}_data`];
+            // Se c'è una data valorizzata, segna la checkbox come completata
+            const isCompletata = !!provaData;
+            html += `
+              <div style="margin-bottom: 5px; padding: 4px; background: #f9f9f9; border-radius: 2px;">
+                <div style="display: flex; align-items: start; gap: 6px;">
+                  <div style="min-width: 22px; font-size: 13px; padding-top: 1px;">${fmtCheck(isCompletata)}</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 500; font-size: 12px;">${prova.nome}</div>
+                    ${prova.text ? `<div style="font-size: 10px; color: #666; margin-top: 1px; line-height: 1.3;">${prova.text}</div>` : ''}
+                    ${provaData ? `<div style="font-size: 10px; color: #666; margin-top: 1px;">Data: ${fmtDate(provaData)}</div>` : ''}
+                  </div>
                 </div>
               </div>
-            </div>
-          `;
+            `;
+          });
+          
+          // Prova CR
+          if (sp.cr_text || sp.cr_data) {
+            html += `
+              <div style="margin-bottom: 5px; padding: 4px; background: #f9f9f9; border-radius: 2px;">
+                <div style="display: flex; align-items: start; gap: 6px;">
+                  <div style="min-width: 22px; font-size: 13px; padding-top: 1px;">${fmtCheck(sp.cr_data)}</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 500; font-size: 12px;">Prova CR</div>
+                    ${sp.cr_text ? `<div style="font-size: 10px; color: #666; margin-top: 1px; line-height: 1.3;">${sp.cr_text}</div>` : ''}
+                    ${sp.cr_data ? `<div style="font-size: 10px; color: #666; margin-top: 1px;">Data: ${fmtDate(sp.cr_data)}</div>` : ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+          
+          // Note
+          if (sp.note) {
+            html += `
+              <div style="margin-top: 6px; padding: 6px; background: #fff; border-left: 2px solid #16a34a; border-radius: 2px;">
+                <div style="font-weight: 500; font-size: 11px; margin-bottom: 2px;">Note:</div>
+                <div style="font-size: 11px; color: #555; line-height: 1.3;">${sp.note}</div>
+              </div>
+            `;
+          }
+          
+          html += `</div>`;
         });
         
-        // Prova CR
-        if (sp.cr_text || sp.cr_data) {
-          html += `
-            <div style="margin-bottom: 8px; padding: 6px; background: #f9f9f9; border-radius: 3px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="min-width: 30px;">${fmtCheck(sp.cr_data)}</div>
-                <div style="flex: 1;">
-                  <div style="font-weight: 500;">Prova CR</div>
-                  ${sp.cr_text ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">${sp.cr_text}</div>` : ''}
-                  ${sp.cr_data ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">Data: ${fmtDate(sp.cr_data)}</div>` : ''}
-                </div>
-              </div>
-            </div>
-          `;
-        }
-        
-        // Note
-        if (sp.note) {
-          html += `
-            <div style="margin-top: 8px; padding: 8px; background: #fff; border-left: 3px solid #16a34a; border-radius: 3px;">
-              <div style="font-weight: 500; margin-bottom: 4px;">Note:</div>
-              <div style="font-size: 13px; color: #555;">${sp.note}</div>
-            </div>
-          `;
-        }
-        
-        html += `</div>`;
-      });
+        html += `
+          </div>
+        `;
+      }
       
       html += `
-          </div>
         </div>
       `;
     }
