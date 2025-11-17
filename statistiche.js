@@ -95,25 +95,39 @@ UI.renderStatistiche = async function() {
 // ============== Composizione del Reparto ==============
 UI.renderComposizioneStats = function(scouts) {
   // Statistiche per sesso
-  const sessoStats = { M: 0, F: 0, Unknown: 0 };
+  const sessoStats = { 
+    maschio: 0, 
+    femmina: 0, 
+    'non binario': 0, 
+    'non registrato': 0 
+  };
   scouts.forEach(scout => {
-    const sesso = this.getSessoFromCF(scout.anag_cf);
-    if (sesso === 'M') sessoStats.M++;
-    else if (sesso === 'F') sessoStats.F++;
-    else sessoStats.Unknown++;
+    const sesso = scout.anag_sesso ? scout.anag_sesso.toLowerCase().trim() : 'non registrato';
+    if (sessoStats.hasOwnProperty(sesso)) {
+      sessoStats[sesso]++;
+    } else {
+      sessoStats['non registrato']++;
+    }
   });
   
   // Grafico per sesso
   const ctxSesso = document.getElementById('sessoChart');
   if (ctxSesso) {
     this._destroyChart('sessoChart');
+    const labels = ['Maschio', 'Femmina', 'Non binario', 'Non registrato'];
+    const data = [
+      sessoStats.maschio, 
+      sessoStats.femmina, 
+      sessoStats['non binario'], 
+      sessoStats['non registrato']
+    ];
     const chart = new Chart(ctxSesso, {
       type: 'pie',
       data: {
-        labels: ['Maschi', 'Femmine', 'Non specificato'],
+        labels: labels,
         datasets: [{
-          data: [sessoStats.M, sessoStats.F, sessoStats.Unknown],
-          backgroundColor: ['#3b82f6', '#ec4899', '#9ca3af']
+          data: data,
+          backgroundColor: ['#3b82f6', '#ec4899', '#a855f7', '#9ca3af']
         }]
       },
       options: {
@@ -140,11 +154,13 @@ UI.renderComposizioneStats = function(scouts) {
   // Testo statistiche sesso
   const sessoStatsEl = document.getElementById('sessoStats');
   if (sessoStatsEl) {
-    const total = sessoStats.M + sessoStats.F + sessoStats.Unknown;
+    const total = scouts.length;
+    const totalConSesso = sessoStats.maschio + sessoStats.femmina + sessoStats['non binario'];
     sessoStatsEl.innerHTML = `
-      <div>Maschi: ${sessoStats.M} (${total > 0 ? Math.round((sessoStats.M / total) * 100) : 0}%)</div>
-      <div>Femmine: ${sessoStats.F} (${total > 0 ? Math.round((sessoStats.F / total) * 100) : 0}%)</div>
-      ${sessoStats.Unknown > 0 ? `<div>Non specificato: ${sessoStats.Unknown}</div>` : ''}
+      <div>Maschio: ${sessoStats.maschio} (${total > 0 ? Math.round((sessoStats.maschio / total) * 100) : 0}%)</div>
+      <div>Femmina: ${sessoStats.femmina} (${total > 0 ? Math.round((sessoStats.femmina / total) * 100) : 0}%)</div>
+      <div>Non binario: ${sessoStats['non binario']} (${total > 0 ? Math.round((sessoStats['non binario'] / total) * 100) : 0}%)</div>
+      ${sessoStats['non registrato'] > 0 ? `<div>Non registrato: ${sessoStats['non registrato']} (${total > 0 ? Math.round((sessoStats['non registrato'] / total) * 100) : 0}%)</div>` : ''}
     `;
   }
   
@@ -226,7 +242,7 @@ UI.renderComposizioneStats = function(scouts) {
         <div class="text-sm text-gray-600">Pattuglie</div>
       </div>
       <div class="bg-white p-4 rounded border">
-        <div class="text-2xl font-bold text-gray-700">${sessoStats.M + sessoStats.F}</div>
+        <div class="text-2xl font-bold text-gray-700">${sessoStats.maschio + sessoStats.femmina + sessoStats['non binario']}</div>
         <div class="text-sm text-gray-600">Con sesso identificato</div>
       </div>
       <div class="bg-white p-4 rounded border">
@@ -297,7 +313,7 @@ UI.renderPassiStats = function(scouts) {
   
   // Divisione sfide per Passo
   const passiSfide = { 1: 0, 2: 0, 3: 0 };
-  const direzioni = ['io', 're', 'im'];
+  const direzioni = ['io', 'al', 'mt'];
   scouts.forEach(scout => {
     [1, 2, 3].forEach(passo => {
       direzioni.forEach(dir => {
