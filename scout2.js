@@ -457,21 +457,26 @@ UI.collectSpecialita = function() {
   
   return Array.from(container.children).map(div => {
     const spId = div.querySelector('select[id$="_nome"]')?.id.replace('_nome', '') || '';
-    const get = (suffix) => this.qs(`#${spId}${suffix}`)?.value?.trim() || '';
+    const get = (suffix) => {
+      const el = this.qs(`#${spId}${suffix}`);
+      if (!el) return '';
+      const val = el.value?.trim() || '';
+      return val || null;
+    };
     const getChk = (suffix) => !!this.qs(`#${spId}${suffix}`)?.checked;
     
     return {
-      nome: get('_nome'),
+      nome: get('_nome') || '',
       ottenuta: !!this.qs(`#${spId}_ott_chk`)?.checked,
       brevetto: getChk('_brevetto'),
       distintivo: getChk('_distintivo'),
-      data: get('_data') || null,
-      p1_data: get('_p1_data') || null,
-      p2_data: get('_p2_data') || null,
-      p3_data: get('_p3_data') || null,
-      cr_text: get('_cr_text'),
-      cr_data: get('_cr_data') || null,
-      note: get('_note')
+      data: get('_data'),
+      p1_data: get('_p1_data'),
+      p2_data: get('_p2_data'),
+      p3_data: get('_p3_data'),
+      cr_text: get('_cr_text') || '',
+      cr_data: get('_cr_data'),
+      note: get('_note') || ''
     };
   });
 };
@@ -1028,7 +1033,8 @@ UI.printScoutSheet = async function() {
           prove.forEach((prova, pIdx) => {
             const provaData = sp[`p${prova.id}_data`];
             // Se c'è una data valorizzata, segna la checkbox come completata
-            const isCompletata = !!provaData;
+            // Controlla che non sia null/undefined e che non sia stringa vuota
+            const isCompletata = provaData !== null && provaData !== undefined && provaData !== '';
             html += `
               <div style="margin-bottom: 5px; padding: 4px; background: #f9f9f9; border-radius: 2px;">
                 <div style="display: flex; align-items: start; gap: 6px;">
@@ -1036,7 +1042,7 @@ UI.printScoutSheet = async function() {
                   <div style="flex: 1;">
                     <div style="font-weight: 500; font-size: 12px;">${prova.nome}</div>
                     ${prova.text ? `<div style="font-size: 10px; color: #666; margin-top: 1px; line-height: 1.3;">${prova.text}</div>` : ''}
-                    ${provaData ? `<div style="font-size: 10px; color: #666; margin-top: 1px;">Data: ${fmtDate(provaData)}</div>` : ''}
+                    ${isCompletata ? `<div style="font-size: 10px; color: #666; margin-top: 1px;">Data: ${fmtDate(provaData)}</div>` : ''}
                   </div>
                 </div>
               </div>
