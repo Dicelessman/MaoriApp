@@ -1086,7 +1086,19 @@ UI.printScoutSheet = async function() {
     const pa = this.qs('#printArea');
     if (pa) {
       pa.innerHTML = html;
+      
+      // Imposta il titolo del documento per il nome del file PDF
+      const originalTitle = document.title;
+      const pdfTitle = `Il Sentiero di ${data.nome || ''}`;
+      document.title = pdfTitle;
+      
+      // Ripristina il titolo originale dopo la stampa (con un piccolo delay)
       window.print();
+      
+      // Ripristina il titolo dopo che la finestra di stampa si chiude
+      setTimeout(() => {
+        document.title = originalTitle;
+      }, 1000);
     } else {
       console.error('PrintArea non trovato');
     }
