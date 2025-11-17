@@ -1,28 +1,5 @@
-Aggiungi il campo Sesso alla pagina scout.html
-
-Per ogni specialità aggiungi i campi:
-- brevetto 
-- distintivo
-
-
 
 Rivedi le statistiche significative veramente
 
-Plan 1
-crea una pagina che conprenda queste statistiche:
-- composizione del reparto:
--- per sesso
--- per anno
--- totali
-- Passi
--- divisione esplo per Passi
--- divisione sfide per Passi
---- tempo medio per raggiungere il Passo successivo
---- tempo medio per superare una sfida
-- Specialità
--- specialità prese in totale, per anno dell'esploratore per pattuglia
--- distribuzione in base ai colori di sfondo e bordo delle specialità
--- tempo medio per superare una prova di specialità
--- tempo medio per ottenere una specialità
 
 

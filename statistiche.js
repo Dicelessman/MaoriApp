@@ -83,11 +83,9 @@ UI.renderStatistiche = async function() {
     window.Chart.register(window.ChartDataLabels);
   }
   
-  // Assicura stato caricato
-  if (!this.state.scouts || this.state.scouts.length === 0) {
-    this.state = await DATA.loadAll();
-    this.rebuildPresenceIndex();
-  }
+  // Ricarica sempre i dati per avere statistiche aggiornate
+  this.state = await DATA.loadAll();
+  this.rebuildPresenceIndex();
   
   // Carica lista specialità
   await this.loadSpecialitaList();
