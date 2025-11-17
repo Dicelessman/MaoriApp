@@ -897,19 +897,29 @@ UI.printScoutSheet = async function() {
       prossimoPasso = 1;
     }
     
+    // Determina verso cosa sta camminando
+    let versoCosa = '';
+    if (!data.pv_promessa && passoRaggiunto === 0) {
+      versoCosa = 'la Promessa';
+    } else if (prossimoPasso === 1) {
+      versoCosa = 'il primo Passo';
+    } else if (prossimoPasso === 2) {
+      versoCosa = 'il secondo Passo';
+    } else if (prossimoPasso === 3) {
+      versoCosa = 'il terzo Passo';
+    }
+    
     // Costruisci HTML per la stampa
     let html = `
       <div class="print-section">
-        <div class="print-title">Il sentiero di ${data.nome || ''} ${data.cognome || ''}</div>
+        <div class="print-title">Il sentiero di ${data.nome || ''}</div>
       </div>
       
       <!-- Progressione Verticale -->
       <div class="print-section print-box">
         <div class="print-subtitle">PROGRESSIONE VERTICALE</div>
         <div style="margin-top: 12px;">
-          ${data.pv_promessa ? `<div style="margin-bottom: 8px;">✓ Hai fatto la Promessa</div>` : ''}
-          ${passoRaggiunto > 0 ? `<div style="margin-bottom: 8px;">✓ Hai raggiunto il ${passoRaggiunto === 1 ? 'primo' : passoRaggiunto === 2 ? 'secondo' : 'terzo'} Passo</div>` : ''}
-          ${prossimoPasso ? `<div style="margin-bottom: 8px;">→ Stai camminando verso il ${prossimoPasso === 1 ? 'primo' : prossimoPasso === 2 ? 'secondo' : 'terzo'} Passo</div>` : ''}
+          ${versoCosa ? `<div style="margin-bottom: 8px;">→ Stai camminando verso ${versoCosa}</div>` : ''}
         </div>
       </div>
     `;
@@ -1017,10 +1027,12 @@ UI.printScoutSheet = async function() {
         // Mostra tutte le prove
         prove.forEach((prova, pIdx) => {
           const provaData = sp[`p${prova.id}_data`];
+          // Se c'è una data valorizzata, segna la checkbox come completata
+          const isCompletata = !!provaData;
           html += `
             <div style="margin-bottom: 8px; padding: 6px; background: #f9f9f9; border-radius: 3px;">
               <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="min-width: 30px;">${fmtCheck(provaData)}</div>
+                <div style="min-width: 30px;">${fmtCheck(isCompletata)}</div>
                 <div style="flex: 1;">
                   <div style="font-weight: 500;">${prova.nome}</div>
                   ${prova.text ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">${prova.text}</div>` : ''}
