@@ -855,12 +855,273 @@ document.addEventListener('DOMContentLoaded', () => {
 UI.printScoutSheet = async function() {
   try {
     const data = this.collectForm();
-    // TODO: Aggiornare la funzione di stampa per le nuove strutture dati
+    const challenges = await this.loadChallenges();
+    
+    // Funzioni helper per formattare i dati
+    const fmtDate = (d) => {
+      if (!d) return '';
+      const date = this.toJsDate(d);
+      return isNaN(date) ? '' : date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+    
+    const fmtCheck = (val) => val ? '✓' : '';
+    const fmtValue = (val) => val || '-';
+    
+    // Ottieni il testo completo delle sfide
+    const getSfidaText = (passo, dir, code) => {
+      if (!code || !challenges) return '';
+      const dirUpper = dir.toUpperCase();
+      const sfide = challenges[passo]?.[dirUpper] || [];
+      const sfida = sfide.find(s => s.code === code);
+      return sfida ? sfida.text : '';
+    };
+    
+    const direzioniLabels = { io: 'IO', al: 'Gli Altri', mt: 'La Mia Traccia' };
+    
+    // Costruisci HTML per la stampa
+    let html = `
+      <div class="print-section">
+        <div class="print-title">SCHEDA ESPLORATORE</div>
+        <div style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">${data.nome || ''} ${data.cognome || ''}</div>
+      </div>
+      
+      <!-- Dati Anagrafici -->
+      <div class="print-section print-box">
+        <div class="print-subtitle">Dati Anagrafici</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+          <div><strong>Nome:</strong> ${fmtValue(data.nome)}</div>
+          <div><strong>Cognome:</strong> ${fmtValue(data.cognome)}</div>
+          <div><strong>Data di Nascita:</strong> ${fmtDate(data.anag_dob)}</div>
+          <div><strong>Sesso:</strong> ${fmtValue(data.anag_sesso)}</div>
+          <div><strong>Codice Fiscale:</strong> ${fmtValue(data.anag_cf)}</div>
+          <div><strong>Indirizzo:</strong> ${fmtValue(data.anag_indirizzo)}</div>
+          <div><strong>Città:</strong> ${fmtValue(data.anag_citta)}</div>
+          <div><strong>Email:</strong> ${fmtValue(data.anag_email)}</div>
+          <div><strong>Telefono:</strong> ${fmtValue(data.anag_telefono)}</div>
+        </div>
+      </div>
+      
+      <!-- Contatti -->
+      <div class="print-section print-box">
+        <div class="print-subtitle">Contatti</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px;">
+          <div><strong>Genitore 1:</strong> ${fmtValue(data.ct_g1_nome)}</div>
+          <div><strong>Telefono:</strong> ${fmtValue(data.ct_g1_tel)}</div>
+          <div><strong>Email:</strong> ${fmtValue(data.ct_g1_email)}</div>
+          <div><strong>Genitore 2:</strong> ${fmtValue(data.ct_g2_nome)}</div>
+          <div><strong>Telefono:</strong> ${fmtValue(data.ct_g2_tel)}</div>
+          <div><strong>Email:</strong> ${fmtValue(data.ct_g2_email)}</div>
+        </div>
+      </div>
+      
+      <!-- Informazioni Sanitarie -->
+      <div class="print-section print-box">
+        <div class="print-subtitle">Informazioni Sanitarie</div>
+        <div style="margin-top: 8px;">
+          <div><strong>Gruppo Sanguigno:</strong> ${fmtValue(data.san_gruppo)}</div>
+          <div style="margin-top: 8px;"><strong>Intolleranze e Esigenze Alimentari:</strong><br/>${fmtValue(data.san_intolleranze)}</div>
+          <div style="margin-top: 8px;"><strong>Allergie:</strong><br/>${fmtValue(data.san_allergie)}</div>
+          <div style="margin-top: 8px;"><strong>Farmaci:</strong><br/>${fmtValue(data.san_farmaci)}</div>
+          <div style="margin-top: 8px;"><strong>Vaccinazioni:</strong><br/>${fmtValue(data.san_vaccinazioni)}</div>
+          <div style="margin-top: 8px;"><strong>Certificazioni:</strong><br/>${fmtValue(data.san_cert)}</div>
+          <div style="margin-top: 8px;"><strong>Altro:</strong><br/>${fmtValue(data.san_altro)}</div>
+        </div>
+      </div>
+      
+      <!-- Progressione Verticale -->
+      <div class="print-section print-box">
+        <div class="print-subtitle">Progressione Verticale</div>
+        <div style="margin-top: 8px;">
+          <div><strong>Promessa:</strong> ${fmtDate(data.pv_promessa)}</div>
+          <div style="margin-top: 8px;"><strong>VCP/CP:</strong> ${fmtValue(data.pv_vcp_cp)}</div>
+          <div style="margin-top: 8px;"><strong>Pattuglia:</strong> ${fmtValue(data.pv_pattuglia)}</div>
+          ${data.pv_giglio_data ? `<div style="margin-top: 8px;"><strong>Giglio/Trifoglio:</strong> ${fmtDate(data.pv_giglio_data)} ${data.pv_giglio_note ? ' - ' + data.pv_giglio_note : ''}</div>` : ''}
+        </div>
+    `;
+    
+    // Passi
+    for (let passo = 1; passo <= 3; passo++) {
+      const traccia = data[`pv_traccia${passo}`];
+      if (traccia && (traccia.done || traccia.data || traccia.brevetto || traccia.distintivo)) {
+        html += `
+          <div style="margin-top: 16px; padding: 8px; background: #f0f0f0; border-radius: 4px;">
+            <div style="font-weight: 600; margin-bottom: 8px;">Passo ${passo}</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px;">
+              <div><strong>Completata:</strong> ${fmtCheck(traccia.done)}</div>
+              <div><strong>Data:</strong> ${fmtDate(traccia.data)}</div>
+              <div><strong>Brevetto:</strong> ${fmtCheck(traccia.brevetto)}</div>
+              <div><strong>Distintivo:</strong> ${fmtCheck(traccia.distintivo)}</div>
+            </div>
+        `;
+        
+        // Sfide per questo passo
+        const direzioni = ['io', 'al', 'mt'];
+        direzioni.forEach(dir => {
+          const code = data[`pv_sfida_${dir}_${passo}`];
+          const dataSfida = data[`pv_sfida_${dir}_${passo}_data`];
+          if (code || dataSfida) {
+            const sfidaText = getSfidaText(passo, dir, code);
+            html += `
+              <div style="margin-top: 8px; padding: 8px; background: #fff; border-left: 3px solid #16a34a;">
+                <div><strong>${direzioniLabels[dir]}:</strong> ${fmtValue(code)} ${dataSfida ? ' - ' + fmtDate(dataSfida) : ''}</div>
+                ${sfidaText ? `<div style="margin-top: 4px; font-size: 12px; color: #666;">${sfidaText}</div>` : ''}
+              </div>
+            `;
+          }
+        });
+        
+        // Sfida bianca
+        const sfidaBianca = data[`pv_sfida_bianca_${passo}`];
+        if (sfidaBianca) {
+          html += `
+            <div style="margin-top: 8px; padding: 8px; background: #fff; border-left: 3px solid #ccc;">
+              <div><strong>Sfida bianca:</strong> ${sfidaBianca}</div>
+            </div>
+          `;
+        }
+        
+        // Note passo
+        const notePasso = data[`pv_traccia${passo}_note`];
+        if (notePasso) {
+          html += `<div style="margin-top: 8px;"><strong>Note:</strong> ${notePasso}</div>`;
+        }
+        
+        html += `</div>`;
+      }
+    }
+    
+    // Note generali progressione verticale
+    if (data.pv_note) {
+      html += `<div style="margin-top: 8px;"><strong>Note:</strong> ${data.pv_note}</div>`;
+    }
+    
+    html += `</div>`;
+    
+    // Specialità
+    if (data.specialita && data.specialita.length > 0) {
+      html += `
+        <div class="print-section print-box">
+          <div class="print-subtitle">Specialità (PO)</div>
+      `;
+      
+      data.specialita.forEach((sp, idx) => {
+        if (sp.nome) {
+          html += `
+            <div style="margin-top: ${idx > 0 ? '16px' : '8px'}; padding: 8px; background: #f0f0f0; border-radius: 4px;">
+              <div style="font-weight: 600; margin-bottom: 8px;">${sp.nome}</div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px;">
+                <div><strong>Ottenuta:</strong> ${fmtCheck(sp.ottenuta)}</div>
+                <div><strong>Data:</strong> ${fmtDate(sp.data)}</div>
+                <div><strong>Brevetto:</strong> ${fmtCheck(sp.brevetto)}</div>
+                <div><strong>Distintivo:</strong> ${fmtCheck(sp.distintivo)}</div>
+              </div>
+          `;
+          
+          // Prove
+          for (let p = 1; p <= 3; p++) {
+            const provaData = sp[`p${p}_data`];
+            if (provaData) {
+              html += `<div style="margin-top: 4px;"><strong>Prova ${p}:</strong> ${fmtDate(provaData)}</div>`;
+            }
+          }
+          
+          // Prova CR
+          if (sp.cr_text || sp.cr_data) {
+            html += `<div style="margin-top: 4px;"><strong>Prova CR:</strong> ${fmtValue(sp.cr_text)} ${sp.cr_data ? ' - ' + fmtDate(sp.cr_data) : ''}</div>`;
+          }
+          
+          // Note
+          if (sp.note) {
+            html += `<div style="margin-top: 4px;"><strong>Note:</strong> ${sp.note}</div>`;
+          }
+          
+          html += `</div>`;
+        }
+      });
+      
+      html += `</div>`;
+    }
+    
+    // Eventi
+    html += `
+      <div class="print-section print-box">
+        <div class="print-subtitle">Eventi</div>
+        <div style="margin-top: 8px;">
+    `;
+    
+    const eventi = [
+      { key: 'ev_ce1', label: 'Campo Estivo 1' },
+      { key: 'ev_ce2', label: 'Campo Estivo 2' },
+      { key: 'ev_ce3', label: 'Campo Estivo 3' },
+      { key: 'ev_ce4', label: 'Campo Estivo 4' },
+      { key: 'ev_tc1', label: 'Tecnicamp 1' },
+      { key: 'ev_tc2', label: 'Tecnicamp 2' },
+      { key: 'ev_tc3', label: 'Tecnicamp 3' },
+      { key: 'ev_tc4', label: 'Tecnicamp 4' },
+      { key: 'ev_ccp', label: 'CCP' },
+      { key: 'ev_jam', label: 'Jamboree' }
+    ];
+    
+    eventi.forEach(ev => {
+      const evento = data[ev.key];
+      if (evento && (evento.data || evento.testo)) {
+        html += `<div><strong>${ev.label}:</strong> ${fmtDate(evento.data)} ${evento.testo ? ' - ' + evento.testo : ''}</div>`;
+      }
+    });
+    
+    if (data.ev_note) {
+      html += `<div style="margin-top: 8px;"><strong>Note:</strong> ${data.ev_note}</div>`;
+    }
+    
+    html += `
+        </div>
+      </div>
+    `;
+    
+    // Documenti
+    html += `
+      <div class="print-section print-box">
+        <div class="print-subtitle">Documenti</div>
+        <div style="margin-top: 8px;">
+    `;
+    
+    const documenti = [
+      { key: 'doc_quota1', label: 'Quota Annua 1' },
+      { key: 'doc_quota2', label: 'Quota Annua 2' },
+      { key: 'doc_quota3', label: 'Quota Annua 3' },
+      { key: 'doc_quota4', label: 'Quota Annua 4' },
+      { key: 'doc_iscr', label: 'Iscrizione' },
+      { key: 'doc_san', label: 'Modulo sanitario' },
+      { key: 'doc_priv', label: 'Modulo Privacy' }
+    ];
+    
+    documenti.forEach(doc => {
+      const dataDoc = data[doc.key];
+      if (dataDoc) {
+        html += `<div><strong>${doc.label}:</strong> ${fmtDate(dataDoc)}</div>`;
+      }
+    });
+    
+    if (data.doc_note) {
+      html += `<div style="margin-top: 8px;"><strong>Note:</strong> ${data.doc_note}</div>`;
+    }
+    
+    html += `
+        </div>
+      </div>
+    `;
+    
+    // Inserisci nel printArea e stampa
     const pa = this.qs('#printArea');
-    if (pa) pa.innerHTML = '<div class="print-section"><div class="print-title">Stampa non ancora implementata per scout2</div></div>';
-    window.print();
+    if (pa) {
+      pa.innerHTML = html;
+      window.print();
+    } else {
+      console.error('PrintArea non trovato');
+    }
   } catch (e) {
     console.error('Errore generazione stampa:', e);
+    alert('Errore durante la generazione della stampa: ' + e.message);
   }
 };
 
