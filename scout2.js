@@ -66,7 +66,7 @@ UI.renderScoutPage = async function() {
     this.qs('#scoutTitle').textContent = 'Scheda Esploratore — non trovato';
     return;
   }
-  this.qs('#scoutTitle').textContent = `Scheda — ${s.nome || ''} ${s.cognome || ''}`;
+  this.qs('#scoutTitle').textContent = `${s.nome || ''} ${s.cognome || ''}`.trim();
 
   // Riempie i campi se presenti
   const setVal = (sel, val) => { const el = this.qs(sel); if (el) el.value = val ?? ''; };
