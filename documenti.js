@@ -26,15 +26,16 @@ UI.renderDocumentiMatrix = function() {
     return nomeA.localeCompare(nomeB, 'it');
   });
   
-  // Colonne della matrice: Quote (I°, II°, III°, IV°), Iscrizione, Modulo sanitario, Modulo Privacy
+  // Colonne della matrice: Quote (anno), Iscrizione (anno), Privacy (checkbox), Dati medici (checkbox), Liberatoria immagini (checkbox)
   const columns = [
-    { key: 'doc_quota1', label: 'Quota I° anno', type: 'date' },
-    { key: 'doc_quota2', label: 'Quota II° anno', type: 'date' },
-    { key: 'doc_quota3', label: 'Quota III° anno', type: 'date' },
-    { key: 'doc_quota4', label: 'Quota IV° anno', type: 'date' },
-    { key: 'doc_iscr', label: 'Iscrizione', type: 'date' },
-    { key: 'doc_san', label: 'Modulo sanitario', type: 'date' },
-    { key: 'doc_priv', label: 'Modulo Privacy', type: 'date' }
+    { key: 'doc_quota1', label: 'Quota anno', type: 'year' },
+    { key: 'doc_quota2', label: 'Quota anno', type: 'year' },
+    { key: 'doc_quota3', label: 'Quota anno', type: 'year' },
+    { key: 'doc_quota4', label: 'Quota anno', type: 'year' },
+    { key: 'doc_iscr', label: 'Iscrizione', type: 'year' },
+    { key: 'doc_priv', label: 'Privacy', type: 'checkbox' },
+    { key: 'doc_san', label: 'Dati medici', type: 'checkbox' },
+    { key: 'doc_liberatoria', label: 'Liberatoria immagini', type: 'checkbox' }
   ];
   
   // Verifica se l'utente può modificare
@@ -65,34 +66,68 @@ UI.renderDocumentiMatrix = function() {
     
     columns.forEach(col => {
       const value = scout[col.key];
-      const displayValue = value ? toYyyyMmDd(value) : '';
-      const formattedDate = value ? (() => {
-        const d = toDate(value);
-        return isNaN(d.getTime()) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      })() : '';
       
-      if (canEdit) {
-        // Cella editabile
-        html += `
-          <td class="border border-gray-300 p-1">
-            <input 
-              type="date" 
-              class="w-full text-xs border border-gray-300 rounded px-1 py-0.5" 
-              value="${displayValue}"
-              data-scout-id="${scout.id}"
-              data-field="${col.key}"
-              onchange="UI.updateDocumento({scoutId:'${scout.id}', field:'${col.key}', value:this.value})"
-            />
-            ${formattedDate ? `<div class="text-xs text-gray-500 mt-1">${formattedDate}</div>` : ''}
-          </td>
-        `;
-      } else {
-        // Cella solo lettura
-        html += `
-          <td class="border border-gray-300 p-2 text-center">
-            ${formattedDate || '<span class="text-gray-400">-</span>'}
-          </td>
-        `;
+      if (col.type === 'checkbox') {
+        // Gestione checkbox
+        const isChecked = !!value;
+        if (canEdit) {
+          html += `
+            <td class="border border-gray-300 p-2 text-center">
+              <input 
+                type="checkbox" 
+                class="w-4 h-4" 
+                ${isChecked ? 'checked' : ''}
+                data-scout-id="${scout.id}"
+                data-field="${col.key}"
+                onchange="UI.updateDocumento({scoutId:'${scout.id}', field:'${col.key}', value:this.checked})"
+              />
+            </td>
+          `;
+        } else {
+          html += `
+            <td class="border border-gray-300 p-2 text-center">
+              ${isChecked ? '✓' : '<span class="text-gray-400">-</span>'}
+            </td>
+          `;
+        }
+      } else if (col.type === 'year') {
+        // Gestione anno (per quote e iscrizione)
+        // Estrai l'anno dalla data se presente
+        let yearValue = '';
+        if (value) {
+          const d = toDate(value);
+          if (!isNaN(d.getTime())) {
+            yearValue = d.getFullYear().toString();
+          } else if (typeof value === 'string' && value.length === 4 && /^\d{4}$/.test(value)) {
+            // Se è già solo un anno
+            yearValue = value;
+          }
+        }
+        
+        if (canEdit) {
+          html += `
+            <td class="border border-gray-300 p-1">
+              <input 
+                type="number" 
+                min="2000" 
+                max="2100" 
+                step="1"
+                class="w-full text-xs border border-gray-300 rounded px-1 py-0.5 text-center" 
+                value="${yearValue}"
+                placeholder="Anno"
+                data-scout-id="${scout.id}"
+                data-field="${col.key}"
+                onchange="UI.updateDocumentoYear({scoutId:'${scout.id}', field:'${col.key}', value:this.value})"
+              />
+            </td>
+          `;
+        } else {
+          html += `
+            <td class="border border-gray-300 p-2 text-center">
+              ${yearValue || '<span class="text-gray-400">-</span>'}
+            </td>
+          `;
+        }
       }
     });
     
@@ -107,7 +142,7 @@ UI.renderDocumentiMatrix = function() {
   container.innerHTML = html;
 };
 
-// Funzione per aggiornare un documento
+// Funzione per aggiornare un documento (checkbox)
 UI.updateDocumento = async function({ scoutId, field, value }) {
   if (!this.currentUser) {
     alert('Devi essere loggato per modificare i documenti.');
@@ -129,7 +164,62 @@ UI.updateDocumento = async function({ scoutId, field, value }) {
     // Prepara il payload con tutti i dati dello scout, aggiornando solo il campo modificato
     const payload = {
       ...scout,
-      [field]: value || null
+      [field]: value ? true : null
+    };
+    
+    // Rimuovi l'id dal payload (non va aggiornato)
+    delete payload.id;
+    
+    await DATA.updateScout(scoutId, payload, this.currentUser);
+    this.state = await DATA.loadAll();
+    this.rebuildPresenceIndex();
+    
+    // Aggiorna la visualizzazione
+    this.renderDocumentiMatrix();
+    
+    if (typeof this.showToast === 'function') {
+      this.showToast('Documento aggiornato');
+    } else {
+      console.log('Documento aggiornato');
+    }
+  } catch (error) {
+    console.error('Errore aggiornamento documento:', error);
+    alert('Errore durante l\'aggiornamento: ' + error.message);
+  }
+};
+
+// Funzione per aggiornare un anno (quote e iscrizione)
+UI.updateDocumentoYear = async function({ scoutId, field, value }) {
+  if (!this.currentUser) {
+    alert('Devi essere loggato per modificare i documenti.');
+    return;
+  }
+  if (!this.selectedStaffId) {
+    alert('Seleziona uno Staff per abilitare le modifiche.');
+    return;
+  }
+  
+  try {
+    // Carica i dati attuali dello scout
+    const scout = (this.state.scouts || []).find(s => s.id === scoutId);
+    if (!scout) {
+      alert('Esploratore non trovato');
+      return;
+    }
+    
+    // Converte l'anno in una data (primo gennaio dell'anno)
+    let dateValue = null;
+    if (value && value.trim() !== '') {
+      const year = parseInt(value);
+      if (!isNaN(year) && year >= 2000 && year <= 2100) {
+        dateValue = `${year}-01-01`;
+      }
+    }
+    
+    // Prepara il payload con tutti i dati dello scout, aggiornando solo il campo modificato
+    const payload = {
+      ...scout,
+      [field]: dateValue
     };
     
     // Rimuovi l'id dal payload (non va aggiornato)
