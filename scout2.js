@@ -860,7 +860,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
 UI.printScoutSheet = async function() {
   try {
-    const data = this.collectForm();
+    // Ottieni l'ID dell'esploratore corrente
+    const scoutId = this.qs('#scoutId')?.value;
+    if (!scoutId) {
+      alert('ID esploratore non trovato');
+      return;
+    }
+    
+    // Carica i dati aggiornati da Firestore invece di usare solo il form
+    // Questo garantisce che abbiamo i dati più recenti salvati
+    if (!this.state.scouts || this.state.scouts.length === 0) {
+      this.state = await DATA.loadAll();
+    }
+    
+    const scoutFromDb = (this.state.scouts || []).find(s => s.id === scoutId);
+    if (!scoutFromDb) {
+      alert('Esploratore non trovato nel database');
+      return;
+    }
+    
+    // Usa i dati dal database, ma integra con i dati del form per i campi che potrebbero essere stati modificati
+    const formData = this.collectForm();
+    const data = {
+      ...scoutFromDb,
+      // Mantieni i dati delle specialità dal database (più affidabili)
+      specialita: scoutFromDb.specialita || [],
+      // Ma usa i dati del form per altri campi se necessario
+      nome: formData.nome || scoutFromDb.nome,
+      cognome: formData.cognome || scoutFromDb.cognome
+    };
+    
+    // Debug: verifica i dati raccolti
+    console.log('🔍 Debug printScoutSheet - Dati specialità da DB:', JSON.stringify(data.specialita, null, 2));
+    
     const challenges = await this.loadChallenges();
     const specialitaList = await this.loadSpecialitaList();
     
@@ -1032,7 +1064,22 @@ UI.printScoutSheet = async function() {
           
           // Mostra tutte le prove
           prove.forEach((prova, pIdx) => {
-            const provaData = sp[`p${prova.id}_data`];
+            // Accedi ai dati della prova usando la chiave corretta
+            // prova.id è "p1", "p2", "p3", quindi cerchiamo "p1_data", "p2_data", "p3_data"
+            const provaDataKey = `${prova.id}_data`;
+            const provaData = sp[provaDataKey];
+            
+            // Debug per ogni prova
+            console.log(`🔍 Debug prova ${prova.nome} (${prova.id}):`, {
+              key: provaDataKey,
+              value: provaData,
+              type: typeof provaData,
+              isNull: provaData === null,
+              isUndefined: provaData === undefined,
+              isEmpty: provaData === '',
+              fullSp: sp
+            });
+            
             // Se c'è una data valorizzata, segna la checkbox come completata
             // Controlla che non sia null/undefined e che non sia stringa vuota
             const isCompletata = provaData !== null && provaData !== undefined && provaData !== '';
