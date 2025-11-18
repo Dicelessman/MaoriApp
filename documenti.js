@@ -26,13 +26,13 @@ UI.renderDocumentiMatrix = function() {
     return nomeA.localeCompare(nomeB, 'it');
   });
   
-  // Colonne della matrice: Quote (anno), Iscrizione (anno), Privacy (checkbox), Dati medici (checkbox), Liberatoria immagini (checkbox)
+  // Colonne della matrice: Quote (anno), Iscrizione (checkbox), Privacy (checkbox), Dati medici (checkbox), Liberatoria immagini (checkbox)
   const columns = [
     { key: 'doc_quota1', label: 'Quota anno', type: 'year' },
     { key: 'doc_quota2', label: 'Quota anno', type: 'year' },
     { key: 'doc_quota3', label: 'Quota anno', type: 'year' },
     { key: 'doc_quota4', label: 'Quota anno', type: 'year' },
-    { key: 'doc_iscr', label: 'Iscrizione', type: 'year' },
+    { key: 'doc_iscr', label: 'Iscrizione', type: 'checkbox' },
     { key: 'doc_priv', label: 'Privacy', type: 'checkbox' },
     { key: 'doc_san', label: 'Dati medici', type: 'checkbox' },
     { key: 'doc_liberatoria', label: 'Liberatoria immagini', type: 'checkbox' }
@@ -91,7 +91,7 @@ UI.renderDocumentiMatrix = function() {
           `;
         }
       } else if (col.type === 'year') {
-        // Gestione anno (per quote e iscrizione)
+        // Gestione anno (per quote)
         // Estrai l'anno dalla data se presente
         let yearValue = '';
         if (value) {
@@ -104,12 +104,15 @@ UI.renderDocumentiMatrix = function() {
           }
         }
         
+        // Anno corrente come minimo
+        const currentYear = new Date().getFullYear();
+        
         if (canEdit) {
           html += `
             <td class="border border-gray-300 p-1">
               <input 
                 type="number" 
-                min="2000" 
+                min="${currentYear}" 
                 max="2100" 
                 step="1"
                 class="w-full text-xs border border-gray-300 rounded px-1 py-0.5 text-center" 
