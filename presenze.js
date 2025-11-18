@@ -113,9 +113,6 @@ UI.renderPresenceTable = function() {
 
   const container = this.qs('#presenceTableContainer');
   
-  // Setup pulsanti di navigazione colonne
-  this.setupColumnNavigation();
-  
   // Nessun auto-scroll iniziale: lasciamo solo scroll manuale
 
   body.innerHTML = '';
@@ -252,6 +249,11 @@ UI.renderPresenceTable = function() {
     row += `</tr>`;
     body.insertAdjacentHTML('beforeend', row);
   });
+
+  // Setup pulsanti di navigazione colonne dopo che la tabella è stata renderizzata
+  setTimeout(() => {
+    this.setupColumnNavigation();
+  }, 100);
 
   // Nessuno scroll automatico qui: l'utente usa picker/prev/next o il toggle
 };
