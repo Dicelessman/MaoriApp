@@ -13,37 +13,80 @@ UI.renderPaymentsPerActivity = function() {
   const presences = this.getDedupedPresences();
 
   const toDate = (v) => (v && v.toDate) ? v.toDate() : new Date(v);
-  activities.sort((a, b) => toDate(a.data) - toDate(b.data));
-
+  
+  // Filtra solo attività con costo
   const paidActivities = activities.filter(a => parseFloat(a.costo || '0') > 0);
+  
+  // Ordina per data decrescente (dal più recente al più vecchio)
+  paidActivities.sort((a, b) => toDate(b.data) - toDate(a.data));
+
   if (paidActivities.length === 0) {
     container.innerHTML = '<p class="text-gray-500">Nessuna attività con costo.</p>';
     return;
   }
+
+  // Verifica se l'utente può modificare (deve essere loggato e avere staff selezionato)
+  const canEdit = !!(this.currentUser && this.selectedStaffId);
+  const disabled = canEdit ? '' : 'disabled';
 
   const rows = paidActivities.map(a => {
     const costo = parseFloat(a.costo || '0') || 0;
     const payers = scouts.map(s => {
       const p = presences.find(x => x.esploratoreId === s.id && x.attivitaId === a.id);
       const stato = p?.stato || 'NR';
-      const eligibleForPayment = (stato !== 'Assente');
-      return { scout: s, paid: !!p?.pagato, method: p?.tipoPagamento || null, stato, eligibleForPayment };
+      // Escludi sia "Assente" che "X" dai pagamenti
+      const eligibleForPayment = (stato !== 'Assente' && stato !== 'X');
+      return { 
+        scout: s, 
+        paid: !!p?.pagato, 
+        method: p?.tipoPagamento || null, 
+        stato, 
+        eligibleForPayment,
+        presence: p
+      };
     });
-    const whoPaid = payers.filter(x => x.paid);
-    // Escludi gli assenti dall'incasso atteso e dalla lista dei non paganti
+    
+    // Filtra solo quelli eleggibili per il pagamento (escludi Assente e X)
     const eligible = payers.filter(x => x.eligibleForPayment);
-    const expected = costo * eligible.length;
+    const whoPaid = eligible.filter(x => x.paid);
     const whoNotPaid = eligible.filter(x => !x.paid);
+    
+    const expected = costo * eligible.length;
     const collected = whoPaid.length * costo;
     const d = toDate(a.data);
     const ds = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'2-digit' });
 
-    const listPaid = whoPaid.map(x => `
-      <li class="flex justify-between">
-        <span>${x.scout.nome} ${x.scout.cognome}</span>
-        <span class="text-sm text-gray-600">${x.method || ''}</span>
-      </li>`).join('');
-    const listNotPaid = whoNotPaid.map(x => `<li>${x.scout.nome} ${x.scout.cognome}</li>`).join('');
+    // Lista di chi ha pagato con dropdown per modificare
+    const listPaid = whoPaid.map(x => {
+      const presence = x.presence || { pagato: false, tipoPagamento: null };
+      return `
+        <li class="flex justify-between items-center gap-2 py-1">
+          <span>${x.scout.nome} ${x.scout.cognome}</span>
+          <select class="payment-select text-sm border border-gray-300 rounded px-2 py-1" ${disabled}
+            onchange="UI.updatePaymentCombined({value:this.value, scoutId:'${x.scout.id}', activityId:'${a.id}'})">
+            <option value="" ${!presence.pagato?'selected':''}>Non Pagato</option>
+            <option value="Contanti" ${(presence.pagato && presence.tipoPagamento==='Contanti')?'selected':''}>Contanti</option>
+            <option value="Satispay" ${(presence.pagato && presence.tipoPagamento==='Satispay')?'selected':''}>Satispay</option>
+            <option value="Bonifico" ${(presence.pagato && presence.tipoPagamento==='Bonifico')?'selected':''}>Bonifico</option>
+          </select>
+        </li>`;
+    }).join('');
+    
+    // Lista di chi non ha pagato con dropdown per segnare il pagamento
+    const listNotPaid = whoNotPaid.map(x => {
+      const presence = x.presence || { pagato: false, tipoPagamento: null };
+      return `
+        <li class="flex justify-between items-center gap-2 py-1">
+          <span>${x.scout.nome} ${x.scout.cognome}</span>
+          <select class="payment-select text-sm border border-gray-300 rounded px-2 py-1" ${disabled}
+            onchange="UI.updatePaymentCombined({value:this.value, scoutId:'${x.scout.id}', activityId:'${a.id}'})">
+            <option value="" ${!presence.pagato?'selected':''}>Non Pagato</option>
+            <option value="Contanti" ${(presence.pagato && presence.tipoPagamento==='Contanti')?'selected':''}>Contanti</option>
+            <option value="Satispay" ${(presence.pagato && presence.tipoPagamento==='Satispay')?'selected':''}>Satispay</option>
+            <option value="Bonifico" ${(presence.pagato && presence.tipoPagamento==='Bonifico')?'selected':''}>Bonifico</option>
+          </select>
+        </li>`;
+    }).join('');
 
     return `
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -64,13 +107,13 @@ UI.renderPaymentsPerActivity = function() {
         <div class="grid md:grid-cols-2 gap-4 mt-4">
           <div>
             <h4 class="font-medium text-gray-700 mb-2">Hanno pagato (${whoPaid.length})</h4>
-            <ul class="list-disc list-inside space-y-1">
+            <ul class="space-y-1">
               ${listPaid || '<li class="text-gray-500">Nessuno</li>'}
             </ul>
           </div>
           <div>
             <h4 class="font-medium text-gray-700 mb-2">Non hanno pagato (${whoNotPaid.length})</h4>
-            <ul class="list-disc list-inside space-y-1">
+            <ul class="space-y-1">
               ${listNotPaid || '<li class="text-gray-500">Nessuno</li>'}
             </ul>
           </div>
