@@ -722,10 +722,9 @@ const UI = {
       };
       // Stesso dominio (indicativo di lentezza locale/SW)
       t('same-origin manifest', 'manifest.json');
-      // Esterno (indicativo di rete generale)
-      t('gstatic 204', 'https://www.gstatic.com/generate_204');
-      // Firebase Auth JS (CDN)
+      // Firebase Auth JS (CDN) - test di connettività esterna
       t('firebase-auth.js', 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js');
+      // Nota: generate_204 rimosso perché non supporta CORS e genera errori
     } catch {}
   },
 
