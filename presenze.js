@@ -112,6 +112,33 @@ UI.renderPresenceTable = function() {
   if (!body || !thDates || !thNames) return;
 
   const container = this.qs('#presenceTableContainer');
+  const scrollTopContainer = this.qs('#presenceTableScrollTop');
+  const scrollTopContent = this.qs('#presenceTableScrollTopContent');
+  
+  // Sincronizza lo scroll tra la barra in alto e il container principale
+  // Rimuovi eventuali listener precedenti per evitare duplicati
+  if (scrollTopContainer && container) {
+    // Rimuovi i listener esistenti se presenti
+    if (container._scrollHandler) {
+      container.removeEventListener('scroll', container._scrollHandler);
+    }
+    if (scrollTopContainer._scrollHandler) {
+      scrollTopContainer.removeEventListener('scroll', scrollTopContainer._scrollHandler);
+    }
+    
+    // Crea nuovi handler
+    container._scrollHandler = () => {
+      scrollTopContainer.scrollLeft = container.scrollLeft;
+    };
+    scrollTopContainer._scrollHandler = () => {
+      container.scrollLeft = scrollTopContainer.scrollLeft;
+    };
+    
+    // Aggiungi i listener
+    container.addEventListener('scroll', container._scrollHandler);
+    scrollTopContainer.addEventListener('scroll', scrollTopContainer._scrollHandler);
+  }
+  
   // Nessun auto-scroll iniziale: lasciamo solo scroll manuale
 
   body.innerHTML = '';
@@ -247,6 +274,18 @@ UI.renderPresenceTable = function() {
     row += `</tr>`;
     body.insertAdjacentHTML('beforeend', row);
   });
+
+  // Aggiorna la larghezza del contenuto della barra di scorrimento in alto dopo il rendering
+  setTimeout(() => {
+    const scrollTopContent = this.qs('#presenceTableScrollTopContent');
+    const container = this.qs('#presenceTableContainer');
+    if (scrollTopContent && container) {
+      const table = container.querySelector('.presence-table');
+      if (table) {
+        scrollTopContent.style.width = table.scrollWidth + 'px';
+      }
+    }
+  }, 200);
 
   // Nessuno scroll automatico qui: l'utente usa picker/prev/next o il toggle
 };
