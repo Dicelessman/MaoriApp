@@ -402,13 +402,26 @@
         <section class="bg-purple-300 p-6 rounded-lg shadow-inner">
           <h3 class="text-xl font-semibold text-gray-700 mb-4">Documenti</h3>
           <div class="space-y-4">
-            <div><label class="block text-sm">Quota Annua 1</label><input id="doc_quota1" type="date" class="input" /></div>
-            <div><label class="block text-sm">Quota Annua 2</label><input id="doc_quota2" type="date" class="input" /></div>
-            <div><label class="block text-sm">Quota Annua 3</label><input id="doc_quota3" type="date" class="input" /></div>
-            <div><label class="block text-sm">Quota Annua 4</label><input id="doc_quota4" type="date" class="input" /></div>
-            <div><label class="block text-sm">Iscrizione</label><input id="doc_iscr" type="date" class="input" /></div>
-            <div><label class="block text-sm">Modulo sanitario</label><input id="doc_san" type="date" class="input" /></div>
-            <div><label class="block text-sm">Modulo Privacy</label><input id="doc_priv" type="date" class="input" /></div>
+            <div><label class="block text-sm">Quota anno</label><input id="doc_quota1" type="number" min="2025" max="2100" step="1" class="input" placeholder="Anno" /></div>
+            <div><label class="block text-sm">Quota anno</label><input id="doc_quota2" type="number" min="2025" max="2100" step="1" class="input" placeholder="Anno" /></div>
+            <div><label class="block text-sm">Quota anno</label><input id="doc_quota3" type="number" min="2025" max="2100" step="1" class="input" placeholder="Anno" /></div>
+            <div><label class="block text-sm">Quota anno</label><input id="doc_quota4" type="number" min="2025" max="2100" step="1" class="input" placeholder="Anno" /></div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="doc_iscr" class="w-4 h-4" />
+              <label class="block text-sm">Iscrizione</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="doc_priv" class="w-4 h-4" />
+              <label class="block text-sm">Privacy</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="doc_san" class="w-4 h-4" />
+              <label class="block text-sm">Dati medici</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="doc_liberatoria" class="w-4 h-4" />
+              <label class="block text-sm">Liberatoria immagini</label>
+            </div>
             <div><label class="block text-sm">Note</label><textarea id="doc_note" class="textarea textarea-auto-resize"></textarea></div>
           </div>
         </section>

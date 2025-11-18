@@ -51,6 +51,13 @@ UI.renderScoutPage = async function() {
     return;
   }
   this.qs('#scoutId').value = id;
+  
+  // Imposta l'anno minimo per i campi quota (anno corrente)
+  const currentYear = new Date().getFullYear();
+  ['doc_quota1', 'doc_quota2', 'doc_quota3', 'doc_quota4'].forEach(id => {
+    const el = this.qs(`#${id}`);
+    if (el) el.min = currentYear.toString();
+  });
 
   // Carica i JSON all'inizio
   await this.loadChallenges();
@@ -155,14 +162,25 @@ UI.renderScoutPage = async function() {
   this.setPair('#ev_jam', s.ev_jam);
   setVal('#ev_note', s.ev_note);
 
-  setVal('#doc_quota1', this.toYyyyMmDd(s.doc_quota1));
-  setVal('#doc_quota2', this.toYyyyMmDd(s.doc_quota2));
-  setVal('#doc_quota3', this.toYyyyMmDd(s.doc_quota3));
-  setVal('#doc_quota4', this.toYyyyMmDd(s.doc_quota4));
-  setVal('#doc_iscr', this.toYyyyMmDd(s.doc_iscr));
-  setVal('#doc_san', this.toYyyyMmDd(s.doc_san));
-  setVal('#doc_priv', this.toYyyyMmDd(s.doc_priv));
-  setVal('#doc_note', this.toYyyyMmDd(s.doc_note));
+  // Quote: estrai l'anno dalla data
+  const getYear = (dateValue) => {
+    if (!dateValue) return '';
+    const d = this.toJsDate(dateValue);
+    return isNaN(d.getTime()) ? '' : d.getFullYear().toString();
+  };
+  setVal('#doc_quota1', getYear(s.doc_quota1));
+  setVal('#doc_quota2', getYear(s.doc_quota2));
+  setVal('#doc_quota3', getYear(s.doc_quota3));
+  setVal('#doc_quota4', getYear(s.doc_quota4));
+  
+  // Checkbox
+  const setChk = (sel, val) => { const el = this.qs(sel); if (el) el.checked = !!val; };
+  setChk('#doc_iscr', s.doc_iscr);
+  setChk('#doc_priv', s.doc_priv);
+  setChk('#doc_san', s.doc_san);
+  setChk('#doc_liberatoria', s.doc_liberatoria);
+  
+  setVal('#doc_note', s.doc_note);
 
   const form = this.qs('#scoutForm');
   if (form && !form._bound) {
@@ -562,10 +580,29 @@ UI.collectForm = function() {
     ev_ccp: pair('#ev_ccp'), ev_tc1: pair('#ev_tc1'), ev_tc2: pair('#ev_tc2'), ev_tc3: pair('#ev_tc3'), ev_tc4: pair('#ev_tc4'),
     ev_jam: pair('#ev_jam'), ev_note: get('#ev_note'),
     pv_traccia1: cd('pv_traccia1'), pv_traccia2: cd('pv_traccia2'), pv_traccia3: cd('pv_traccia3'),
-    doc_quota1: get('#doc_quota1') || null, doc_quota2: get('#doc_quota2') || null,
-    doc_quota3: get('#doc_quota3') || null, doc_quota4: get('#doc_quota4') || null,
-    doc_iscr: get('#doc_iscr') || null, doc_san: get('#doc_san') || null,
-    doc_priv: get('#doc_priv') || null, doc_note: get('#doc_note'),
+    // Quote: converti l'anno in data (01/01/anno)
+    doc_quota1: (() => {
+      const year = get('#doc_quota1');
+      return year && year.trim() !== '' ? `${year}-01-01` : null;
+    })(),
+    doc_quota2: (() => {
+      const year = get('#doc_quota2');
+      return year && year.trim() !== '' ? `${year}-01-01` : null;
+    })(),
+    doc_quota3: (() => {
+      const year = get('#doc_quota3');
+      return year && year.trim() !== '' ? `${year}-01-01` : null;
+    })(),
+    doc_quota4: (() => {
+      const year = get('#doc_quota4');
+      return year && year.trim() !== '' ? `${year}-01-01` : null;
+    })(),
+    // Checkbox
+    doc_iscr: this.qs('#doc_iscr')?.checked ? true : null,
+    doc_priv: this.qs('#doc_priv')?.checked ? true : null,
+    doc_san: this.qs('#doc_san')?.checked ? true : null,
+    doc_liberatoria: this.qs('#doc_liberatoria')?.checked ? true : null,
+    doc_note: get('#doc_note'),
   };
 
   // Aggiungi i dati delle sfide codificate
