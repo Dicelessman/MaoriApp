@@ -112,32 +112,9 @@ UI.renderPresenceTable = function() {
   if (!body || !thDates || !thNames) return;
 
   const container = this.qs('#presenceTableContainer');
-  const scrollTopContainer = this.qs('#presenceTableScrollTop');
-  const scrollTopContent = this.qs('#presenceTableScrollTopContent');
   
-  // Sincronizza lo scroll tra la barra in alto e il container principale
-  // Rimuovi eventuali listener precedenti per evitare duplicati
-  if (scrollTopContainer && container) {
-    // Rimuovi i listener esistenti se presenti
-    if (container._scrollHandler) {
-      container.removeEventListener('scroll', container._scrollHandler);
-    }
-    if (scrollTopContainer._scrollHandler) {
-      scrollTopContainer.removeEventListener('scroll', scrollTopContainer._scrollHandler);
-    }
-    
-    // Crea nuovi handler
-    container._scrollHandler = () => {
-      scrollTopContainer.scrollLeft = container.scrollLeft;
-    };
-    scrollTopContainer._scrollHandler = () => {
-      container.scrollLeft = scrollTopContainer.scrollLeft;
-    };
-    
-    // Aggiungi i listener
-    container.addEventListener('scroll', container._scrollHandler);
-    scrollTopContainer.addEventListener('scroll', scrollTopContainer._scrollHandler);
-  }
+  // Setup pulsanti di navigazione colonne
+  this.setupColumnNavigation();
   
   // Nessun auto-scroll iniziale: lasciamo solo scroll manuale
 
@@ -185,7 +162,8 @@ UI.renderPresenceTable = function() {
     const isNext = a.id === nextActivityId;
     const thDateClasses = isNext ? 'bg-green-900' : 'bg-green-800';
     const thNameClasses = isNext ? 'bg-green-900' : 'bg-green-800';
-    thDates.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${thDateClasses} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${displayDate}${isNext ? ' <span class=\"text-xs\">(Prossima)</span>' : ''}</a></th>`);
+    const nextColClass = isNext ? ' next-col' : '';
+    thDates.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${thDateClasses}${nextColClass} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${displayDate}${isNext ? ' <span class=\"text-xs\">(Prossima)</span>' : ''}</a></th>`);
     thNames.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${thNameClasses} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${a.tipo}</a><div class="text-xs font-normal text-white/90">${perc}% (${presentCount}/${expectedCount})</div></th>`);
   });
 
@@ -275,29 +253,125 @@ UI.renderPresenceTable = function() {
     body.insertAdjacentHTML('beforeend', row);
   });
 
-  // Aggiorna la larghezza del contenuto della barra di scorrimento in alto dopo il rendering
-  setTimeout(() => {
-    const scrollTopContent = this.qs('#presenceTableScrollTopContent');
-    const scrollTopContainer = this.qs('#presenceTableScrollTop');
-    const container = this.qs('#presenceTableContainer');
-    if (scrollTopContent && container && scrollTopContainer) {
+  // Nessuno scroll automatico qui: l'utente usa picker/prev/next o il toggle
+};
+
+// Setup pulsanti di navigazione colonne
+UI.setupColumnNavigation = function() {
+  const container = this.qs('#presenceTableContainer');
+  const prevBtn = this.qs('#scrollPrevBtn');
+  const nextBtn = this.qs('#scrollNextBtn');
+  const nextActivityBtn = this.qs('#scrollToNextActivityBtn');
+  
+  if (!container) return;
+  
+  // Pulsante precedente
+  if (prevBtn && !prevBtn._bound) {
+    prevBtn._bound = true;
+    prevBtn.addEventListener('click', () => {
       const table = container.querySelector('.presence-table');
-      if (table) {
-        const tableWidth = table.scrollWidth;
-        const containerWidth = container.clientWidth;
-        scrollTopContent.style.width = tableWidth + 'px';
+      if (!table) return;
+      
+      // Trova tutte le colonne (th) tranne la prima (sticky)
+      const headers = table.querySelectorAll('thead th:not(.sticky)');
+      if (headers.length === 0) return;
+      
+      // Calcola la posizione attuale dello scroll
+      const currentScroll = container.scrollLeft;
+      const containerWidth = container.clientWidth;
+      
+      // Trova la colonna più vicina a sinistra rispetto alla posizione corrente
+      let targetCol = null;
+      let minDistance = Infinity;
+      
+      headers.forEach((th, index) => {
+        const colLeft = th.offsetLeft;
+        const colRight = colLeft + th.offsetWidth;
         
-        // Mostra la barra di scorrimento in alto solo se la tabella è più larga del container
-        if (tableWidth > containerWidth) {
-          scrollTopContainer.style.display = 'block';
-        } else {
-          scrollTopContainer.style.display = 'none';
+        // Se la colonna è completamente a sinistra della vista corrente
+        if (colRight < currentScroll) {
+          const distance = currentScroll - colRight;
+          if (distance < minDistance) {
+            minDistance = distance;
+            targetCol = th;
+          }
+        }
+      });
+      
+      if (targetCol) {
+        // Scrolla per mostrare la colonna precedente
+        const targetScroll = Math.max(0, targetCol.offsetLeft - 20);
+        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      } else {
+        // Se non c'è una colonna precedente, vai all'inizio
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      }
+    });
+  }
+  
+  // Pulsante successivo
+  if (nextBtn && !nextBtn._bound) {
+    nextBtn._bound = true;
+    nextBtn.addEventListener('click', () => {
+      const table = container.querySelector('.presence-table');
+      if (!table) return;
+      
+      const headers = table.querySelectorAll('thead th:not(.sticky)');
+      if (headers.length === 0) return;
+      
+      const currentScroll = container.scrollLeft;
+      const containerWidth = container.clientWidth;
+      const visibleRight = currentScroll + containerWidth;
+      
+      // Trova la prima colonna che è parzialmente o completamente a destra della vista corrente
+      let targetCol = null;
+      
+      headers.forEach((th) => {
+        const colLeft = th.offsetLeft;
+        const colRight = colLeft + th.offsetWidth;
+        
+        // Se la colonna è a destra della vista corrente
+        if (colLeft > visibleRight - 50) {
+          if (!targetCol || colLeft < targetCol.offsetLeft) {
+            targetCol = th;
+          }
+        }
+      });
+      
+      if (targetCol) {
+        // Scrolla per mostrare la colonna successiva
+        const targetScroll = targetCol.offsetLeft - 20;
+        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      } else {
+        // Se non c'è una colonna successiva, vai alla fine
+        container.scrollTo({ left: table.scrollWidth, behavior: 'smooth' });
+      }
+    });
+  }
+  
+  // Pulsante "Prossima" - va alla colonna della prossima attività
+  if (nextActivityBtn && !nextActivityBtn._bound) {
+    nextActivityBtn._bound = true;
+    nextActivityBtn.addEventListener('click', () => {
+      const table = container.querySelector('.presence-table');
+      if (!table) return;
+      
+      // Trova la colonna con classe "next-col" (prossima attività)
+      const nextCol = table.querySelector('thead th.next-col, tbody td.next-col');
+      if (nextCol) {
+        const targetScroll = nextCol.offsetLeft - 20;
+        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      } else {
+        // Se non trova la classe next-col, cerca l'ultima colonna
+        const headers = table.querySelectorAll('thead th:not(.sticky)');
+        if (headers.length > 0) {
+          const lastHeader = headers[headers.length - 1];
+          const targetScroll = lastHeader.offsetLeft - 20;
+          container.scrollTo({ left: targetScroll, behavior: 'smooth' });
         }
       }
-    }
-  }, 200);
-
-  // Nessuno scroll automatico qui: l'utente usa picker/prev/next o il toggle
+    });
+  }
 };
 
 UI.showActivityDetailModal = function(activityId) {
