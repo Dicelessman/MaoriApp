@@ -11,10 +11,12 @@ UI.renderDocumentiMatrix = function() {
   
   const scouts = (this.state.scouts || []).slice();
   const toDate = (v) => (v && v.toDate) ? v.toDate() : new Date(v);
+  
+  // Funzione helper per convertire date in formato YYYY-MM-DD
   const toYyyyMmDd = (x) => {
     if (!x) return '';
-    const d = this.toJsDate(x);
-    return isNaN(d) ? '' : d.toISOString().split('T')[0];
+    const d = this.toJsDate ? this.toJsDate(x) : (x && x.toDate ? x.toDate() : new Date(x));
+    return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
   };
   
   // Ordina esploratori per nome
@@ -63,10 +65,10 @@ UI.renderDocumentiMatrix = function() {
     
     columns.forEach(col => {
       const value = scout[col.key];
-      const displayValue = value ? this.toYyyyMmDd(value) : '';
+      const displayValue = value ? toYyyyMmDd(value) : '';
       const formattedDate = value ? (() => {
         const d = toDate(value);
-        return isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return isNaN(d.getTime()) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
       })() : '';
       
       if (canEdit) {
