@@ -278,11 +278,21 @@ UI.renderPresenceTable = function() {
   // Aggiorna la larghezza del contenuto della barra di scorrimento in alto dopo il rendering
   setTimeout(() => {
     const scrollTopContent = this.qs('#presenceTableScrollTopContent');
+    const scrollTopContainer = this.qs('#presenceTableScrollTop');
     const container = this.qs('#presenceTableContainer');
-    if (scrollTopContent && container) {
+    if (scrollTopContent && container && scrollTopContainer) {
       const table = container.querySelector('.presence-table');
       if (table) {
-        scrollTopContent.style.width = table.scrollWidth + 'px';
+        const tableWidth = table.scrollWidth;
+        const containerWidth = container.clientWidth;
+        scrollTopContent.style.width = tableWidth + 'px';
+        
+        // Mostra la barra di scorrimento in alto solo se la tabella è più larga del container
+        if (tableWidth > containerWidth) {
+          scrollTopContainer.style.display = 'block';
+        } else {
+          scrollTopContainer.style.display = 'none';
+        }
       }
     }
   }, 200);
