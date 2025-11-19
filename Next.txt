@@ -1,6 +1,6 @@
 
 Rivedi le statistiche significative veramente
 
-La pagina Pagamenti deve elencare solo gli esploratori presenti all'attività/uscit/campo da pagare. L'elenco viene preso dalla colonna relativa in presenze.html, in modo da avere conteggi corretti per totale e totale incassato.
+
 
 
