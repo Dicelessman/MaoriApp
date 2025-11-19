@@ -34,8 +34,8 @@ UI.renderPaymentsPerActivity = function() {
     const payers = scouts.map(s => {
       const p = presences.find(x => x.esploratoreId === s.id && x.attivitaId === a.id);
       const stato = p?.stato || 'NR';
-      // Escludi sia "Assente" che "X" dai pagamenti
-      const eligibleForPayment = (stato !== 'Assente' && stato !== 'X');
+      // Include solo gli esploratori con stato "Presente" per i pagamenti
+      const eligibleForPayment = (stato === 'Presente');
       return { 
         scout: s, 
         paid: !!p?.pagato, 
@@ -46,7 +46,7 @@ UI.renderPaymentsPerActivity = function() {
       };
     });
     
-    // Filtra solo quelli eleggibili per il pagamento (escludi Assente e X)
+    // Filtra solo quelli presenti (stato === 'Presente')
     const eligible = payers.filter(x => x.eligibleForPayment);
     const whoPaid = eligible.filter(x => x.paid);
     const whoNotPaid = eligible.filter(x => !x.paid);

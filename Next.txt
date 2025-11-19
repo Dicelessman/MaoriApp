@@ -1,19 +1,6 @@
 
 Rivedi le statistiche significative veramente
 
+La pagina Pagamenti deve elencare solo gli esploratori presenti all'attività/uscit/campo da pagare. L'elenco viene preso dalla colonna relativa in presenze.html, in modo da avere conteggi corretti per totale e totale incassato.
 
 
-La scheda esportata deve avere queste caratteristiche:
-1- Titolo: Il sentiero di Nome dell'esploratore
-2- Titoletto: PROGRESSIONE VERTICALE
-- Hai fatto la Promessa [se si]
-- Hai raggiunto il (primo/secondo/terzo) Passo
-- Stai camminando verso il (primo/secondo/terzo) Passo
-3- SFIDE DA SUPERARE PER RAGGIUNGERE IL PROSSIMO PASSO
-- per ogni Sfida scelta dall'esploratore inderisci qui Direzione - codice Sfida - descrizione testuale della sfida - checkbox - campo data [se valorizzato nella scheda 
-4- SPECIALITA' CHE HAI GIA' OTTENUTO
-- Specialità ottenute (se ce ne sono) sulla stessa riga, separate da una virgola
-- eventuali note
-5- SPECIALITA' CHE VUOI OTTENERE
-- elenco di ogni Specialità ancora non ottenuta con tutte le Prove correlate, sia che siano già state superate, sia che siano da superare, con campo data.
-- eventuali note
