@@ -42,6 +42,6 @@ if (!config.appId) missing.push('VITE_FIREBASE_APP_ID');
 if (missing.length > 0) {
   console.warn('\n⚠ ATTENZIONE: Variabili d\'ambiente mancanti:');
   missing.forEach(v => console.warn('  -', v));
-  console.warn('\n  Per sviluppo locale, crea config.local.js o imposta le variabili d\'ambiente.');
+  console.warn('\n  Configura le variabili d\'ambiente in Vercel Project Settings.');
 }
 

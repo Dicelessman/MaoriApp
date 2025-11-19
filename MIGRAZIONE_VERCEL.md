@@ -6,13 +6,12 @@ Questa guida ti aiuterà a completare la migrazione del progetto su Vercel con g
 
 I seguenti file sono stati creati/modificati:
 
-- ✅ `.gitignore` - Esclude `config.js` e `config.local.js` dal repository
+- ✅ `.gitignore` - Esclude `config.js` dal repository
 - ✅ `build-config.js` - Script per generare `config.js` dalle variabili d'ambiente
 - ✅ `vercel.json` - Configurazione deployment Vercel
 - ✅ `package.json` - Configurazione Node.js minimale
 - ✅ `shared.js` - Modificato per leggere configurazione da `config.js`
 - ✅ Tutti i file HTML - Aggiunto script per caricare `config.js`
-- ✅ `config.local.js.example` - File di esempio per sviluppo locale
 
 ## 📋 Passi per Completare la Migrazione
 
@@ -23,12 +22,6 @@ I seguenti file sono stati creati/modificati:
    git init
    git add .
    git commit -m "Preparazione migrazione Vercel con variabili d'ambiente"
-   ```
-
-2. **Crea config.local.js per sviluppo locale** (opzionale):
-   ```bash
-   cp config.local.js.example config.local.js
-   # Modifica config.local.js con le tue chiavi Firebase se necessario
    ```
 
 ### Fase 2: Push su GitHub
@@ -85,36 +78,32 @@ I seguenti file sono stati creati/modificati:
 2. **Verifica il file config.js**:
    - Apri `https://TUO_SITO.vercel.app/config.js`
    - Dovresti vedere la configurazione Firebase con i valori corretti
-   - **IMPORTANTE**: Questo file è pubblico, ma le chiavi Firebase sono progettate per essere esposte lato client
+   - **IMPORTANTE**: `config.js` è **NECESSARIO** - viene generato automaticamente durante ogni build
+   - Questo file è pubblico, ma le chiavi Firebase API sono progettate per essere esposte lato client (è il design di Firebase per app client-side)
 
-## 🔒 Sicurezza
+## 🔒 Sicurezza e Gestione Chiavi
 
-- ✅ Le chiavi Firebase non sono più nel repository Git
-- ✅ `config.js` è generato durante il build e non è committato
-- ✅ `config.local.js` è escluso da Git per sviluppo locale
-- ⚠️ **Nota**: Le chiavi Firebase API sono comunque visibili nel browser (è normale per app client-side)
+### Perché le chiavi Firebase devono essere esposte?
+**Importante**: Per applicazioni client-side (come questa), le chiavi Firebase API **devono** essere visibili nel browser. Questo è il design previsto da Firebase:
 
-## 🛠️ Sviluppo Locale
+- Le chiavi API di Firebase sono pubbliche per natura
+- La sicurezza è garantita dalle **Firebase Security Rules** (non dalle chiavi API)
+- Configura le regole di sicurezza in Firebase Console per proteggere i dati
+- Usare variabili d'ambiente in Vercel evita di committare le chiavi nel repository Git, ma esse devono comunque essere esposte nel browser
 
-Per sviluppare localmente:
-
-1. **Crea `config.local.js`**:
-   ```bash
-   cp config.local.js.example config.local.js
-   ```
-
-2. **Modifica `config.local.js`** con le tue chiavi Firebase
-
-3. **Servi il progetto localmente**:
-   - Puoi usare un server HTTP semplice (es. `python -m http.server` o `npx serve`)
-   - Il file `config.local.js` verrà caricato automaticamente
+### Cosa abbiamo migliorato:
+- ✅ Le chiavi Firebase **non sono più nel repository Git** (non più hardcoded nel codice)
+- ✅ `config.js` è generato durante il build da variabili d'ambiente (più sicuro)
+- ✅ `config.js` è escluso da `.gitignore` (non viene committato)
+- ✅ Le chiavi sono gestite centralmente tramite Vercel Environment Variables
 
 ## 📝 Note Tecniche
 
-- Il file `config.js` viene generato durante ogni build di Vercel
+- **`config.js` è NECESSARIO**: Viene generato automaticamente durante ogni build di Vercel
+- Il file `config.js` viene creato da `build-config.js` che legge le variabili d'ambiente
 - Le variabili d'ambiente sono disponibili come `process.env.VITE_*` durante il build
-- `config.local.js` ha priorità su `config.js` (viene caricato prima)
-- Il fallback hardcoded in `shared.js` funziona solo se nessun file config è disponibile
+- Se `config.js` non è disponibile, `shared.js` usa il fallback hardcoded (per compatibilità)
+- **Non committare `config.js`**: È già escluso da `.gitignore`
 
 ## 🐛 Troubleshooting
 
@@ -124,11 +113,14 @@ Per sviluppare localmente:
 **Problema**: `config.js` non viene generato
 - **Soluzione**: Verifica che le variabili d'ambiente siano configurate correttamente in Vercel
 
-**Problema**: L'app non si connette a Firebase
+**Problema**: L'app non si connette a Firebase o errore 400 da Firestore
 - **Soluzione**: 
   - Verifica che `config.js` sia accessibile (apri `/config.js` nel browser)
-  - Controlla la console del browser per errori
-  - Verifica che le chiavi Firebase siano corrette nelle variabili d'ambiente
+  - Verifica che `config.js` contenga i valori corretti (non vuoti)
+  - Controlla la console del browser per errori dettagliati
+  - Verifica che le chiavi Firebase siano corrette nelle variabili d'ambiente di Vercel
+  - Controlla le Firebase Security Rules nel Firebase Console (potrebbero bloccare le richieste)
+  - Verifica che il dominio Vercel sia autorizzato in Firebase Console (Authentication → Settings → Authorized domains)
 
 ## 📞 Supporto
 
