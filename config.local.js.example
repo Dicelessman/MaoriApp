@@ -1,0 +1,19 @@
+// config.local.js.example - File di esempio per sviluppo locale
+// 
+// ISTRUZIONI:
+// 1. Copia questo file e rinominalo in config.local.js (senza .example)
+// 2. Sostituisci i valori con le tue chiavi Firebase
+// 3. config.local.js è già escluso da .gitignore e NON verrà committato
+//
+// NOTA: Questo file viene caricato PRIMA di config.js nei file HTML,
+// quindi le sue configurazioni hanno la priorità durante lo sviluppo locale.
+
+window.__FIREBASE_CONFIG__ = {
+  apiKey: "AIzaSyAoa8Rrlplr001PitiFrqBkrbEWL3TWrL4",
+  authDomain: "presenziariomaori.firebaseapp.com",
+  projectId: "presenziariomaori",
+  storageBucket: "presenziariomaori.firebasestorage.app",
+  messagingSenderId: "556210165397",
+  appId: "1:556210165397:web:4f434e78fb97f02d116d9c"
+};
+

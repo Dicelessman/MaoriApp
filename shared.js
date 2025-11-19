@@ -131,7 +131,10 @@ class LocalAdapter {
 
 class FirestoreAdapter {
   constructor() {
-    const firebaseConfig = {
+    // Leggi configurazione Firebase da window.__FIREBASE_CONFIG__
+    // (caricata da config.js generato durante il build)
+    // Fallback ai valori hardcoded per compatibilità locale (se config.js non è presente)
+    const firebaseConfig = (typeof window !== 'undefined' && window.__FIREBASE_CONFIG__) || {
       apiKey: "AIzaSyAoa8Rrlplr001PitiFrqBkrbEWL3TWrL4",
       authDomain: "presenziariomaori.firebaseapp.com",
       projectId: "presenziariomaori",
