@@ -48,8 +48,16 @@ UI.renderPaymentsPerActivity = function() {
     
     // Filtra solo quelli presenti (stato === 'Presente')
     const eligible = payers.filter(x => x.eligibleForPayment);
-    const whoPaid = eligible.filter(x => x.paid);
-    const whoNotPaid = eligible.filter(x => !x.paid);
+    const whoPaid = eligible.filter(x => x.paid).sort((a, b) => {
+      const nomeA = (a.scout.nome || '').trim().toLowerCase();
+      const nomeB = (b.scout.nome || '').trim().toLowerCase();
+      return nomeA.localeCompare(nomeB, 'it');
+    });
+    const whoNotPaid = eligible.filter(x => !x.paid).sort((a, b) => {
+      const nomeA = (a.scout.nome || '').trim().toLowerCase();
+      const nomeB = (b.scout.nome || '').trim().toLowerCase();
+      return nomeA.localeCompare(nomeB, 'it');
+    });
     
     const expected = costo * eligible.length;
     const collected = whoPaid.length * costo;
