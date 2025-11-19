@@ -3,7 +3,6 @@
 // Sovrascrive la funzione renderCurrentPage
 UI.renderCurrentPage = function() {
   this.renderPresenceTable();
-  this.setupPresenceEventListeners();
 };
 
 // UI.setupPresenceEventListeners = function() {
@@ -267,10 +266,20 @@ UI.setupColumnNavigation = function() {
   
   if (!container) return;
   
+  // Rimuovi listener esistenti se presenti (per evitare duplicati)
+  if (prevBtn && prevBtn._bound) {
+    prevBtn.removeEventListener('click', prevBtn._clickHandler);
+  }
+  if (nextBtn && nextBtn._bound) {
+    nextBtn.removeEventListener('click', nextBtn._clickHandler);
+  }
+  if (nextActivityBtn && nextActivityBtn._bound) {
+    nextActivityBtn.removeEventListener('click', nextActivityBtn._clickHandler);
+  }
+  
   // Pulsante precedente
-  if (prevBtn && !prevBtn._bound) {
-    prevBtn._bound = true;
-    prevBtn.addEventListener('click', () => {
+  if (prevBtn) {
+    prevBtn._clickHandler = () => {
       const table = container.querySelector('.presence-table');
       if (!table) return;
       
@@ -308,13 +317,14 @@ UI.setupColumnNavigation = function() {
         // Se non c'è una colonna precedente, vai all'inizio
         container.scrollTo({ left: 0, behavior: 'smooth' });
       }
-    });
+    };
+    prevBtn.addEventListener('click', prevBtn._clickHandler);
+    prevBtn._bound = true;
   }
   
   // Pulsante successivo
-  if (nextBtn && !nextBtn._bound) {
-    nextBtn._bound = true;
-    nextBtn.addEventListener('click', () => {
+  if (nextBtn) {
+    nextBtn._clickHandler = () => {
       const table = container.querySelector('.presence-table');
       if (!table) return;
       
@@ -348,13 +358,14 @@ UI.setupColumnNavigation = function() {
         // Se non c'è una colonna successiva, vai alla fine
         container.scrollTo({ left: table.scrollWidth, behavior: 'smooth' });
       }
-    });
+    };
+    nextBtn.addEventListener('click', nextBtn._clickHandler);
+    nextBtn._bound = true;
   }
   
   // Pulsante "Prossima" - va alla colonna della prossima attività
-  if (nextActivityBtn && !nextActivityBtn._bound) {
-    nextActivityBtn._bound = true;
-    nextActivityBtn.addEventListener('click', () => {
+  if (nextActivityBtn) {
+    nextActivityBtn._clickHandler = () => {
       const table = container.querySelector('.presence-table');
       if (!table) return;
       
@@ -372,7 +383,9 @@ UI.setupColumnNavigation = function() {
           container.scrollTo({ left: targetScroll, behavior: 'smooth' });
         }
       }
-    });
+    };
+    nextActivityBtn.addEventListener('click', nextActivityBtn._clickHandler);
+    nextActivityBtn._bound = true;
   }
 };
 
