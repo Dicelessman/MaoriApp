@@ -2,6 +2,7 @@
   "buildCommand": "node build-config.js",
   "outputDirectory": ".",
   "framework": null,
+  "installCommand": "npm install --production=false || echo 'Install skipped'",
   "headers": [
     {
       "source": "/config.js",

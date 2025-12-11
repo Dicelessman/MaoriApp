@@ -2,7 +2,6 @@
   "name": "maori-app",
   "version": "1.0.0",
   "description": "Registro presenze Reparto Scout Maori",
-  "type": "module",
   "scripts": {
     "build": "node build-config.js",
     "vercel-build": "node build-config.js",
