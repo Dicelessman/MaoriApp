@@ -9,6 +9,7 @@ import {
   getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot, getDoc
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
 
 // ============== Data Layer ==============
 class LocalAdapter {
@@ -155,6 +156,16 @@ class FirestoreAdapter {
       auditLogs: collection(this.db, 'auditLogs'),
     };
     this.auth = getAuth(this.app);
+    
+    // Initialize FCM only in browser and if service worker is supported
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      try {
+        this.messaging = getMessaging(this.app);
+      } catch (e) {
+        console.warn('FCM initialization failed:', e);
+        this.messaging = null;
+      }
+    }
   }
 
   async loadAll() {
@@ -697,6 +708,15 @@ const UI = {
             this.rebuildPresenceIndex();
             // Sincronizza preferenze utente
             await this.syncUserPreferences();
+            // Inizializza FCM e controlla notifiche
+            if (this.loadUserPreferences().notifications.enabled !== false) {
+              await this.initializeFCM();
+            }
+            // Controlla notifiche attività e pagamenti (dopo un breve delay)
+            setTimeout(() => {
+              this.checkActivityReminders();
+              this.checkPaymentReminders();
+            }, 3000);
             // Selezione staff: auto-seleziona se email corrisponde, altrimenti apri modale
             const match = (this.state.staff || []).find(s => (s.email || '').toLowerCase() === (user.email || '').toLowerCase());
             if (match) {
@@ -1063,7 +1083,9 @@ const UI = {
       savedFilters: {},
       notifications: {
         activityReminders: true,
-        paymentReminders: true
+        paymentReminders: true,
+        importantChanges: true,
+        enabled: false // Richiede permesso utente
       }
     };
   },
@@ -1128,6 +1150,295 @@ const UI = {
       }
     } catch (error) {
       console.warn('Errore sincronizzazione preferenze da Firestore:', error);
+    }
+  },
+
+  // ============== Firebase Cloud Messaging (Push Notifications) ==============
+  
+  /**
+   * Inizializza Firebase Cloud Messaging e richiede permessi
+   */
+  async initializeFCM() {
+    // Verifica supporto
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+      console.log('Push notifications non supportate da questo browser');
+      return null;
+    }
+    
+    if (!DATA.adapter.messaging) {
+      console.warn('FCM non disponibile');
+      return null;
+    }
+    
+    try {
+      // Registra service worker
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      console.log('Service Worker registered:', registration);
+      
+      // Richiedi permessi
+      const permission = await Notification.requestPermission();
+      
+      if (permission === 'granted') {
+        // Ottieni token FCM
+        const vapidKey = this.getVapidKey();
+        if (!vapidKey) {
+          console.warn('VAPID key non configurata - vedi FCM_SETUP.md');
+          return null;
+        }
+        
+        const token = await getToken(DATA.adapter.messaging, {
+          vapidKey: vapidKey,
+          serviceWorkerRegistration: registration
+        });
+        
+        if (token) {
+          console.log('FCM Token ottenuto:', token);
+          await this.saveFCMToken(token);
+          
+          // Aggiorna preferenze
+          const prefs = this.loadUserPreferences();
+          prefs.notifications.enabled = true;
+          await this.saveUserPreferences(prefs);
+          
+          // Setup listener per messaggi in foreground
+          onMessage(DATA.adapter.messaging, (payload) => {
+            console.log('Messaggio ricevuto in foreground:', payload);
+            this.handleForegroundNotification(payload);
+          });
+          
+          return token;
+        }
+      } else {
+        console.log('Permessi notifiche negati:', permission);
+        const prefs = this.loadUserPreferences();
+        prefs.notifications.enabled = false;
+        await this.saveUserPreferences(prefs);
+      }
+    } catch (error) {
+      console.error('Errore inizializzazione FCM:', error);
+    }
+    
+    return null;
+  },
+  
+  /**
+   * Ottiene VAPID key per FCM (da configurazione o default)
+   * IMPORTANTE: Configura questa funzione con la VAPID key da Firebase Console
+   * Vedi FCM_SETUP.md per istruzioni dettagliate
+   */
+  getVapidKey() {
+    // VAPID key configurata da Firebase Console
+    return 'BBKeE0VbFbvT_BWU78Ddtbt1EhP6-vHYTI_WwQsrBOiki5RvsyBTwkI4X6HFEW0GaVf018JNosFE1eVdb6b62N0';
+  },
+  
+  /**
+   * Salva token FCM in Firestore per l'utente corrente
+   */
+  async saveFCMToken(token) {
+    if (!this.currentUser?.uid) return;
+    
+    try {
+      const tokenRef = doc(DATA.adapter.db, 'fcm-tokens', this.currentUser.uid);
+      await setDoc(tokenRef, {
+        token: token,
+        userId: this.currentUser.uid,
+        userEmail: this.currentUser.email,
+        updatedAt: new Date(),
+        deviceInfo: {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform
+        }
+      }, { merge: true });
+      
+      console.log('FCM token salvato in Firestore');
+    } catch (error) {
+      console.error('Errore salvataggio FCM token:', error);
+    }
+  },
+  
+  /**
+   * Gestisce notifiche in foreground (quando app è aperta)
+   */
+  handleForegroundNotification(payload) {
+    const notificationTitle = payload.notification?.title || payload.data?.title || 'Notifica Scout Maori';
+    const notificationOptions = {
+      body: payload.notification?.body || payload.data?.body || 'Nuova notifica',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: payload.data?.tag || 'default',
+      data: payload.data || {}
+    };
+    
+    // Usa Notification API per mostrare notifica anche in foreground
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const notification = new Notification(notificationTitle, notificationOptions);
+      
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+        
+        // Naviga alla pagina se specificata
+        if (payload.data?.url) {
+          window.location.href = payload.data.url;
+        }
+      };
+      
+      // Chiudi automaticamente dopo 5 secondi
+      setTimeout(() => notification.close(), 5000);
+    } else {
+      // Fallback: mostra toast se notifiche non disponibili
+      this.showToast(notificationTitle + ': ' + notificationOptions.body, {
+        type: 'info',
+        duration: 5000
+      });
+    }
+  },
+  
+  /**
+   * Controlla attività imminenti e invia notifiche se necessario
+   */
+  async checkActivityReminders() {
+    const prefs = this.loadUserPreferences();
+    if (!prefs.notifications.enabled || !prefs.notifications.activityReminders) {
+      return;
+    }
+    
+    if (!this.currentUser?.uid) return;
+    
+    try {
+      const activities = this.state.activities || [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const threeDaysFromNow = new Date(today);
+      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+      
+      const upcomingActivities = activities.filter(a => {
+        const activityDate = this.toJsDate(a.data);
+        if (!activityDate) return false;
+        const aday = new Date(activityDate);
+        aday.setHours(0, 0, 0, 0);
+        return aday >= today && aday <= threeDaysFromNow;
+      }).sort((a, b) => this.toJsDate(a.data) - this.toJsDate(b.data));
+      
+      if (upcomingActivities.length > 0) {
+        // Controlla se abbiamo già notificato per queste attività
+        const lastCheck = localStorage.getItem('lastActivityReminderCheck');
+        const lastCheckDate = lastCheck ? new Date(lastCheck) : null;
+        
+        // Notifica solo se non abbiamo già controllato oggi
+        if (!lastCheckDate || lastCheckDate.toDateString() !== today.toDateString()) {
+          const nearest = upcomingActivities[0];
+          const activityDate = this.toJsDate(nearest.data);
+          const daysUntil = Math.ceil((activityDate - today) / (1000 * 60 * 60 * 24));
+          
+          // Mostra notifica solo se siamo entro 3 giorni
+          if (daysUntil <= 3 && daysUntil >= 0) {
+            const message = daysUntil === 0 
+              ? `Oggi: ${nearest.tipo} - ${nearest.descrizione}`
+              : daysUntil === 1
+              ? `Domani: ${nearest.tipo} - ${nearest.descrizione}`
+              : `Tra ${daysUntil} giorni: ${nearest.tipo} - ${nearest.descrizione}`;
+            
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('Attività Imminente', {
+                body: message,
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                tag: `activity-${nearest.id}`,
+                data: { url: `/calendario.html` }
+              });
+            }
+            
+            localStorage.setItem('lastActivityReminderCheck', today.toISOString());
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Errore controllo attività imminenti:', error);
+    }
+  },
+  
+  /**
+   * Controlla pagamenti mancanti e invia notifiche se necessario
+   */
+  async checkPaymentReminders() {
+    const prefs = this.loadUserPreferences();
+    if (!prefs.notifications.enabled || !prefs.notifications.paymentReminders) {
+      return;
+    }
+    
+    if (!this.currentUser?.uid) return;
+    
+    try {
+      const activities = (this.state.activities || []).filter(a => parseFloat(a.costo || '0') > 0);
+      const presences = this.getDedupedPresences();
+      
+      const unpaidActivities = activities.filter(activity => {
+        const activityDate = this.toJsDate(activity.data);
+        if (!activityDate) return false;
+        
+        // Solo attività passate
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (activityDate >= today) return false;
+        
+        // Verifica se ci sono pagamenti mancanti
+        const activityPresences = presences.filter(p => p.attivitaId === activity.id && p.stato === 'Presente');
+        const unpaidCount = activityPresences.filter(p => !p.pagato).length;
+        
+        return unpaidCount > 0;
+      });
+      
+      if (unpaidActivities.length > 0) {
+        const lastCheck = localStorage.getItem('lastPaymentReminderCheck');
+        const lastCheckDate = lastCheck ? new Date(lastCheck) : null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Notifica solo una volta al giorno
+        if (!lastCheckDate || lastCheckDate.toDateString() !== today.toDateString()) {
+          const totalUnpaid = unpaidActivities.reduce((sum, activity) => {
+            const activityPresences = presences.filter(p => p.attivitaId === activity.id && p.stato === 'Presente');
+            return sum + activityPresences.filter(p => !p.pagato).length;
+          }, 0);
+          
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Pagamenti Mancanti', {
+              body: `${totalUnpaid} pagamento/i da registrare per ${unpaidActivities.length} attività`,
+              icon: '/icon-192.png',
+              badge: '/icon-192.png',
+              tag: 'payment-reminder',
+              data: { url: '/pagamenti.html' }
+            });
+          }
+          
+          localStorage.setItem('lastPaymentReminderCheck', today.toISOString());
+        }
+      }
+    } catch (error) {
+      console.error('Errore controllo pagamenti mancanti:', error);
+    }
+  },
+  
+  /**
+   * Invia notifica per modifiche importanti
+   */
+  notifyImportantChange({ type, title, body, url }) {
+    const prefs = this.loadUserPreferences();
+    if (!prefs.notifications.enabled || !prefs.notifications.importantChanges) {
+      return;
+    }
+    
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, {
+        body: body,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: `important-${type}`,
+        requireInteraction: true,
+        data: { url: url || '/' }
+      });
     }
   },
 
@@ -1670,6 +1981,7 @@ const UI = {
         const originalText = confirmDeleteActivityButton.textContent;
         this.setButtonLoading(confirmDeleteActivityButton, true, originalText);
         try {
+          const activity = this.state.activities.find(a => a.id === this.activityToDeleteId);
           await DATA.deleteActivity(this.activityToDeleteId, this.currentUser);
           this.activityToDeleteId = null;
           this.closeModal('confirmDeleteActivityModal');
@@ -1677,6 +1989,14 @@ const UI = {
           this.rebuildPresenceIndex();
           this.renderCurrentPage();
           this.showToast('Attività eliminata con successo');
+          
+          // Notifica importante: attività cancellata
+          this.notifyImportantChange({
+            type: 'activity_deleted',
+            title: 'Attività Cancellata',
+            body: activity ? `${activity.tipo} del ${this.toJsDate(activity.data)?.toLocaleDateString('it-IT') || ''} è stata cancellata` : 'Un\'attività è stata cancellata',
+            url: '/calendario.html'
+          });
         } catch (error) {
           console.error('Errore eliminazione attività:', error);
           this.showToast('Errore durante l\'eliminazione: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
