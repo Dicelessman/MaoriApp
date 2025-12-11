@@ -351,6 +351,30 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
 .input.invalid:focus { border-color:#dc2626; box-shadow:0 0 0 3px rgba(220,38,38,.1); }
 .input.valid { border-color:#16a34a; }
 .input.valid:focus { border-color:#16a34a; box-shadow:0 0 0 3px rgba(22,163,74,.1); }
+/* Input base - applicato a tutti gli input */
+input,
+textarea,
+select {
+  background-color: var(--card-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Placeholder text - deve essere leggibile ma più tenue */
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted) !important;
+  opacity: 0.7;
+}
+
+/* Testo selezionato in input - deve essere leggibile */
+input::selection,
+textarea::selection {
+  background-color: var(--brand);
+  color: white;
+}
+
+/* Specifici per tipo input */
 textarea.input,
 textarea,
 input[type="text"],
@@ -363,6 +387,67 @@ select {
   background-color: var(--card-bg) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
+}
+
+/* Assicura che gli input nei modali abbiano sempre il colore corretto */
+.modal input,
+.modal textarea,
+.modal select {
+  background-color: var(--card-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Override per classi Tailwind specifiche usate nei modali */
+[data-theme="dark"] input.border-gray-300,
+[data-theme="dark"] textarea.border-gray-300,
+[data-theme="dark"] select.border-gray-300 {
+  background-color: var(--card-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Per input senza classi esplicite ma con classi Tailwind */
+[data-theme="dark"] .mt-1.block.w-full input,
+[data-theme="dark"] .mt-1.block.w-full textarea {
+  background-color: var(--card-bg) !important;
+  color: var(--text) !important;
+}
+
+/* Assicura che il valore negli input sia sempre visibile */
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  -webkit-text-fill-color: var(--text) !important;
+  color: var(--text) !important;
+}
+
+/* Selettori più specifici per input con classi Tailwind */
+[data-theme="dark"] input.mt-1,
+[data-theme="dark"] input.block,
+[data-theme="dark"] input.w-full,
+[data-theme="dark"] input.rounded-lg,
+[data-theme="dark"] input.border-gray-300,
+[data-theme="dark"] textarea.mt-1,
+[data-theme="dark"] textarea.block,
+[data-theme="dark"] textarea.w-full,
+[data-theme="dark"] select.mt-1,
+[data-theme="dark"] select.block,
+[data-theme="dark"] select.w-full {
+  background-color: var(--card-bg) !important;
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Per Chrome/Edge - risolve problema colore testo invisibile */
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] input:-webkit-autofill:hover,
+[data-theme="dark"] input:-webkit-autofill:focus,
+[data-theme="dark"] input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--card-bg) inset !important;
+  color: var(--text) !important;
 }
 
 /* Radio buttons e checkboxes */
