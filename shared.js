@@ -1,5 +1,8 @@
 // shared.js - Codice condiviso tra tutte le pagine
 
+// Import utility e validazione (se disponibili come moduli, altrimenti inline)
+// Per retrocompatibilità, le funzioni sono anche disponibili inline se i moduli non sono caricati
+
 // Import Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import {

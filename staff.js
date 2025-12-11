@@ -17,15 +17,40 @@ UI.setupStaffEventListeners = function() {
         this.showToast('Devi essere loggato per aggiungere staff.', { type: 'error' });
         return;
       }
+      
+      // Validazione input
+      const nome = this.qs('#staffNome').value.trim();
+      const cognome = this.qs('#staffCognome').value.trim();
+      const email = this.qs('#staffEmail').value.trim();
+      
+      // Validazione base (può essere estesa con validation.js quando disponibile)
+      const isValidEmail = (email) => {
+        if (!email || typeof email !== 'string') return false;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email.trim());
+      };
+      
+      if (!nome || nome.length === 0) {
+        this.showToast('Il nome è obbligatorio', { type: 'error' });
+        this.qs('#staffNome').focus();
+        return;
+      }
+      if (!cognome || cognome.length === 0) {
+        this.showToast('Il cognome è obbligatorio', { type: 'error' });
+        this.qs('#staffCognome').focus();
+        return;
+      }
+      if (!email || !isValidEmail(email)) {
+        this.showToast('Email non valida', { type: 'error' });
+        this.qs('#staffEmail').focus();
+        return;
+      }
+      
       const submitBtn = form.querySelector('button[type="submit"]');
       const originalText = submitBtn?.textContent;
       this.setButtonLoading(submitBtn, true, originalText);
       try {
-        const nome = this.qs('#staffNome').value.trim();
-        const cognome = this.qs('#staffCognome').value.trim();
-        const email = this.qs('#staffEmail').value.trim();
-
-        await DATA.addStaff({ nome, cognome, email }, this.currentUser);
+        await DATA.addStaff({ nome, cognome, email: email.toLowerCase() }, this.currentUser);
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();
         this.renderStaff();

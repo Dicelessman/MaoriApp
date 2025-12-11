@@ -4,8 +4,12 @@ config.js
 # File di configurazione locale per sviluppo (non committare)
 config.local.js
 
-# Node modules (se aggiungiamo dipendenze in futuro)
+# Node modules
 node_modules/
+
+# Test coverage
+coverage/
+.nyc_output/
 
 # Log files
 *.log

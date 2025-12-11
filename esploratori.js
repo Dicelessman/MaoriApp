@@ -17,12 +17,36 @@ UI.setupScoutsEventListeners = function() {
         this.showToast('Devi essere loggato per aggiungere esploratori.', { type: 'error' }); 
         return; 
       }
+      
+      // Validazione input
+      const nome = this.qs('#scoutNome').value.trim();
+      const cognome = this.qs('#scoutCognome').value.trim();
+      
+      if (!nome || nome.length === 0) {
+        this.showToast('Il nome è obbligatorio', { type: 'error' });
+        this.qs('#scoutNome').focus();
+        return;
+      }
+      if (nome.length > 100) {
+        this.showToast('Il nome non può superare 100 caratteri', { type: 'error' });
+        this.qs('#scoutNome').focus();
+        return;
+      }
+      if (!cognome || cognome.length === 0) {
+        this.showToast('Il cognome è obbligatorio', { type: 'error' });
+        this.qs('#scoutCognome').focus();
+        return;
+      }
+      if (cognome.length > 100) {
+        this.showToast('Il cognome non può superare 100 caratteri', { type: 'error' });
+        this.qs('#scoutCognome').focus();
+        return;
+      }
+      
       const submitBtn = form.querySelector('button[type="submit"]');
       const originalText = submitBtn?.textContent;
       this.setButtonLoading(submitBtn, true, originalText);
       try {
-        const nome = this.qs('#scoutNome').value.trim();
-        const cognome = this.qs('#scoutCognome').value.trim();
         await DATA.addScout({ nome, cognome }, this.currentUser);
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();

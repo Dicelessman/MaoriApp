@@ -15,14 +15,55 @@ UI.setupCalendarEvents = function() {
         this.showToast('Devi essere loggato per aggiungere attività.', { type: 'error' }); 
         return; 
       }
+      
+      // Validazione input
+      const tipo = this.qs('#activityTipo').value;
+      const dataValue = this.qs('#activityData').value;
+      const descrizione = this.qs('#activityDescrizione').value.trim();
+      const costo = this.qs('#activityCosto').value || '0';
+      
+      const validTypes = ['Riunione', 'Attività lunga', 'Uscita', 'Campo'];
+      if (!validTypes.includes(tipo)) {
+        this.showToast('Tipo attività non valido', { type: 'error' });
+        this.qs('#activityTipo').focus();
+        return;
+      }
+      
+      if (!dataValue) {
+        this.showToast('La data è obbligatoria', { type: 'error' });
+        this.qs('#activityData').focus();
+        return;
+      }
+      
+      const data = new Date(dataValue);
+      if (isNaN(data.getTime())) {
+        this.showToast('Data non valida', { type: 'error' });
+        this.qs('#activityData').focus();
+        return;
+      }
+      
+      if (!descrizione || descrizione.length === 0) {
+        this.showToast('La descrizione è obbligatoria', { type: 'error' });
+        this.qs('#activityDescrizione').focus();
+        return;
+      }
+      if (descrizione.length > 500) {
+        this.showToast('La descrizione non può superare 500 caratteri', { type: 'error' });
+        this.qs('#activityDescrizione').focus();
+        return;
+      }
+      
+      const costoNum = Number(costo);
+      if (isNaN(costoNum) || costoNum < 0) {
+        this.showToast('Il costo deve essere un numero positivo', { type: 'error' });
+        this.qs('#activityCosto').focus();
+        return;
+      }
+      
       const submitBtn = form.querySelector('button[type="submit"]');
       const originalText = submitBtn?.textContent;
       this.setButtonLoading(submitBtn, true, originalText);
       try {
-        const tipo = this.qs('#activityTipo').value;
-        const data = new Date(this.qs('#activityData').value);
-        const descrizione = this.qs('#activityDescrizione').value.trim();
-        const costo = this.qs('#activityCosto').value || '0';
         await DATA.addActivity({ tipo, data, descrizione, costo }, this.currentUser);
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();
