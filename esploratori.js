@@ -11,6 +11,23 @@ UI.setupScoutsEventListeners = function() {
   const form = this.qs('#addScoutForm');
   if (form && !form._bound) {
     form._bound = true;
+    
+    // Setup validazione real-time
+    this.setupFormValidation(form, {
+      scoutNome: {
+        required: true,
+        minLength: 1,
+        maxLength: 100,
+        requiredMessage: 'Il nome è obbligatorio'
+      },
+      scoutCognome: {
+        required: true,
+        minLength: 1,
+        maxLength: 100,
+        requiredMessage: 'Il cognome è obbligatorio'
+      }
+    });
+    
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!this.currentUser) { 
@@ -18,28 +35,28 @@ UI.setupScoutsEventListeners = function() {
         return; 
       }
       
-      // Validazione input
+      // Validazione form completa
+      const validation = this.validateForm(form, {
+        scoutNome: { required: true, minLength: 1, maxLength: 100 },
+        scoutCognome: { required: true, minLength: 1, maxLength: 100 }
+      });
+      
+      if (!validation.valid) {
+        const firstError = Object.values(validation.errors)[0];
+        this.showToast(firstError, { type: 'error' });
+        const firstErrorField = Object.keys(validation.errors)[0];
+        const input = form.querySelector(`#${firstErrorField}`);
+        if (input) input.focus();
+        return;
+      }
+      
       const nome = this.qs('#scoutNome').value.trim();
       const cognome = this.qs('#scoutCognome').value.trim();
       
-      if (!nome || nome.length === 0) {
-        this.showToast('Il nome è obbligatorio', { type: 'error' });
+      // Check duplicati scout
+      if (this.checkDuplicateScout(nome, cognome)) {
+        this.showToast('Un esploratore con lo stesso nome e cognome esiste già', { type: 'error' });
         this.qs('#scoutNome').focus();
-        return;
-      }
-      if (nome.length > 100) {
-        this.showToast('Il nome non può superare 100 caratteri', { type: 'error' });
-        this.qs('#scoutNome').focus();
-        return;
-      }
-      if (!cognome || cognome.length === 0) {
-        this.showToast('Il cognome è obbligatorio', { type: 'error' });
-        this.qs('#scoutCognome').focus();
-        return;
-      }
-      if (cognome.length > 100) {
-        this.showToast('Il cognome non può superare 100 caratteri', { type: 'error' });
-        this.qs('#scoutCognome').focus();
         return;
       }
       
@@ -54,6 +71,17 @@ UI.setupScoutsEventListeners = function() {
         form.reset();
         this.closeModal('addScoutModal');
         this.showToast('Esploratore aggiunto');
+        
+        // Reset classi validazione
+        form.querySelectorAll('.valid, .invalid').forEach(el => {
+          el.classList.remove('valid', 'invalid');
+        });
+        form.querySelectorAll('.has-error, .is-valid').forEach(el => {
+          el.classList.remove('has-error', 'is-valid');
+        });
+        form.querySelectorAll('.field-error').forEach(el => {
+          el.textContent = '';
+        });
       } catch (error) {
         console.error('Errore aggiunta esploratore:', error);
         this.showToast('Errore durante l\'aggiunta: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });

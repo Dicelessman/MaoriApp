@@ -11,60 +11,92 @@ UI.setupStaffEventListeners = function() {
   const form = this.qs('#addStaffForm');
   if (!form || form._bound) return;
   form._bound = true;
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!this.currentUser) {
-        this.showToast('Devi essere loggato per aggiungere staff.', { type: 'error' });
-        return;
-      }
-      
-      // Validazione input
-      const nome = this.qs('#staffNome').value.trim();
-      const cognome = this.qs('#staffCognome').value.trim();
-      const email = this.qs('#staffEmail').value.trim();
-      
-      // Validazione base (può essere estesa con validation.js quando disponibile)
-      const isValidEmail = (email) => {
-        if (!email || typeof email !== 'string') return false;
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email.trim());
-      };
-      
-      if (!nome || nome.length === 0) {
-        this.showToast('Il nome è obbligatorio', { type: 'error' });
-        this.qs('#staffNome').focus();
-        return;
-      }
-      if (!cognome || cognome.length === 0) {
-        this.showToast('Il cognome è obbligatorio', { type: 'error' });
-        this.qs('#staffCognome').focus();
-        return;
-      }
-      if (!email || !isValidEmail(email)) {
-        this.showToast('Email non valida', { type: 'error' });
-        this.qs('#staffEmail').focus();
-        return;
-      }
-      
-      const submitBtn = form.querySelector('button[type="submit"]');
-      const originalText = submitBtn?.textContent;
-      this.setButtonLoading(submitBtn, true, originalText);
-      try {
-        await DATA.addStaff({ nome, cognome, email: email.toLowerCase() }, this.currentUser);
-        this.state = await DATA.loadAll();
-        this.rebuildPresenceIndex();
-        this.renderStaff();
-        this.showToast('Staff aggiunto con successo');
-
-        // Reset form
-        form.reset();
-      } catch (error) {
-        console.error('Errore aggiunta staff:', error);
-        this.showToast('Errore durante l\'aggiunta: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
-      } finally {
-        this.setButtonLoading(submitBtn, false, originalText);
-      }
+  
+  // Setup validazione real-time
+  this.setupFormValidation(form, {
+    staffNome: {
+      required: true,
+      minLength: 1,
+      maxLength: 100,
+      requiredMessage: 'Il nome è obbligatorio'
+    },
+    staffCognome: {
+      required: true,
+      minLength: 1,
+      maxLength: 100,
+      requiredMessage: 'Il cognome è obbligatorio'
+    },
+    staffEmail: {
+      required: true,
+      type: 'email',
+      requiredMessage: 'L\'email è obbligatoria'
+    }
+  });
+  
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!this.currentUser) {
+      this.showToast('Devi essere loggato per aggiungere staff.', { type: 'error' });
+      return;
+    }
+    
+    // Validazione form completa
+    const validation = this.validateForm(form, {
+      staffNome: { required: true, minLength: 1, maxLength: 100 },
+      staffCognome: { required: true, minLength: 1, maxLength: 100 },
+      staffEmail: { required: true, type: 'email' }
     });
+    
+    if (!validation.valid) {
+      const firstError = Object.values(validation.errors)[0];
+      this.showToast(firstError, { type: 'error' });
+      // Focus sul primo campo con errore
+      const firstErrorField = Object.keys(validation.errors)[0];
+      const input = form.querySelector(`#${firstErrorField}`);
+      if (input) input.focus();
+      return;
+    }
+    
+    const nome = this.qs('#staffNome').value.trim();
+    const cognome = this.qs('#staffCognome').value.trim();
+    const email = this.qs('#staffEmail').value.trim().toLowerCase();
+    
+    // Check duplicati email
+    if (this.checkDuplicateStaffEmail(email)) {
+      this.showToast('Un membro staff con questa email esiste già', { type: 'error' });
+      this.qs('#staffEmail').focus();
+      return;
+    }
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn?.textContent;
+    this.setButtonLoading(submitBtn, true, originalText);
+    try {
+      await DATA.addStaff({ nome, cognome, email }, this.currentUser);
+      this.state = await DATA.loadAll();
+      this.rebuildPresenceIndex();
+      this.renderStaff();
+      this.showToast('Staff aggiunto con successo');
+
+      // Reset form
+      form.reset();
+      // Rimuovi classi validazione
+      form.querySelectorAll('.valid, .invalid').forEach(el => {
+        el.classList.remove('valid', 'invalid');
+      });
+      form.querySelectorAll('.has-error, .is-valid').forEach(el => {
+        el.classList.remove('has-error', 'is-valid');
+      });
+      form.querySelectorAll('.field-error').forEach(el => {
+        el.textContent = '';
+      });
+    } catch (error) {
+      console.error('Errore aggiunta staff:', error);
+      this.showToast('Errore durante l\'aggiunta: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+    } finally {
+      this.setButtonLoading(submitBtn, false, originalText);
+    }
+  });
 };
 
 UI.renderStaff = function() {

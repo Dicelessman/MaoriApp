@@ -147,6 +147,19 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
 .btn-danger { background:#dc2626; color:white; padding:.5rem 1rem; border-radius:.5rem; font-weight:600; }
 .btn-danger:hover { filter: brightness(.95); }
 
+/* Form validation styles */
+.input { padding:.5rem .75rem; border:1px solid var(--border); border-radius:.5rem; width:100%; transition: border-color .2s ease, box-shadow .2s ease; }
+.input:focus { outline:none; border-color:var(--brand); box-shadow:0 0 0 3px rgba(22,163,74,.1); }
+.input.invalid { border-color:#dc2626; }
+.input.invalid:focus { border-color:#dc2626; box-shadow:0 0 0 3px rgba(220,38,38,.1); }
+.input.valid { border-color:#16a34a; }
+.input.valid:focus { border-color:#16a34a; box-shadow:0 0 0 3px rgba(22,163,74,.1); }
+.field-error { color:#dc2626; font-size:.75rem; margin-top:.25rem; display:block; min-height:1.25rem; }
+.field-error:empty { display:none; }
+.field-group { margin-bottom:1rem; }
+.field-group.has-error .input { border-color:#dc2626; }
+.field-group.is-valid .input { border-color:#16a34a; }
+
 /* Mobile friendly cards for presenze (optional: could be toggled) */
 @media (max-width: 640px) {
   /* Manteniamo la tabella intera; aggiungiamo solo controlli mobile */

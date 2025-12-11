@@ -9,6 +9,42 @@ UI.setupCalendarEvents = function() {
   const form = this.qs('#addActivityForm');
   if (form && !form._bound) {
     form._bound = true;
+    
+    // Setup validazione real-time
+    const validActivityTypes = ['Riunione', 'Attività lunga', 'Uscita', 'Campo'];
+    this.setupFormValidation(form, {
+      activityTipo: {
+        required: true,
+        validator: (value) => validActivityTypes.includes(value) || 'Tipo attività non valido',
+        requiredMessage: 'Seleziona un tipo attività'
+      },
+      activityData: {
+        required: true,
+        validator: (value) => {
+          if (!value) return 'La data è obbligatoria';
+          const date = new Date(value);
+          if (isNaN(date.getTime())) return 'Data non valida';
+          return true;
+        },
+        requiredMessage: 'La data è obbligatoria'
+      },
+      activityDescrizione: {
+        required: true,
+        minLength: 1,
+        maxLength: 500,
+        requiredMessage: 'La descrizione è obbligatoria'
+      },
+      activityCosto: {
+        required: false,
+        validator: (value) => {
+          if (!value || value.trim() === '') return true; // Opzionale
+          const num = Number(value);
+          if (isNaN(num) || num < 0) return 'Il costo deve essere un numero positivo';
+          return true;
+        }
+      }
+    });
+    
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!this.currentUser) { 
@@ -16,48 +52,56 @@ UI.setupCalendarEvents = function() {
         return; 
       }
       
-      // Validazione input
+      // Validazione form completa
+      const validation = this.validateForm(form, {
+        activityTipo: {
+          required: true,
+          validator: (value) => validActivityTypes.includes(value) || 'Tipo attività non valido'
+        },
+        activityData: {
+          required: true,
+          validator: (value) => {
+            if (!value) return 'La data è obbligatoria';
+            const date = new Date(value);
+            return isNaN(date.getTime()) ? 'Data non valida' : true;
+          }
+        },
+        activityDescrizione: { required: true, minLength: 1, maxLength: 500 },
+        activityCosto: {
+          required: false,
+          validator: (value) => {
+            if (!value || value.trim() === '') return true;
+            const num = Number(value);
+            return (isNaN(num) || num < 0) ? 'Il costo deve essere un numero positivo' : true;
+          }
+        }
+      });
+      
+      if (!validation.valid) {
+        const firstError = Object.values(validation.errors)[0];
+        this.showToast(firstError, { type: 'error' });
+        const firstErrorField = Object.keys(validation.errors)[0];
+        const input = form.querySelector(`#${firstErrorField}`);
+        if (input) input.focus();
+        return;
+      }
+      
       const tipo = this.qs('#activityTipo').value;
       const dataValue = this.qs('#activityData').value;
+      const data = new Date(dataValue);
       const descrizione = this.qs('#activityDescrizione').value.trim();
       const costo = this.qs('#activityCosto').value || '0';
       
-      const validTypes = ['Riunione', 'Attività lunga', 'Uscita', 'Campo'];
-      if (!validTypes.includes(tipo)) {
-        this.showToast('Tipo attività non valido', { type: 'error' });
-        this.qs('#activityTipo').focus();
-        return;
-      }
-      
-      if (!dataValue) {
-        this.showToast('La data è obbligatoria', { type: 'error' });
+      // Validazione range date
+      const dateValidation = this.validateActivityDateRange(data);
+      if (!dateValidation.valid) {
+        this.showToast(dateValidation.warning, { type: 'error' });
         this.qs('#activityData').focus();
         return;
       }
-      
-      const data = new Date(dataValue);
-      if (isNaN(data.getTime())) {
-        this.showToast('Data non valida', { type: 'error' });
-        this.qs('#activityData').focus();
-        return;
-      }
-      
-      if (!descrizione || descrizione.length === 0) {
-        this.showToast('La descrizione è obbligatoria', { type: 'error' });
-        this.qs('#activityDescrizione').focus();
-        return;
-      }
-      if (descrizione.length > 500) {
-        this.showToast('La descrizione non può superare 500 caratteri', { type: 'error' });
-        this.qs('#activityDescrizione').focus();
-        return;
-      }
-      
-      const costoNum = Number(costo);
-      if (isNaN(costoNum) || costoNum < 0) {
-        this.showToast('Il costo deve essere un numero positivo', { type: 'error' });
-        this.qs('#activityCosto').focus();
-        return;
+      if (dateValidation.warning) {
+        // Warning non blocca, ma informa
+        this.showToast(dateValidation.warning, { type: 'warning', duration: 3000 });
       }
       
       const submitBtn = form.querySelector('button[type="submit"]');
@@ -70,6 +114,17 @@ UI.setupCalendarEvents = function() {
         this.renderCalendarList();
         form.reset();
         this.showToast('Attività aggiunta con successo');
+        
+        // Reset classi validazione
+        form.querySelectorAll('.valid, .invalid').forEach(el => {
+          el.classList.remove('valid', 'invalid');
+        });
+        form.querySelectorAll('.has-error, .is-valid').forEach(el => {
+          el.classList.remove('has-error', 'is-valid');
+        });
+        form.querySelectorAll('.field-error').forEach(el => {
+          el.textContent = '';
+        });
       } catch (error) {
         console.error('Errore aggiunta attività:', error);
         this.showToast('Errore durante l\'aggiunta: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });

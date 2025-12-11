@@ -856,23 +856,144 @@ const UI = {
       });
     }
 
+    // Edit Staff Form
+    const editStaffForm = this.qs('#editStaffForm');
+    if (editStaffForm && !editStaffForm._bound) {
+      editStaffForm._bound = true;
+      
+      // Setup validazione real-time
+      this.setupFormValidation(editStaffForm, {
+        editStaffNome: {
+          required: true,
+          minLength: 1,
+          maxLength: 100,
+          requiredMessage: 'Il nome è obbligatorio'
+        },
+        editStaffCognome: {
+          required: true,
+          minLength: 1,
+          maxLength: 100,
+          requiredMessage: 'Il cognome è obbligatorio'
+        },
+        editStaffEmail: {
+          required: true,
+          type: 'email',
+          requiredMessage: 'L\'email è obbligatoria'
+        }
+      });
+      
+      editStaffForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!this.currentUser) { 
+          this.showToast('Devi essere loggato per modificare staff.', { type: 'error' }); 
+          return; 
+        }
+        
+        // Validazione form completa
+        const validation = this.validateForm(editStaffForm, {
+          editStaffNome: { required: true, minLength: 1, maxLength: 100 },
+          editStaffCognome: { required: true, minLength: 1, maxLength: 100 },
+          editStaffEmail: { required: true, type: 'email' }
+        });
+        
+        if (!validation.valid) {
+          const firstError = Object.values(validation.errors)[0];
+          this.showToast(firstError, { type: 'error' });
+          const firstErrorField = Object.keys(validation.errors)[0];
+          const input = editStaffForm.querySelector(`#${firstErrorField}`);
+          if (input) input.focus();
+          return;
+        }
+        
+        const id = this.qs('#editStaffId').value;
+        const nome = this.qs('#editStaffNome').value.trim();
+        const cognome = this.qs('#editStaffCognome').value.trim();
+        const email = this.qs('#editStaffEmail').value.trim().toLowerCase();
+        
+        // Check duplicati email (escludendo lo staff corrente)
+        if (this.checkDuplicateStaffEmail(email, id)) {
+          this.showToast('Un altro membro staff con questa email esiste già', { type: 'error' });
+          this.qs('#editStaffEmail').focus();
+          return;
+        }
+        
+        const submitBtn = editStaffForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn?.textContent;
+        this.setButtonLoading(submitBtn, true, originalText);
+        try {
+          await DATA.updateStaff(id, { id, nome, cognome, email }, this.currentUser);
+          this.closeModal('editStaffModal');
+          this.state = await DATA.loadAll();
+          this.rebuildPresenceIndex();
+          this.renderCurrentPage();
+          this.showToast('Staff modificato con successo');
+        } catch (error) {
+          console.error('Errore modifica staff:', error);
+          this.showToast('Errore durante la modifica: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+        } finally {
+          this.setButtonLoading(submitBtn, false, originalText);
+        }
+      });
+    }
+
     // Edit Scout Form
     const editScoutForm = this.qs('#editScoutForm');
     if (editScoutForm && !editScoutForm._bound) {
       editScoutForm._bound = true;
+      
+      // Setup validazione real-time
+      this.setupFormValidation(editScoutForm, {
+        editScoutNome: {
+          required: true,
+          minLength: 1,
+          maxLength: 100,
+          requiredMessage: 'Il nome è obbligatorio'
+        },
+        editScoutCognome: {
+          required: true,
+          minLength: 1,
+          maxLength: 100,
+          requiredMessage: 'Il cognome è obbligatorio'
+        }
+      });
+      
       editScoutForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!this.currentUser) { 
           this.showToast('Devi essere loggato per modificare esploratori.', { type: 'error' }); 
           return; 
         }
+        
+        // Validazione form completa
+        const validation = this.validateForm(editScoutForm, {
+          editScoutNome: { required: true, minLength: 1, maxLength: 100 },
+          editScoutCognome: { required: true, minLength: 1, maxLength: 100 }
+        });
+        
+        if (!validation.valid) {
+          const firstError = Object.values(validation.errors)[0];
+          this.showToast(firstError, { type: 'error' });
+          const firstErrorField = Object.keys(validation.errors)[0];
+          const input = editScoutForm.querySelector(`#${firstErrorField}`);
+          if (input) input.focus();
+          return;
+        }
+        
+        const id = this.qs('#editScoutId').value;
+        const nome = this.qs('#editScoutNome').value.trim();
+        const cognome = this.qs('#editScoutCognome').value.trim();
+        
+        // Check duplicati scout (escludendo lo scout corrente)
+        if (this.checkDuplicateScout(nome, cognome, id)) {
+          this.showToast('Un esploratore con lo stesso nome e cognome esiste già', { type: 'error' });
+          this.qs('#editScoutNome').focus();
+          return;
+        }
+        
         const submitBtn = editScoutForm.querySelector('button[type="submit"]');
         const originalText = submitBtn?.textContent;
         this.setButtonLoading(submitBtn, true, originalText);
         try {
-          const id = this.qs('#editScoutId').value;
-          const nome = this.qs('#editScoutNome').value.trim();
-          const cognome = this.qs('#editScoutCognome').value.trim();
           await DATA.updateScout(id, { id, nome, cognome }, this.currentUser);
           this.closeModal('editScoutModal');
           this.state = await DATA.loadAll();
@@ -898,6 +1019,25 @@ const UI = {
           return; 
         }
         if (!this.scoutToDeleteId) return;
+        
+        // Check integrità referenziale
+        const presencesCount = this.countPresencesForScout(this.scoutToDeleteId);
+        if (presencesCount > 0) {
+          const scout = this.state.scouts.find(s => s.id === this.scoutToDeleteId);
+          const scoutName = scout ? `${scout.nome} ${scout.cognome}` : 'questo esploratore';
+          const confirmed = await new Promise((resolve) => {
+            this.showConfirmModal({
+              title: 'Conferma Eliminazione',
+              message: `L'esploratore ${scoutName} ha ${presencesCount} presenze registrate. Tutte le presenze verranno eliminate. Vuoi continuare?`,
+              confirmText: 'Elimina tutto',
+              cancelText: 'Annulla',
+              onConfirm: () => resolve(true),
+              onCancel: () => resolve(false)
+            });
+          });
+          if (!confirmed) return;
+        }
+        
         const originalText = confirmDeleteScoutButton.textContent;
         this.setButtonLoading(confirmDeleteScoutButton, true, originalText);
         try {
@@ -921,12 +1061,83 @@ const UI = {
     const editActivityForm = this.qs('#editActivityForm');
     if (editActivityForm && !editActivityForm._bound) {
       editActivityForm._bound = true;
+      
+      // Setup validazione real-time
+      const validActivityTypes = ['Riunione', 'Attività lunga', 'Uscita', 'Campo'];
+      this.setupFormValidation(editActivityForm, {
+        editActivityTipo: {
+          required: true,
+          validator: (value) => validActivityTypes.includes(value) || 'Tipo attività non valido',
+          requiredMessage: 'Seleziona un tipo attività'
+        },
+        editActivityData: {
+          required: true,
+          validator: (value) => {
+            if (!value) return 'La data è obbligatoria';
+            const date = new Date(value);
+            if (isNaN(date.getTime())) return 'Data non valida';
+            return true;
+          },
+          requiredMessage: 'La data è obbligatoria'
+        },
+        editActivityDescrizione: {
+          required: true,
+          minLength: 1,
+          maxLength: 500,
+          requiredMessage: 'La descrizione è obbligatoria'
+        },
+        editActivityCosto: {
+          required: false,
+          validator: (value) => {
+            if (!value || value.trim() === '') return true; // Opzionale
+            const num = Number(value);
+            if (isNaN(num) || num < 0) return 'Il costo deve essere un numero positivo';
+            return true;
+          }
+        }
+      });
+      
       editActivityForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!this.currentUser) { 
           this.showToast('Devi essere loggato per modificare attività.', { type: 'error' }); 
           return; 
         }
+        
+        // Validazione form completa
+        const validation = this.validateForm(editActivityForm, {
+          editActivityTipo: {
+            required: true,
+            validator: (value) => validActivityTypes.includes(value) || 'Tipo attività non valido'
+          },
+          editActivityData: {
+            required: true,
+            validator: (value) => {
+              if (!value) return 'La data è obbligatoria';
+              const date = new Date(value);
+              return isNaN(date.getTime()) ? 'Data non valida' : true;
+            }
+          },
+          editActivityDescrizione: { required: true, minLength: 1, maxLength: 500 },
+          editActivityCosto: {
+            required: false,
+            validator: (value) => {
+              if (!value || value.trim() === '') return true;
+              const num = Number(value);
+              return (isNaN(num) || num < 0) ? 'Il costo deve essere un numero positivo' : true;
+            }
+          }
+        });
+        
+        if (!validation.valid) {
+          const firstError = Object.values(validation.errors)[0];
+          this.showToast(firstError, { type: 'error' });
+          const firstErrorField = Object.keys(validation.errors)[0];
+          const input = editActivityForm.querySelector(`#${firstErrorField}`);
+          if (input) input.focus();
+          return;
+        }
+        
         const submitBtn = editActivityForm.querySelector('button[type="submit"]');
         const originalText = submitBtn?.textContent;
         this.setButtonLoading(submitBtn, true, originalText);
@@ -961,6 +1172,25 @@ const UI = {
           return; 
         }
         if (!this.activityToDeleteId) return;
+        
+        // Check integrità referenziale
+        const presencesCount = this.countPresencesForActivity(this.activityToDeleteId);
+        if (presencesCount > 0) {
+          const activity = this.state.activities.find(a => a.id === this.activityToDeleteId);
+          const activityDesc = activity ? activity.descrizione : 'questa attività';
+          const confirmed = await new Promise((resolve) => {
+            this.showConfirmModal({
+              title: 'Conferma Eliminazione',
+              message: `L'attività "${activityDesc}" ha ${presencesCount} presenze registrate. Tutte le presenze verranno eliminate. Vuoi continuare?`,
+              confirmText: 'Elimina tutto',
+              cancelText: 'Annulla',
+              onConfirm: () => resolve(true),
+              onCancel: () => resolve(false)
+            });
+          });
+          if (!confirmed) return;
+        }
+        
         const originalText = confirmDeleteActivityButton.textContent;
         this.setButtonLoading(confirmDeleteActivityButton, true, originalText);
         try {
@@ -1085,6 +1315,643 @@ const UI = {
     const div = document.createElement('div');
     div.textContent = s;
     return div.innerHTML;
+  },
+
+  // ============== Data Integrity Checks ==============
+  
+  /**
+   * Verifica se uno scout esiste
+   * @param {string} scoutId - ID dello scout
+   * @returns {boolean}
+   */
+  checkScoutExists(scoutId) {
+    if (!scoutId || !this.state?.scouts) return false;
+    return this.state.scouts.some(s => s.id === scoutId);
+  },
+  
+  /**
+   * Verifica se un'attività esiste
+   * @param {string} activityId - ID dell'attività
+   * @returns {boolean}
+   */
+  checkActivityExists(activityId) {
+    if (!activityId || !this.state?.activities) return false;
+    return this.state.activities.some(a => a.id === activityId);
+  },
+  
+  /**
+   * Verifica se una presenza ha riferimenti validi
+   * @param {object} presence - Oggetto presenza
+   * @returns {object} { valid: boolean, errors: string[] }
+   */
+  validatePresenceIntegrity(presence) {
+    const errors = [];
+    
+    if (!presence.esploratoreId || !this.checkScoutExists(presence.esploratoreId)) {
+      errors.push('Esploratore non valido o non trovato');
+    }
+    
+    if (!presence.attivitaId || !this.checkActivityExists(presence.attivitaId)) {
+      errors.push('Attività non valida o non trovata');
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  },
+  
+  /**
+   * Verifica se ci sono presenze collegate a uno scout
+   * @param {string} scoutId - ID dello scout
+   * @returns {number} Numero di presenze collegate
+   */
+  countPresencesForScout(scoutId) {
+    if (!scoutId || !this.state?.presences) return 0;
+    return this.state.presences.filter(p => p.esploratoreId === scoutId).length;
+  },
+  
+  /**
+   * Verifica se ci sono presenze collegate a un'attività
+   * @param {string} activityId - ID dell'attività
+   * @returns {number} Numero di presenze collegate
+   */
+  countPresencesForActivity(activityId) {
+    if (!activityId || !this.state?.presences) return 0;
+    return this.state.presences.filter(p => p.attivitaId === activityId).length;
+  },
+  
+  /**
+   * Verifica duplicati email staff
+   * @param {string} email - Email da verificare
+   * @param {string} excludeId - ID staff da escludere (per edit)
+   * @returns {boolean} true se email già esiste
+   */
+  checkDuplicateStaffEmail(email, excludeId = null) {
+    if (!email || !this.state?.staff) return false;
+    const normalizedEmail = email.toLowerCase().trim();
+    return this.state.staff.some(s => {
+      if (excludeId && s.id === excludeId) return false;
+      return s.email && s.email.toLowerCase().trim() === normalizedEmail;
+    });
+  },
+  
+  /**
+   * Verifica duplicati scout (stesso nome e cognome)
+   * @param {string} nome - Nome
+   * @param {string} cognome - Cognome
+   * @param {string} excludeId - ID scout da escludere (per edit)
+   * @returns {boolean} true se duplicato
+   */
+  checkDuplicateScout(nome, cognome, excludeId = null) {
+    if (!nome || !cognome || !this.state?.scouts) return false;
+    const normalizedNome = nome.trim().toLowerCase();
+    const normalizedCognome = cognome.trim().toLowerCase();
+    return this.state.scouts.some(s => {
+      if (excludeId && s.id === excludeId) return false;
+      return s.nome && s.cognome &&
+        s.nome.trim().toLowerCase() === normalizedNome &&
+        s.cognome.trim().toLowerCase() === normalizedCognome;
+    });
+  },
+  
+  /**
+   * Valida range date per attività
+   * @param {Date} data - Data attività
+   * @returns {object} { valid: boolean, warning: string|null }
+   */
+  validateActivityDateRange(data) {
+    if (!data || isNaN(data.getTime())) {
+      return { valid: false, warning: 'Data non valida' };
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const activityDate = new Date(data);
+    activityDate.setHours(0, 0, 0, 0);
+    
+    // Warning se data nel passato lontano (>1 anno fa)
+    const oneYearAgo = new Date(today);
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    
+    if (activityDate < oneYearAgo) {
+      return { valid: true, warning: 'La data è più di un anno fa' };
+    }
+    
+    // Warning se data nel futuro lontano (>2 anni)
+    const twoYearsFromNow = new Date(today);
+    twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2);
+    
+    if (activityDate > twoYearsFromNow) {
+      return { valid: true, warning: 'La data è più di 2 anni nel futuro' };
+    }
+    
+    return { valid: true, warning: null };
+  },
+
+  // ============== Export/Import Data ==============
+  
+  /**
+   * Esporta tutto lo stato dell'app in JSON
+   * @returns {object} Oggetto JSON con tutti i dati
+   */
+  exportAllData() {
+    if (!this.state) {
+      throw new Error('Nessun dato disponibile per l\'export');
+    }
+    
+    const exportData = {
+      version: this.appVersion || 'v3',
+      exportDate: new Date().toISOString(),
+      data: {
+        scouts: this.state.scouts || [],
+        staff: this.state.staff || [],
+        activities: this.state.activities || [],
+        presences: this.state.presences || []
+      },
+      metadata: {
+        scoutsCount: (this.state.scouts || []).length,
+        staffCount: (this.state.staff || []).length,
+        activitiesCount: (this.state.activities || []).length,
+        presencesCount: (this.state.presences || []).length
+      }
+    };
+    
+    return exportData;
+  },
+  
+  /**
+   * Scarica file JSON con export completo
+   */
+  downloadJSONExport() {
+    try {
+      const exportData = this.exportAllData();
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.download = `maori-app-backup-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast('Export JSON completato', { type: 'success' });
+    } catch (error) {
+      console.error('Errore export JSON:', error);
+      this.showToast('Errore durante l\'export: ' + (error.message || 'Errore sconosciuto'), { type: 'error' });
+    }
+  },
+  
+  /**
+   * Esporta presenze in formato CSV
+   * @returns {string} Stringa CSV
+   */
+  exportPresencesToCSV() {
+    if (!this.state || !this.state.presences || this.state.presences.length === 0) {
+      throw new Error('Nessuna presenza disponibile per l\'export');
+    }
+    
+    // Header CSV
+    const headers = ['Esploratore ID', 'Esploratore Nome', 'Esploratore Cognome', 'Attività ID', 'Attività Tipo', 'Attività Data', 'Attività Descrizione', 'Stato', 'Pagato', 'Tipo Pagamento'];
+    const rows = [headers.join(',')];
+    
+    // Dati
+    const presences = this.state.presences || [];
+    const scoutsMap = new Map((this.state.scouts || []).map(s => [s.id, s]));
+    const activitiesMap = new Map((this.state.activities || []).map(a => [a.id, a]));
+    
+    presences.forEach(p => {
+      const scout = scoutsMap.get(p.esploratoreId);
+      const activity = activitiesMap.get(p.attivitaId);
+      const activityDate = activity?.data ? 
+        (activity.data.toDate ? activity.data.toDate().toLocaleDateString('it-IT') : new Date(activity.data).toLocaleDateString('it-IT')) : '';
+      
+      const row = [
+        p.esploratoreId || '',
+        scout?.nome || '',
+        scout?.cognome || '',
+        p.attivitaId || '',
+        activity?.tipo || '',
+        activityDate,
+        (activity?.descrizione || '').replace(/,/g, ';'), // Sostituisce virgole per CSV
+        p.stato || '',
+        p.pagato ? 'Sì' : 'No',
+        p.tipoPagamento || ''
+      ];
+      rows.push(row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')); // Escape per CSV
+    });
+    
+    return rows.join('\n');
+  },
+  
+  /**
+   * Esporta attività in formato CSV
+   * @returns {string} Stringa CSV
+   */
+  exportActivitiesToCSV() {
+    if (!this.state || !this.state.activities || this.state.activities.length === 0) {
+      throw new Error('Nessuna attività disponibile per l\'export');
+    }
+    
+    const headers = ['ID', 'Tipo', 'Data', 'Descrizione', 'Costo'];
+    const rows = [headers.join(',')];
+    
+    (this.state.activities || []).forEach(a => {
+      const dateStr = a.data ? 
+        (a.data.toDate ? a.data.toDate().toLocaleDateString('it-IT') : new Date(a.data).toLocaleDateString('it-IT')) : '';
+      
+      const row = [
+        a.id || '',
+        a.tipo || '',
+        dateStr,
+        (a.descrizione || '').replace(/,/g, ';'),
+        a.costo || '0'
+      ];
+      rows.push(row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
+    });
+    
+    return rows.join('\n');
+  },
+  
+  /**
+   * Scarica CSV per presenze
+   */
+  downloadPresencesCSV() {
+    try {
+      const csvContent = this.exportPresencesToCSV();
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' }); // BOM per Excel
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.download = `maori-presenze-${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast('Export CSV presenze completato', { type: 'success' });
+    } catch (error) {
+      console.error('Errore export CSV presenze:', error);
+      this.showToast('Errore durante l\'export: ' + (error.message || 'Errore sconosciuto'), { type: 'error' });
+    }
+  },
+  
+  /**
+   * Scarica CSV per attività
+   */
+  downloadActivitiesCSV() {
+    try {
+      const csvContent = this.exportActivitiesToCSV();
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.download = `maori-attivita-${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast('Export CSV attività completato', { type: 'success' });
+    } catch (error) {
+      console.error('Errore export CSV attività:', error);
+      this.showToast('Errore durante l\'export: ' + (error.message || 'Errore sconosciuto'), { type: 'error' });
+    }
+  },
+  
+  /**
+   * Importa dati da JSON
+   * @param {object} importData - Dati da importare
+   * @param {object} options - Opzioni import
+   * @returns {object} Risultato import
+   */
+  async importJSONData(importData, options = { merge: false, validate: true }) {
+    if (!importData || !importData.data) {
+      throw new Error('Formato file non valido: dati mancanti');
+    }
+    
+    const data = importData.data;
+    const errors = [];
+    const warnings = [];
+    const imported = {
+      scouts: 0,
+      staff: 0,
+      activities: 0,
+      presences: 0
+    };
+    
+    // Validazione base
+    if (options.validate) {
+      if (!Array.isArray(data.scouts) || !Array.isArray(data.staff) || 
+          !Array.isArray(data.activities) || !Array.isArray(data.presences)) {
+        throw new Error('Formato dati non valido: array mancanti');
+      }
+    }
+    
+    if (!this.currentUser) {
+      throw new Error('Devi essere loggato per importare dati');
+    }
+    
+    try {
+      // Import scouts
+      if (data.scouts && Array.isArray(data.scouts)) {
+        for (const scout of data.scouts) {
+          try {
+            if (!scout.id || !scout.nome || !scout.cognome) {
+              warnings.push(`Scout non valido saltato: ${scout.nome || 'N/A'} ${scout.cognome || 'N/A'}`);
+              continue;
+            }
+            
+            // Check duplicati se merge = false
+            if (!options.merge && this.checkScoutExists(scout.id)) {
+              warnings.push(`Scout ${scout.nome} ${scout.cognome} già esistente, saltato`);
+              continue;
+            }
+            
+            await DATA.addScout({ nome: scout.nome, cognome: scout.cognome }, this.currentUser);
+            imported.scouts++;
+          } catch (error) {
+            errors.push(`Errore import scout ${scout.nome} ${scout.cognome}: ${error.message}`);
+          }
+        }
+      }
+      
+      // Import staff
+      if (data.staff && Array.isArray(data.staff)) {
+        for (const member of data.staff) {
+          try {
+            if (!member.nome || !member.cognome || !member.email) {
+              warnings.push(`Staff non valido saltato: ${member.nome || 'N/A'} ${member.cognome || 'N/A'}`);
+              continue;
+            }
+            
+            if (this.checkDuplicateStaffEmail(member.email)) {
+              warnings.push(`Staff con email ${member.email} già esistente, saltato`);
+              continue;
+            }
+            
+            await DATA.addStaff({ nome: member.nome, cognome: member.cognome, email: member.email }, this.currentUser);
+            imported.staff++;
+          } catch (error) {
+            errors.push(`Errore import staff ${member.nome} ${member.cognome}: ${error.message}`);
+          }
+        }
+      }
+      
+      // Import activities
+      if (data.activities && Array.isArray(data.activities)) {
+        for (const activity of data.activities) {
+          try {
+            if (!activity.tipo || !activity.data || !activity.descrizione) {
+              warnings.push(`Attività non valida saltata: ${activity.descrizione || 'N/A'}`);
+              continue;
+            }
+            
+            const activityDate = activity.data?.toDate ? activity.data.toDate() : new Date(activity.data);
+            await DATA.addActivity({
+              tipo: activity.tipo,
+              data: activityDate,
+              descrizione: activity.descrizione,
+              costo: activity.costo || '0'
+            }, this.currentUser);
+            imported.activities++;
+          } catch (error) {
+            errors.push(`Errore import attività ${activity.descrizione}: ${error.message}`);
+          }
+        }
+      }
+      
+      // Ricarica stato dopo import
+      this.state = await DATA.loadAll();
+      this.rebuildPresenceIndex();
+      
+      return {
+        success: errors.length === 0,
+        imported,
+        errors,
+        warnings
+      };
+    } catch (error) {
+      throw new Error(`Errore durante l'import: ${error.message}`);
+    }
+  },
+  
+  /**
+   * Gestisce upload file JSON per import
+   * @param {File} file - File JSON da importare
+   * @param {object} options - Opzioni import
+   */
+  async handleJSONImport(file, options = { merge: false, validate: true }) {
+    if (!file || file.type !== 'application/json') {
+      throw new Error('File non valido: seleziona un file JSON');
+    }
+    
+    try {
+      const text = await file.text();
+      const importData = JSON.parse(text);
+      
+      const confirmed = await new Promise((resolve) => {
+        const data = importData.data || {};
+        const counts = {
+          scouts: (data.scouts || []).length,
+          staff: (data.staff || []).length,
+          activities: (data.activities || []).length,
+          presences: (data.presences || []).length
+        };
+        
+        this.showConfirmModal({
+          title: 'Conferma Import',
+          message: `Importare ${counts.scouts} esploratori, ${counts.staff} staff, ${counts.activities} attività, ${counts.presences} presenze?`,
+          confirmText: 'Importa',
+          cancelText: 'Annulla',
+          onConfirm: () => resolve(true),
+          onCancel: () => resolve(false)
+        });
+      });
+      
+      if (!confirmed) return;
+      
+      const result = await this.importJSONData(importData, options);
+      
+      if (result.success) {
+        this.showToast(`Import completato: ${result.imported.scouts} esploratori, ${result.imported.staff} staff, ${result.imported.activities} attività importati`, { type: 'success', duration: 5000 });
+        if (result.warnings.length > 0) {
+          console.warn('Avvisi import:', result.warnings);
+        }
+        this.renderCurrentPage();
+      } else {
+        this.showToast(`Import completato con errori. ${result.errors.length} errori, ${result.warnings.length} avvisi`, { type: 'warning', duration: 5000 });
+        console.error('Errori import:', result.errors);
+        this.renderCurrentPage();
+      }
+    } catch (error) {
+      console.error('Errore import:', error);
+      this.showToast('Errore durante l\'import: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+    }
+  },
+
+  // ============== Form Validation Real-time ==============
+  
+  /**
+   * Inizializza validazione real-time per un form
+   * @param {HTMLFormElement} form - Form da validare
+   * @param {object} rules - Regole di validazione per campo
+   */
+  setupFormValidation(form, rules) {
+    if (!form || !rules) return;
+    
+    // Per ogni campo con regole, aggiungi validazione
+    Object.keys(rules).forEach(fieldId => {
+      const input = form.querySelector(`#${fieldId}`);
+      if (!input) return;
+      
+      const rule = rules[fieldId];
+      const fieldGroup = input.closest('.field-group') || input.parentElement;
+      
+      // Crea elemento per messaggi errore se non esiste
+      let errorEl = fieldGroup.querySelector('.field-error');
+      if (!errorEl) {
+        errorEl = document.createElement('span');
+        errorEl.className = 'field-error';
+        input.parentElement.appendChild(errorEl);
+      }
+      
+      // Validazione real-time su input/blur
+      const validateField = () => {
+        const value = input.value.trim();
+        const validation = this.validateFieldValue(value, rule);
+        
+        // Rimuovi classi precedenti
+        input.classList.remove('valid', 'invalid');
+        fieldGroup?.classList.remove('has-error', 'is-valid');
+        
+        if (validation.valid) {
+          input.classList.add('valid');
+          fieldGroup?.classList.add('is-valid');
+          if (errorEl) errorEl.textContent = '';
+        } else {
+          input.classList.add('invalid');
+          fieldGroup?.classList.add('has-error');
+          if (errorEl) errorEl.textContent = validation.error || '';
+        }
+        
+        return validation.valid;
+      };
+      
+      // Debounce per evitare troppe validazioni durante typing
+      let timeout;
+      input.addEventListener('input', () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(validateField, 300);
+      });
+      
+      input.addEventListener('blur', validateField);
+      
+      // Validazione iniziale se campo già valorizzato
+      if (input.value) {
+        setTimeout(validateField, 100);
+      }
+    });
+  },
+  
+  /**
+   * Valida un valore campo secondo una regola
+   * @param {*} value - Valore da validare
+   * @param {object} rule - Regola di validazione
+   * @returns {object} { valid: boolean, error: string }
+   */
+  validateFieldValue(value, rule) {
+    // Required
+    if (rule.required && (!value || value.trim() === '')) {
+      return { valid: false, error: rule.requiredMessage || 'Campo obbligatorio' };
+    }
+    
+    // Se campo vuoto e non required, valido
+    if (!value || value.trim() === '') {
+      return { valid: true, error: '' };
+    }
+    
+    // Email
+    if (rule.type === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value.trim())) {
+        return { valid: false, error: 'Email non valida' };
+      }
+    }
+    
+    // Length
+    if (rule.minLength && value.length < rule.minLength) {
+      return { valid: false, error: `Minimo ${rule.minLength} caratteri` };
+    }
+    if (rule.maxLength && value.length > rule.maxLength) {
+      return { valid: false, error: `Massimo ${rule.maxLength} caratteri` };
+    }
+    
+    // Pattern
+    if (rule.pattern && !rule.pattern.test(value)) {
+      return { valid: false, error: rule.patternMessage || 'Formato non valido' };
+    }
+    
+    // Custom validator
+    if (rule.validator && typeof rule.validator === 'function') {
+      const result = rule.validator(value);
+      if (typeof result === 'string') {
+        return { valid: false, error: result };
+      }
+      if (result === false) {
+        return { valid: false, error: rule.customMessage || 'Valore non valido' };
+      }
+    }
+    
+    return { valid: true, error: '' };
+  },
+  
+  /**
+   * Valida intero form
+   * @param {HTMLFormElement} form - Form da validare
+   * @param {object} rules - Regole di validazione
+   * @returns {object} { valid: boolean, errors: object }
+   */
+  validateForm(form, rules) {
+    if (!form || !rules) return { valid: true, errors: {} };
+    
+    const errors = {};
+    let allValid = true;
+    
+    Object.keys(rules).forEach(fieldId => {
+      const input = form.querySelector(`#${fieldId}`);
+      if (!input) return;
+      
+      const value = input.value.trim();
+      const rule = rules[fieldId];
+      const validation = this.validateFieldValue(value, rule);
+      
+      if (!validation.valid) {
+        errors[fieldId] = validation.error;
+        allValid = false;
+        
+        // Aggiorna UI
+        input.classList.add('invalid');
+        const fieldGroup = input.closest('.field-group') || input.parentElement;
+        fieldGroup?.classList.add('has-error');
+        
+        let errorEl = fieldGroup?.querySelector('.field-error');
+        if (!errorEl && fieldGroup) {
+          errorEl = document.createElement('span');
+          errorEl.className = 'field-error';
+          input.parentElement.appendChild(errorEl);
+        }
+        if (errorEl) errorEl.textContent = validation.error;
+      } else {
+        input.classList.add('valid');
+        const fieldGroup = input.closest('.field-group') || input.parentElement;
+        fieldGroup?.classList.add('is-valid');
+      }
+    });
+    
+    return { valid: allValid, errors };
   },
 
   // Rate limiting migliorato per operazioni frequenti
