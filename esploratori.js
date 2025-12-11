@@ -14,18 +14,28 @@ UI.setupScoutsEventListeners = function() {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!this.currentUser) { 
-        alert('Devi essere loggato per aggiungere esploratori.'); 
+        this.showToast('Devi essere loggato per aggiungere esploratori.', { type: 'error' }); 
         return; 
       }
-      const nome = this.qs('#scoutNome').value.trim();
-      const cognome = this.qs('#scoutCognome').value.trim();
-      await DATA.addScout({ nome, cognome }, this.currentUser);
-      this.state = await DATA.loadAll();
-      this.rebuildPresenceIndex();
-      this.renderScouts();
-      form.reset();
-      this.closeModal('addScoutModal');
-      UI.showToast('Esploratore aggiunto');
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn?.textContent;
+      this.setButtonLoading(submitBtn, true, originalText);
+      try {
+        const nome = this.qs('#scoutNome').value.trim();
+        const cognome = this.qs('#scoutCognome').value.trim();
+        await DATA.addScout({ nome, cognome }, this.currentUser);
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.renderScouts();
+        form.reset();
+        this.closeModal('addScoutModal');
+        this.showToast('Esploratore aggiunto');
+      } catch (error) {
+        console.error('Errore aggiunta esploratore:', error);
+        this.showToast('Errore durante l\'aggiunta: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+      } finally {
+        this.setButtonLoading(submitBtn, false, originalText);
+      }
     });
   }
   // Pulsante apertura modale Aggiungi
@@ -159,7 +169,7 @@ UI.renderScouts = function(filterLetter = null) {
 
 UI.openEditScoutModal = function(id) {
   if (!this.currentUser) { 
-    alert('Devi essere loggato per modificare esploratori.'); 
+    this.showToast('Devi essere loggato per modificare esploratori.', { type: 'error' }); 
     return; 
   }
   
@@ -175,7 +185,7 @@ UI.openEditScoutModal = function(id) {
 
 UI.confirmDeleteScout = function(id) {
   if (!this.currentUser) { 
-    alert('Devi essere loggato per eliminare esploratori.'); 
+    this.showToast('Devi essere loggato per eliminare esploratori.', { type: 'error' }); 
     return; 
   }
   

@@ -11,25 +11,35 @@ UI.setupStaffEventListeners = function() {
   const form = this.qs('#addStaffForm');
   if (!form || form._bound) return;
   form._bound = true;
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!this.currentUser) {
-      alert("Devi essere loggato per aggiungere staff.");
-      return;
-    }
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!this.currentUser) {
+        this.showToast('Devi essere loggato per aggiungere staff.', { type: 'error' });
+        return;
+      }
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn?.textContent;
+      this.setButtonLoading(submitBtn, true, originalText);
+      try {
+        const nome = this.qs('#staffNome').value.trim();
+        const cognome = this.qs('#staffCognome').value.trim();
+        const email = this.qs('#staffEmail').value.trim();
 
-    const nome = this.qs('#staffNome').value.trim();
-    const cognome = this.qs('#staffCognome').value.trim();
-    const email = this.qs('#staffEmail').value.trim();
+        await DATA.addStaff({ nome, cognome, email }, this.currentUser);
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.renderStaff();
+        this.showToast('Staff aggiunto con successo');
 
-    await DATA.addStaff({ nome, cognome, email }, this.currentUser);
-    this.state = await DATA.loadAll();
-    this.rebuildPresenceIndex();
-    this.renderStaff();
-
-    // Reset form
-    form.reset();
-  });
+        // Reset form
+        form.reset();
+      } catch (error) {
+        console.error('Errore aggiunta staff:', error);
+        this.showToast('Errore durante l\'aggiunta: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+      } finally {
+        this.setButtonLoading(submitBtn, false, originalText);
+      }
+    });
 };
 
 UI.renderStaff = function() {
@@ -74,7 +84,7 @@ UI.renderStaff = function() {
 
 UI.openEditStaffModal = function(id) {
   if (!this.currentUser) {
-    alert("Devi essere loggato per modificare staff.");
+    this.showToast('Devi essere loggato per modificare staff.', { type: 'error' });
     return;
   }
 
@@ -91,7 +101,7 @@ UI.openEditStaffModal = function(id) {
 
 UI.confirmDeleteStaff = function(id) {
   if (!this.currentUser) {
-    alert("Devi essere loggato per eliminare staff.");
+    this.showToast('Devi essere loggato per eliminare staff.', { type: 'error' });
     return;
   }
 

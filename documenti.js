@@ -148,11 +148,11 @@ UI.renderDocumentiMatrix = function() {
 // Funzione per aggiornare un documento (checkbox)
 UI.updateDocumento = async function({ scoutId, field, value }) {
   if (!this.currentUser) {
-    alert('Devi essere loggato per modificare i documenti.');
+    this.showToast('Devi essere loggato per modificare i documenti.', { type: 'error' });
     return;
   }
   if (!this.selectedStaffId) {
-    alert('Seleziona uno Staff per abilitare le modifiche.');
+    this.showToast('Seleziona uno Staff per abilitare le modifiche.', { type: 'warning' });
     return;
   }
   
@@ -160,7 +160,7 @@ UI.updateDocumento = async function({ scoutId, field, value }) {
     // Carica i dati attuali dello scout
     const scout = (this.state.scouts || []).find(s => s.id === scoutId);
     if (!scout) {
-      alert('Esploratore non trovato');
+      this.showToast('Esploratore non trovato', { type: 'error' });
       return;
     }
     
@@ -180,25 +180,21 @@ UI.updateDocumento = async function({ scoutId, field, value }) {
     // Aggiorna la visualizzazione
     this.renderDocumentiMatrix();
     
-    if (typeof this.showToast === 'function') {
-      this.showToast('Documento aggiornato');
-    } else {
-      console.log('Documento aggiornato');
-    }
+    this.showToast('Documento aggiornato');
   } catch (error) {
     console.error('Errore aggiornamento documento:', error);
-    alert('Errore durante l\'aggiornamento: ' + error.message);
+    this.showToast('Errore durante l\'aggiornamento: ' + error.message, { type: 'error', duration: 4000 });
   }
 };
 
 // Funzione per aggiornare un anno (quote e iscrizione)
 UI.updateDocumentoYear = async function({ scoutId, field, value }) {
   if (!this.currentUser) {
-    alert('Devi essere loggato per modificare i documenti.');
+    this.showToast('Devi essere loggato per modificare i documenti.', { type: 'error' });
     return;
   }
   if (!this.selectedStaffId) {
-    alert('Seleziona uno Staff per abilitare le modifiche.');
+    this.showToast('Seleziona uno Staff per abilitare le modifiche.', { type: 'warning' });
     return;
   }
   
@@ -206,7 +202,7 @@ UI.updateDocumentoYear = async function({ scoutId, field, value }) {
     // Carica i dati attuali dello scout
     const scout = (this.state.scouts || []).find(s => s.id === scoutId);
     if (!scout) {
-      alert('Esploratore non trovato');
+      this.showToast('Esploratore non trovato', { type: 'error' });
       return;
     }
     
@@ -235,14 +231,10 @@ UI.updateDocumentoYear = async function({ scoutId, field, value }) {
     // Aggiorna la visualizzazione
     this.renderDocumentiMatrix();
     
-    if (typeof this.showToast === 'function') {
-      this.showToast('Documento aggiornato');
-    } else {
-      console.log('Documento aggiornato');
-    }
+    this.showToast('Documento aggiornato');
   } catch (error) {
     console.error('Errore aggiornamento documento:', error);
-    alert('Errore durante l\'aggiornamento: ' + error.message);
+    this.showToast('Errore durante l\'aggiornamento: ' + error.message, { type: 'error', duration: 4000 });
   }
 };
 

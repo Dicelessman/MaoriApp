@@ -187,12 +187,25 @@ UI.renderScoutPage = async function() {
     form._bound = true;
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!this.currentUser) { alert('Devi essere loggato per salvare.'); return; }
-      const payload = this.collectForm();
-      await DATA.updateScout(id, payload, this.currentUser);
-      this.state = await DATA.loadAll();
-      this.rebuildPresenceIndex();
-      UI.showToast('Scheda salvata');
+      if (!this.currentUser) { 
+        this.showToast('Devi essere loggato per salvare.', { type: 'error' }); 
+        return; 
+      }
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn?.textContent;
+      this.setButtonLoading(submitBtn, true, originalText);
+      try {
+        const payload = this.collectForm();
+        await DATA.updateScout(id, payload, this.currentUser);
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.showToast('Scheda salvata');
+      } catch (error) {
+        console.error('Errore salvataggio scheda:', error);
+        this.showToast('Errore durante il salvataggio: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+      } finally {
+        this.setButtonLoading(submitBtn, false, originalText);
+      }
     });
     this.qs('#btnAnnulla')?.addEventListener('click', () => history.back());
     
@@ -705,12 +718,12 @@ UI.addPattuglia = function() {
   const nome = input.value.trim();
   
   if (!nome) {
-    alert('Inserisci un nome per la pattuglia');
+    this.showToast('Inserisci un nome per la pattuglia', { type: 'warning' });
     return;
   }
   
   if (this.pattuglie.includes(nome)) {
-    alert('Questa pattuglia esiste già');
+    this.showToast('Questa pattuglia esiste già', { type: 'warning' });
     return;
   }
   
@@ -721,14 +734,20 @@ UI.addPattuglia = function() {
 
 UI.removePattuglia = function(index) {
   if (this.pattuglie.length <= 1) {
-    alert('Deve rimanere almeno una pattuglia');
+    this.showToast('Deve rimanere almeno una pattuglia', { type: 'warning' });
     return;
   }
   
-  if (confirm('Sei sicuro di voler rimuovere questa pattuglia?')) {
-    this.pattuglie.splice(index, 1);
-    this.renderPattugliaList();
-  }
+  this.showConfirmModal({
+    title: 'Rimuovi pattuglia',
+    message: 'Sei sicuro di voler rimuovere questa pattuglia?',
+    confirmText: 'Rimuovi',
+    cancelText: 'Annulla',
+    onConfirm: () => {
+      this.pattuglie.splice(index, 1);
+      this.renderPattugliaList();
+    }
+  });
 };
 
 UI.savePattuglie = function() {
@@ -744,7 +763,7 @@ UI.savePattuglie = function() {
   });
   
   if (newPattuglie.length === 0) {
-    alert('Deve rimanere almeno una pattuglia');
+    this.showToast('Deve rimanere almeno una pattuglia', { type: 'warning' });
     return;
   }
   
@@ -752,7 +771,7 @@ UI.savePattuglie = function() {
   localStorage.setItem('pattuglie', JSON.stringify(this.pattuglie));
   this.updatePattugliaSelect();
   this.closePattugliaModal();
-  alert('Pattuglie salvate con successo!');
+  this.showToast('Pattuglie salvate con successo!');
 };
 
 // ============== Gestione Sezioni Tracce Espandibili ==============
@@ -912,7 +931,7 @@ UI.printScoutSheet = async function() {
     
     const scoutFromDb = (this.state.scouts || []).find(s => s.id === scoutId);
     if (!scoutFromDb) {
-      alert('Esploratore non trovato nel database');
+      this.showToast('Esploratore non trovato nel database', { type: 'error' });
       return;
     }
     
@@ -1195,7 +1214,7 @@ UI.printScoutSheet = async function() {
     }
   } catch (e) {
     console.error('Errore generazione stampa:', e);
-    alert('Errore durante la generazione della stampa: ' + e.message);
+    this.showToast('Errore durante la generazione della stampa: ' + e.message, { type: 'error', duration: 4000 });
   }
 };
 

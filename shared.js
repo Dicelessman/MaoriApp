@@ -341,18 +341,36 @@ const UI = {
       container.style.pointerEvents = 'none';
       document.body.appendChild(container);
     }
-    const bg = type === 'error' ? '#dc2626' : (type === 'info' ? '#374151' : '#16a34a');
+    const bg = type === 'error' ? '#dc2626' : (type === 'info' ? '#374151' : (type === 'warning' ? '#eab308' : '#16a34a'));
+    
+    // Icone SVG
+    const icons = {
+      success: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.7071 5.29289C17.0976 5.68342 17.0976 6.31658 16.7071 6.70711L8.70711 14.7071C8.31658 15.0976 7.68342 15.0976 7.29289 14.7071L3.29289 10.7071C2.90237 10.3166 2.90237 9.68342 3.29289 9.29289C3.68342 8.90237 4.31658 8.90237 4.70711 9.29289L8 12.5858L15.2929 5.29289C15.6834 4.90237 16.3166 4.90237 16.7071 5.29289Z" fill="currentColor"/></svg>',
+      error: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 11C9.44772 11 9 10.5523 9 10V6C9 5.44772 9.44772 5 10 5C10.5523 5 11 5.44772 11 6V10C11 10.5523 10.5523 11 10 11ZM10 15C9.44772 15 9 14.5523 9 14C9 13.4477 9.44772 13 10 13C10.5523 13 11 13.4477 11 14C11 14.5523 10.5523 15 10 15Z" fill="currentColor"/></svg>',
+      info: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 15C9.44772 15 9 14.5523 9 14C9 13.4477 9.44772 13 10 13C10.5523 13 11 13.4477 11 14C11 14.5523 10.5523 15 10 15ZM10 11C9.44772 11 9 10.5523 9 10V6C9 5.44772 9.44772 5 10 5C10.5523 5 11 5.44772 11 6V10C11 10.5523 10.5523 11 10 11Z" fill="currentColor"/></svg>',
+      warning: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 2L2 18H18L10 2ZM10 8C10.5523 8 11 8.44772 11 9V13C11 13.5523 10.5523 14 10 14C9.44772 14 9 13.5523 9 13V9C9 8.44772 9.44772 8 10 8ZM10 16C9.44772 16 9 15.5523 9 15C9 14.4477 9.44772 14 10 14C10.5523 14 11 14.4477 11 15C11 15.5523 10.5523 16 10 16Z" fill="currentColor"/></svg>'
+    };
+    
     const toast = document.createElement('div');
-    toast.textContent = message;
     toast.style.background = bg;
     toast.style.color = 'white';
-    toast.style.padding = '.5rem .75rem';
+    toast.style.padding = '.75rem 1rem';
     toast.style.borderRadius = '.5rem';
     toast.style.boxShadow = '0 6px 18px rgba(0,0,0,.16)';
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(6px)';
     toast.style.transition = 'opacity .2s ease, transform .2s ease';
     toast.style.pointerEvents = 'auto';
+    toast.style.display = 'flex';
+    toast.style.alignItems = 'center';
+    toast.style.gap = '.75rem';
+    toast.style.minWidth = '280px';
+    toast.innerHTML = `
+      <span style="display: flex; align-items: center; flex-shrink: 0;">
+        ${icons[type] || icons.success}
+      </span>
+      <span style="flex: 1;">${message}</span>
+    `;
     container.appendChild(toast);
     // animate in
     requestAnimationFrame(() => {
@@ -368,6 +386,117 @@ const UI = {
     setTimeout(remove, Math.max(1000, duration));
     // click to dismiss
     toast.addEventListener('click', remove);
+  },
+
+  // ============== Loading States System ==============
+  showLoadingOverlay(message = 'Caricamento...') {
+    let overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+      const msgEl = overlay.querySelector('.loading-message');
+      if (msgEl) msgEl.textContent = message;
+      overlay.style.display = 'flex';
+      return;
+    }
+    overlay = document.createElement('div');
+    overlay.id = 'loading-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    overlay.style.backdropFilter = 'blur(4px)';
+    overlay.style.webkitBackdropFilter = 'blur(4px)';
+    overlay.style.zIndex = '9999';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.flexDirection = 'column';
+    overlay.style.gap = '1rem';
+    overlay.innerHTML = `
+      <div class="loading-spinner" style="
+        width: 48px;
+        height: 48px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      "></div>
+      <div class="loading-message" style="
+        color: white;
+        font-size: 1rem;
+        font-weight: 500;
+      ">${message}</div>
+    `;
+    if (!document.getElementById('loading-spinner-style')) {
+      const style = document.createElement('style');
+      style.id = 'loading-spinner-style';
+      style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+      document.head.appendChild(style);
+    }
+    document.body.appendChild(overlay);
+  },
+
+  hideLoadingOverlay() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+      overlay.style.display = 'none';
+    }
+  },
+
+  setButtonLoading(button, isLoading, originalText = null) {
+    if (!button) return;
+    if (isLoading) {
+      button._originalText = originalText || button.textContent;
+      button.disabled = true;
+      button.style.opacity = '0.6';
+      button.style.cursor = 'not-allowed';
+      button.innerHTML = `
+        <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+          <span style="
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+          "></span>
+          ${button._originalText}
+        </span>
+      `;
+    } else {
+      button.disabled = false;
+      button.style.opacity = '1';
+      button.style.cursor = '';
+      button.textContent = button._originalText || originalText || '';
+      delete button._originalText;
+    }
+  },
+
+  createSkeletonLoader(type, count = 1, options = {}) {
+    const skeletons = [];
+    for (let i = 0; i < count; i++) {
+      if (type === 'table-row') {
+        const colCount = options.cols || 4;
+        const cols = Array(colCount).fill(0).map(() => 
+          `<td class="p-4"><div class="skeleton skeleton-text short"></div></td>`
+        ).join('');
+        skeletons.push(`<tr class="skeleton-row"><td class="p-4 sticky left-0 bg-white"><div class="skeleton skeleton-text"></div></td>${cols}</tr>`);
+      } else if (type === 'card') {
+        skeletons.push(`
+          <div class="skeleton bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4" style="height: ${options.height || 120}px;">
+            <div class="skeleton skeleton-text mb-2"></div>
+            <div class="skeleton skeleton-text short mb-2"></div>
+            <div class="skeleton skeleton-text" style="width: 60%;"></div>
+          </div>
+        `);
+      } else if (type === 'list-item') {
+        skeletons.push(`
+          <div class="skeleton bg-white p-3 rounded border mb-2" style="height: ${options.height || 60}px;">
+            <div class="skeleton skeleton-text"></div>
+          </div>
+        `);
+      }
+    }
+    return skeletons.join('');
   },
 
 
@@ -411,23 +540,28 @@ const UI = {
           if (emailEl) { emailEl.textContent = ''; try { emailEl.style.display = 'none'; } catch { } }
           this.qs('#logoutButton').style.display = 'block';
           this.closeModal('loginModal');
-          const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-          this.state = await DATA.loadAll();
-          const t1 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-          try { console.info('[Perf] DATA.loadAll total ms:', Math.round(t1 - t0)); } catch { }
-          this.rebuildPresenceIndex();
-          // Selezione staff: auto-seleziona se email corrisponde, altrimenti apri modale
-          const match = (this.state.staff || []).find(s => (s.email || '').toLowerCase() === (user.email || '').toLowerCase());
-          if (match) {
-            this.selectStaff(match.id);
-          } else {
-            this.renderStaffSelectionList();
-            this.showModal('staffSelectionModal');
+          this.showLoadingOverlay('Caricamento dati...');
+          try {
+            const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+            this.state = await DATA.loadAll();
+            const t1 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+            try { console.info('[Perf] DATA.loadAll total ms:', Math.round(t1 - t0)); } catch { }
+            this.rebuildPresenceIndex();
+            // Selezione staff: auto-seleziona se email corrisponde, altrimenti apri modale
+            const match = (this.state.staff || []).find(s => (s.email || '').toLowerCase() === (user.email || '').toLowerCase());
+            if (match) {
+              this.selectStaff(match.id);
+            } else {
+              this.renderStaffSelectionList();
+              this.showModal('staffSelectionModal');
+            }
+            const r0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+            this.renderCurrentPage();
+            const r1 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+            try { console.info('[Perf] renderCurrentPage ms:', Math.round(r1 - r0)); } catch { }
+          } finally {
+            this.hideLoadingOverlay();
           }
-          const r0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-          this.renderCurrentPage();
-          const r1 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-          try { console.info('[Perf] renderCurrentPage ms:', Math.round(r1 - r0)); } catch { }
         } else {
           const emailEl = this.qs('#loggedInUserEmail');
           if (emailEl) { emailEl.textContent = ''; try { emailEl.style.display = 'none'; } catch { } }
@@ -492,6 +626,9 @@ const UI = {
         const password = this.qs('#loginPassword').value;
         const loginError = this.qs('#loginError');
         loginError.textContent = '';
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn?.textContent;
+        this.setButtonLoading(submitBtn, true, originalText);
         console.log('Tentativo login per:', email);
         try {
           await signInWithEmailAndPassword(DATA.adapter.auth, email, password);
@@ -507,6 +644,9 @@ const UI = {
             case 'auth/too-many-requests': msg = 'Troppi tentativi, riprova più tardi.'; break;
           }
           loginError.textContent = msg;
+          this.showToast(msg, { type: 'error' });
+        } finally {
+          this.setButtonLoading(submitBtn, false, originalText);
         }
       });
     }
@@ -556,7 +696,10 @@ const UI = {
     if (confirmDeleteStaffButton && !confirmDeleteStaffButton._bound) {
       confirmDeleteStaffButton._bound = true;
       confirmDeleteStaffButton.addEventListener('click', async () => {
-        if (!this.currentUser) { alert('Devi essere loggato per eliminare staff.'); return; }
+        if (!this.currentUser) { 
+          this.showToast('Devi essere loggato per eliminare staff.', { type: 'error' }); 
+          return; 
+        }
         if (!this.staffToDeleteId) return;
         await DATA.deleteStaff(this.staffToDeleteId, this.currentUser);
         this.staffToDeleteId = null;
@@ -564,6 +707,7 @@ const UI = {
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();
         this.renderCurrentPage();
+        this.showToast('Staff eliminato con successo');
       });
     }
 
@@ -573,15 +717,29 @@ const UI = {
       editScoutForm._bound = true;
       editScoutForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!this.currentUser) { alert('Devi essere loggato per modificare esploratori.'); return; }
-        const id = this.qs('#editScoutId').value;
-        const nome = this.qs('#editScoutNome').value.trim();
-        const cognome = this.qs('#editScoutCognome').value.trim();
-        await DATA.updateScout(id, { id, nome, cognome }, this.currentUser);
-        this.closeModal('editScoutModal');
-        this.state = await DATA.loadAll();
-        this.rebuildPresenceIndex();
-        this.renderCurrentPage();
+        if (!this.currentUser) { 
+          this.showToast('Devi essere loggato per modificare esploratori.', { type: 'error' }); 
+          return; 
+        }
+        const submitBtn = editScoutForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn?.textContent;
+        this.setButtonLoading(submitBtn, true, originalText);
+        try {
+          const id = this.qs('#editScoutId').value;
+          const nome = this.qs('#editScoutNome').value.trim();
+          const cognome = this.qs('#editScoutCognome').value.trim();
+          await DATA.updateScout(id, { id, nome, cognome }, this.currentUser);
+          this.closeModal('editScoutModal');
+          this.state = await DATA.loadAll();
+          this.rebuildPresenceIndex();
+          this.renderCurrentPage();
+          this.showToast('Esploratore modificato con successo');
+        } catch (error) {
+          console.error('Errore modifica esploratore:', error);
+          this.showToast('Errore durante la modifica: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+        } finally {
+          this.setButtonLoading(submitBtn, false, originalText);
+        }
       });
     }
 
@@ -590,14 +748,27 @@ const UI = {
     if (confirmDeleteScoutButton && !confirmDeleteScoutButton._bound) {
       confirmDeleteScoutButton._bound = true;
       confirmDeleteScoutButton.addEventListener('click', async () => {
-        if (!this.currentUser) { alert('Devi essere loggato per eliminare esploratori.'); return; }
+        if (!this.currentUser) { 
+          this.showToast('Devi essere loggato per eliminare esploratori.', { type: 'error' }); 
+          return; 
+        }
         if (!this.scoutToDeleteId) return;
-        await DATA.deleteScout(this.scoutToDeleteId, this.currentUser);
-        this.scoutToDeleteId = null;
-        this.closeModal('confirmDeleteScoutModal');
-        this.state = await DATA.loadAll();
-        this.rebuildPresenceIndex();
-        this.renderCurrentPage();
+        const originalText = confirmDeleteScoutButton.textContent;
+        this.setButtonLoading(confirmDeleteScoutButton, true, originalText);
+        try {
+          await DATA.deleteScout(this.scoutToDeleteId, this.currentUser);
+          this.scoutToDeleteId = null;
+          this.closeModal('confirmDeleteScoutModal');
+          this.state = await DATA.loadAll();
+          this.rebuildPresenceIndex();
+          this.renderCurrentPage();
+          this.showToast('Esploratore eliminato con successo');
+        } catch (error) {
+          console.error('Errore eliminazione esploratore:', error);
+          this.showToast('Errore durante l\'eliminazione: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+        } finally {
+          this.setButtonLoading(confirmDeleteScoutButton, false, originalText);
+        }
       });
     }
 
@@ -607,17 +778,31 @@ const UI = {
       editActivityForm._bound = true;
       editActivityForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!this.currentUser) { alert('Devi essere loggato per modificare attività.'); return; }
-        const id = this.qs('#editActivityId').value;
-        const tipo = this.qs('#editActivityTipo').value;
-        const data = new Date(this.qs('#editActivityData').value);
-        const descrizione = this.qs('#editActivityDescrizione').value.trim();
-        const costo = this.qs('#editActivityCosto').value || '0';
-        await DATA.updateActivity({ id, tipo, data, descrizione, costo }, this.currentUser);
-        this.closeModal('editActivityModal');
-        this.state = await DATA.loadAll();
-        this.rebuildPresenceIndex();
-        this.renderCurrentPage();
+        if (!this.currentUser) { 
+          this.showToast('Devi essere loggato per modificare attività.', { type: 'error' }); 
+          return; 
+        }
+        const submitBtn = editActivityForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn?.textContent;
+        this.setButtonLoading(submitBtn, true, originalText);
+        try {
+          const id = this.qs('#editActivityId').value;
+          const tipo = this.qs('#editActivityTipo').value;
+          const data = new Date(this.qs('#editActivityData').value);
+          const descrizione = this.qs('#editActivityDescrizione').value.trim();
+          const costo = this.qs('#editActivityCosto').value || '0';
+          await DATA.updateActivity({ id, tipo, data, descrizione, costo }, this.currentUser);
+          this.closeModal('editActivityModal');
+          this.state = await DATA.loadAll();
+          this.rebuildPresenceIndex();
+          this.renderCurrentPage();
+          this.showToast('Attività modificata con successo');
+        } catch (error) {
+          console.error('Errore modifica attività:', error);
+          this.showToast('Errore durante la modifica: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+        } finally {
+          this.setButtonLoading(submitBtn, false, originalText);
+        }
       });
     }
 
@@ -626,14 +811,27 @@ const UI = {
     if (confirmDeleteActivityButton && !confirmDeleteActivityButton._bound) {
       confirmDeleteActivityButton._bound = true;
       confirmDeleteActivityButton.addEventListener('click', async () => {
-        if (!this.currentUser) { alert('Devi essere loggato per eliminare attività.'); return; }
+        if (!this.currentUser) { 
+          this.showToast('Devi essere loggato per eliminare attività.', { type: 'error' }); 
+          return; 
+        }
         if (!this.activityToDeleteId) return;
-        await DATA.deleteActivity(this.activityToDeleteId, this.currentUser);
-        this.activityToDeleteId = null;
-        this.closeModal('confirmDeleteActivityModal');
-        this.state = await DATA.loadAll();
-        this.rebuildPresenceIndex();
-        this.renderCurrentPage();
+        const originalText = confirmDeleteActivityButton.textContent;
+        this.setButtonLoading(confirmDeleteActivityButton, true, originalText);
+        try {
+          await DATA.deleteActivity(this.activityToDeleteId, this.currentUser);
+          this.activityToDeleteId = null;
+          this.closeModal('confirmDeleteActivityModal');
+          this.state = await DATA.loadAll();
+          this.rebuildPresenceIndex();
+          this.renderCurrentPage();
+          this.showToast('Attività eliminata con successo');
+        } catch (error) {
+          console.error('Errore eliminazione attività:', error);
+          this.showToast('Errore durante l\'eliminazione: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+        } finally {
+          this.setButtonLoading(confirmDeleteActivityButton, false, originalText);
+        }
       });
     }
   },
@@ -685,6 +883,56 @@ const UI = {
     }
   },
 
+  showConfirmModal({ title, message, confirmText = 'Conferma', cancelText = 'Annulla', onConfirm, onCancel }) {
+    const modal = this.qs('#confirmModal');
+    if (!modal) {
+      console.error('Modale conferma non trovato');
+      return;
+    }
+    const titleEl = this.qs('#confirmModalTitle');
+    const messageEl = this.qs('#confirmModalMessage');
+    const confirmBtn = this.qs('#confirmModalConfirm');
+    const cancelBtn = this.qs('#confirmModalCancel');
+    if (titleEl) titleEl.textContent = title || 'Conferma';
+    if (messageEl) messageEl.textContent = message || 'Sei sicuro?';
+    if (confirmBtn) confirmBtn.textContent = confirmText;
+    if (cancelBtn) cancelBtn.textContent = cancelText;
+    // Rimuovi event listener precedenti
+    const newConfirmBtn = confirmBtn?.cloneNode(true);
+    const newCancelBtn = cancelBtn?.cloneNode(true);
+    if (confirmBtn && newConfirmBtn) {
+      confirmBtn.parentNode?.replaceChild(newConfirmBtn, confirmBtn);
+    }
+    if (cancelBtn && newCancelBtn) {
+      cancelBtn.parentNode?.replaceChild(newCancelBtn, cancelBtn);
+    }
+    // Aggiungi nuovi event listener
+    const finalConfirmBtn = this.qs('#confirmModalConfirm');
+    const finalCancelBtn = this.qs('#confirmModalCancel');
+    if (finalConfirmBtn) {
+      finalConfirmBtn.addEventListener('click', () => {
+        this.closeModal('confirmModal');
+        if (onConfirm) onConfirm();
+      });
+    }
+    if (finalCancelBtn) {
+      finalCancelBtn.addEventListener('click', () => {
+        this.closeModal('confirmModal');
+        if (onCancel) onCancel();
+      });
+    }
+    // Chiudi cliccando fuori
+    const closeOnOutside = (e) => {
+      if (e.target === modal) {
+        this.closeModal('confirmModal');
+        modal.removeEventListener('click', closeOnOutside);
+        if (onCancel) onCancel();
+      }
+    };
+    modal.addEventListener('click', closeOnOutside);
+    this.showModal('confirmModal');
+  },
+
   // Funzioni di utilità
   logNetworkInfo() {
     try {
@@ -701,17 +949,53 @@ const UI = {
     } catch { }
   },
 
+  updateConnectionStatus(isOnline) {
+    const statusEl = this.qs('#connectionStatus');
+    const statusText = this.qs('#connectionStatusText');
+    if (statusEl && statusText) {
+      if (isOnline === false) {
+        statusEl.classList.remove('hidden', 'bg-green-800/50');
+        statusEl.classList.add('bg-yellow-600/80');
+        statusText.textContent = 'Offline';
+        statusEl.title = 'Modalità offline - alcune funzionalità potrebbero non essere disponibili';
+      } else {
+        statusEl.classList.remove('hidden', 'bg-yellow-600/80');
+        statusEl.classList.add('bg-green-800/50');
+        statusText.textContent = 'Online';
+        statusEl.title = 'Connesso';
+      }
+    }
+  },
+
   async runConnectivityProbe() {
     try {
+      // Aggiorna status basato su navigator.onLine
+      this.updateConnectionStatus(navigator.onLine);
+      
+      // Listener per cambiamenti di stato online/offline
+      window.addEventListener('online', () => {
+        this.updateConnectionStatus(true);
+        this.showToast('Connessione ristabilita', { type: 'success', duration: 2000 });
+      });
+      window.addEventListener('offline', () => {
+        this.updateConnectionStatus(false);
+        this.showToast('Modalità offline attiva', { type: 'warning', duration: 3000 });
+      });
+
       const t = async (label, url) => {
         const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
         try {
           const res = await fetch(url, { cache: 'no-store' });
           const t1 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
           console.info('[Net] probe', label, Math.round(t1 - t0) + 'ms', res.status);
+          this.updateConnectionStatus(true);
         } catch (e) {
           const t1 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
           console.warn('[Net] probe FAILED', label, Math.round(t1 - t0) + 'ms', String(e));
+          // Solo se navigator.onLine è false, mostra offline
+          if (!navigator.onLine) {
+            this.updateConnectionStatus(false);
+          }
         }
       };
       // Stesso dominio (indicativo di lentezza locale/SW)
@@ -780,47 +1064,112 @@ const UI = {
 
   // Aggiornamenti presenze con refresh stato e dashboard
   async updatePresenceCell({ field, value, scoutId, activityId }) {
-    if (!this.currentUser) { alert('Devi essere loggato per modificare le presenze.'); return; }
-    if (!this.selectedStaffId) { alert('Seleziona uno Staff per abilitare le modifiche.'); return; }
-    await DATA.updatePresence({ field, value, scoutId, activityId }, this.currentUser);
-    this.state = await DATA.loadAll();
-    this.rebuildPresenceIndex();
-    // Aggiorna UI corrente
-    this.renderCurrentPage();
-    // Se siamo in dashboard, aggiorna i grafici se esiste la funzione
-    if (typeof this.renderDashboardCharts === 'function') {
-      try { this.renderDashboardCharts(); } catch { }
+    if (!this.currentUser) { 
+      this.showToast('Devi essere loggato per modificare le presenze.', { type: 'error' }); 
+      return; 
     }
-    // Aggiorna anche la sezione pagamenti per attività se presente
-    if (typeof this.renderPaymentsPerActivity === 'function') {
-      try { this.renderPaymentsPerActivity(); } catch { }
+    if (!this.selectedStaffId) { 
+      this.showToast('Seleziona uno Staff per abilitare le modifiche.', { type: 'warning' }); 
+      return; 
+    }
+    // Trova la cella e aggiungi feedback visivo
+    const cellSelector = `[data-scout-id="${scoutId}"][data-activity-id="${activityId}"]`;
+    const cell = document.querySelector(cellSelector)?.closest('td');
+    const originalBg = cell?.style.backgroundColor;
+    if (cell) {
+      cell.style.transition = 'background-color 0.3s ease';
+      cell.style.backgroundColor = '#dbeafe'; // blue-100
+    }
+    try {
+      await DATA.updatePresence({ field, value, scoutId, activityId }, this.currentUser);
+      this.state = await DATA.loadAll();
+      this.rebuildPresenceIndex();
+      // Aggiorna UI corrente
+      this.renderCurrentPage();
+      // Se siamo in dashboard, aggiorna i grafici se esiste la funzione
+      if (typeof this.renderDashboardCharts === 'function') {
+        try { this.renderDashboardCharts(); } catch { }
+      }
+      // Aggiorna anche la sezione pagamenti per attività se presente
+      if (typeof this.renderPaymentsPerActivity === 'function') {
+        try { this.renderPaymentsPerActivity(); } catch { }
+      }
+      // Ripristina colore dopo breve delay per permettere il rendering
+      setTimeout(() => {
+        if (cell) {
+          cell.style.backgroundColor = originalBg || '';
+          setTimeout(() => {
+            if (cell) cell.style.transition = '';
+          }, 300);
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Errore aggiornamento presenza:', error);
+      this.showToast('Errore durante l\'aggiornamento', { type: 'error' });
+      if (cell) {
+        cell.style.backgroundColor = originalBg || '';
+      }
     }
   },
 
   async updatePaymentCombined({ value, scoutId, activityId }) {
-    if (!this.currentUser) { alert('Devi essere loggato per modificare i pagamenti.'); return; }
-    if (!this.selectedStaffId) { alert('Seleziona uno Staff per abilitare le modifiche.'); return; }
-    if (!value) {
-      await DATA.updatePresence({ field: 'pagato', value: false, scoutId, activityId }, this.currentUser);
-      await DATA.updatePresence({ field: 'tipoPagamento', value: null, scoutId, activityId }, this.currentUser);
-    } else {
-      await DATA.updatePresence({ field: 'pagato', value: true, scoutId, activityId }, this.currentUser);
-      await DATA.updatePresence({ field: 'tipoPagamento', value, scoutId, activityId }, this.currentUser);
+    if (!this.currentUser) { 
+      this.showToast('Devi essere loggato per modificare i pagamenti.', { type: 'error' }); 
+      return; 
     }
-    this.state = await DATA.loadAll();
-    this.rebuildPresenceIndex();
-    this.renderCurrentPage();
-    if (typeof this.renderDashboardCharts === 'function') {
-      try { this.renderDashboardCharts(); } catch { }
+    if (!this.selectedStaffId) { 
+      this.showToast('Seleziona uno Staff per abilitare le modifiche.', { type: 'warning' }); 
+      return; 
     }
-    if (typeof this.renderPaymentsPerActivity === 'function') {
-      try { this.renderPaymentsPerActivity(); } catch { }
+    // Trova la select e aggiungi feedback visivo
+    const selectElement = document.querySelector(`select[onchange*="'${scoutId}'"][onchange*="'${activityId}'"]`);
+    const cell = selectElement?.closest('td') || selectElement?.closest('li')?.closest('div');
+    const originalBg = cell?.style.backgroundColor;
+    if (cell) {
+      cell.style.transition = 'background-color 0.3s ease';
+      cell.style.backgroundColor = '#dbeafe'; // blue-100
+    }
+    try {
+      if (!value) {
+        await DATA.updatePresence({ field: 'pagato', value: false, scoutId, activityId }, this.currentUser);
+        await DATA.updatePresence({ field: 'tipoPagamento', value: null, scoutId, activityId }, this.currentUser);
+      } else {
+        await DATA.updatePresence({ field: 'pagato', value: true, scoutId, activityId }, this.currentUser);
+        await DATA.updatePresence({ field: 'tipoPagamento', value, scoutId, activityId }, this.currentUser);
+      }
+      this.state = await DATA.loadAll();
+      this.rebuildPresenceIndex();
+      this.renderCurrentPage();
+      if (typeof this.renderDashboardCharts === 'function') {
+        try { this.renderDashboardCharts(); } catch { }
+      }
+      if (typeof this.renderPaymentsPerActivity === 'function') {
+        try { this.renderPaymentsPerActivity(); } catch { }
+      }
+      // Ripristina colore dopo breve delay
+      setTimeout(() => {
+        if (cell) {
+          cell.style.backgroundColor = originalBg || '';
+          setTimeout(() => {
+            if (cell) cell.style.transition = '';
+          }, 300);
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Errore aggiornamento pagamento:', error);
+      this.showToast('Errore durante l\'aggiornamento', { type: 'error' });
+      if (cell) {
+        cell.style.backgroundColor = originalBg || '';
+      }
     }
   },
 
   // Helpers Calendario: apertura modali modifica/elimina attivita
   openEditActivityModal(id) {
-    if (!this.currentUser) { alert('Devi essere loggato per modificare attività.'); return; }
+    if (!this.currentUser) { 
+      this.showToast('Devi essere loggato per modificare attività.', { type: 'error' }); 
+      return; 
+    }
     const a = (this.state.activities || []).find(x => x.id === id);
     if (!a) return;
     const d = this.toJsDate(a.data);
@@ -839,7 +1188,10 @@ const UI = {
   },
 
   confirmDeleteActivity(id) {
-    if (!this.currentUser) { alert('Devi essere loggato per eliminare attività.'); return; }
+    if (!this.currentUser) { 
+      this.showToast('Devi essere loggato per eliminare attività.', { type: 'error' }); 
+      return; 
+    }
     const a = (this.state.activities || []).find(x => x.id === id);
     if (!a) return;
     this.activityToDeleteId = id;

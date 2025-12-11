@@ -92,7 +92,7 @@ UI.renderActivityPage = async function() {
   const copy = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
-      alert('Copiato negli appunti');
+      UI.showToast('Copiato negli appunti', { duration: 1500 });
     } catch (e) {
       console.error('Clipboard error:', e);
       const ta = document.createElement('textarea');
@@ -101,7 +101,7 @@ UI.renderActivityPage = async function() {
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      alert('Copiato negli appunti');
+      UI.showToast('Copiato negli appunti', { duration: 1500 });
     }
   };
 

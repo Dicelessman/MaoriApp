@@ -11,16 +11,30 @@ UI.setupCalendarEvents = function() {
     form._bound = true;
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!this.currentUser) { alert('Devi essere loggato per aggiungere attività.'); return; }
-      const tipo = this.qs('#activityTipo').value;
-      const data = new Date(this.qs('#activityData').value);
-      const descrizione = this.qs('#activityDescrizione').value.trim();
-      const costo = this.qs('#activityCosto').value || '0';
-      await DATA.addActivity({ tipo, data, descrizione, costo }, this.currentUser);
-      this.state = await DATA.loadAll();
-      this.rebuildPresenceIndex();
-      this.renderCalendarList();
-      form.reset();
+      if (!this.currentUser) { 
+        this.showToast('Devi essere loggato per aggiungere attività.', { type: 'error' }); 
+        return; 
+      }
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn?.textContent;
+      this.setButtonLoading(submitBtn, true, originalText);
+      try {
+        const tipo = this.qs('#activityTipo').value;
+        const data = new Date(this.qs('#activityData').value);
+        const descrizione = this.qs('#activityDescrizione').value.trim();
+        const costo = this.qs('#activityCosto').value || '0';
+        await DATA.addActivity({ tipo, data, descrizione, costo }, this.currentUser);
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.renderCalendarList();
+        form.reset();
+        this.showToast('Attività aggiunta con successo');
+      } catch (error) {
+        console.error('Errore aggiunta attività:', error);
+        this.showToast('Errore durante l\'aggiunta: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+      } finally {
+        this.setButtonLoading(submitBtn, false, originalText);
+      }
     });
   }
 };
