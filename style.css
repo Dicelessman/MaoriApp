@@ -623,6 +623,19 @@ select {
   line-height: 1;
 }
 
+/* Swipeable items - migliora touch responsiveness */
+.swipeable-item {
+  touch-action: pan-y;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Pull to refresh indicator */
+#pullToRefreshIndicator {
+  pointer-events: none;
+}
+
 /* Print styles */
 @media print {
   body { background: #fff !important; }

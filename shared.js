@@ -2163,6 +2163,261 @@ const UI = {
     }
   },
 
+  // ============== Mobile Gesture Support ==============
+  
+  /**
+   * Setup swipe gestures per delete su liste mobile
+   * @param {HTMLElement} container - Container della lista
+   * @param {Function} onDelete - Callback quando viene eseguito swipe delete (riceve itemId)
+   * @param {string} itemSelector - Selettore per gli item della lista (default: '> div')
+   * @param {string} itemIdAttr - Attributo data-* che contiene l'ID dell'item (default: 'data-id')
+   */
+  setupSwipeDelete(container, onDelete, itemSelector = '> div', itemIdAttr = 'data-id') {
+    if (!container || typeof onDelete !== 'function') return;
+    
+    // Solo su dispositivi touch
+    if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) return;
+    
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let currentElement = null;
+    let swipeThreshold = 80; // Pixel minimi per trigger delete
+    let deleteThreshold = 150; // Pixel per eliminare direttamente (senza conferma)
+    
+    const handleTouchStart = (e) => {
+      const item = e.target.closest(itemSelector);
+      if (!item || item.hasAttribute('data-swipe-disabled')) return;
+      
+      // Ignora se si tocca un link o un button
+      if (e.target.closest('a, button')) return;
+      
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      currentElement = item;
+      
+      // Reset eventuali trasformazioni precedenti
+      item.style.transition = 'transform 0.2s ease-out';
+    };
+    
+    const handleTouchMove = (e) => {
+      if (!currentElement) return;
+      
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      
+      // Se movimento principalmente verticale, non fare swipe
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        return;
+      }
+      
+      // Solo swipe verso sinistra (negative deltaX)
+      if (deltaX < 0) {
+        e.preventDefault();
+        const swipeAmount = Math.max(deltaX, -deleteThreshold * 1.5);
+        currentElement.style.transform = `translateX(${swipeAmount}px)`;
+        
+        // Cambia colore background in base alla distanza
+        if (Math.abs(swipeAmount) >= deleteThreshold) {
+          currentElement.style.backgroundColor = 'rgba(220, 38, 38, 0.2)'; // rosso chiaro
+        } else if (Math.abs(swipeAmount) >= swipeThreshold) {
+          currentElement.style.backgroundColor = 'rgba(220, 38, 38, 0.1)'; // rosso molto chiaro
+        } else {
+          currentElement.style.backgroundColor = '';
+        }
+      }
+    };
+    
+    const handleTouchEnd = (e) => {
+      if (!currentElement) return;
+      
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      
+      // Se movimento principalmente verticale, reset
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        resetElement(currentElement);
+        currentElement = null;
+        return;
+      }
+      
+      // Solo swipe verso sinistra
+      if (deltaX < 0 && Math.abs(deltaX) >= swipeThreshold) {
+        const itemId = currentElement.getAttribute(itemIdAttr) || 
+                      currentElement.id ||
+                      currentElement.querySelector('[data-item-id]')?.getAttribute('data-item-id');
+        
+        if (itemId) {
+          // Se swipe molto lungo, elimina direttamente
+          if (Math.abs(deltaX) >= deleteThreshold) {
+            onDelete(itemId);
+            resetElement(currentElement);
+          } else {
+            // Mostra animazione e poi conferma
+            currentElement.style.transform = 'translateX(-100px)';
+            currentElement.style.opacity = '0.5';
+            setTimeout(() => {
+              onDelete(itemId);
+              resetElement(currentElement);
+            }, 200);
+          }
+        } else {
+          resetElement(currentElement);
+        }
+      } else {
+        // Reset se swipe non sufficiente
+        resetElement(currentElement);
+      }
+      
+      currentElement = null;
+    };
+    
+    const resetElement = (element) => {
+      if (!element) return;
+      element.style.transform = '';
+      element.style.backgroundColor = '';
+      element.style.opacity = '';
+      element.style.transition = '';
+    };
+    
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+  },
+  
+  /**
+   * Setup pull-to-refresh per liste
+   * @param {HTMLElement} container - Container scrollabile
+   * @param {Function} onRefresh - Callback quando viene triggerato refresh
+   */
+  setupPullToRefresh(container, onRefresh) {
+    if (!container || typeof onRefresh !== 'function') return;
+    
+    // Solo su dispositivi touch
+    if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) return;
+    
+    let touchStartY = 0;
+    let isPulling = false;
+    let pullDistance = 0;
+    let refreshIndicator = null;
+    
+    // Crea indicatore refresh se non esiste
+    const createRefreshIndicator = () => {
+      if (refreshIndicator) return refreshIndicator;
+      refreshIndicator = document.createElement('div');
+      refreshIndicator.id = 'pullToRefreshIndicator';
+      refreshIndicator.style.cssText = `
+        position: fixed;
+        top: -60px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--brand);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 24px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 2000;
+        transition: top 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+      `;
+      refreshIndicator.innerHTML = '🔄 Rilascia per aggiornare';
+      document.body.appendChild(refreshIndicator);
+      return refreshIndicator;
+    };
+    
+    const handleTouchStart = (e) => {
+      // Solo se siamo in cima al container
+      if (container.scrollTop > 10) return;
+      
+      touchStartY = e.touches[0].clientY;
+      isPulling = false;
+      pullDistance = 0;
+    };
+    
+    const handleTouchMove = (e) => {
+      if (touchStartY === 0) return;
+      
+      const currentY = e.touches[0].clientY;
+      const deltaY = currentY - touchStartY;
+      
+      // Solo se scroll verso il basso dalla cima
+      if (deltaY > 0 && container.scrollTop === 0) {
+        isPulling = true;
+        pullDistance = Math.min(deltaY, 100); // Max 100px
+        
+        // Mostra indicatore
+        const indicator = createRefreshIndicator();
+        const indicatorTop = Math.min(pullDistance - 60, 20);
+        indicator.style.top = `${indicatorTop}px`;
+        
+        // Ruota icona in base alla distanza
+        if (pullDistance >= 80) {
+          indicator.innerHTML = '🔄 Rilascia per aggiornare';
+          indicator.style.background = 'var(--brand-strong)';
+        } else {
+          indicator.innerHTML = '⬇️ Trascina per aggiornare';
+          indicator.style.background = 'var(--brand)';
+        }
+        
+        e.preventDefault();
+      }
+    };
+    
+    const handleTouchEnd = (e) => {
+      if (!isPulling) {
+        touchStartY = 0;
+        return;
+      }
+      
+      if (pullDistance >= 80 && refreshIndicator) {
+        // Trigger refresh
+        refreshIndicator.innerHTML = '🔄 Aggiornamento...';
+        refreshIndicator.style.background = 'var(--brand)';
+        
+        // Chiama callback
+        if (typeof onRefresh === 'function') {
+          Promise.resolve(onRefresh()).then(() => {
+            // Nascondi indicatore dopo refresh
+            setTimeout(() => {
+              if (refreshIndicator) {
+                refreshIndicator.style.top = '-60px';
+              }
+            }, 500);
+          }).catch((error) => {
+            console.error('Errore durante refresh:', error);
+            if (refreshIndicator) {
+              refreshIndicator.innerHTML = '❌ Errore aggiornamento';
+              refreshIndicator.style.background = '#dc2626';
+              setTimeout(() => {
+                refreshIndicator.style.top = '-60px';
+              }, 2000);
+            }
+          });
+        }
+      } else {
+        // Nascondi indicatore se non abbastanza pull
+        if (refreshIndicator) {
+          refreshIndicator.style.top = '-60px';
+        }
+      }
+      
+      touchStartY = 0;
+      isPulling = false;
+      pullDistance = 0;
+    };
+    
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+  },
+
   // ============== Form Validation Real-time ==============
   
   /**
@@ -2454,11 +2709,16 @@ const UI = {
     } catch { }
   },
 
-  async renderInBatches({ container, items, renderItem, batchSize = 100 }) {
+  async renderInBatches({ container, items, renderItem, batchSize = 100, onComplete }) {
     if (!container) return;
-    if (!Array.isArray(items) || items.length === 0) { container.innerHTML = ''; return; }
+    if (!Array.isArray(items) || items.length === 0) { 
+      container.innerHTML = ''; 
+      if (onComplete) onComplete();
+      return; 
+    }
     if (items.length <= batchSize) {
       container.innerHTML = items.map(renderItem).join('');
+      if (onComplete) onComplete();
       return;
     }
     container.innerHTML = '';
@@ -2479,6 +2739,9 @@ const UI = {
       container.insertAdjacentHTML('beforeend', slice.map(renderItem).join(''));
       await scheduleNext();
     }
+    
+    // Chiama callback onComplete se fornita
+    if (onComplete) onComplete();
   },
 
   toJsDate(firestoreDate) {

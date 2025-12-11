@@ -161,7 +161,7 @@ UI.renderCalendarList = function() {
     const bgClass = isNext ? 'bg-green-50 border-l-4 border-green-500' : 'bg-white';
     const textClass = isNext ? 'text-green-800' : 'text-green-700';
     list.insertAdjacentHTML('beforeend', `
-      <div class="p-4 ${bgClass} rounded-lg shadow-sm flex items-start justify-between gap-4">
+      <div class="p-4 ${bgClass} rounded-lg shadow-sm flex items-start justify-between gap-4 swipeable-item" data-id="${a.id}" data-item-id="${a.id}">
         <div>
           <p class="font-medium text-lg ${textClass}">${a.tipo} — ${ds}${isNext ? ' (Prossima)' : ''}</p>
           <p class="text-gray-700">${a.descrizione}${costoLabel}</p>
@@ -173,6 +173,33 @@ UI.renderCalendarList = function() {
       </div>
     `);
   });
+  
+  // Setup swipe delete e pull-to-refresh per calendario
+  if ('ontouchstart' in window) {
+    if (this.currentUser) {
+      this.setupSwipeDelete(list, (activityId) => {
+        this.confirmDeleteActivity(activityId);
+      }, '.swipeable-item', 'data-id');
+    }
+    
+    const scrollContainer = list.parentElement;
+    if (scrollContainer) {
+      this.setupPullToRefresh(scrollContainer, async () => {
+        this.showLoadingOverlay('Aggiornamento calendario...');
+        try {
+          this.state = await DATA.loadAll();
+          this.rebuildPresenceIndex();
+          this.renderCalendarList();
+          this.showToast('Calendario aggiornato', { type: 'success' });
+        } catch (error) {
+          console.error('Errore refresh:', error);
+          this.showToast('Errore durante l\'aggiornamento', { type: 'error' });
+        } finally {
+          this.hideLoadingOverlay();
+        }
+      });
+    }
+  }
 };
 
 

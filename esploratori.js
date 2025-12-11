@@ -130,6 +130,34 @@ UI.renderScouts = function(filterLetter = null) {
     container: list,
     items: sortedScouts,
     batchSize: 200,
+    onComplete: () => {
+      // Setup swipe delete dopo il rendering
+      if (this.currentUser && 'ontouchstart' in window) {
+        this.setupSwipeDelete(list, (scoutId) => {
+          this.confirmDeleteScout(scoutId);
+        }, '.swipeable-item', 'data-id');
+      }
+      // Setup pull-to-refresh
+      if ('ontouchstart' in window) {
+        const scrollContainer = list.closest('.bg-gray-50') || list.parentElement;
+        if (scrollContainer) {
+          this.setupPullToRefresh(scrollContainer, async () => {
+            this.showLoadingOverlay('Aggiornamento dati...');
+            try {
+              this.state = await DATA.loadAll();
+              this.rebuildPresenceIndex();
+              this.renderScouts(filterLetter);
+              this.showToast('Dati aggiornati', { type: 'success' });
+            } catch (error) {
+              console.error('Errore refresh:', error);
+              this.showToast('Errore durante l\'aggiornamento', { type: 'error' });
+            } finally {
+              this.hideLoadingOverlay();
+            }
+          });
+        }
+      }
+    },
     renderItem: (scout) => {
       const toDate = (v) => (v && v.toDate) ? v.toDate() : (v ? new Date(v) : null);
       const fmt = (v) => { const d = toDate(v); return d && !isNaN(d) ? d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'2-digit' }) : ''; };
@@ -190,7 +218,7 @@ UI.renderScouts = function(filterLetter = null) {
       if (perc > 0) fields.push(label('Pr', String(perc), 'emerald-700'));
 
       return `
-        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center">
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center swipeable-item" data-id="${scout.id}" data-item-id="${scout.id}">
           <div class="flex-1">
             <h4 class="font-medium text-gray-900"><a href="scout2.html?id=${scout.id}" class="hover:underline">${scout.nome} ${scout.cognome}</a></h4>
             <div class="text-sm flex flex-wrap gap-x-4 gap-y-1 mt-1">

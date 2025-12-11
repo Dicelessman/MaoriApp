@@ -111,8 +111,36 @@ UI.renderStaff = function() {
     container: list,
     items: sortedStaff,
     batchSize: 200,
+    onComplete: () => {
+      // Setup swipe delete dopo il rendering
+      if (this.currentUser && 'ontouchstart' in window) {
+        this.setupSwipeDelete(list, (staffId) => {
+          this.confirmDeleteStaff(staffId);
+        }, '.swipeable-item', 'data-id');
+      }
+      // Setup pull-to-refresh
+      if ('ontouchstart' in window) {
+        const scrollContainer = list.closest('.bg-gray-50') || list.parentElement;
+        if (scrollContainer) {
+          this.setupPullToRefresh(scrollContainer, async () => {
+            this.showLoadingOverlay('Aggiornamento dati...');
+            try {
+              this.state = await DATA.loadAll();
+              this.rebuildPresenceIndex();
+              this.renderStaff();
+              this.showToast('Dati aggiornati', { type: 'success' });
+            } catch (error) {
+              console.error('Errore refresh:', error);
+              this.showToast('Errore durante l\'aggiornamento', { type: 'error' });
+            } finally {
+              this.hideLoadingOverlay();
+            }
+          });
+        }
+      }
+    },
     renderItem: (member) => `
-      <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center">
+      <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center swipeable-item" data-id="${member.id}" data-item-id="${member.id}">
         <div class="flex-1">
           <h4 class="font-medium text-gray-900">${member.nome} ${member.cognome}</h4>
           <p class="text-sm text-gray-600">${member.email || ''}</p>
