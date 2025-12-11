@@ -160,11 +160,15 @@ UI.renderCalendarList = function() {
     const costoLabel = parseFloat(a.costo || '0') > 0 ? ` — Costo: € ${a.costo}` : '';
     const bgClass = isNext ? 'bg-green-50 border-l-4 border-green-500' : 'bg-white';
     const textClass = isNext ? 'text-green-800' : 'text-green-700';
+    const canDrag = this.currentUser ? '' : 'data-drag-disabled';
     list.insertAdjacentHTML('beforeend', `
-      <div class="p-4 ${bgClass} rounded-lg shadow-sm flex items-start justify-between gap-4 swipeable-item" data-id="${a.id}" data-item-id="${a.id}">
-        <div>
-          <p class="font-medium text-lg ${textClass}">${a.tipo} — ${ds}${isNext ? ' (Prossima)' : ''}</p>
-          <p class="text-gray-700">${a.descrizione}${costoLabel}</p>
+      <div class="p-4 ${bgClass} rounded-lg shadow-sm flex items-start justify-between gap-4 swipeable-item drag-item" data-id="${a.id}" data-item-id="${a.id}" ${canDrag}>
+        <div class="flex items-center gap-2 flex-1">
+          ${this.currentUser ? '<span class="drag-handle text-gray-400 cursor-grab select-none text-xl" draggable="true">☰</span>' : ''}
+          <div class="flex-1">
+            <p class="font-medium text-lg ${textClass}">${a.tipo} — ${ds}${isNext ? ' (Prossima)' : ''}</p>
+            <p class="text-gray-700">${a.descrizione}${costoLabel}</p>
+          </div>
         </div>
         <div class="flex gap-2">
           <button aria-label="Modifica attività" class="p-2 text-gray-500 hover:text-green-600 rounded-full" onclick="UI.openEditActivityModal('${a.id}')" ${UI.currentUser ? '' : 'disabled'}>✏️</button>
@@ -173,6 +177,42 @@ UI.renderCalendarList = function() {
       </div>
     `);
   });
+  
+  // Setup drag & drop per riordinare attività (solo se utente loggato)
+  if (this.currentUser) {
+    const preferences = this.loadUserPreferences();
+    const savedOrder = preferences?.activityOrder || null;
+    
+    // Se c'è un ordine salvato, riordina le attività
+    if (savedOrder && savedOrder.length === activities.length) {
+      const orderMap = new Map(savedOrder.map((id, idx) => [id, idx]));
+      const items = Array.from(list.querySelectorAll('.drag-item'));
+      items.sort((a, b) => {
+        const idA = a.getAttribute('data-id');
+        const idB = b.getAttribute('data-id');
+        const orderA = orderMap.get(idA) ?? 999;
+        const orderB = orderMap.get(idB) ?? 999;
+        return orderA - orderB;
+      });
+      items.forEach(item => list.appendChild(item));
+    }
+    
+    this.setupDragAndDrop(
+      list,
+      '.drag-item',
+      async (newOrder) => {
+        // Salva nuovo ordine nelle preferenze
+        const prefs = this.loadUserPreferences();
+        prefs.activityOrder = newOrder;
+        await this.saveUserPreferences(prefs);
+        this.showToast('Ordine attività salvato', { type: 'success', duration: 2000 });
+      },
+      {
+        handle: '.drag-handle',
+        disabled: '[data-drag-disabled]'
+      }
+    );
+  }
   
   // Setup swipe delete e pull-to-refresh per calendario
   if ('ontouchstart' in window) {

@@ -695,6 +695,8 @@ const UI = {
             const t1 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
             try { console.info('[Perf] DATA.loadAll total ms:', Math.round(t1 - t0)); } catch { }
             this.rebuildPresenceIndex();
+            // Sincronizza preferenze utente
+            await this.syncUserPreferences();
             // Selezione staff: auto-seleziona se email corrisponde, altrimenti apri modale
             const match = (this.state.staff || []).find(s => (s.email || '').toLowerCase() === (user.email || '').toLowerCase());
             if (match) {
@@ -975,6 +977,12 @@ const UI = {
   saveTheme(theme) {
     try {
       localStorage.setItem('app-theme', theme);
+      // Salva anche nelle preferenze utente (se sistema già inizializzato)
+      if (this.loadUserPreferences) {
+        const prefs = this.loadUserPreferences();
+        prefs.theme = theme;
+        this.saveUserPreferences(prefs);
+      }
     } catch (e) {
       console.warn('Errore salvataggio tema in localStorage:', e);
     }
@@ -2463,6 +2471,172 @@ const UI = {
       document.addEventListener('touchstart', closeMenu);
       document.addEventListener('scroll', closeMenu, true);
     }, 100);
+  },
+
+  /**
+   * Setup drag & drop per riordinare elementi in una lista
+   * @param {HTMLElement} container - Container della lista
+   * @param {string} itemSelector - Selettore per gli item (default: '> *')
+   * @param {Function} onReorder - Callback quando viene riordinato (riceve array di IDs)
+   * @param {Object} options - Opzioni aggiuntive { handle: selector per drag handle, disabled: selettore elementi non draggable }
+   */
+  setupDragAndDrop(container, itemSelector = '> *', onReorder, options = {}) {
+    if (!container || typeof onReorder !== 'function') return;
+    
+    const { handle, disabled } = options;
+    let draggedElement = null;
+    let placeholder = null;
+    let dragOverElement = null;
+    
+    const createPlaceholder = () => {
+      const ph = document.createElement('div');
+      ph.className = 'drag-placeholder';
+      ph.style.cssText = `
+        height: 60px;
+        background: var(--brand);
+        opacity: 0.3;
+        border-radius: 8px;
+        border: 2px dashed var(--brand-strong);
+        margin: 4px 0;
+        transition: all 0.2s ease;
+      `;
+      return ph;
+    };
+    
+    const handleDragStart = (e) => {
+      const item = e.target.closest(itemSelector);
+      if (!item || item.closest(disabled)) return;
+      
+      // Se c'è un handle, verifica che il drag sia iniziato da lì
+      if (handle && !e.target.closest(handle)) {
+        // Cerca handle nel container
+        const handleEl = item.querySelector(handle);
+        if (!handleEl || !handleEl.contains(e.target)) {
+          return;
+        }
+      }
+      
+      draggedElement = item;
+      item.style.opacity = '0.5';
+      item.style.cursor = 'grabbing';
+      
+      placeholder = createPlaceholder();
+      item.parentNode.insertBefore(placeholder, item.nextSibling);
+      
+      // DataTransfer per browser compatibility
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', item.innerHTML);
+      }
+      
+      // Aggiungi classe globale
+      document.body.classList.add('dragging');
+    };
+    
+    const handleDragOver = (e) => {
+      if (!draggedElement) return;
+      e.preventDefault();
+      
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'move';
+      }
+      
+      const item = e.target.closest(itemSelector);
+      if (!item || item === draggedElement || item === placeholder) return;
+      
+      const rect = item.getBoundingClientRect();
+      const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+      
+      dragOverElement = item;
+      
+      if (next) {
+        item.parentNode.insertBefore(placeholder, item.nextSibling);
+      } else {
+        item.parentNode.insertBefore(placeholder, item);
+      }
+    };
+    
+    const handleDragEnd = (e) => {
+      if (!draggedElement) return;
+      
+      draggedElement.style.opacity = '';
+      draggedElement.style.cursor = '';
+      document.body.classList.remove('dragging');
+      
+      if (placeholder && placeholder.parentNode) {
+        if (draggedElement.parentNode === placeholder.parentNode) {
+          // Inserisci elemento nella nuova posizione
+          placeholder.parentNode.insertBefore(draggedElement, placeholder);
+        }
+        placeholder.remove();
+      }
+      
+      // Ottieni nuovo ordine
+      const items = Array.from(container.querySelectorAll(itemSelector));
+      const order = items
+        .map(el => el.getAttribute('data-id') || el.id)
+        .filter(id => id);
+      
+      if (order.length > 0) {
+        onReorder(order);
+      }
+      
+      draggedElement = null;
+      placeholder = null;
+      dragOverElement = null;
+    };
+    
+    // Aggiungi drag handle se specificato
+    container.querySelectorAll(itemSelector).forEach(item => {
+      if (item.closest(disabled)) return;
+      
+      item.draggable = true;
+      item.style.cursor = handle ? 'default' : 'grab';
+      
+      if (handle) {
+        const handleEl = item.querySelector(handle);
+        if (handleEl) {
+          handleEl.style.cursor = 'grab';
+          handleEl.draggable = true;
+          handleEl.addEventListener('dragstart', handleDragStart);
+        }
+      } else {
+        item.addEventListener('dragstart', handleDragStart);
+      }
+      
+      item.addEventListener('dragover', handleDragOver);
+      item.addEventListener('dragend', handleDragEnd);
+    });
+    
+    // Aggiungi listener per nuovi elementi (per quando la lista viene ri-renderizzata)
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === 1 && node.matches && node.matches(itemSelector)) {
+            if (node.closest(disabled)) return;
+            
+            node.draggable = true;
+            node.style.cursor = handle ? 'default' : 'grab';
+            
+            if (handle) {
+              const handleEl = node.querySelector(handle);
+              if (handleEl) {
+                handleEl.style.cursor = 'grab';
+                handleEl.draggable = true;
+                handleEl.addEventListener('dragstart', handleDragStart);
+              }
+            } else {
+              node.addEventListener('dragstart', handleDragStart);
+            }
+            
+            node.addEventListener('dragover', handleDragOver);
+            node.addEventListener('dragend', handleDragEnd);
+          }
+        });
+      });
+    });
+    
+    observer.observe(container, { childList: true, subtree: true });
   },
 
   /**

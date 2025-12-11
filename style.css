@@ -658,6 +658,33 @@ select {
   }
 }
 
+/* Drag & Drop styles */
+.drag-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.drag-item:active {
+  cursor: grabbing !important;
+}
+
+.drag-handle {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.drag-handle:hover {
+  color: var(--brand) !important;
+}
+
+body.dragging {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.dragging * {
+  cursor: grabbing !important;
+}
+
 /* Print styles */
 @media print {
   body { background: #fff !important; }
