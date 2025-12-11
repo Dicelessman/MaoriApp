@@ -34,15 +34,15 @@ class LocalAdapter {
       ]
     };
   }
-  
+
   persist() {
     localStorage.setItem('presenziario-state', JSON.stringify(this.state));
   }
-  
+
   async loadAll() {
     return this.state;
   }
-  
+
   // Activities
   async addActivity({ tipo, data, descrizione, costo }, currentUser) {
     const id = 'a' + (Math.random().toString(36).slice(2, 8));
@@ -51,51 +51,51 @@ class LocalAdapter {
     console.log('LocalAdapter: addActivity', { tipo, data, descrizione, costo, id, currentUser: currentUser?.email });
     return id;
   }
-  
+
   async updateActivity({ id, tipo, data, descrizione, costo }, currentUser) {
     const a = this.state.activities.find(x => x.id === id);
     if (a) { a.tipo = tipo; a.data = data; a.descrizione = descrizione; a.costo = costo; this.persist(); }
     console.log('LocalAdapter: updateActivity', { id, tipo, data, descrizione, costo, currentUser: currentUser?.email });
   }
-  
+
   async deleteActivity(id, currentUser) {
     this.state.activities = this.state.activities.filter(a => a.id !== id);
     this.state.presences = this.state.presences.filter(p => p.attivitaId !== id);
     this.persist();
     console.log('LocalAdapter: deleteActivity', { id, currentUser: currentUser?.email });
   }
-  
+
   // Staff
   async addStaff({ nome, cognome, email }, currentUser) {
     const id = 'st' + (Math.random().toString(36).slice(2, 8));
-    this.state.staff.push({ id, nome, cognome, email }); 
-    this.persist(); 
-    return id;
+    this.state.staff.push({ id, nome, cognome, email });
+    this.persist();
     console.log('LocalAdapter: addStaff', { nome, cognome, email, id, currentUser: currentUser?.email });
+    return id;
   }
-  
+
   async updateStaff({ id, nome, cognome, email }, currentUser) {
-    const m = this.state.staff.find(s => s.id === id); 
+    const m = this.state.staff.find(s => s.id === id);
     if (m) { m.nome = nome; m.cognome = cognome; m.email = email; this.persist(); }
     console.log('LocalAdapter: updateStaff', { id, nome, cognome, email, currentUser: currentUser?.email });
   }
-  
+
   async deleteStaff(id, currentUser) {
-    this.state.staff = this.state.staff.filter(s => s.id !== id); 
+    this.state.staff = this.state.staff.filter(s => s.id !== id);
     this.persist();
     console.log('LocalAdapter: deleteStaff', { id, currentUser: currentUser?.email });
   }
-  
+
   // Scouts
   async addScout({ nome, cognome }, currentUser) {
     const id = 's' + (Math.random().toString(36).slice(2, 8));
     this.state.scouts.push({ id, nome, cognome });
     this.state.activities.forEach(a => this.state.presences.push({ esploratoreId: id, attivitaId: a.id, stato: 'NR', pagato: false, tipoPagamento: null }));
-    this.persist(); 
-    return id;
+    this.persist();
     console.log('LocalAdapter: addScout', { nome, cognome, id, currentUser: currentUser?.email });
+    return id;
   }
-  
+
   async updateScout({ id, nome, cognome }, currentUser) {
     const s = this.state.scouts.find(x => x.id === id);
     if (s) {
@@ -110,14 +110,14 @@ class LocalAdapter {
     }
     console.log('LocalAdapter: updateScout', { id, currentUser: currentUser?.email });
   }
-  
+
   async deleteScout(id, currentUser) {
     this.state.scouts = this.state.scouts.filter(s => s.id !== id);
     this.state.presences = this.state.presences.filter(p => p.esploratoreId !== id);
     this.persist();
     console.log('LocalAdapter: deleteScout', { id, currentUser: currentUser?.email });
   }
-  
+
   // Presences 
   async updatePresence({ field, value, scoutId, activityId }, currentUser) {
     const p = this.state.presences.find(x => x.esploratoreId === scoutId && x.attivitaId === activityId);
@@ -153,7 +153,7 @@ class FirestoreAdapter {
     };
     this.auth = getAuth(this.app);
   }
-  
+
   async loadAll() {
     const timers = { start: (typeof performance !== 'undefined' ? performance.now() : Date.now()) };
     const timed = async (label, promise) => {
@@ -171,8 +171,8 @@ class FirestoreAdapter {
     ]);
     const tEnd = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     timers.total = Math.round(tEnd - timers.start);
-    try { console.info('[Perf] Firestore loadAll ms:', timers); } catch {}
-    
+    try { console.info('[Perf] Firestore loadAll ms:', timers); } catch { }
+
     return {
       scouts: scoutsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
       staff: staffSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
@@ -180,7 +180,7 @@ class FirestoreAdapter {
       presences: presSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     };
   }
-  
+
   async addAuditLog(action, collection, documentId, changes, userId, userEmail) {
     try {
       await addDoc(this.cols.auditLogs, {
@@ -196,98 +196,98 @@ class FirestoreAdapter {
       console.error('Errore nel salvataggio audit log:', error);
     }
   }
-  
+
   // Activities
   async addActivity({ tipo, data, descrizione, costo }, currentUser) {
     const ref = await addDoc(this.cols.activities, { tipo, data, descrizione, costo });
-    if (currentUser) { 
-      await this.addAuditLog('create', 'activities', ref.id, { tipo, data, descrizione, costo }, currentUser.uid, currentUser.email); 
+    if (currentUser) {
+      await this.addAuditLog('create', 'activities', ref.id, { tipo, data, descrizione, costo }, currentUser.uid, currentUser.email);
     }
     return ref.id;
   }
-  
+
   async updateActivity({ id, tipo, data, descrizione, costo }, currentUser) {
     await setDoc(doc(this.db, 'activities', id), { tipo, data, descrizione, costo }, { merge: true });
-    if (currentUser) { 
-      await this.addAuditLog('update', 'activities', id, { tipo, data, descrizione, costo }, currentUser.uid, currentUser.email); 
+    if (currentUser) {
+      await this.addAuditLog('update', 'activities', id, { tipo, data, descrizione, costo }, currentUser.uid, currentUser.email);
     }
   }
-  
+
   async deleteActivity(id, currentUser) {
     await deleteDoc(doc(this.db, 'activities', id));
-    if (currentUser) { 
-      await this.addAuditLog('delete', 'activities', id, {}, currentUser.uid, currentUser.email); 
+    if (currentUser) {
+      await this.addAuditLog('delete', 'activities', id, {}, currentUser.uid, currentUser.email);
     }
   }
-  
+
   // Staff
   async addStaff({ nome, cognome, email }, currentUser) {
     const ref = await addDoc(this.cols.staff, { nome, cognome, email });
-    if (currentUser) { 
-      await this.addAuditLog('create', 'staff', ref.id, { nome, cognome, email }, currentUser.uid, currentUser.email); 
+    if (currentUser) {
+      await this.addAuditLog('create', 'staff', ref.id, { nome, cognome, email }, currentUser.uid, currentUser.email);
     }
     return ref.id;
   }
-  
+
   async updateStaff({ id, nome, cognome, email }, currentUser) {
     await setDoc(doc(this.db, 'staff', id), { nome, cognome, email }, { merge: true });
-    if (currentUser) { 
-      await this.addAuditLog('update', 'staff', id, { nome, cognome, email }, currentUser.uid, currentUser.email); 
+    if (currentUser) {
+      await this.addAuditLog('update', 'staff', id, { nome, cognome, email }, currentUser.uid, currentUser.email);
     }
   }
-  
+
   async deleteStaff(id, currentUser) {
     await deleteDoc(doc(this.db, 'staff', id));
-    if (currentUser) { 
-      await this.addAuditLog('delete', 'staff', id, {}, currentUser.uid, currentUser.email); 
+    if (currentUser) {
+      await this.addAuditLog('delete', 'staff', id, {}, currentUser.uid, currentUser.email);
     }
   }
-  
+
   // Scouts
   async addScout({ nome, cognome }, currentUser) {
     const ref = await addDoc(this.cols.scouts, { nome, cognome });
-    if (currentUser) { 
-      await this.addAuditLog('create', 'scouts', ref.id, { nome, cognome }, currentUser.uid, currentUser.email); 
+    if (currentUser) {
+      await this.addAuditLog('create', 'scouts', ref.id, { nome, cognome }, currentUser.uid, currentUser.email);
     }
     return ref.id;
   }
-  
+
   async updateScout({ id, nome, cognome }, currentUser) {
     await setDoc(doc(this.db, 'scouts', id), { nome, cognome, ...arguments[0] }, { merge: true });
-    if (currentUser) { 
-      await this.addAuditLog('update', 'scouts', id, arguments[0], currentUser.uid, currentUser.email); 
+    if (currentUser) {
+      await this.addAuditLog('update', 'scouts', id, arguments[0], currentUser.uid, currentUser.email);
     }
   }
-  
+
   async deleteScout(id, currentUser) {
     await deleteDoc(doc(this.db, 'scouts', id));
-    if (currentUser) { 
-      await this.addAuditLog('delete', 'scouts', id, {}, currentUser.uid, currentUser.email); 
+    if (currentUser) {
+      await this.addAuditLog('delete', 'scouts', id, {}, currentUser.uid, currentUser.email);
     }
   }
-  
+
   // Presences
   async updatePresence({ field, value, scoutId, activityId }, currentUser) {
     const presenceRef = doc(this.db, 'presences', `${scoutId}_${activityId}`);
     const presenceSnap = await getDoc(presenceRef);
-    
+
     if (presenceSnap.exists()) {
       await setDoc(presenceRef, { [field]: value }, { merge: true });
     } else {
-      await setDoc(presenceRef, { 
-        esploratoreId: scoutId, 
-        attivitaId: activityId, 
-        [field]: value 
+      await setDoc(presenceRef, {
+        esploratoreId: scoutId,
+        attivitaId: activityId,
+        [field]: value
       });
     }
-    
+
     if (currentUser) {
       await this.addAuditLog(
-        'update', 
-        'presences', 
-        `${scoutId}_${activityId}`, 
-        { field, value, scoutId, activityId }, 
-        currentUser.uid, 
+        'update',
+        'presences',
+        `${scoutId}_${activityId}`,
+        { field, value, scoutId, activityId },
+        currentUser.uid,
         currentUser.email
       );
     }
@@ -320,10 +320,10 @@ const UI = {
   activityToDeleteId: null,
   state: { scouts: [], staff: [], activities: [], presences: [] },
   currentUser: null,
-  
+
   qs(selector) { return document.querySelector(selector); },
   qsa(selector) { return document.querySelectorAll(selector); },
-  
+
   // Notifiche non bloccanti
   showToast(message, opts = {}) {
     const { type = 'success', duration = 2500 } = opts || {};
@@ -369,21 +369,21 @@ const UI = {
     // click to dismiss
     toast.addEventListener('click', remove);
   },
-  
-  
+
+
   async init() {
     try {
       DATA.useFirestore();
       console.log('UI.init: Initializing...');
       this.logNetworkInfo();
-      
+
       // Carica header e modali condivisi
       await this.loadSharedComponents();
 
       // Prefetch pagine usate spesso
       try {
         const links = [
-          'presenze.html','dashboard.html','calendario.html','esploratori.html','staff.html','audit-logs.html'
+          'presenze.html', 'dashboard.html', 'calendario.html', 'esploratori.html', 'staff.html', 'audit-logs.html'
         ];
         links.forEach(href => {
           const l = document.createElement('link');
@@ -391,7 +391,7 @@ const UI = {
           l.href = href;
           document.head.appendChild(l);
         });
-      } catch {}
+      } catch { }
 
       // Nascondi la modale login fino a quando lo stato auth non è noto
       const loginModal = this.qs('#loginModal');
@@ -399,22 +399,22 @@ const UI = {
 
       // Wiring eventi condivisi (serve anche per il login form)
       this.setupEventListeners();
-      
+
       // Inizializza Firebase Auth
       // Imposta persistenza locale della sessione sull'istanza corretta
-      try { await setPersistence(DATA.adapter.auth, browserLocalPersistence); } catch(e) { console.warn('Auth persistence set failed:', e); }
+      try { await setPersistence(DATA.adapter.auth, browserLocalPersistence); } catch (e) { console.warn('Auth persistence set failed:', e); }
 
       onAuthStateChanged(DATA.adapter.auth, async (user) => {
         this.currentUser = user;
         if (user) {
           const emailEl = this.qs('#loggedInUserEmail');
-          if (emailEl) { emailEl.textContent = ''; try { emailEl.style.display = 'none'; } catch {} }
+          if (emailEl) { emailEl.textContent = ''; try { emailEl.style.display = 'none'; } catch { } }
           this.qs('#logoutButton').style.display = 'block';
           this.closeModal('loginModal');
           const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
           this.state = await DATA.loadAll();
           const t1 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-          try { console.info('[Perf] DATA.loadAll total ms:', Math.round(t1 - t0)); } catch {}
+          try { console.info('[Perf] DATA.loadAll total ms:', Math.round(t1 - t0)); } catch { }
           this.rebuildPresenceIndex();
           // Selezione staff: auto-seleziona se email corrisponde, altrimenti apri modale
           const match = (this.state.staff || []).find(s => (s.email || '').toLowerCase() === (user.email || '').toLowerCase());
@@ -427,10 +427,10 @@ const UI = {
           const r0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
           this.renderCurrentPage();
           const r1 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-          try { console.info('[Perf] renderCurrentPage ms:', Math.round(r1 - r0)); } catch {}
+          try { console.info('[Perf] renderCurrentPage ms:', Math.round(r1 - r0)); } catch { }
         } else {
           const emailEl = this.qs('#loggedInUserEmail');
-          if (emailEl) { emailEl.textContent = ''; try { emailEl.style.display = 'none'; } catch {} }
+          if (emailEl) { emailEl.textContent = ''; try { emailEl.style.display = 'none'; } catch { } }
           this.qs('#logoutButton').style.display = 'none';
           this.showModal('loginModal');
         }
@@ -440,19 +440,19 @@ const UI = {
       this.setupInstallPrompt();
       // Avvia una sonda di connettività non bloccante
       this.runConnectivityProbe();
-      
+
     } catch (error) {
       console.error('UI.init error:', error);
     }
   },
-  
+
   async loadSharedComponents() {
     try {
       // Carica header condiviso
       const headerResponse = await fetch('shared.html');
       const headerHtml = await headerResponse.text();
       this.qs('#shared-header').innerHTML = headerHtml;
-      
+
       // Carica modali condivisi
       const modalsResponse = await fetch('modals.html');
       const modalsHtml = await modalsResponse.text();
@@ -461,7 +461,7 @@ const UI = {
       console.error('Errore nel caricamento componenti condivisi:', error);
     }
   },
-  
+
   setupEventListeners() {
     // Event listeners condivisi
     const logoutBtn = this.qs('#logoutButton');
@@ -472,7 +472,7 @@ const UI = {
         console.error('Logout error:', error);
       }
     });
-    
+
     // Hamburger menu
     const hamburgerIcon = this.qs('.hamburger-icon');
     const navLinks = this.qs('.nav-links');
@@ -481,22 +481,22 @@ const UI = {
         navLinks.classList.toggle('active');
       });
     }
-    
+
     // Login form
     const loginForm = this.qs('#loginForm');
     if (loginForm && !loginForm._bound) {
       loginForm._bound = true;
       loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+        e.preventDefault();
         const email = this.qs('#loginEmail').value.trim();
-      const password = this.qs('#loginPassword').value;
-      const loginError = this.qs('#loginError');
-      loginError.textContent = '';
+        const password = this.qs('#loginPassword').value;
+        const loginError = this.qs('#loginError');
+        loginError.textContent = '';
         console.log('Tentativo login per:', email);
-      try {
-        await signInWithEmailAndPassword(DATA.adapter.auth, email, password);
+        try {
+          await signInWithEmailAndPassword(DATA.adapter.auth, email, password);
           console.log('Login riuscito per:', email);
-      } catch (error) {
+        } catch (error) {
           console.error('Login error:', error.code, error.message);
           let msg = 'Accesso non riuscito.';
           switch (error.code) {
@@ -510,7 +510,7 @@ const UI = {
         }
       });
     }
-    
+
     // Modali event listeners
     this.setupModalEventListeners();
   },
@@ -543,100 +543,99 @@ const UI = {
       this.qs('#installAppBtn')?.addEventListener('click', async () => {
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
-        try { await deferredPrompt.userChoice; } catch {}
+        try { await deferredPrompt.userChoice; } catch { }
         deferredPrompt = null;
         bar.remove();
       });
     });
   },
-  
+
   setupModalEventListeners() {
-    // Edit Staff Form
-    const editStaffForm = this.qs('#editStaffForm');
-    if (editStaffForm) editStaffForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!this.currentUser) { alert('Devi essere loggato per modificare staff.'); return; }
-      const id = this.qs('#editStaffId').value;
-      const nome = this.qs('#editStaffNome').value.trim();
-      const cognome = this.qs('#editStaffCognome').value.trim();
-      const email = this.qs('#editStaffEmail').value.trim();
-      await DATA.updateStaff({ id, nome, cognome, email }, this.currentUser);
-      this.closeModal('editStaffModal');
-      this.state = await DATA.loadAll(); 
-      this.rebuildPresenceIndex(); 
-      this.renderCurrentPage();
-    });
-    
     // Confirm Delete Staff
     const confirmDeleteStaffButton = this.qs('#confirmDeleteStaffButton');
-    if (confirmDeleteStaffButton) confirmDeleteStaffButton.addEventListener('click', async () => {
-      if (!this.currentUser) { alert('Devi essere loggato per eliminare staff.'); return; }
-      if (!this.staffToDeleteId) return;
-      await DATA.deleteStaff(this.staffToDeleteId, this.currentUser);
-      this.staffToDeleteId = null;
-      this.closeModal('confirmDeleteStaffModal');
-      this.state = await DATA.loadAll(); 
-      this.rebuildPresenceIndex(); 
-      this.renderCurrentPage();
-    });
-    
+    if (confirmDeleteStaffButton && !confirmDeleteStaffButton._bound) {
+      confirmDeleteStaffButton._bound = true;
+      confirmDeleteStaffButton.addEventListener('click', async () => {
+        if (!this.currentUser) { alert('Devi essere loggato per eliminare staff.'); return; }
+        if (!this.staffToDeleteId) return;
+        await DATA.deleteStaff(this.staffToDeleteId, this.currentUser);
+        this.staffToDeleteId = null;
+        this.closeModal('confirmDeleteStaffModal');
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.renderCurrentPage();
+      });
+    }
+
     // Edit Scout Form
     const editScoutForm = this.qs('#editScoutForm');
-    if (editScoutForm) editScoutForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!this.currentUser) { alert('Devi essere loggato per modificare esploratori.'); return; }
-      const id = this.qs('#editScoutId').value;
-      const nome = this.qs('#editScoutNome').value.trim();
-      const cognome = this.qs('#editScoutCognome').value.trim();
-      await DATA.updateScout(id, { id, nome, cognome }, this.currentUser);
-      this.closeModal('editScoutModal');
-      this.state = await DATA.loadAll(); 
-      this.rebuildPresenceIndex(); 
-      this.renderCurrentPage();
-    });
-    
+    if (editScoutForm && !editScoutForm._bound) {
+      editScoutForm._bound = true;
+      editScoutForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!this.currentUser) { alert('Devi essere loggato per modificare esploratori.'); return; }
+        const id = this.qs('#editScoutId').value;
+        const nome = this.qs('#editScoutNome').value.trim();
+        const cognome = this.qs('#editScoutCognome').value.trim();
+        await DATA.updateScout(id, { id, nome, cognome }, this.currentUser);
+        this.closeModal('editScoutModal');
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.renderCurrentPage();
+      });
+    }
+
     // Confirm Delete Scout
     const confirmDeleteScoutButton = this.qs('#confirmDeleteScoutButton');
-    if (confirmDeleteScoutButton) confirmDeleteScoutButton.addEventListener('click', async () => {
-      if (!this.currentUser) { alert('Devi essere loggato per eliminare esploratori.'); return; }
-      if (!this.scoutToDeleteId) return;
-      await DATA.deleteScout(this.scoutToDeleteId, this.currentUser);
-      this.scoutToDeleteId = null;
-      this.closeModal('confirmDeleteScoutModal');
-      this.state = await DATA.loadAll(); 
-      this.rebuildPresenceIndex(); 
-      this.renderCurrentPage();
-    });
-    
+    if (confirmDeleteScoutButton && !confirmDeleteScoutButton._bound) {
+      confirmDeleteScoutButton._bound = true;
+      confirmDeleteScoutButton.addEventListener('click', async () => {
+        if (!this.currentUser) { alert('Devi essere loggato per eliminare esploratori.'); return; }
+        if (!this.scoutToDeleteId) return;
+        await DATA.deleteScout(this.scoutToDeleteId, this.currentUser);
+        this.scoutToDeleteId = null;
+        this.closeModal('confirmDeleteScoutModal');
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.renderCurrentPage();
+      });
+    }
+
     // Edit Activity Form
     const editActivityForm = this.qs('#editActivityForm');
-    if (editActivityForm) editActivityForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!this.currentUser) { alert('Devi essere loggato per modificare attività.'); return; }
-      const id = this.qs('#editActivityId').value;
-      const tipo = this.qs('#editActivityTipo').value;
-      const data = new Date(this.qs('#editActivityData').value);
-      const descrizione = this.qs('#editActivityDescrizione').value.trim();
-      const costo = this.qs('#editActivityCosto').value || '0';
-      await DATA.updateActivity({ id, tipo, data, descrizione, costo }, this.currentUser);
-      this.closeModal('editActivityModal');
-      this.state = await DATA.loadAll(); 
-      this.rebuildPresenceIndex(); 
-      this.renderCurrentPage();
-    });
-    
+    if (editActivityForm && !editActivityForm._bound) {
+      editActivityForm._bound = true;
+      editActivityForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!this.currentUser) { alert('Devi essere loggato per modificare attività.'); return; }
+        const id = this.qs('#editActivityId').value;
+        const tipo = this.qs('#editActivityTipo').value;
+        const data = new Date(this.qs('#editActivityData').value);
+        const descrizione = this.qs('#editActivityDescrizione').value.trim();
+        const costo = this.qs('#editActivityCosto').value || '0';
+        await DATA.updateActivity({ id, tipo, data, descrizione, costo }, this.currentUser);
+        this.closeModal('editActivityModal');
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.renderCurrentPage();
+      });
+    }
+
     // Confirm Delete Activity
     const confirmDeleteActivityButton = this.qs('#confirmDeleteActivityButton');
-    if (confirmDeleteActivityButton) confirmDeleteActivityButton.addEventListener('click', async () => {
-      if (!this.currentUser) { alert('Devi essere loggato per eliminare attività.'); return; }
-      if (!this.activityToDeleteId) return;
-      await DATA.deleteActivity(this.activityToDeleteId, this.currentUser);
-      this.activityToDeleteId = null;
-      this.closeModal('confirmDeleteActivityModal');
-      this.state = await DATA.loadAll(); 
-      this.rebuildPresenceIndex(); 
-      this.renderCurrentPage();
-    });
+    if (confirmDeleteActivityButton && !confirmDeleteActivityButton._bound) {
+      confirmDeleteActivityButton._bound = true;
+      confirmDeleteActivityButton.addEventListener('click', async () => {
+        if (!this.currentUser) { alert('Devi essere loggato per eliminare attività.'); return; }
+        if (!this.activityToDeleteId) return;
+        await DATA.deleteActivity(this.activityToDeleteId, this.currentUser);
+        this.activityToDeleteId = null;
+        this.closeModal('confirmDeleteActivityModal');
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.renderCurrentPage();
+      });
+    }
   },
 
   renderStaffSelectionList() {
@@ -665,12 +664,12 @@ const UI = {
     // Rirender per abilitare le select nelle tabelle
     this.renderCurrentPage();
   },
-  
- // renderCurrentPage() {
-    // Questa funzione sarà sovrascritta da ogni pagina specifica
-   // console.log('Rendering current page...');
+
+  // renderCurrentPage() {
+  // Questa funzione sarà sovrascritta da ogni pagina specifica
+  // console.log('Rendering current page...');
   //},
-  
+
   // Funzioni condivise per modali, rendering, etc.
   showModal(modalId) {
     const modal = this.qs(`#${modalId}`);
@@ -678,23 +677,15 @@ const UI = {
       modal.classList.add('show');
     }
   },
-  
+
   closeModal(modalId) {
     const modal = this.qs(`#${modalId}`);
     if (modal) {
       modal.classList.remove('show');
     }
   },
-  
-  // Funzioni di utilità
-  debounce(fn, wait = 250) {
-    let timeoutId;
-    return function(...args) {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => fn.apply(this, args), wait);
-    };
-  },
 
+  // Funzioni di utilità
   logNetworkInfo() {
     try {
       const nav = navigator;
@@ -707,7 +698,7 @@ const UI = {
           saveData: c.saveData
         });
       }
-    } catch {}
+    } catch { }
   },
 
   async runConnectivityProbe() {
@@ -728,7 +719,7 @@ const UI = {
       // Firebase Auth JS (CDN) - test di connettività esterna
       t('firebase-auth.js', 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js');
       // Nota: generate_204 rimosso perché non supporta CORS e genera errori
-    } catch {}
+    } catch { }
   },
 
   async renderInBatches({ container, items, renderItem, batchSize = 100 }) {
@@ -754,7 +745,7 @@ const UI = {
     }
     return new Date(firestoreDate);
   },
-  
+
   rebuildPresenceIndex() {
     // Ricostruisce l'indice delle presenze per ottimizzare le ricerche
     this.presenceIndex = new Map();
@@ -771,7 +762,7 @@ const UI = {
     }
     return Array.isArray(this.state.presences) ? this.state.presences : [];
   },
-  
+
   // Funzioni per audit logs
   async loadAuditLogs() {
     if (DATA.adapter.constructor.name === 'FirestoreAdapter') {
@@ -798,11 +789,11 @@ const UI = {
     this.renderCurrentPage();
     // Se siamo in dashboard, aggiorna i grafici se esiste la funzione
     if (typeof this.renderDashboardCharts === 'function') {
-      try { this.renderDashboardCharts(); } catch {}
+      try { this.renderDashboardCharts(); } catch { }
     }
     // Aggiorna anche la sezione pagamenti per attività se presente
     if (typeof this.renderPaymentsPerActivity === 'function') {
-      try { this.renderPaymentsPerActivity(); } catch {}
+      try { this.renderPaymentsPerActivity(); } catch { }
     }
   },
 
@@ -820,10 +811,10 @@ const UI = {
     this.rebuildPresenceIndex();
     this.renderCurrentPage();
     if (typeof this.renderDashboardCharts === 'function') {
-      try { this.renderDashboardCharts(); } catch {}
+      try { this.renderDashboardCharts(); } catch { }
     }
     if (typeof this.renderPaymentsPerActivity === 'function') {
-      try { this.renderPaymentsPerActivity(); } catch {}
+      try { this.renderPaymentsPerActivity(); } catch { }
     }
   },
 

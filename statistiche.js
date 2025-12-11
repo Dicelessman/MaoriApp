@@ -35,16 +35,6 @@ UI.daysBetween = function(date1, date2) {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 };
 
-// Funzione helper per dedurre il sesso dal codice fiscale italiano
-UI.getSessoFromCF = function(cf) {
-  if (!cf || cf.length < 16) return null;
-  // Il carattere 10-11 del CF indica il mese di nascita, ma per il sesso
-  // dobbiamo guardare il giorno: se > 40 è femmina
-  const giorno = parseInt(cf.substring(9, 11));
-  if (isNaN(giorno)) return null;
-  return giorno > 40 ? 'F' : 'M';
-};
-
 // Funzione helper per calcolare l'anno dell'esploratore
 UI.getAnnoEsploratore = function(dob) {
   if (!dob) return null;

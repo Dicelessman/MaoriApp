@@ -1,50 +1,61 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Presenze - Scout Maori</title>
-    <meta name="description" content="Registro presenze Reparto Scout Maori" />
-    <meta name="theme-color" content="#16a34a" />
-    
-    <!-- Favicon e icone -->
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-    <link rel="apple-touch-icon" href="icon-192.png" />
-    
-    <!-- Manifest PWA -->
-    <link rel="manifest" href="manifest.json" />
-    
-    <!-- CSS -->
-    <link rel="stylesheet" href="style.css" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Presenze - Scout Maori</title>
+  <meta name="description" content="Registro presenze Reparto Scout Maori" />
+  <meta name="theme-color" content="#16a34a" />
+
+  <!-- Favicon e icone -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
 </head>
+
 <body class="bg-gray-100 flex flex-col min-h-screen">
   <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
-    
+
     <!-- Header condiviso -->
     <div id="shared-header"></div>
-    
+
     <!-- Main -->
     <main class="p-6">
       <!-- Modali condivisi -->
       <div id="shared-modals"></div>
-      
+
       <!-- Contenuto specifico Presenze -->
       <section id="presencesTab" class="tab-content active">
-        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Registro Presenze</h2>
-        
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-2xl font-semibold text-gray-700">Registro Presenze</h2>
+          <button onclick="UI.exportToCSV()" class="btn-primary px-4 py-2 text-sm">📊 Esporta CSV</button>
+        </div>
+
         <!-- Pulsanti di navigazione colonne 2 -->
         <div class="flex items-center justify-center gap-2 mb-3 w-full">
-          <button id="scrollPrevBtn" class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg" title="Colonna precedente">‹</button>
-          <button id="scrollNextBtn" class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg" title="Colonna successiva">›</button>
-          <button id="scrollToNextActivityBtn" class="px-4 py-1.5 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors font-semibold text-sm" title="Vai alla prossima attività">Prossima</button>
+          <button id="scrollPrevBtn"
+            class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg"
+            title="Colonna precedente">‹</button>
+          <button id="scrollNextBtn"
+            class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg"
+            title="Colonna successiva">›</button>
+          <button id="scrollToNextActivityBtn"
+            class="px-4 py-1.5 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors font-semibold text-sm"
+            title="Vai alla prossima attività">Prossima</button>
         </div>
-        
+
         <div id="presenceTableContainer" class="overflow-x-auto rounded-lg shadow-sm border border-gray-200 w-full">
           <table class="presence-table bg-white">
             <thead>
@@ -73,4 +84,5 @@
     }
   </script>
 </body>
+
 </html>
