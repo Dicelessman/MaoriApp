@@ -6,7 +6,7 @@
 // Import Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import {
-  getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot, getDoc
+  getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot, getDoc, query, limit, startAfter, orderBy, select, where
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
@@ -168,7 +168,8 @@ class FirestoreAdapter {
     }
   }
 
-  async loadAll() {
+  async loadAll(options = {}) {
+    const { useSelect = false, pageSize = null } = options;
     const timers = { start: (typeof performance !== 'undefined' ? performance.now() : Date.now()) };
     const timed = async (label, promise) => {
       const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -177,6 +178,10 @@ class FirestoreAdapter {
       timers[label] = Math.round(t1 - t0);
       return res;
     };
+    
+    // Query ottimizzate: usa .select() solo per campi necessari se richiesto
+    // Nota: per ora manteniamo tutti i campi per retrocompatibilità
+    // Ma possiamo ottimizzare in futuro se necessario
     const [scoutsSnap, staffSnap, actsSnap, presSnap] = await Promise.all([
       timed('scouts', getDocs(this.cols.scouts)),
       timed('staff', getDocs(this.cols.staff)),
@@ -193,6 +198,89 @@ class FirestoreAdapter {
       activities: actsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
       presences: presSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     };
+  }
+  
+  /**
+   * Carica dati paginati da una collezione
+   * @param {string} collectionName - Nome collezione
+   * @param {Object} options - Opzioni query
+   * @param {number} options.pageSize - Numero documenti per pagina
+   * @param {string} options.orderByField - Campo per ordinamento
+   * @param {string} options.orderDirection - Direzione ordinamento ('asc' | 'desc')
+   * @param {any} options.startAfterDoc - Documento dopo cui iniziare (per paginazione)
+   * @param {Array} options.selectFields - Campi da selezionare (usa .select())
+   * @returns {Promise<{docs: Array, lastDoc: any}>}
+   */
+  async loadCollectionPaginated(collectionName, options = {}) {
+    const {
+      pageSize = 50,
+      orderByField = null,
+      orderDirection = 'asc',
+      startAfterDoc = null,
+      selectFields = null
+    } = options;
+    
+    let q = query(this.cols[collectionName]);
+    
+    // Ordina se richiesto
+    if (orderByField) {
+      q = query(q, orderBy(orderByField, orderDirection));
+    }
+    
+    // Pagina
+    if (pageSize) {
+      q = query(q, limit(pageSize));
+    }
+    
+    // Continua da documento specifico
+    if (startAfterDoc) {
+      q = query(q, startAfter(startAfterDoc));
+    }
+    
+    // Seleziona solo campi specifici (riduce banda)
+    if (selectFields && Array.isArray(selectFields) && selectFields.length > 0) {
+      q = query(q, select(...selectFields));
+    }
+    
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+    
+    return { docs, lastDoc, hasMore: snapshot.docs.length === pageSize };
+  }
+  
+  /**
+   * Query con filtri e limiti
+   * @param {string} collectionName - Nome collezione
+   * @param {Object} filters - Filtri {field: value}
+   * @param {Object} options - Opzioni aggiuntive
+   * @returns {Promise<Array>}
+   */
+  async queryCollection(collectionName, filters = {}, options = {}) {
+    let q = query(this.cols[collectionName]);
+    
+    // Applica filtri
+    Object.entries(filters).forEach(([field, value]) => {
+      q = query(q, where(field, '==', value));
+    });
+    
+    // Ordinamento
+    if (options.orderBy) {
+      q = query(q, orderBy(options.orderBy, options.orderDirection || 'asc'));
+    }
+    
+    // Limite
+    if (options.limit) {
+      q = query(q, limit(options.limit));
+    }
+    
+    // Select campi specifici
+    if (options.select && Array.isArray(options.select) && options.select.length > 0) {
+      q = query(q, select(...options.select));
+    }
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 
   async addAuditLog(action, collection, documentId, changes, userId, userEmail) {
@@ -3544,6 +3632,12 @@ const UI = {
       if (onComplete) onComplete();
       return; 
     }
+    
+    // Se > 100 elementi, usa virtualizzazione
+    if (items.length > 100) {
+      return this.renderVirtualizedList({ container, items, renderItem, onComplete });
+    }
+    
     if (items.length <= batchSize) {
       container.innerHTML = items.map(renderItem).join('');
       if (onComplete) onComplete();
@@ -3570,6 +3664,114 @@ const UI = {
     
     // Chiama callback onComplete se fornita
     if (onComplete) onComplete();
+  },
+
+  /**
+   * Renderizza lista virtualizzata (solo elementi visibili)
+   * @param {Object} options - Opzioni rendering
+   * @param {HTMLElement} options.container - Container della lista
+   * @param {Array} options.items - Array elementi da renderizzare
+   * @param {Function} options.renderItem - Funzione per renderizzare un singolo elemento
+   * @param {Function} options.onComplete - Callback chiamata dopo rendering
+   * @param {number} options.itemHeight - Altezza stimata item in px (default: 80)
+   * @param {number} options.overscan - Numero elementi da renderizzare fuori viewport (default: 5)
+   */
+  renderVirtualizedList({ container, items, renderItem, onComplete, itemHeight = 80, overscan = 5 }) {
+    if (!container) return;
+    if (!Array.isArray(items) || items.length === 0) {
+      container.innerHTML = '';
+      if (onComplete) onComplete();
+      return;
+    }
+
+    // Crea wrapper per virtualizzazione
+    const virtualId = `virtual-${container.id || 'list'}`;
+    let virtualWrapper = document.getElementById(virtualId);
+    
+    if (!virtualWrapper) {
+      virtualWrapper = document.createElement('div');
+      virtualWrapper.id = virtualId;
+      virtualWrapper.className = 'virtual-list-wrapper';
+      virtualWrapper.style.position = 'relative';
+      virtualWrapper.style.overflow = 'auto';
+      virtualWrapper.style.height = '100%';
+      
+      // Sostituisci container originale
+      container.parentNode?.insertBefore(virtualWrapper, container);
+      container.style.display = 'none';
+    }
+    
+    // Calcola altezza totale
+    const totalHeight = items.length * itemHeight;
+    
+    // Crea placeholder per altezza totale
+    let placeholder = virtualWrapper.querySelector('.virtual-list-placeholder');
+    if (!placeholder) {
+      placeholder = document.createElement('div');
+      placeholder.className = 'virtual-list-placeholder';
+      placeholder.style.height = `${totalHeight}px`;
+      placeholder.style.position = 'relative';
+      virtualWrapper.appendChild(placeholder);
+    } else {
+      placeholder.style.height = `${totalHeight}px`;
+    }
+    
+    // Container per elementi visibili
+    let visibleContainer = virtualWrapper.querySelector('.virtual-list-visible');
+    if (!visibleContainer) {
+      visibleContainer = document.createElement('div');
+      visibleContainer.className = 'virtual-list-visible';
+      visibleContainer.style.position = 'absolute';
+      visibleContainer.style.top = '0';
+      visibleContainer.style.left = '0';
+      visibleContainer.style.right = '0';
+      virtualWrapper.appendChild(visibleContainer);
+    }
+    
+    // Funzione per renderizzare elementi visibili
+    const renderVisible = () => {
+      const scrollTop = virtualWrapper.scrollTop || 0;
+      const viewportHeight = virtualWrapper.clientHeight || container.parentElement?.clientHeight || 600;
+      
+      // Calcola range visibile
+      const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
+      const endIndex = Math.min(items.length - 1, Math.ceil((scrollTop + viewportHeight) / itemHeight) + overscan);
+      
+      // Renderizza solo elementi visibili
+      const visibleItems = items.slice(startIndex, endIndex + 1);
+      const offsetTop = startIndex * itemHeight;
+      
+      visibleContainer.style.transform = `translateY(${offsetTop}px)`;
+      visibleContainer.innerHTML = visibleItems.map((item, idx) => {
+        const actualIndex = startIndex + idx;
+        return `<div class="virtual-list-item" data-index="${actualIndex}" style="height: ${itemHeight}px;">${renderItem(item, actualIndex)}</div>`;
+      }).join('');
+    };
+    
+    // Renderizza iniziale
+    renderVisible();
+    
+    // Throttle scroll per performance
+    let scrollTimeout;
+    virtualWrapper.addEventListener('scroll', () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(renderVisible, 16); // ~60fps
+    }, { passive: true });
+    
+    // Resize observer per viewport changes
+    if (window.ResizeObserver) {
+      const resizeObserver = new ResizeObserver(() => {
+        renderVisible();
+      });
+      resizeObserver.observe(virtualWrapper);
+    }
+    
+    // Chiama onComplete dopo rendering iniziale
+    if (onComplete) {
+      requestAnimationFrame(() => {
+        onComplete();
+      });
+    }
   },
 
   toJsDate(firestoreDate) {

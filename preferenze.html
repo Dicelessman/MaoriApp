@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Preferenze - Scout Maori</title>
+    <meta name="description" content="Gestione preferenze utente" />
+    <meta name="theme-color" content="#16a34a" />
+    
+    <!-- Favicon e icone -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="manifest.json" />
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+    
+    <!-- Header condiviso -->
+    <div id="shared-header"></div>
+    
+    <!-- Main -->
+    <main class="p-6">
+      <!-- Modali condivisi -->
+      <div id="shared-modals"></div>
+      
+      <!-- Contenuto Preferenze -->
+      <section id="preferencesTab" class="tab-content active">
+        <h2 class="text-2xl font-semibold text-gray-700 mb-6">Preferenze Utente</h2>
+        
+        <div class="space-y-6">
+          
+          <!-- Tema -->
+          <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">🎨 Aspetto</h3>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Tema</label>
+                  <p class="text-sm text-gray-500">Scegli tra tema chiaro o scuro</p>
+                </div>
+                <select id="themeSelect" class="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="light">Chiaro</option>
+                  <option value="dark">Scuro</option>
+                  <option value="auto">Automatico (segue sistema)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notifiche -->
+          <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">🔔 Notifiche</h3>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Notifiche Abilitate</label>
+                  <p class="text-sm text-gray-500">Abilita notifiche push del browser</p>
+                  <span id="notificationPermissionStatus" class="text-xs text-gray-400 mt-1"></span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notificationsEnabled" class="sr-only peer">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                </label>
+              </div>
+              
+              <div class="ml-4 space-y-3 border-l-2 border-gray-300 pl-4">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Promemoria Attività</label>
+                    <p class="text-sm text-gray-500">Notifica 3 giorni prima di un'attività</p>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="notificationActivityReminders" class="sr-only peer" disabled>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50"></div>
+                  </label>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Promemoria Pagamenti</label>
+                    <p class="text-sm text-gray-500">Notifica per pagamenti mancanti</p>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="notificationPaymentReminders" class="sr-only peer" disabled>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50"></div>
+                  </label>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Modifiche Importanti</label>
+                    <p class="text-sm text-gray-500">Notifica per cambiamenti significativi</p>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="notificationImportantChanges" class="sr-only peer" disabled>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50"></div>
+                  </label>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Compleanni Esploratori</label>
+                    <p class="text-sm text-gray-500">Notifica per compleanni degli esploratori</p>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="notificationBirthdayReminders" class="sr-only peer" disabled>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visualizzazione -->
+          <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">👁️ Visualizzazione</h3>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Vista Predefinita</label>
+                  <p class="text-sm text-gray-500">Pagina da aprire all'accesso</p>
+                </div>
+                <select id="defaultViewSelect" class="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="">Automatica</option>
+                  <option value="presenze.html">Presenze</option>
+                  <option value="dashboard.html">Dashboard</option>
+                  <option value="calendario.html">Calendario</option>
+                  <option value="esploratori.html">Esploratori</option>
+                  <option value="staff.html">Staff</option>
+                </select>
+              </div>
+              
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Ordinamento Attività</label>
+                  <p class="text-sm text-gray-500">Come ordinare le attività nel calendario</p>
+                </div>
+                <select id="activityOrderSelect" class="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="">Data (cronologico)</option>
+                  <option value="name">Nome</option>
+                  <option value="type">Tipo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dati e Sincronizzazione -->
+          <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">💾 Dati</h3>
+            <div class="space-y-3">
+              <button id="syncPreferencesBtn" class="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                🔄 Sincronizza Preferenze
+              </button>
+              <p class="text-sm text-gray-500">Sincronizza le preferenze con il server (se loggato)</p>
+            </div>
+          </div>
+
+          <!-- Pulsanti Azione -->
+          <div class="flex flex-col sm:flex-row gap-3 pt-4">
+            <button id="savePreferencesBtn" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 font-medium">
+              💾 Salva Preferenze
+            </button>
+            <button id="resetPreferencesBtn" class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium">
+              🔄 Ripristina Default
+            </button>
+          </div>
+
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="shared.js"></script>
+  <script type="module" src="preferenze.js"></script>
+</body>
+</html>
+
