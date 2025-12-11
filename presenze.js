@@ -1,9 +1,21 @@
 // presenze.js - Logica specifica per la pagina Presenze
 
-// Sovrascrive la funzione renderCurrentPage
-UI.renderCurrentPage = function() {
-  this.renderPresenceTable();
-};
+// Aspetta che UI sia disponibile (caricato da shared.js)
+(function() {
+  const init = () => {
+    const ui = typeof window !== 'undefined' ? window.UI : (typeof UI !== 'undefined' ? UI : null);
+    if (ui) {
+      // Sovrascrive la funzione renderCurrentPage
+      ui.renderCurrentPage = function() {
+        this.renderPresenceTable();
+      };
+    } else {
+      // Aspetta ancora che shared.js finisca di caricare
+      setTimeout(init, 10);
+    }
+  };
+  init();
+})();
 
 // UI.setupPresenceEventListeners = function() {
   // Event listeners specifici per le presenze (mobile nav)

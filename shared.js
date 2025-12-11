@@ -6,7 +6,7 @@
 // Import Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import {
-  getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot, getDoc, query, limit, startAfter, orderBy, select, where
+  getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot, getDoc, query, limit, startAfter, orderBy, where
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
@@ -208,7 +208,7 @@ class FirestoreAdapter {
    * @param {string} options.orderByField - Campo per ordinamento
    * @param {string} options.orderDirection - Direzione ordinamento ('asc' | 'desc')
    * @param {any} options.startAfterDoc - Documento dopo cui iniziare (per paginazione)
-   * @param {Array} options.selectFields - Campi da selezionare (usa .select())
+   * @param {Array} options.selectFields - Campi da selezionare (non disponibile nel web SDK, ignorato)
    * @returns {Promise<{docs: Array, lastDoc: any}>}
    */
   async loadCollectionPaginated(collectionName, options = {}) {
@@ -237,10 +237,12 @@ class FirestoreAdapter {
       q = query(q, startAfter(startAfterDoc));
     }
     
-    // Seleziona solo campi specifici (riduce banda)
-    if (selectFields && Array.isArray(selectFields) && selectFields.length > 0) {
-      q = query(q, select(...selectFields));
-    }
+    // Nota: .select() non è disponibile nel web SDK di Firestore
+    // La limitazione dei campi è disponibile solo nell'Admin SDK (server-side)
+    // Per il web SDK, tutti i campi vengono trasferiti (ma la cache di Firestore aiuta)
+    // if (selectFields && Array.isArray(selectFields) && selectFields.length > 0) {
+    //   q = query(q, select(...selectFields));
+    // }
     
     const snapshot = await getDocs(q);
     const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -274,10 +276,12 @@ class FirestoreAdapter {
       q = query(q, limit(options.limit));
     }
     
-    // Select campi specifici
-    if (options.select && Array.isArray(options.select) && options.select.length > 0) {
-      q = query(q, select(...options.select));
-    }
+    // Nota: .select() non è disponibile nel web SDK di Firestore
+    // La limitazione dei campi è disponibile solo nell'Admin SDK (server-side)
+    // Per il web SDK, tutti i campi vengono trasferiti (ma la cache di Firestore aiuta)
+    // if (options.select && Array.isArray(options.select) && options.select.length > 0) {
+    //   q = query(q, select(...options.select));
+    // }
     
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
