@@ -1034,6 +1034,103 @@ const UI = {
     }, 200);
   },
 
+  // ============== User Preferences Management ==============
+  
+  /**
+   * Carica preferenze utente da Firestore o localStorage
+   * @returns {Object} Oggetto con le preferenze
+   */
+  loadUserPreferences() {
+    try {
+      // Prova prima da localStorage (veloce)
+      const local = localStorage.getItem('app-preferences');
+      if (local) {
+        try {
+          return JSON.parse(local);
+        } catch (e) {
+          console.warn('Errore parsing preferenze locali:', e);
+        }
+      }
+    } catch (e) {
+      console.warn('Errore lettura preferenze da localStorage:', e);
+    }
+    
+    // Preferenze di default
+    return {
+      theme: this.getCurrentTheme(),
+      activityOrder: null,
+      defaultView: null,
+      savedFilters: {},
+      notifications: {
+        activityReminders: true,
+        paymentReminders: true
+      }
+    };
+  },
+  
+  /**
+   * Salva preferenze utente in Firestore (se loggato) o localStorage
+   * @param {Object} preferences - Oggetto con le preferenze
+   */
+  async saveUserPreferences(preferences) {
+    try {
+      // Salva sempre in localStorage per accesso veloce
+      localStorage.setItem('app-preferences', JSON.stringify(preferences));
+      
+      // Se utente loggato, salva anche in Firestore
+      if (this.currentUser?.uid) {
+        try {
+          const userPrefsRef = doc(DATA.adapter.db, 'user-preferences', this.currentUser.uid);
+          await setDoc(userPrefsRef, {
+            ...preferences,
+            updatedAt: new Date(),
+            userId: this.currentUser.uid,
+            userEmail: this.currentUser.email
+          }, { merge: true });
+        } catch (error) {
+          console.warn('Errore salvataggio preferenze su Firestore:', error);
+          // Non bloccare se Firestore fallisce, localStorage è già salvato
+        }
+      }
+    } catch (e) {
+      console.error('Errore salvataggio preferenze:', e);
+      throw e;
+    }
+  },
+  
+  /**
+   * Sincronizza preferenze da Firestore (se loggato)
+   */
+  async syncUserPreferences() {
+    if (!this.currentUser?.uid) return;
+    
+    try {
+      const userPrefsRef = doc(DATA.adapter.db, 'user-preferences', this.currentUser.uid);
+      const userPrefsSnap = await getDoc(userPrefsRef);
+      
+      if (userPrefsSnap.exists()) {
+        const firestorePrefs = userPrefsSnap.data();
+        // Merge con preferenze locali (locali hanno priorità se più recenti)
+        const localPrefs = this.loadUserPreferences();
+        const merged = { ...firestorePrefs, ...localPrefs };
+        // Rimuovi metadati Firestore
+        delete merged.updatedAt;
+        delete merged.userId;
+        delete merged.userEmail;
+        
+        // Applica preferenze
+        if (merged.theme) {
+          this.applyTheme(merged.theme);
+        }
+        
+        // Salva merged
+        localStorage.setItem('app-preferences', JSON.stringify(merged));
+      }
+    } catch (error) {
+      console.warn('Errore sincronizzazione preferenze da Firestore:', error);
+    }
+  },
+
   // ============== Keyboard Shortcuts ==============
   
   /**
