@@ -93,6 +93,9 @@ UI.renderStatistiche = async function() {
   
   // Renderizza tabella pattuglie
   this.renderPattuglieTable(scouts);
+  
+  // Setup report presenze avanzati
+  this.renderPresenceReport();
 };
 
 // ============== Composizione del Reparto ==============
@@ -857,6 +860,366 @@ UI._destroyChart = function(chartId) {
   } catch (e) {
     console.error('Errore distruzione grafico:', e);
   }
+};
+
+// ============== Report Presenze Avanzati ==============
+UI.renderPresenceReport = function() {
+  // Setup event listeners per i filtri
+  const periodSelect = document.getElementById('presenceReportPeriod');
+  const customDateRange = document.getElementById('customDateRange');
+  const customDateRangeEnd = document.getElementById('customDateRangeEnd');
+  const generateBtn = document.getElementById('generatePresenceReport');
+  const printBtn = document.getElementById('printPresenceReport');
+  const exportBtn = document.getElementById('exportPresenceReportCSV');
+  const resultsDiv = document.getElementById('presenceReportResults');
+  
+  if (!periodSelect || !generateBtn) return;
+  
+  // Popola pattuglie
+  const pattugliaSelect = document.getElementById('presenceReportPattuglia');
+  if (pattugliaSelect) {
+    const scouts = this.state.scouts || [];
+    const pattuglie = [...new Set(scouts.map(s => s.pv_pattuglia).filter(Boolean))].sort();
+    pattuglie.forEach(p => {
+      const option = document.createElement('option');
+      option.value = p;
+      option.textContent = p;
+      pattugliaSelect.appendChild(option);
+    });
+  }
+  
+  // Mostra/nascondi date custom
+  periodSelect.addEventListener('change', () => {
+    const isCustom = periodSelect.value === 'custom';
+    if (customDateRange) customDateRange.style.display = isCustom ? 'block' : 'none';
+    if (customDateRangeEnd) customDateRangeEnd.style.display = isCustom ? 'block' : 'none';
+  });
+  
+  // Genera report
+  generateBtn.addEventListener('click', () => {
+    this.generatePresenceReport();
+  });
+  
+  // Print/PDF
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      window.print();
+    });
+  }
+  
+  // Export CSV
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      this.exportPresenceReportCSV();
+    });
+  }
+};
+
+UI.generatePresenceReport = function() {
+  const period = document.getElementById('presenceReportPeriod')?.value || 'current-month';
+  const pattuglia = document.getElementById('presenceReportPattuglia')?.value || '';
+  const startDateInput = document.getElementById('presenceReportStartDate');
+  const endDateInput = document.getElementById('presenceReportEndDate');
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  let startDate, endDate;
+  
+  // Calcola date in base al periodo
+  switch (period) {
+    case 'current-month':
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      break;
+    case 'last-month':
+      startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+      break;
+    case 'last-3-months':
+      startDate = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+      endDate = today;
+      break;
+    case 'current-year':
+      startDate = new Date(today.getFullYear(), 0, 1);
+      endDate = today;
+      break;
+    case 'last-year':
+      startDate = new Date(today.getFullYear() - 1, 0, 1);
+      endDate = new Date(today.getFullYear() - 1, 11, 31);
+      break;
+    case 'custom':
+      if (!startDateInput || !endDateInput) return;
+      startDate = new Date(startDateInput.value);
+      endDate = new Date(endDateInput.value);
+      break;
+    default:
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      endDate = today;
+  }
+  
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(23, 59, 59, 999);
+  
+  // Filtra attività nel periodo
+  const activities = (this.state.activities || []).filter(a => {
+    const activityDate = this.toJsDate(a.data);
+    if (!activityDate) return false;
+    return activityDate >= startDate && activityDate <= endDate;
+  }).sort((a, b) => this.toJsDate(a.data) - this.toJsDate(b.data));
+  
+  // Filtra scouts per pattuglia
+  let scouts = this.state.scouts || [];
+  if (pattuglia) {
+    scouts = scouts.filter(s => s.pv_pattuglia === pattuglia);
+  }
+  
+  // Calcola statistiche
+  const presences = this.getDedupedPresences();
+  const stats = {
+    byScout: {},
+    byActivity: {},
+    trend: []
+  };
+  
+  activities.forEach(activity => {
+    const activityDate = this.toJsDate(activity.data);
+    const dateKey = activityDate ? activityDate.toLocaleDateString('it-IT') : '';
+    
+    stats.byActivity[activity.id] = {
+      activity,
+      date: dateKey,
+      presenti: 0,
+      assenti: 0,
+      totale: 0
+    };
+    
+    stats.trend.push({
+      date: activityDate || new Date(),
+      dateKey,
+      presenti: 0,
+      assenti: 0
+    });
+  });
+  
+  scouts.forEach(scout => {
+    stats.byScout[scout.id] = {
+      scout,
+      presenti: 0,
+      assenti: 0,
+      totale: 0
+    };
+    
+    activities.forEach((activity, idx) => {
+      const presence = presences.find(p => p.esploratoreId === scout.id && p.attivitaId === activity.id);
+      
+      if (presence) {
+        if (presence.stato === 'Presente') {
+          stats.byScout[scout.id].presenti++;
+          stats.byActivity[activity.id].presenti++;
+          if (stats.trend[idx]) stats.trend[idx].presenti++;
+        } else if (presence.stato === 'Assente') {
+          stats.byScout[scout.id].assenti++;
+          stats.byActivity[activity.id].assenti++;
+          if (stats.trend[idx]) stats.trend[idx].assenti++;
+        }
+        
+        if (presence.stato === 'Presente' || presence.stato === 'Assente') {
+          stats.byScout[scout.id].totale++;
+          stats.byActivity[activity.id].totale++;
+        }
+      }
+    });
+  });
+  
+  // Renderizza risultati
+  this.renderPresenceReportResults(stats, startDate, endDate);
+  
+  // Salva stats per export
+  this._currentPresenceReportStats = stats;
+  this._currentPresenceReportDates = { startDate, endDate };
+};
+
+UI.renderPresenceReportResults = function(stats, startDate, endDate) {
+  const resultsDiv = document.getElementById('presenceReportResults');
+  const printBtn = document.getElementById('printPresenceReport');
+  const exportBtn = document.getElementById('exportPresenceReportCSV');
+  
+  if (!resultsDiv) return;
+  
+  resultsDiv.style.display = 'block';
+  if (printBtn) printBtn.style.display = 'inline-block';
+  if (exportBtn) exportBtn.style.display = 'inline-block';
+  
+  // Trend Chart
+  const ctxTrend = document.getElementById('presenceTrendChart');
+  if (ctxTrend) {
+    this._destroyChart('presenceTrendChart');
+    const chart = new Chart(ctxTrend, {
+      type: 'line',
+      data: {
+        labels: stats.trend.map(t => t.dateKey),
+        datasets: [
+          {
+            label: 'Presenti',
+            data: stats.trend.map(t => t.presenti),
+            borderColor: '#16a34a',
+            backgroundColor: 'rgba(22, 163, 74, 0.1)',
+            tension: 0.4
+          },
+          {
+            label: 'Assenti',
+            data: stats.trend.map(t => t.assenti),
+            borderColor: '#dc2626',
+            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 } }
+        }
+      }
+    });
+    this._charts = this._charts || {};
+    this._charts.presenceTrendChart = chart;
+  }
+  
+  // Confronto periodi (mese corrente vs precedente)
+  const comparisonDiv = document.getElementById('periodComparison');
+  if (comparisonDiv) {
+    const currentPeriod = stats.trend.reduce((acc, t) => ({
+      presenti: acc.presenti + t.presenti,
+      assenti: acc.assenti + t.assenti
+    }), { presenti: 0, assenti: 0 });
+    
+    const totalCurrent = currentPeriod.presenti + currentPeriod.assenti;
+    const percCurrent = totalCurrent > 0 ? Math.round((currentPeriod.presenti / totalCurrent) * 100) : 0;
+    
+    // Calcola periodo precedente (stesso range di giorni ma periodo precedente)
+    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    const prevStartDate = new Date(startDate);
+    prevStartDate.setDate(prevStartDate.getDate() - daysDiff - 1);
+    const prevEndDate = new Date(startDate);
+    prevEndDate.setDate(prevEndDate.getDate() - 1);
+    
+    const prevActivities = (this.state.activities || []).filter(a => {
+      const activityDate = this.toJsDate(a.data);
+      if (!activityDate) return false;
+      return activityDate >= prevStartDate && activityDate <= prevEndDate;
+    });
+    
+    const prevPresences = this.getDedupedPresences();
+    const prevStats = prevActivities.reduce((acc, activity) => {
+      const presences = prevPresences.filter(p => p.attivitaId === activity.id);
+      const presenti = presences.filter(p => p.stato === 'Presente').length;
+      const assenti = presences.filter(p => p.stato === 'Assente').length;
+      return {
+        presenti: acc.presenti + presenti,
+        assenti: acc.assenti + assenti
+      };
+    }, { presenti: 0, assenti: 0 });
+    
+    const totalPrev = prevStats.presenti + prevStats.assenti;
+    const percPrev = totalPrev > 0 ? Math.round((prevStats.presenti / totalPrev) * 100) : 0;
+    
+    const diff = percCurrent - percPrev;
+    
+    comparisonDiv.innerHTML = `
+      <div class="bg-white p-4 rounded border">
+        <div class="text-sm text-gray-600 mb-2">Periodo Corrente</div>
+        <div class="text-2xl font-bold text-gray-700">${percCurrent}%</div>
+        <div class="text-sm text-gray-500">${currentPeriod.presenti} presenti / ${totalCurrent} totali</div>
+        <div class="text-xs text-gray-400 mt-1">${startDate.toLocaleDateString('it-IT')} - ${endDate.toLocaleDateString('it-IT')}</div>
+      </div>
+      <div class="bg-white p-4 rounded border">
+        <div class="text-sm text-gray-600 mb-2">Periodo Precedente</div>
+        <div class="text-2xl font-bold text-gray-700">${percPrev}%</div>
+        <div class="text-sm text-gray-500">${prevStats.presenti} presenti / ${totalPrev} totali</div>
+        <div class="text-xs text-gray-400 mt-1">${prevStartDate.toLocaleDateString('it-IT')} - ${prevEndDate.toLocaleDateString('it-IT')}</div>
+      </div>
+      <div class="bg-white p-4 rounded border col-span-2">
+        <div class="text-sm text-gray-600 mb-2">Differenza</div>
+        <div class="text-2xl font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-600'}">
+          ${diff >= 0 ? '+' : ''}${diff}%
+        </div>
+        <div class="text-sm text-gray-500">${diff >= 0 ? 'Miglioramento' : 'Peggioramento'} rispetto al periodo precedente</div>
+      </div>
+    `;
+  }
+  
+  // Tabella dettaglio
+  const tableBody = document.getElementById('presenceReportTableBody');
+  if (tableBody) {
+    const scoutStats = Object.values(stats.byScout)
+      .map(s => ({
+        ...s,
+        percentuale: s.totale > 0 ? Math.round((s.presenti / s.totale) * 100) : 0
+      }))
+      .sort((a, b) => b.percentuale - a.percentuale);
+    
+    tableBody.innerHTML = scoutStats.map(s => `
+      <tr class="border-b hover:bg-gray-50">
+        <td class="p-2">${s.scout.nome} ${s.scout.cognome}</td>
+        <td class="p-2">${s.scout.pv_pattuglia || 'N/A'}</td>
+        <td class="p-2 text-right">${s.presenti}</td>
+        <td class="p-2 text-right">${s.assenti}</td>
+        <td class="p-2 text-right">${s.totale}</td>
+        <td class="p-2 text-right font-semibold ${s.percentuale >= 75 ? 'text-green-600' : s.percentuale >= 60 ? 'text-yellow-600' : 'text-red-600'}">
+          ${s.percentuale}%
+        </td>
+      </tr>
+    `).join('');
+  }
+};
+
+UI.exportPresenceReportCSV = function() {
+  if (!this._currentPresenceReportStats) {
+    this.showToast('Genera prima un report', { type: 'error' });
+    return;
+  }
+  
+  const stats = this._currentPresenceReportStats;
+  const { startDate, endDate } = this._currentPresenceReportDates;
+  
+  const headers = ['Esploratore', 'Pattuglia', 'Presenze', 'Assenze', 'Totale', '% Presenze'];
+  const rows = Object.values(stats.byScout)
+    .map(s => {
+      const perc = s.totale > 0 ? Math.round((s.presenti / s.totale) * 100) : 0;
+      return [
+        `${s.scout.nome} ${s.scout.cognome}`,
+        s.scout.pv_pattuglia || 'N/A',
+        s.presenti,
+        s.assenti,
+        s.totale,
+        perc
+      ];
+    })
+    .sort((a, b) => b[5] - a[5]);
+  
+  const csv = [
+    headers.join(','),
+    ...rows.map(r => r.map(v => `"${v}"`).join(','))
+  ].join('\n');
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', `report-presenze-${startDate.toISOString().split('T')[0]}-${endDate.toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  this.showToast('Report esportato con successo', { type: 'success' });
 };
 
 

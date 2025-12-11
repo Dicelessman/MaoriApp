@@ -116,6 +116,85 @@
         </div>
       </section>
       
+      <!-- Sezione: Report Presenze Avanzati -->
+      <section class="mb-8">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4">Report Presenze Avanzati</h3>
+        
+        <!-- Filtri -->
+        <div class="bg-gray-50 p-6 rounded-lg shadow-inner mb-4">
+          <h4 class="text-lg font-semibold text-gray-700 mb-4">Filtri Report</h4>
+          <div class="grid md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Periodo</label>
+              <select id="presenceReportPeriod" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200">
+                <option value="current-month">Mese Corrente</option>
+                <option value="last-month">Mese Precedente</option>
+                <option value="last-3-months">Ultimi 3 Mesi</option>
+                <option value="current-year">Anno Corrente</option>
+                <option value="last-year">Anno Precedente</option>
+                <option value="custom">Personalizzato</option>
+              </select>
+            </div>
+            <div id="customDateRange" class="hidden">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Data Inizio</label>
+              <input type="date" id="presenceReportStartDate" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+            </div>
+            <div id="customDateRangeEnd" class="hidden">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Data Fine</label>
+              <input type="date" id="presenceReportEndDate" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Pattuglia</label>
+              <select id="presenceReportPattuglia" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200">
+                <option value="">Tutte</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button id="generatePresenceReport" class="btn-primary">Genera Report</button>
+            <button id="printPresenceReport" class="btn-secondary" style="display:none;">Stampa/PDF</button>
+            <button id="exportPresenceReportCSV" class="btn-secondary" style="display:none;">Esporta CSV</button>
+          </div>
+        </div>
+        
+        <!-- Report Results -->
+        <div id="presenceReportResults" style="display:none;">
+          <!-- Trend Presenze -->
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner mb-4">
+            <h4 class="text-lg font-semibold text-gray-700 mb-4">Trend Presenze nel Tempo</h4>
+            <div class="w-full" style="height: 400px;">
+              <canvas id="presenceTrendChart"></canvas>
+            </div>
+          </div>
+          
+          <!-- Confronto Periodi -->
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner mb-4">
+            <h4 class="text-lg font-semibold text-gray-700 mb-4">Confronto Periodi</h4>
+            <div id="periodComparison" class="grid md:grid-cols-2 gap-4"></div>
+          </div>
+          
+          <!-- Dettaglio Presenze per Esploratore -->
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner mb-4">
+            <h4 class="text-lg font-semibold text-gray-700 mb-4">Dettaglio Presenze per Esploratore</h4>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm">
+                <thead>
+                  <tr class="border-b">
+                    <th class="text-left p-2 font-semibold">Esploratore</th>
+                    <th class="text-left p-2 font-semibold">Pattuglia</th>
+                    <th class="text-right p-2 font-semibold">Presenze</th>
+                    <th class="text-right p-2 font-semibold">Assenze</th>
+                    <th class="text-right p-2 font-semibold">Totale</th>
+                    <th class="text-right p-2 font-semibold">% Presenze</th>
+                  </tr>
+                </thead>
+                <tbody id="presenceReportTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+      
       <!-- Sezione: Specialità -->
       <section class="mb-8">
         <h3 class="text-xl font-semibold text-gray-700 mb-4">Specialità</h3>
