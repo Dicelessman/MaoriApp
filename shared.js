@@ -2289,6 +2289,183 @@ const UI = {
   },
   
   /**
+   * Setup long press gesture per azioni contestuali
+   * @param {HTMLElement|NodeList} elements - Elementi su cui abilitare long press
+   * @param {Function|Object} handler - Callback quando viene eseguito long press, oppure oggetto con azioni
+   * @param {number} duration - Durata in ms per triggerare long press (default: 500ms)
+   */
+  setupLongPress(elements, handler, duration = 500) {
+    if (!elements || !handler) return;
+    
+    // Solo su dispositivi touch
+    if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) return;
+    
+    // Converte a array se necessario
+    const elementsArray = elements instanceof NodeList ? Array.from(elements) : 
+                         Array.isArray(elements) ? elements : 
+                         [elements];
+    
+    let pressTimer = null;
+    let hasMoved = false;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    
+    const handleTouchStart = (e, element) => {
+      // Ignora se si tocca un link o un button (hanno già azioni native)
+      if (e.target.closest('a, button, input, select, textarea')) return;
+      
+      hasMoved = false;
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      
+      // Vibrazione leggera feedback (se supportata)
+      if (navigator.vibrate) {
+        navigator.vibrate(10);
+      }
+      
+      pressTimer = setTimeout(() => {
+        if (!hasMoved) {
+          // Vibrazione più forte per conferma
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+          
+          // Preveni default (menu contestuale browser)
+          e.preventDefault();
+          
+          // Esegui handler
+          if (typeof handler === 'function') {
+            handler(element, e);
+          } else if (typeof handler === 'object' && handler.showMenu) {
+            handler.showMenu(element, e);
+          }
+        }
+        pressTimer = null;
+      }, duration);
+    };
+    
+    const handleTouchMove = (e) => {
+      if (pressTimer) {
+        const touch = e.touches[0];
+        const deltaX = Math.abs(touch.clientX - touchStartX);
+        const deltaY = Math.abs(touch.clientY - touchStartY);
+        
+        // Se movimento > 10px, annulla long press
+        if (deltaX > 10 || deltaY > 10) {
+          hasMoved = true;
+          clearTimeout(pressTimer);
+          pressTimer = null;
+        }
+      }
+    };
+    
+    const handleTouchEnd = (e) => {
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    };
+    
+    elementsArray.forEach(element => {
+      if (!element || element.hasAttribute('data-longpress-disabled')) return;
+      
+      element.addEventListener('touchstart', (e) => handleTouchStart(e, element), { passive: false });
+      element.addEventListener('touchmove', handleTouchMove, { passive: true });
+      element.addEventListener('touchend', handleTouchEnd, { passive: true });
+      element.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+    });
+  },
+  
+  /**
+   * Mostra menu contestuale mobile-friendly
+   * @param {HTMLElement} targetElement - Elemento che ha triggerato il long press
+   * @param {Array} actions - Array di azioni {label, icon, action, danger}
+   * @param {Object} position - Posizione {x, y} dove mostrare il menu
+   */
+  showContextMenu(targetElement, actions = [], position = null) {
+    if (!actions || actions.length === 0) return;
+    
+    // Rimuovi menu esistente se presente
+    const existingMenu = document.getElementById('contextMenu');
+    if (existingMenu) {
+      existingMenu.remove();
+    }
+    
+    // Calcola posizione
+    let x = position?.x || 0;
+    let y = position?.y || 0;
+    
+    if (!position && targetElement) {
+      const rect = targetElement.getBoundingClientRect();
+      x = rect.left + rect.width / 2;
+      y = rect.top + rect.height / 2;
+    }
+    
+    // Crea menu
+    const menu = document.createElement('div');
+    menu.id = 'contextMenu';
+    menu.style.cssText = `
+      position: fixed;
+      left: ${x}px;
+      top: ${y}px;
+      transform: translate(-50%, -50%);
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      z-index: 10000;
+      min-width: 200px;
+      padding: 8px;
+      animation: fadeIn 0.15s ease-out;
+    `;
+    
+    actions.forEach((action, index) => {
+      const button = document.createElement('button');
+      button.className = `w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+        action.danger ? 'text-red-600' : 'text-gray-700 dark:text-gray-300'
+      }`;
+      button.innerHTML = `
+        <span style="font-size: 1.2em;">${action.icon || '⚡'}</span>
+        <span>${action.label}</span>
+      `;
+      button.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (typeof action.action === 'function') {
+          action.action(targetElement, e);
+        }
+        menu.remove();
+      });
+      menu.appendChild(button);
+      
+      if (index < actions.length - 1) {
+        const divider = document.createElement('hr');
+        divider.style.cssText = 'border: none; border-top: 1px solid var(--border); margin: 4px 0;';
+        menu.appendChild(divider);
+      }
+    });
+    
+    document.body.appendChild(menu);
+    
+    // Chiudi menu al click fuori o scroll
+    const closeMenu = (e) => {
+      if (menu && !menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+        document.removeEventListener('touchstart', closeMenu);
+        document.removeEventListener('scroll', closeMenu, true);
+      }
+    };
+    
+    // Delay per evitare chiusura immediata
+    setTimeout(() => {
+      document.addEventListener('click', closeMenu);
+      document.addEventListener('touchstart', closeMenu);
+      document.addEventListener('scroll', closeMenu, true);
+    }, 100);
+  },
+
+  /**
    * Setup pull-to-refresh per liste
    * @param {HTMLElement} container - Container scrollabile
    * @param {Function} onRefresh - Callback quando viene triggerato refresh

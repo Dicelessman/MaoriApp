@@ -137,6 +137,55 @@ UI.renderScouts = function(filterLetter = null) {
           this.confirmDeleteScout(scoutId);
         }, '.swipeable-item', 'data-id');
       }
+      
+      // Setup long press per menu contestuale
+      if ('ontouchstart' in window) {
+        const items = list.querySelectorAll('.swipeable-item');
+        items.forEach(item => {
+          const scoutId = item.getAttribute('data-id');
+          const scout = this.state.scouts?.find(s => s.id === scoutId);
+          if (!scout) return;
+          
+          this.setupLongPress(item, (element, e) => {
+            const actions = [
+              {
+                label: `Apri scheda ${scout.nome}`,
+                icon: '📄',
+                action: () => {
+                  window.location.href = `scout2.html?id=${scoutId}`;
+                }
+              },
+              {
+                label: 'Copia nome',
+                icon: '📋',
+                action: async () => {
+                  const nome = `${scout.nome} ${scout.cognome}`.trim();
+                  try {
+                    await navigator.clipboard.writeText(nome);
+                    this.showToast('Nome copiato', { type: 'success', duration: 1500 });
+                  } catch (err) {
+                    console.error('Errore copia:', err);
+                  }
+                }
+              }
+            ];
+            
+            if (this.currentUser) {
+              actions.push({
+                label: 'Elimina',
+                icon: '🗑️',
+                danger: true,
+                action: () => {
+                  this.confirmDeleteScout(scoutId);
+                }
+              });
+            }
+            
+            this.showContextMenu(element, actions);
+          });
+        });
+      }
+      
       // Setup pull-to-refresh
       if ('ontouchstart' in window) {
         const scrollContainer = list.closest('.bg-gray-50') || list.parentElement;

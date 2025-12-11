@@ -636,6 +636,28 @@ select {
   pointer-events: none;
 }
 
+/* Context menu styles */
+#contextMenu {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+#contextMenu button {
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
 /* Print styles */
 @media print {
   body { background: #fff !important; }

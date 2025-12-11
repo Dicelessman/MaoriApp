@@ -182,6 +182,61 @@ UI.renderCalendarList = function() {
       }, '.swipeable-item', 'data-id');
     }
     
+    // Setup long press per menu contestuale attività
+    const items = list.querySelectorAll('.swipeable-item');
+    items.forEach(item => {
+      const activityId = item.getAttribute('data-id');
+      const activity = this.state.activities?.find(a => a.id === activityId);
+      if (!activity) return;
+      
+      this.setupLongPress(item, (element, e) => {
+        const actions = [
+          {
+            label: `Apri dettagli attività`,
+            icon: '📄',
+            action: () => {
+              window.location.href = `attivita.html?id=${activityId}`;
+            }
+          },
+          {
+            label: 'Copia descrizione',
+            icon: '📋',
+            action: async () => {
+              const text = `${activity.tipo} — ${activity.descrizione}`;
+              try {
+                await navigator.clipboard.writeText(text);
+                this.showToast('Copiato', { type: 'success', duration: 1500 });
+              } catch (err) {
+                console.error('Errore copia:', err);
+              }
+            }
+          }
+        ];
+        
+        if (this.currentUser) {
+          actions.push(
+            {
+              label: 'Modifica',
+              icon: '✏️',
+              action: () => {
+                this.openEditActivityModal(activityId);
+              }
+            },
+            {
+              label: 'Elimina',
+              icon: '🗑️',
+              danger: true,
+              action: () => {
+                this.confirmDeleteActivity(activityId);
+              }
+            }
+          );
+        }
+        
+        this.showContextMenu(element, actions);
+      });
+    });
+    
     const scrollContainer = list.parentElement;
     if (scrollContainer) {
       this.setupPullToRefresh(scrollContainer, async () => {

@@ -118,6 +118,71 @@ UI.renderStaff = function() {
           this.confirmDeleteStaff(staffId);
         }, '.swipeable-item', 'data-id');
       }
+      
+      // Setup long press per menu contestuale
+      if ('ontouchstart' in window) {
+        const items = list.querySelectorAll('.swipeable-item');
+        items.forEach(item => {
+          const staffId = item.getAttribute('data-id');
+          const member = this.state.staff?.find(s => s.id === staffId);
+          if (!member) return;
+          
+          this.setupLongPress(item, (element, e) => {
+            const actions = [
+              {
+                label: `Copia nome`,
+                icon: '📋',
+                action: async () => {
+                  const nome = `${member.nome} ${member.cognome}`.trim();
+                  try {
+                    await navigator.clipboard.writeText(nome);
+                    this.showToast('Nome copiato', { type: 'success', duration: 1500 });
+                  } catch (err) {
+                    console.error('Errore copia:', err);
+                  }
+                }
+              },
+              {
+                label: 'Copia email',
+                icon: '📧',
+                action: async () => {
+                  if (member.email) {
+                    try {
+                      await navigator.clipboard.writeText(member.email);
+                      this.showToast('Email copiata', { type: 'success', duration: 1500 });
+                    } catch (err) {
+                      console.error('Errore copia:', err);
+                    }
+                  }
+                }
+              }
+            ];
+            
+            if (this.currentUser) {
+              actions.push(
+                {
+                  label: 'Modifica',
+                  icon: '✏️',
+                  action: () => {
+                    this.openEditStaffModal(staffId);
+                  }
+                },
+                {
+                  label: 'Elimina',
+                  icon: '🗑️',
+                  danger: true,
+                  action: () => {
+                    this.confirmDeleteStaff(staffId);
+                  }
+                }
+              );
+            }
+            
+            this.showContextMenu(element, actions);
+          });
+        });
+      }
+      
       // Setup pull-to-refresh
       if ('ontouchstart' in window) {
         const scrollContainer = list.closest('.bg-gray-50') || list.parentElement;
