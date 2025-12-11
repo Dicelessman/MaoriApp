@@ -35,6 +35,14 @@ UI.renderAuditLogs = async function() {
       return (db - da);
     });
 
+    const escapeHtml = (str) => {
+      if (str == null) return '';
+      const s = String(str);
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    };
+    
     const rows = logs.map(l => {
       const d = this.toJsDate(l.timestamp);
       const ds = isNaN(d) ? '' : d.toLocaleString('it-IT');
@@ -43,8 +51,8 @@ UI.renderAuditLogs = async function() {
       const displayName = staffMember ? `${staffMember.nome} ${staffMember.cognome}` : '';
       return `
         <tr class="border-b last:border-0">
-          <td class="p-2 whitespace-nowrap">${ds}</td>
-          <td class="p-2 font-medium">${l.action}</td>
+          <td class="p-2 whitespace-nowrap">${escapeHtml(ds)}</td>
+          <td class="p-2 font-medium">${escapeHtml(l.action)}</td>
           <td class="p-2">${escapeHtml(displayName)}</td>
           <td class="p-2 text-gray-600 text-sm">${escapeHtml(JSON.stringify(l.changes || {}))}</td>
         </tr>

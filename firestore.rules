@@ -1,0 +1,209 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function: verifica che l'utente sia autenticato
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function: verifica che l'utente sia staff
+    // (per ora accettiamo tutti gli utenti autenticati come staff)
+    // In futuro si può migliorare verificando la collezione staff
+    function isStaff() {
+      return isAuthenticated();
+    }
+    
+    // Helper function: valida formato email
+    function isValidEmail(email) {
+      return email.matches('^[^@]+@[^@]+\\.[^@]+$');
+    }
+    
+    // Helper function: valida stato presenza
+    function isValidPresenceState(state) {
+      return state in ['Presente', 'Assente', 'NR', 'X'];
+    }
+    
+    // Helper function: valida tipo pagamento
+    function isValidPaymentType(type) {
+      return type == null || type in ['Contanti', 'Satispay', 'Bonifico'];
+    }
+    
+    // Helper function: valida tipo attività
+    function isValidActivityType(type) {
+      return type in ['Riunione', 'Attività lunga', 'Uscita', 'Campo'];
+    }
+    
+    // ============== COLLEZIONE: scouts ==============
+    match /scouts/{scoutId} {
+      // Lettura: tutti gli utenti autenticati possono leggere
+      allow read: if isAuthenticated();
+      
+      // Creazione: solo staff autenticato
+      allow create: if isStaff() 
+        && request.resource.data.keys().hasAll(['nome', 'cognome'])
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0
+        && request.resource.data.nome.size() <= 100
+        && request.resource.data.cognome is string
+        && request.resource.data.cognome.size() > 0
+        && request.resource.data.cognome.size() <= 100;
+      
+      // Aggiornamento: solo staff autenticato
+      allow update: if isStaff()
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id'])) // id non modificabile
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nome']) || 
+            (request.resource.data.nome is string 
+             && request.resource.data.nome.size() > 0 
+             && request.resource.data.nome.size() <= 100))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['cognome']) || 
+            (request.resource.data.cognome is string 
+             && request.resource.data.cognome.size() > 0 
+             && request.resource.data.cognome.size() <= 100));
+      
+      // Eliminazione: solo staff autenticato
+      allow delete: if isStaff();
+    }
+    
+    // ============== COLLEZIONE: staff ==============
+    match /staff/{staffId} {
+      // Lettura: tutti gli utenti autenticati possono leggere
+      allow read: if isAuthenticated();
+      
+      // Creazione: solo staff autenticato
+      allow create: if isStaff()
+        && request.resource.data.keys().hasAll(['nome', 'cognome', 'email'])
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0
+        && request.resource.data.nome.size() <= 100
+        && request.resource.data.cognome is string
+        && request.resource.data.cognome.size() > 0
+        && request.resource.data.cognome.size() <= 100
+        && request.resource.data.email is string
+        && isValidEmail(request.resource.data.email);
+      
+      // Aggiornamento: solo staff autenticato
+      allow update: if isStaff()
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id'])) // id non modificabile
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nome']) || 
+            (request.resource.data.nome is string 
+             && request.resource.data.nome.size() > 0 
+             && request.resource.data.nome.size() <= 100))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['cognome']) || 
+            (request.resource.data.cognome is string 
+             && request.resource.data.cognome.size() > 0 
+             && request.resource.data.cognome.size() <= 100))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['email']) || 
+            (request.resource.data.email is string 
+             && isValidEmail(request.resource.data.email)));
+      
+      // Eliminazione: solo staff autenticato
+      allow delete: if isStaff();
+    }
+    
+    // ============== COLLEZIONE: activities ==============
+    match /activities/{activityId} {
+      // Lettura: tutti gli utenti autenticati possono leggere
+      allow read: if isAuthenticated();
+      
+      // Creazione: solo staff autenticato
+      allow create: if isStaff()
+        && request.resource.data.keys().hasAll(['tipo', 'data', 'descrizione'])
+        && request.resource.data.tipo is string
+        && isValidActivityType(request.resource.data.tipo)
+        && request.resource.data.data is timestamp
+        && request.resource.data.descrizione is string
+        && request.resource.data.descrizione.size() > 0
+        && request.resource.data.descrizione.size() <= 500
+        && (!request.resource.data.keys().hasAny(['costo']) || 
+            (request.resource.data.costo is number && request.resource.data.costo >= 0));
+      
+      // Aggiornamento: solo staff autenticato
+      allow update: if isStaff()
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id'])) // id non modificabile
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['tipo']) || 
+            (request.resource.data.tipo is string 
+             && isValidActivityType(request.resource.data.tipo)))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['data']) || 
+            request.resource.data.data is timestamp)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['descrizione']) || 
+            (request.resource.data.descrizione is string 
+             && request.resource.data.descrizione.size() > 0 
+             && request.resource.data.descrizione.size() <= 500))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['costo']) || 
+            (request.resource.data.costo is number && request.resource.data.costo >= 0));
+      
+      // Eliminazione: solo staff autenticato
+      allow delete: if isStaff();
+    }
+    
+    // ============== COLLEZIONE: presences ==============
+    match /presences/{presenceId} {
+      // Lettura: tutti gli utenti autenticati possono leggere
+      allow read: if isAuthenticated();
+      
+      // Creazione: solo staff autenticato
+      allow create: if isStaff()
+        && request.resource.data.keys().hasAll(['esploratoreId', 'attivitaId'])
+        && request.resource.data.esploratoreId is string
+        && request.resource.data.esploratoreId.size() > 0
+        && request.resource.data.attivitaId is string
+        && request.resource.data.attivitaId.size() > 0
+        && (!request.resource.data.keys().hasAny(['stato']) || 
+            (request.resource.data.stato is string 
+             && isValidPresenceState(request.resource.data.stato)))
+        && (!request.resource.data.keys().hasAny(['pagato']) || 
+            request.resource.data.pagato is bool)
+        && (!request.resource.data.keys().hasAny(['tipoPagamento']) || 
+            (request.resource.data.tipoPagamento == null || 
+             (request.resource.data.tipoPagamento is string 
+              && isValidPaymentType(request.resource.data.tipoPagamento))));
+      
+      // Aggiornamento: solo staff autenticato
+      // Permette aggiornamento parziale (merge) di singoli campi
+      allow update: if isStaff()
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['esploratoreId', 'attivitaId'])) // ID non modificabili
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['stato']) || 
+            (request.resource.data.stato is string 
+             && isValidPresenceState(request.resource.data.stato)))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['pagato']) || 
+            request.resource.data.pagato is bool)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['tipoPagamento']) || 
+            (request.resource.data.tipoPagamento == null || 
+             (request.resource.data.tipoPagamento is string 
+              && isValidPaymentType(request.resource.data.tipoPagamento))));
+      
+      // Eliminazione: solo staff autenticato
+      allow delete: if isStaff();
+    }
+    
+    // ============== COLLEZIONE: auditLogs ==============
+    match /auditLogs/{logId} {
+      // Lettura: tutti gli utenti autenticati possono leggere
+      allow read: if isAuthenticated();
+      
+      // Creazione: solo staff autenticato (append-only)
+      allow create: if isStaff()
+        && request.resource.data.keys().hasAll(['action', 'collection', 'documentId', 'timestamp', 'userId'])
+        && request.resource.data.action is string
+        && request.resource.data.collection is string
+        && request.resource.data.documentId is string
+        && request.resource.data.timestamp is timestamp
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid; // Utente può loggare solo per se stesso
+      
+      // Aggiornamento: NEGATO (append-only)
+      allow update: if false;
+      
+      // Eliminazione: NEGATO (append-only, solo per sicurezza)
+      allow delete: if false;
+    }
+    
+    // ============== Default: nega tutto il resto ==============
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

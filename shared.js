@@ -1078,6 +1078,71 @@ const UI = {
     this.showModal('confirmModal');
   },
 
+  // Funzioni di utilità per sicurezza
+  escapeHtml(str) {
+    if (str == null) return '';
+    const s = String(str);
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  },
+
+  // Rate limiting migliorato per operazioni frequenti
+  _operationQueue: new Map(),
+  _operationTimestamps: new Map(),
+  
+  /**
+   * Rate limiter per operazioni: blocca se troppe operazioni in breve tempo
+   * @param {string} key - Chiave univoca per il tipo di operazione
+   * @param {number} maxOps - Numero massimo operazioni
+   * @param {number} windowMs - Finestra temporale in ms
+   * @returns {boolean} true se operazione permessa
+   */
+  checkRateLimit(key, maxOps = 10, windowMs = 1000) {
+    const now = Date.now();
+    const timestamps = this._operationTimestamps.get(key) || [];
+    
+    // Rimuovi timestamp fuori dalla finestra
+    const validTimestamps = timestamps.filter(ts => now - ts < windowMs);
+    
+    if (validTimestamps.length >= maxOps) {
+      try { console.warn(`[RateLimit] ${key} blocked: ${validTimestamps.length}/${maxOps} in ${windowMs}ms`); } catch { }
+      return false;
+    }
+    
+    validTimestamps.push(now);
+    this._operationTimestamps.set(key, validTimestamps);
+    return true;
+  },
+  
+  /**
+   * Debounce con rate limiting per operazioni write
+   * @param {string} key - Chiave univoca
+   * @param {Function} fn - Funzione da eseguire
+   * @param {number} delay - Delay in ms
+   * @param {number} maxOps - Max operazioni per finestra
+   * @param {number} windowMs - Finestra temporale
+   */
+  debounceWithRateLimit(key, fn, delay = 300, maxOps = 10, windowMs = 1000) {
+    // Cancella timeout precedente
+    const existing = this._operationQueue.get(key);
+    if (existing) clearTimeout(existing.timeout);
+    
+    // Controlla rate limit
+    if (!this.checkRateLimit(key, maxOps, windowMs)) {
+      try { console.warn(`[RateLimit] Operation ${key} rate limited`); } catch { }
+      return Promise.reject(new Error('Troppe operazioni, riprova tra poco'));
+    }
+    
+    // Crea nuovo timeout
+    const timeout = setTimeout(() => {
+      fn();
+      this._operationQueue.delete(key);
+    }, delay);
+    
+    this._operationQueue.set(key, { timeout, fn });
+  },
+
   // Funzioni di utilità
   logNetworkInfo() {
     try {
@@ -1276,6 +1341,14 @@ const UI = {
       this.showToast('Seleziona uno Staff per abilitare le modifiche.', { type: 'warning' }); 
       return; 
     }
+    
+    // Rate limiting per operazioni frequenti (max 15 operazioni al secondo)
+    const rateLimitKey = `updatePayment_${scoutId}_${activityId}`;
+    if (!this.checkRateLimit(rateLimitKey, 15, 1000)) {
+      this.showToast('Troppe modifiche rapide, attendi un momento', { type: 'warning', duration: 2000 });
+      return;
+    }
+    
     // Trova la select e aggiungi feedback visivo
     const selectElement = document.querySelector(`select[onchange*="'${scoutId}'"][onchange*="'${activityId}'"]`);
     const cell = selectElement?.closest('td') || selectElement?.closest('li')?.closest('div');
