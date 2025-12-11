@@ -1,31 +1,68 @@
 // scout2.js - pagina scheda personale esploratore (versione refactored)
 
-// Cache per i dati JSON
+// Cache per i dati JSON statici (permanente, questi file non cambiano mai)
 UI.challengesData = null;
 UI.specialitaListData = null;
+UI._jsonLoadPromises = {}; // Promise cache per evitare fetch multipli simultanei
 
-// Carica challenges.json
+// Carica challenges.json con cache
 UI.loadChallenges = async function() {
+  // Cache hit immediata
   if (this.challengesData) return this.challengesData;
+  
+  // Evita fetch multipli simultanei
+  if (this._jsonLoadPromises.challenges) {
+    return await this._jsonLoadPromises.challenges;
+  }
+  
   try {
-    const response = await fetch('challenges.json');
-    this.challengesData = await response.json();
-    return this.challengesData;
+    this._jsonLoadPromises.challenges = fetch('challenges.json')
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        this.challengesData = data;
+        delete this._jsonLoadPromises.challenges;
+        try { console.info('[Cache] challenges.json loaded'); } catch { }
+        return data;
+      });
+    
+    return await this._jsonLoadPromises.challenges;
   } catch (e) {
     console.error('Errore caricamento challenges.json:', e);
+    delete this._jsonLoadPromises.challenges;
     return {};
   }
 };
 
-// Carica specialita.json
+// Carica specialita.json con cache
 UI.loadSpecialitaList = async function() {
+  // Cache hit immediata
   if (this.specialitaListData) return this.specialitaListData;
+  
+  // Evita fetch multipli simultanei
+  if (this._jsonLoadPromises.specialita) {
+    return await this._jsonLoadPromises.specialita;
+  }
+  
   try {
-    const response = await fetch('specialita.json');
-    this.specialitaListData = await response.json();
-    return this.specialitaListData;
+    this._jsonLoadPromises.specialita = fetch('specialita.json')
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        this.specialitaListData = data;
+        delete this._jsonLoadPromises.specialita;
+        try { console.info('[Cache] specialita.json loaded'); } catch { }
+        return data;
+      });
+    
+    return await this._jsonLoadPromises.specialita;
   } catch (e) {
     console.error('Errore caricamento specialita.json:', e);
+    delete this._jsonLoadPromises.specialita;
     return [];
   }
 };
