@@ -14,6 +14,10 @@
   --skeleton-bg: #f3f4f6;
   --skeleton-shimmer: rgba(255,255,255,.6);
   --hover-overlay: rgba(0,0,0,.05);
+  --header-bg: #15803d; /* green-700 */
+  --header-text: #ffffff;
+  --nav-bg: #16a34a; /* green-600 */
+  --nav-hover: #15803d; /* green-700 */
 }
 
 /* Dark Mode */
@@ -30,6 +34,10 @@
   --skeleton-bg: #374151;
   --skeleton-shimmer: rgba(255,255,255,.1);
   --hover-overlay: rgba(255,255,255,.05);
+  --header-bg: #065f46; /* green-800 più scuro */
+  --header-text: #f9fafb;
+  --nav-bg: #047857; /* green-700 più scuro */
+  --nav-hover: #065f46; /* green-800 */
 }
 
 /* Transizione smooth per cambio tema */
@@ -40,6 +48,76 @@
 /* Mantieni colori specifici senza transizione (per badge, etc) */
 .badge--warn, .badge--danger, .presence-select option, .payment-select option {
   transition: none;
+}
+
+/* Dark mode overrides per classi Tailwind comuni */
+[data-theme="dark"] header,
+[data-theme="dark"] .bg-green-700 {
+  background-color: var(--header-bg) !important;
+}
+
+[data-theme="dark"] .bg-green-600 {
+  background-color: var(--nav-bg) !important;
+}
+
+[data-theme="dark"] .bg-green-800,
+[data-theme="dark"] .hover\:bg-green-800:hover,
+[data-theme="dark"] .hover\:bg-green-700:hover {
+  background-color: var(--nav-hover) !important;
+}
+
+[data-theme="dark"] .text-white,
+[data-theme="dark"] header .text-white,
+[data-theme="dark"] .bg-green-700 .text-white,
+[data-theme="dark"] .bg-green-600 .text-white {
+  color: var(--header-text) !important;
+}
+
+[data-theme="dark"] .text-green-200 {
+  color: #a7f3d0 !important; /* green-200 più chiaro per dark mode */
+}
+
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .presence-table.bg-white {
+  background-color: var(--card-bg) !important;
+}
+
+[data-theme="dark"] .bg-gray-100 {
+  background-color: var(--bg) !important;
+}
+
+[data-theme="dark"] .bg-gray-50 {
+  background-color: var(--card-bg) !important;
+}
+
+[data-theme="dark"] .text-gray-700,
+[data-theme="dark"] .text-gray-800 {
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .text-gray-600 {
+  color: var(--muted) !important;
+}
+
+[data-theme="dark"] .bg-green-100 {
+  background-color: rgba(34, 197, 94, 0.15) !important; /* brand verde con opacità */
+}
+
+[data-theme="dark"] .bg-green-300 {
+  background-color: rgba(34, 197, 94, 0.25) !important;
+}
+
+[data-theme="dark"] .border-gray-200,
+[data-theme="dark"] .border-gray-300 {
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .shadow-sm {
+  box-shadow: var(--shadow) !important;
+}
+
+[data-theme="dark"] .shadow-inner {
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.3) !important;
 }
 
 /* Base */
@@ -56,12 +134,32 @@ body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvet
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px) } to { opacity: 1; transform: translateY(0) } }
 
+/* Header styling - applicato direttamente */
+header {
+  background-color: var(--header-bg) !important;
+  color: var(--header-text) !important;
+}
+
+header h1,
+header p,
+header span:not([class*="text-"]),
+header button:not(.theme-toggle),
+header a {
+  color: var(--header-text) !important;
+}
+
+/* Connection status badge */
+[data-theme="dark"] .bg-green-800\/50 {
+  background-color: rgba(6, 95, 70, 0.5) !important;
+}
+
 /* Tabs */
 .tab-content { display: none; }
 .tab-content.active { display: block; }
-#desktopNav .tab-btn { transition: background .15s ease, color .15s ease, box-shadow .15s ease; }
-#desktopNav .tab-btn:hover { background:#15803d; }
-#desktopNav .tab-btn.bg-green-600 { position:relative; box-shadow: inset 0 -2px 0 rgba(255,255,255,.8); font-weight:600; }
+#desktopNav { background-color: var(--nav-bg) !important; }
+#desktopNav .tab-btn { transition: background .15s ease, color .15s ease, box-shadow .15s ease; color: var(--header-text) !important; }
+#desktopNav .tab-btn:hover { background: var(--nav-hover) !important; }
+#desktopNav .tab-btn.bg-green-600 { position:relative; box-shadow: inset 0 -2px 0 rgba(255,255,255,.8); font-weight:600; background-color: var(--nav-bg) !important; }
 #desktopNav .tab-btn.bg-green-600::after { content:''; position:absolute; left:12px; right:12px; bottom:4px; height:2px; background:rgba(255,255,255,.9); border-radius:2px; }
 
 #hamburgerMenu { display:flex; flex-direction: column; align-items: flex-end; padding: .5rem 1rem; }
@@ -74,22 +172,22 @@ body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvet
   flex-direction: column; 
   width: 200px; 
   margin-top: 0.5rem; 
-  background: #15803d; 
+  background: var(--header-bg); 
   border-radius: 0.5rem; 
   box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
   z-index: 1000; 
   padding: 0.5rem; 
 }
 #hamburgerMenu .nav-links.active { display:flex; }
-#hamburgerMenu .tab-btn { width:100%; text-align:left; color:white; background: #15803d; border: none; font-weight: 600; }
-#hamburgerMenu .tab-btn:hover { background: #16a34a; }
-#hamburgerMenu .tab-btn.bg-green-600 { background: #16a34a; font-weight: 700; }
+#hamburgerMenu .tab-btn { width:100%; text-align:left; color: var(--header-text); background: var(--header-bg); border: none; font-weight: 600; }
+#hamburgerMenu .tab-btn:hover { background: var(--nav-hover); }
+#hamburgerMenu .tab-btn.bg-green-600 { background: var(--nav-bg); font-weight: 700; }
 .hamburger-icon { 
-  background: #15803d; 
-  color: white; 
+  background: var(--header-bg); 
+  color: var(--header-text); 
   font-size: 1.5rem; 
   font-weight: bold; 
-  border: 2px solid white; 
+  border: 2px solid var(--header-text); 
   border-radius: 0.5rem; 
   min-width: 3rem; 
   min-height: 3rem; 
@@ -99,20 +197,28 @@ body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvet
   box-shadow: 0 2px 4px rgba(0,0,0,0.3); 
 }
 .hamburger-icon:hover { 
-  background: #16a34a; 
+  background: var(--nav-hover); 
   transform: scale(1.05); 
   transition: all 0.2s ease; 
 }
 
 /* Calendar list */
-#calendarList > div { border-left: 4px solid #16a34a; padding-left: .75rem; }
+#calendarList > div { border-left: 4px solid var(--brand); padding-left: .75rem; }
 
 /* Presence table */
 .presence-table { width:100%; border-collapse: separate; border-spacing:0; }
 .presence-table th, .presence-table td { padding:.75rem; border:1px solid var(--border); text-align:center; vertical-align: top; }
 .presence-table thead th { font-weight:600; position:sticky; top:0; z-index:10; background: var(--brand-strong); color:#ffffff; box-shadow:none; }
+[data-theme="dark"] .presence-table thead th { background: var(--header-bg) !important; color: var(--header-text) !important; }
 /* Assicura che la prima colonna sticky resti sopra alle altre */
 .presence-table th.sticky.left-0, .presence-table td.sticky.left-0 { z-index: 50; background: var(--card-bg); }
+[data-theme="dark"] .presence-table th.sticky.left-0,
+[data-theme="dark"] .presence-table td.sticky.left-0 { background: var(--card-bg) !important; }
+/* Override per classi Tailwind con !important (escape con backslash) */
+[data-theme="dark"] th[class*="bg-green-700"],
+[data-theme="dark"] th[class*="!bg-green-700"] { background: var(--header-bg) !important; }
+[data-theme="dark"] th[class*="text-white"],
+[data-theme="dark"] th[class*="!text-white"] { color: var(--header-text) !important; }
 /* Evidenziazione colonna "prossima" senza sovrapporsi */
 .presence-table td.next-col { background: color-mix(in srgb, var(--brand) 10%, var(--card-bg)); box-shadow: inset 0 0 0 2px var(--brand-strong); }
 .presence-table tbody tr:nth-child(odd) td { background: color-mix(in srgb, var(--card-bg) 92%, #0000); }
