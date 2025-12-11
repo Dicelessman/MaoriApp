@@ -712,10 +712,11 @@ const UI = {
             if (this.loadUserPreferences().notifications.enabled !== false) {
               await this.initializeFCM();
             }
-            // Controlla notifiche attività e pagamenti (dopo un breve delay)
+            // Controlla notifiche attività, pagamenti e compleanni (dopo un breve delay)
             setTimeout(() => {
               this.checkActivityReminders();
               this.checkPaymentReminders();
+              this.checkBirthdayReminders();
             }, 3000);
             // Selezione staff: auto-seleziona se email corrisponde, altrimenti apri modale
             const match = (this.state.staff || []).find(s => (s.email || '').toLowerCase() === (user.email || '').toLowerCase());
@@ -1085,6 +1086,7 @@ const UI = {
         activityReminders: true,
         paymentReminders: true,
         importantChanges: true,
+        birthdayReminders: true,
         enabled: false // Richiede permesso utente
       }
     };
@@ -1356,6 +1358,64 @@ const UI = {
       }
     } catch (error) {
       console.error('Errore controllo attività imminenti:', error);
+    }
+  },
+  
+  /**
+   * Controlla compleanni esploratori e invia notifiche se necessario
+   */
+  async checkBirthdayReminders() {
+    const prefs = this.loadUserPreferences();
+    if (!prefs.notifications.enabled || !prefs.notifications.birthdayReminders) {
+      return;
+    }
+    
+    if (!this.currentUser?.uid) return;
+    
+    try {
+      const scouts = this.state.scouts || [];
+      const today = new Date();
+      const todayMonth = today.getMonth();
+      const todayDate = today.getDate();
+      
+      // Trova esploratori con compleanno oggi
+      const birthdaysToday = scouts.filter(scout => {
+        if (!scout.anag_dob) return false;
+        
+        const birthDate = this.toJsDate(scout.anag_dob);
+        if (!birthDate) return false;
+        
+        // Confronta mese e giorno (ignora anno)
+        return birthDate.getMonth() === todayMonth && birthDate.getDate() === todayDate;
+      });
+      
+      if (birthdaysToday.length > 0) {
+        // Controlla se abbiamo già notificato oggi
+        const lastCheck = localStorage.getItem('lastBirthdayReminderCheck');
+        const lastCheckDate = lastCheck ? new Date(lastCheck) : null;
+        
+        // Notifica solo se non abbiamo già controllato oggi
+        if (!lastCheckDate || lastCheckDate.toDateString() !== today.toDateString()) {
+          const names = birthdaysToday.map(s => `${s.nome} ${s.cognome}`.trim()).join(', ');
+          const message = birthdaysToday.length === 1
+            ? `Oggi è il compleanno di ${names}! 🎉`
+            : `Oggi sono i compleanni di: ${names}! 🎉`;
+          
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('🎂 Compleanni Oggi', {
+              body: message,
+              icon: '/icon-192.png',
+              badge: '/icon-192.png',
+              tag: `birthday-${today.toISOString().split('T')[0]}`,
+              data: { url: '/esploratori.html' }
+            });
+          }
+          
+          localStorage.setItem('lastBirthdayReminderCheck', today.toISOString());
+        }
+      }
+    } catch (error) {
+      console.error('Errore controllo compleanni:', error);
     }
   },
   
