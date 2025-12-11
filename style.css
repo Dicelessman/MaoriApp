@@ -1,4 +1,4 @@
-/* Design Tokens */
+/* Design Tokens - Light Mode (default) */
 :root {
   --bg: #f3f4f6;
   --card-bg: #ffffff;
@@ -10,6 +10,36 @@
   --radius: 12px;
   --space: 1rem;
   --shadow: 0 4px 10px rgba(0,0,0,.08);
+  --shadow-strong: 0 4px 10px rgba(0,0,0,.12);
+  --skeleton-bg: #f3f4f6;
+  --skeleton-shimmer: rgba(255,255,255,.6);
+  --hover-overlay: rgba(0,0,0,.05);
+}
+
+/* Dark Mode */
+[data-theme="dark"] {
+  --bg: #1f2937;
+  --card-bg: #111827;
+  --text: #f9fafb;
+  --muted: #9ca3af;
+  --brand: #22c55e;
+  --brand-strong: #16a34a;
+  --border: #374151;
+  --shadow: 0 4px 10px rgba(0,0,0,.3);
+  --shadow-strong: 0 4px 10px rgba(0,0,0,.5);
+  --skeleton-bg: #374151;
+  --skeleton-shimmer: rgba(255,255,255,.1);
+  --hover-overlay: rgba(255,255,255,.05);
+}
+
+/* Transizione smooth per cambio tema */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Mantieni colori specifici senza transizione (per badge, etc) */
+.badge--warn, .badge--danger, .presence-select option, .payment-select option {
+  transition: none;
 }
 
 /* Base */
@@ -109,11 +139,11 @@ body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvet
 button:focus-visible, select:focus-visible, input:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(134,239,172,.8); border-radius:.5rem; }
 
 /* Skeleton loading */
-.skeleton { position:relative; overflow:hidden; background:#f3f4f6; }
-.skeleton::after { content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(255,255,255,.6) 50%, rgba(0,0,0,0) 100%); transform: translateX(-100%); animation: shimmer 1.2s infinite; }
+.skeleton { position:relative; overflow:hidden; background:var(--skeleton-bg); }
+.skeleton::after { content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(0,0,0,0) 0%, var(--skeleton-shimmer) 50%, rgba(0,0,0,0) 100%); transform: translateX(-100%); animation: shimmer 1.2s infinite; }
 @keyframes shimmer { 100% { transform: translateX(100%); } }
 .skeleton-row td { height:44px; }
-.skeleton-text { display:inline-block; height:1em; background:#e5e7eb; border-radius:4px; width:80%; }
+.skeleton-text { display:inline-block; height:1em; background:var(--skeleton-bg); border-radius:4px; width:80%; }
 .skeleton-text.short { width:40%; }
 
 /* Colori per le opzioni dei menu a discesa */
@@ -184,7 +214,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
 }
 
 .traccia-header:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--hover-overlay);
 }
 
 .traccia-content {
@@ -214,7 +244,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
 }
 
 .specialita-header:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--hover-overlay);
 }
 
 .specialita-content {
@@ -257,6 +287,37 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
 
 .bg-red-100 .textarea-auto-resize[readonly] {
   background-color: rgba(254, 226, 226, 0.5); /* red-100 più chiaro */
+}
+
+/* Dark mode toggle button */
+.theme-toggle {
+  background: transparent;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text);
+  padding: 0;
+}
+
+.theme-toggle:hover {
+  background: var(--hover-overlay);
+  transform: scale(1.1);
+}
+
+.theme-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(134,239,172,.8);
+}
+
+.theme-toggle-icon {
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 /* Print styles */

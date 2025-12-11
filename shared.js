@@ -647,6 +647,9 @@ const UI = {
 
   async init() {
     try {
+      // Setup tema (dark mode) - deve essere PRIMA per evitare flash
+      this.setupTheme();
+      
       DATA.useFirestore();
       console.log('UI.init: Initializing...');
       this.logNetworkInfo();
@@ -719,6 +722,8 @@ const UI = {
       this.setupInstallPrompt();
       // Avvia una sonda di connettività non bloccante
       this.runConnectivityProbe();
+      // Setup keyboard shortcuts
+      this.setupKeyboardShortcuts();
 
     } catch (error) {
       console.error('UI.init error:', error);
@@ -798,6 +803,372 @@ const UI = {
 
     // Modali event listeners
     this.setupModalEventListeners();
+  },
+
+  // ============== Dark Mode / Theme Management ==============
+  
+  /**
+   * Rileva preferenza tema sistema
+   * @returns {string} 'dark' o 'light'
+   */
+  getSystemTheme() {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  },
+  
+  /**
+   * Ottiene tema corrente (da localStorage o sistema)
+   * @returns {string} 'dark' o 'light'
+   */
+  getCurrentTheme() {
+    try {
+      const saved = localStorage.getItem('app-theme');
+      if (saved === 'dark' || saved === 'light') {
+        return saved;
+      }
+    } catch (e) {
+      console.warn('Errore lettura tema da localStorage:', e);
+    }
+    // Fallback a preferenza sistema
+    return this.getSystemTheme();
+  },
+  
+  /**
+   * Applica tema alla pagina
+   * @param {string} theme - 'dark' o 'light'
+   */
+  applyTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+    
+    // Aggiorna icona toggle
+    const toggle = this.qs('#themeToggle');
+    if (toggle) {
+      const icon = toggle.querySelector('.theme-toggle-icon');
+      if (icon) {
+        icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        toggle.setAttribute('aria-label', theme === 'dark' ? 'Attiva modalità chiara' : 'Attiva modalità scura');
+        toggle.title = theme === 'dark' ? 'Attiva modalità chiara' : 'Attiva modalità scura';
+      }
+    }
+  },
+  
+  /**
+   * Salva preferenza tema
+   * @param {string} theme - 'dark' o 'light'
+   */
+  saveTheme(theme) {
+    try {
+      localStorage.setItem('app-theme', theme);
+    } catch (e) {
+      console.warn('Errore salvataggio tema in localStorage:', e);
+    }
+  },
+  
+  /**
+   * Toggle tema dark/light
+   */
+  toggleTheme() {
+    const current = this.getCurrentTheme();
+    const newTheme = current === 'dark' ? 'light' : 'dark';
+    this.applyTheme(newTheme);
+    this.saveTheme(newTheme);
+    this.showToast(`Modalità ${newTheme === 'dark' ? 'scura' : 'chiara'} attivata`, { type: 'success', duration: 1500 });
+  },
+  
+  /**
+   * Setup tema e listener per cambi sistema
+   */
+  setupTheme() {
+    // Applica tema corrente al caricamento
+    const theme = this.getCurrentTheme();
+    this.applyTheme(theme);
+    
+    // Listener per cambi preferenza sistema (se non salvato)
+    if (window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      try {
+        const saved = localStorage.getItem('app-theme');
+        // Se non c'è preferenza salvata, ascolta cambi sistema
+        if (!saved) {
+          mediaQuery.addEventListener('change', (e) => {
+            const systemTheme = e.matches ? 'dark' : 'light';
+            this.applyTheme(systemTheme);
+          });
+        }
+      } catch (e) {
+        console.warn('Errore setup listener tema:', e);
+      }
+    }
+    
+    // Setup toggle button
+    const toggle = this.qs('#themeToggle');
+    if (toggle) {
+      toggle.addEventListener('click', () => this.toggleTheme());
+    }
+  },
+
+  // ============== Dark Mode / Theme Management ==============
+  
+  /**
+   * Rileva preferenza tema sistema
+   * @returns {string} 'dark' o 'light'
+   */
+  getSystemTheme() {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  },
+  
+  /**
+   * Ottiene tema corrente (da localStorage o sistema)
+   * @returns {string} 'dark' o 'light'
+   */
+  getCurrentTheme() {
+    try {
+      const saved = localStorage.getItem('app-theme');
+      if (saved === 'dark' || saved === 'light') {
+        return saved;
+      }
+    } catch (e) {
+      console.warn('Errore lettura tema da localStorage:', e);
+    }
+    // Fallback a preferenza sistema
+    return this.getSystemTheme();
+  },
+  
+  /**
+   * Applica tema alla pagina
+   * @param {string} theme - 'dark' o 'light'
+   */
+  applyTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+    
+    // Aggiorna icona toggle (può non esistere ancora, verrà aggiornato dopo loadSharedComponents)
+    setTimeout(() => {
+      const toggle = this.qs('#themeToggle');
+      if (toggle) {
+        const icon = toggle.querySelector('.theme-toggle-icon');
+        if (icon) {
+          icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+          toggle.setAttribute('aria-label', theme === 'dark' ? 'Attiva modalità chiara' : 'Attiva modalità scura');
+          toggle.title = theme === 'dark' ? 'Attiva modalità chiara' : 'Attiva modalità scura';
+        }
+      }
+    }, 50);
+  },
+  
+  /**
+   * Salva preferenza tema
+   * @param {string} theme - 'dark' o 'light'
+   */
+  saveTheme(theme) {
+    try {
+      localStorage.setItem('app-theme', theme);
+    } catch (e) {
+      console.warn('Errore salvataggio tema in localStorage:', e);
+    }
+  },
+  
+  /**
+   * Toggle tema dark/light
+   */
+  toggleTheme() {
+    const current = this.getCurrentTheme();
+    const newTheme = current === 'dark' ? 'light' : 'dark';
+    this.applyTheme(newTheme);
+    this.saveTheme(newTheme);
+    this.showToast(`Modalità ${newTheme === 'dark' ? 'scura' : 'chiara'} attivata`, { type: 'success', duration: 1500 });
+  },
+  
+  /**
+   * Setup tema e listener per cambi sistema
+   */
+  setupTheme() {
+    // Applica tema corrente al caricamento
+    const theme = this.getCurrentTheme();
+    this.applyTheme(theme);
+    
+    // Listener per cambi preferenza sistema (se non salvato)
+    if (window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      try {
+        const saved = localStorage.getItem('app-theme');
+        // Se non c'è preferenza salvata, ascolta cambi sistema
+        if (!saved) {
+          mediaQuery.addEventListener('change', (e) => {
+            const systemTheme = e.matches ? 'dark' : 'light';
+            this.applyTheme(systemTheme);
+          });
+        }
+      } catch (e) {
+        console.warn('Errore setup listener tema:', e);
+      }
+    }
+    
+    // Setup toggle button dopo caricamento componenti
+    setTimeout(() => {
+      const toggle = this.qs('#themeToggle');
+      if (toggle && !toggle._bound) {
+        toggle._bound = true;
+        toggle.addEventListener('click', () => this.toggleTheme());
+      }
+    }, 200);
+  },
+
+  // ============== Keyboard Shortcuts ==============
+  
+  /**
+   * Setup keyboard shortcuts globali
+   */
+  setupKeyboardShortcuts() {
+    // Prevenzione attivazione shortcuts quando si digita in input/textarea
+    const isEditable = (el) => {
+      if (!el) return false;
+      const tagName = el.tagName.toLowerCase();
+      return tagName === 'input' || tagName === 'textarea' || el.isContentEditable;
+    };
+    
+    document.addEventListener('keydown', (e) => {
+      // Ignora se si sta digitando in un campo
+      if (isEditable(e.target)) {
+        // Permetti solo shortcuts che funzionano anche in input (es: Esc)
+        if (e.key === 'Escape') {
+          this.handleEscapeKey();
+        }
+        return;
+      }
+      
+      // Ctrl/Cmd + S: Salva (se c'è un form attivo)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        this.handleSaveShortcut();
+        return;
+      }
+      
+      // / : Focus su ricerca (se disponibile)
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        this.handleSearchShortcut();
+        return;
+      }
+      
+      // Esc: Chiudi modale
+      if (e.key === 'Escape') {
+        this.handleEscapeKey();
+        return;
+      }
+      
+      // ? : Mostra help shortcuts
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        this.showKeyboardShortcutsHelp();
+        return;
+      }
+    });
+  },
+  
+  /**
+   * Gestisce shortcut Ctrl+S (salva)
+   */
+  handleSaveShortcut() {
+    // Cerca form attivo nella pagina
+    const activeForm = document.querySelector('form:focus-within, form .input:focus, form input:focus, form textarea:focus');
+    if (activeForm && activeForm.querySelector('button[type="submit"]')) {
+      const submitBtn = activeForm.querySelector('button[type="submit"]');
+      if (submitBtn && !submitBtn.disabled) {
+        submitBtn.click();
+        this.showToast('Salvato (Ctrl+S)', { type: 'success', duration: 1500 });
+      }
+    } else {
+      // Se non c'è form attivo, cerca il primo form submit nella pagina corrente
+      const form = document.querySelector('form button[type="submit"]:not([disabled])');
+      if (form) {
+        form.focus();
+        this.showToast('Form disponibile - premi Ctrl+S per salvare', { type: 'info', duration: 2000 });
+      }
+    }
+  },
+  
+  /**
+   * Gestisce shortcut / (ricerca)
+   */
+  handleSearchShortcut() {
+    // Cerca campo ricerca nella pagina
+    const searchInput = document.querySelector('input[type="search"], input[placeholder*="Cerca"], input[placeholder*="cerca"], input[id*="search"], input[id*="Search"]');
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.select();
+    } else {
+      this.showToast('Campo ricerca non disponibile in questa pagina', { type: 'info', duration: 2000 });
+    }
+  },
+  
+  /**
+   * Gestisce shortcut Esc
+   */
+  handleEscapeKey() {
+    // Chiudi modale aperto
+    const openModal = document.querySelector('.modal.show');
+    if (openModal) {
+      const modalId = openModal.id;
+      this.closeModal(modalId);
+      this.showToast('Modale chiusa (Esc)', { type: 'info', duration: 1000 });
+    }
+  },
+  
+  /**
+   * Mostra modal con lista shortcuts disponibili
+   */
+  showKeyboardShortcutsHelp() {
+    const shortcuts = [
+      { key: 'Ctrl/Cmd + S', desc: 'Salva form attivo' },
+      { key: '/', desc: 'Focus su campo ricerca' },
+      { key: 'Esc', desc: 'Chiudi modale aperta' },
+      { key: '?', desc: 'Mostra questa guida shortcuts' }
+    ];
+    
+    const helpHtml = `
+      <div class="space-y-4">
+        <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">⌨️ Scorciatoie Tastiera</h3>
+        <div class="space-y-2">
+          ${shortcuts.map(s => `
+            <div class="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
+              <span class="text-gray-700 dark:text-gray-300">${s.desc}</span>
+              <kbd class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-sm font-mono text-gray-800 dark:text-gray-200">${s.key}</kbd>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    
+    // Crea modale temporanea per help
+    let helpModal = document.getElementById('keyboardShortcutsHelpModal');
+    if (!helpModal) {
+      helpModal = document.createElement('div');
+      helpModal.id = 'keyboardShortcutsHelpModal';
+      helpModal.className = 'modal';
+      helpModal.innerHTML = `
+        <div class="modal-content max-w-md mx-auto">
+          ${helpHtml}
+          <div class="mt-4 flex justify-end">
+            <button onclick="UI.closeModal('keyboardShortcutsHelpModal')" class="btn-primary">Chiudi</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(helpModal);
+    }
+    this.showModal('keyboardShortcutsHelpModal');
   },
 
   setupInstallPrompt() {

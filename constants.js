@@ -109,7 +109,8 @@ export const FIRESTORE_COLLECTIONS = {
 export const STORAGE_KEYS = {
   STATE: 'presenziario-state',
   PATTUGLIE: 'pattuglie',
-  PREFERENCES: 'app-preferences'
+  PREFERENCES: 'app-preferences',
+  THEME: 'app-theme'
 };
 
 /**
