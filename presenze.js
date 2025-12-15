@@ -589,15 +589,14 @@ UI.showActivityDetailModal = function(activityId) {
         this.closeModal('activityDetailModal');
       }
     });
-  }
-};
-
+  },
+  
   // ============== Batch Operations ==============
   
   /**
    * Inizializza sistema batch operations
    */
-  setupBatchOperations() {
+  setupBatchOperations: function() {
     if (!this.batchSelection) {
       this.batchSelection = {
         selectedScoutIds: new Set(),
@@ -619,7 +618,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Popola select attività per batch operations
    */
-  updateBatchActivitySelect() {
+  updateBatchActivitySelect: function() {
     const select = this.qs('#batchActivitySelect');
     if (!select) return;
     
@@ -648,7 +647,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Setup pulsanti azioni batch
    */
-  setupBatchActionButtons() {
+  setupBatchActionButtons: function() {
     const markPresentBtn = this.qs('#batchMarkPresentBtn');
     const markAbsentBtn = this.qs('#batchMarkAbsentBtn');
     const applyPaymentBtn = this.qs('#batchApplyPaymentBtn');
@@ -695,7 +694,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Toggle selezione singolo esploratore
    */
-  toggleBatchSelection(scoutId, checked) {
+  toggleBatchSelection: function(scoutId, checked) {
     if (!this.batchSelection) {
       this.batchSelection = {
         selectedScoutIds: new Set(),
@@ -735,7 +734,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Toggle selezione tutti
    */
-  toggleSelectAll(checked) {
+  toggleSelectAll: function(checked) {
     if (!this.batchSelection) {
       this.batchSelection = {
         selectedScoutIds: new Set(),
@@ -773,7 +772,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Pulisce selezione batch
    */
-  clearBatchSelection() {
+  clearBatchSelection: function() {
     if (this.batchSelection) {
       this.batchSelection.selectedScoutIds.clear();
       this.batchSelection.isSelectAll = false;
@@ -795,7 +794,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Aggiorna barra azioni batch
    */
-  updateBatchActionBar() {
+  updateBatchActionBar: function() {
     const bar = this.qs('#batchActionBar');
     const countSpan = this.qs('#batchSelectionCount');
     const markPresentBtn = this.qs('#batchMarkPresentBtn');
@@ -833,7 +832,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Esegue azione batch
    */
-  async executeBatchAction(action) {
+  executeBatchAction: async function(action) {
     if (!this.currentUser) {
       this.showToast('Devi essere loggato per eseguire operazioni batch', { type: 'error' });
       return;
@@ -888,7 +887,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Segna presenti in batch
    */
-  async batchMarkPresent(scoutIds, activityId) {
+  batchMarkPresent: async function(scoutIds, activityId) {
     const total = scoutIds.length;
     for (let i = 0; i < total; i++) {
       if (this._batchOperationCancelled) break;
@@ -905,7 +904,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Segna assenti in batch
    */
-  async batchMarkAbsent(scoutIds, activityId) {
+  batchMarkAbsent: async function(scoutIds, activityId) {
     const total = scoutIds.length;
     for (let i = 0; i < total; i++) {
       if (this._batchOperationCancelled) break;
@@ -921,7 +920,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Applica pagamento in batch
    */
-  async batchApplyPayment(scoutIds, activityId) {
+  batchApplyPayment: async function(scoutIds, activityId) {
     // Chiedi tipo pagamento
     const paymentType = await this.promptPaymentType();
     if (!paymentType) return;
@@ -942,7 +941,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Prompt tipo pagamento (usa modale invece di prompt)
    */
-  async promptPaymentType() {
+  promptPaymentType: async function() {
     return new Promise((resolve) => {
       const types = ['Contanti', 'Satispay', 'Bonifico'];
       // Usa confirmModal per scegliere tipo pagamento
@@ -1003,7 +1002,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Esporta selezionati in CSV
    */
-  async batchExport(scoutIds) {
+  batchExport: async function(scoutIds) {
     const selectedScouts = (this.state.scouts || []).filter(s => scoutIds.includes(s.id));
     // Esporta CSV per gli esploratori selezionati
     this.exportSelectedScoutsToCSV(selectedScouts);
@@ -1012,7 +1011,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Esporta CSV per esploratori selezionati
    */
-  exportSelectedScoutsToCSV(selectedScouts) {
+  exportSelectedScoutsToCSV: function(selectedScouts) {
     if (!selectedScouts || selectedScouts.length === 0) {
       this.showToast('Nessun esploratore selezionato', { type: 'error' });
       return;
@@ -1051,7 +1050,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Mostra progress indicator batch
    */
-  showBatchProgress(percent, message) {
+  showBatchProgress: function(percent, message) {
     const indicator = this.qs('#batchProgressIndicator');
     const progressBar = this.qs('#batchProgressBar');
     const progressMessage = this.qs('#batchProgressMessage');
@@ -1064,7 +1063,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Nasconde progress indicator batch
    */
-  hideBatchProgress() {
+  hideBatchProgress: function() {
     const indicator = this.qs('#batchProgressIndicator');
     if (indicator) indicator.classList.add('hidden');
     this._batchOperationCancelled = false;
@@ -1073,7 +1072,7 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Esporta tutte le presenze in CSV (funzione esistente per compatibilità)
    */
-  exportToCSV() {
+  exportToCSV: function() {
     const scouts = this.state.scouts || [];
     this.exportSelectedScoutsToCSV(scouts);
   },
