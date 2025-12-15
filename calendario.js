@@ -1,8 +1,15 @@
 // calendario.js - Logica specifica per la pagina Calendario
 
 UI.renderCurrentPage = function() {
-  this.renderCalendarList();
+  // Verifica vista corrente (mese o lista)
+  const viewMode = localStorage.getItem('calendarViewMode') || 'list';
+  if (viewMode === 'month') {
+    this.renderMonthlyCalendar();
+  } else {
+    this.renderCalendarList();
+  }
   this.setupCalendarEvents();
+  this.setupCalendarViewToggle();
 };
 
 UI.initActivityTemplatesUI = async function() {
@@ -362,5 +369,211 @@ UI.renderCalendarList = function() {
   }
 };
 
+// ============== Vista Calendario Mensile ==============
 
+/**
+ * Setup toggle vista calendario/lista
+ */
+UI.setupCalendarViewToggle = function() {
+  const toggle = this.qs('#calendarViewToggle');
+  const toggleText = this.qs('#calendarViewToggleText');
+  const monthlyView = this.qs('#monthlyCalendarView');
+  const listView = this.qs('#listCalendarView');
+  
+  if (!toggle || !toggleText || !monthlyView || !listView) return;
+  
+  // Carica vista salvata
+  const viewMode = localStorage.getItem('calendarViewMode') || 'list';
+  if (viewMode === 'month') {
+    monthlyView.classList.remove('hidden');
+    listView.classList.add('hidden');
+    toggleText.textContent = '📋 Vista Lista';
+  } else {
+    monthlyView.classList.add('hidden');
+    listView.classList.remove('hidden');
+    toggleText.textContent = '📅 Vista Calendario';
+  }
+  
+  toggle.addEventListener('click', () => {
+    const currentMode = monthlyView.classList.contains('hidden') ? 'list' : 'month';
+    const newMode = currentMode === 'list' ? 'month' : 'list';
+    
+    localStorage.setItem('calendarViewMode', newMode);
+    
+    if (newMode === 'month') {
+      monthlyView.classList.remove('hidden');
+      listView.classList.add('hidden');
+      toggleText.textContent = '📋 Vista Lista';
+      this.renderMonthlyCalendar();
+    } else {
+      monthlyView.classList.add('hidden');
+      listView.classList.remove('hidden');
+      toggleText.textContent = '📅 Vista Calendario';
+      this.renderCalendarList();
+    }
+  });
+};
+
+/**
+ * Renderizza calendario mensile
+ */
+UI.renderMonthlyCalendar = function() {
+  const grid = this.qs('#calendarGrid');
+  const monthYearEl = this.qs('#currentMonthYear');
+  const prevBtn = this.qs('#prevMonthBtn');
+  const nextBtn = this.qs('#nextMonthBtn');
+  
+  if (!grid || !monthYearEl) return;
+  
+  // Carica mese corrente o salvato
+  const savedMonth = localStorage.getItem('calendarCurrentMonth');
+  const currentMonth = savedMonth ? new Date(savedMonth) : new Date();
+  this._calendarCurrentMonth = currentMonth;
+  
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  
+  // Aggiorna header
+  monthYearEl.textContent = currentMonth.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+  
+  // Navigazione mesi
+  if (prevBtn && !prevBtn._bound) {
+    prevBtn._bound = true;
+    prevBtn.addEventListener('click', () => {
+      const newMonth = new Date(this._calendarCurrentMonth);
+      newMonth.setMonth(month - 1);
+      this._calendarCurrentMonth = newMonth;
+      localStorage.setItem('calendarCurrentMonth', this._calendarCurrentMonth.toISOString());
+      this.renderMonthlyCalendar();
+    });
+  }
+  
+  if (nextBtn && !nextBtn._bound) {
+    nextBtn._bound = true;
+    nextBtn.addEventListener('click', () => {
+      const newMonth = new Date(this._calendarCurrentMonth);
+      newMonth.setMonth(month + 1);
+      this._calendarCurrentMonth = newMonth;
+      localStorage.setItem('calendarCurrentMonth', this._calendarCurrentMonth.toISOString());
+      this.renderMonthlyCalendar();
+    });
+  }
+  
+  // Calcola primo giorno del mese e giorno della settimana
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startingDayOfWeek = firstDay.getDay(); // 0 = domenica
+  
+  // Rimuovi celle giorni esistenti (mantieni headers)
+  const existingCells = grid.querySelectorAll('.calendar-day-cell');
+  existingCells.forEach(cell => cell.remove());
+  
+  // Aggiungi celle vuote per giorni prima del primo giorno del mese
+  for (let i = 0; i < startingDayOfWeek; i++) {
+    const emptyCell = document.createElement('div');
+    emptyCell.className = 'p-2 min-h-[80px] bg-gray-50 dark:bg-gray-800';
+    grid.appendChild(emptyCell);
+  }
+  
+  // Colori per tipo attività (con supporto dark mode)
+  const activityTypeColors = {
+    'Riunione': 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200',
+    'Attività lunga': 'bg-purple-100 dark:bg-purple-900 border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-200',
+    'Uscita': 'bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700 text-green-800 dark:text-green-200',
+    'Campo': 'bg-orange-100 dark:bg-orange-900 border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-200'
+  };
+  
+  // Raggruppa attività per giorno
+  const activities = (this.state.activities || []).slice();
+  const activitiesByDate = new Map();
+  
+  activities.forEach(a => {
+    const d = this.toJsDate(a.data);
+    if (isNaN(d)) return;
+    const dateKey = d.toISOString().split('T')[0]; // YYYY-MM-DD
+    if (!activitiesByDate.has(dateKey)) {
+      activitiesByDate.set(dateKey, []);
+    }
+    activitiesByDate.get(dateKey).push(a);
+  });
+  
+  // Aggiungi celle per ogni giorno del mese
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    const cellDate = new Date(year, month, day);
+    const dateKey = cellDate.toISOString().split('T')[0];
+    const dayActivities = activitiesByDate.get(dateKey) || [];
+    const isToday = cellDate.getTime() === today.getTime();
+    const isPast = cellDate < today;
+    
+    const cell = document.createElement('div');
+    cell.className = `calendar-day-cell p-2 min-h-[80px] border border-gray-200 dark:border-gray-700 ${isToday ? 'bg-green-50 dark:bg-green-900 border-green-400 dark:border-green-600' : isPast ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'} ${!isPast ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800' : ''}`;
+    
+    // Numero giorno
+    const dayNumber = document.createElement('div');
+    dayNumber.className = `text-sm font-semibold mb-1 ${isToday ? 'text-green-700 dark:text-green-300' : 'text-gray-700 dark:text-gray-300'}`;
+    dayNumber.textContent = day;
+    cell.appendChild(dayNumber);
+    
+    // Attività del giorno (max 3 visibili)
+    if (dayActivities.length > 0) {
+      const activitiesList = document.createElement('div');
+      activitiesList.className = 'space-y-1';
+      
+      dayActivities.slice(0, 3).forEach(activity => {
+        const activityEl = document.createElement('div');
+        activityEl.className = `text-xs p-1 rounded border ${activityTypeColors[activity.tipo] || 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200'} truncate`;
+        activityEl.textContent = activity.tipo;
+        activityEl.title = `${activity.tipo}: ${activity.descrizione}`;
+        activityEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.location.href = `attivita.html?id=${activity.id}`;
+        });
+        activitiesList.appendChild(activityEl);
+      });
+      
+      if (dayActivities.length > 3) {
+        const moreEl = document.createElement('div');
+        moreEl.className = 'text-xs text-gray-500 dark:text-gray-400 italic';
+        moreEl.textContent = `+${dayActivities.length - 3} altre`;
+        activitiesList.appendChild(moreEl);
+      }
+      
+      cell.appendChild(activitiesList);
+    }
+    
+    // Click su cella per aggiungere attività (solo per giorni futuri o oggi)
+    if (!isPast) {
+      cell.addEventListener('click', () => {
+        // Imposta data nel form e mostra form
+        const dateInput = this.qs('#activityData');
+        if (dateInput) {
+          dateInput.value = dateKey;
+          // Scrolla al form
+          const formSection = dateInput.closest('section');
+          if (formSection) {
+            formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            dateInput.focus();
+          }
+        }
+      });
+    }
+    
+    grid.appendChild(cell);
+  }
+  
+  // Aggiungi celle vuote per completare la griglia (ultima riga)
+  const totalCells = startingDayOfWeek + daysInMonth;
+  const remainingCells = 7 - (totalCells % 7);
+  if (remainingCells < 7) {
+    for (let i = 0; i < remainingCells; i++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'p-2 min-h-[80px] bg-gray-50 dark:bg-gray-800';
+      grid.appendChild(emptyCell);
+    }
+  }
+};
 
