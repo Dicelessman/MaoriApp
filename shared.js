@@ -839,7 +839,9 @@ const UI = {
               this.showModal('staffSelectionModal');
             }
             const r0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-            this.renderCurrentPage();
+            if (typeof this.renderCurrentPage === 'function') {
+              this.renderCurrentPage();
+            }
             const r1 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
             try { console.info('[Perf] renderCurrentPage ms:', Math.round(r1 - r0)); } catch { }
           } finally {
@@ -2869,13 +2871,16 @@ const UI = {
     if (label) label.textContent = m ? `${m.nome} ${m.cognome}` : 'Nessuno';
     this.closeModal('staffSelectionModal');
     // Rirender per abilitare le select nelle tabelle
-    this.renderCurrentPage();
+    if (typeof this.renderCurrentPage === 'function') {
+      this.renderCurrentPage();
+    }
   },
 
-  // renderCurrentPage() {
-  // Questa funzione sarà sovrascritta da ogni pagina specifica
-  // console.log('Rendering current page...');
-  //},
+  // Funzione renderCurrentPage di default (sarà sovrascritta da ogni pagina specifica)
+  renderCurrentPage() {
+    // Funzione vuota di default, sovrascritta da ogni pagina
+    // Silenziosa, per non loggare ogni volta che viene chiamata
+  },
 
   // Funzioni condivise per modali, rendering, etc.
   showModal(modalId) {
