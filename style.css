@@ -327,14 +327,67 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: none;
 .payment-select[data-selected="Satispay"] { color: #ea580c; }
 .payment-select[data-selected="Bonifico"] { color: #2563eb; }
 
+/* Accessibilità - Skip Links */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--brand);
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 1000;
+  border-radius: 0 0 4px 0;
+}
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid var(--brand-strong);
+  outline-offset: 2px;
+}
+
+/* Accessibilità - Focus Visible Migliorato */
+*:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+[role="button"]:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Accessibilità - Screen Reader Only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 /* Buttons */
 .btn-primary { background:var(--brand); color:white; padding:.5rem 1rem; border-radius:.5rem; font-weight:600; transition: transform .06s ease, filter .15s ease, box-shadow .15s ease; }
 .btn-primary:hover { filter: brightness(.95); }
 .btn-primary:active { transform: translateY(1px) scale(.99); }
+.btn-primary:focus-visible { outline: 3px solid var(--brand-strong); outline-offset: 2px; }
 .btn-secondary { background:var(--border); color:var(--text); padding:.5rem 1rem; border-radius:.5rem; font-weight:600; transition: background .15s ease, color .15s ease; }
 .btn-secondary:hover { filter: brightness(.95); }
+.btn-secondary:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
 .btn-danger { background:#dc2626; color:white; padding:.5rem 1rem; border-radius:.5rem; font-weight:600; }
 .btn-danger:hover { filter: brightness(.95); }
+.btn-danger:focus-visible { outline: 3px solid #b91c1c; outline-offset: 2px; }
 
 /* Form validation styles */
 .input { 

@@ -897,7 +897,19 @@ const UI = {
     const navLinks = this.qs('.nav-links');
     if (hamburgerIcon && navLinks) {
       hamburgerIcon.addEventListener('click', () => {
-        navLinks.classList.toggle('active');
+        const isActive = navLinks.classList.toggle('active');
+        hamburgerIcon.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+        hamburgerIcon.setAttribute('aria-label', isActive ? 'Chiudi menu di navigazione' : 'Apri menu di navigazione');
+      });
+      // Chiudi menu quando si clicca fuori
+      document.addEventListener('click', (e) => {
+        if (navLinks.classList.contains('active') && 
+            !hamburgerIcon.contains(e.target) && 
+            !navLinks.contains(e.target)) {
+          navLinks.classList.remove('active');
+          hamburgerIcon.setAttribute('aria-expanded', 'false');
+          hamburgerIcon.setAttribute('aria-label', 'Apri menu di navigazione');
+        }
       });
     }
 
@@ -1097,6 +1109,7 @@ const UI = {
         if (icon) {
           icon.textContent = theme === 'dark' ? '☀️' : '🌙';
           toggle.setAttribute('aria-label', theme === 'dark' ? 'Attiva modalità chiara' : 'Attiva modalità scura');
+          toggle.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
           toggle.title = theme === 'dark' ? 'Attiva modalità chiara' : 'Attiva modalità scura';
         }
       }

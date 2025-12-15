@@ -1,43 +1,46 @@
+<!-- Skip Links per accessibilità -->
+<a href="#main-content" class="skip-link">Salta al contenuto principale</a>
+
 <!-- Header condiviso -->
-<header class="bg-green-700 text-white p-2 rounded-t-xl flex justify-between items-center">
+<header class="bg-green-700 text-white p-2 rounded-t-xl flex justify-between items-center" role="banner">
     <div class="flex flex-col">
       <h1 class="text-xl font-bold">Reparto Maori</h1>
       <p class="text-green-200 text-sm mt-0.5">Presenze</p>
     </div>
-    <div id="staff-info" class="text-right flex flex-col">
+    <div id="staff-info" class="text-right flex flex-col" aria-live="polite" aria-atomic="true">
       <span class="text-green-200 text-sm">Sei:</span>
       <span id="selectedStaffName" class="font-semibold text-lg">Nessuno</span>
     </div>
     <div class="flex items-center gap-2">
-      <button id="themeToggle" class="theme-toggle" title="Cambia tema" aria-label="Cambia tema">
-        <span class="theme-toggle-icon">🌙</span>
+      <button id="themeToggle" class="theme-toggle" title="Cambia tema" aria-label="Cambia tema tra chiaro e scuro" aria-pressed="false">
+        <span class="theme-toggle-icon" aria-hidden="true">🌙</span>
       </button>
-      <span id="connectionStatus" class="text-xs px-2 py-1 rounded-full bg-green-800/50 hidden" title="Stato connessione">
+      <span id="connectionStatus" class="text-xs px-2 py-1 rounded-full bg-green-800/50 hidden" role="status" aria-live="polite" title="Stato connessione">
         <span id="connectionStatusText">Online</span>
       </span>
-      <span id="loggedInUserEmail" class="text-white text-lg"></span>
-      <nav id="hamburgerMenu" class="md:hidden">
-        <button class="hamburger-icon text-white p-3">&#9776;</button>
-        <div class="nav-links space-y-2">
-          <a href="presenze.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800">Presenze</a>
-          <a href="esploratori.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800">Esploratori</a>
-          <a href="calendario.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800">Calendario</a>
-          <a href="staff.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800">Staff</a>
-          <a href="dashboard.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800">Dashboard</a>
-          <a href="pagamenti.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800">Pagamenti</a>
-          <a href="documenti.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800">Documenti</a>
-          <a href="statistiche.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800">Statistiche</a>
-          <a href="audit-logs.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800">Log Audit</a>
-          <a href="preferenze.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800">⚙️ Preferenze</a>
-          <hr class="border-white/20 my-2">
-          <button type="button" id="logoutButton" class="tab-btn p-2 rounded-lg text-white hover:bg-red-600" style="display:none;">Logout</button>
+      <span id="loggedInUserEmail" class="text-white text-lg" aria-label="Email utente loggato"></span>
+      <nav id="hamburgerMenu" class="md:hidden" aria-label="Menu di navigazione mobile">
+        <button class="hamburger-icon text-white p-3" aria-label="Apri menu di navigazione" aria-expanded="false" aria-controls="hamburgerMenuLinks">&#9776;</button>
+        <div id="hamburgerMenuLinks" class="nav-links space-y-2" role="menu">
+          <a href="presenze.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Presenze</a>
+          <a href="esploratori.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Esploratori</a>
+          <a href="calendario.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Calendario</a>
+          <a href="staff.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Staff</a>
+          <a href="dashboard.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Dashboard</a>
+          <a href="pagamenti.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Pagamenti</a>
+          <a href="documenti.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Documenti</a>
+          <a href="statistiche.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Statistiche</a>
+          <a href="audit-logs.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Log Audit</a>
+          <a href="preferenze.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">⚙️ Preferenze</a>
+          <hr class="border-white/20 my-2" role="separator">
+          <button type="button" id="logoutButton" class="tab-btn p-2 rounded-lg text-white hover:bg-red-600" style="display:none;" aria-label="Disconnetti dall'account">Logout</button>
         </div>
       </nav>
     </div>
   </header>
   
   <!-- Navigazione desktop -->
-  <nav id="desktopNav" class="bg-green-600 p-2 hidden md:flex justify-center space-x-4">
+  <nav id="desktopNav" class="bg-green-600 p-2 hidden md:flex justify-center space-x-4" role="navigation" aria-label="Navigazione principale">
     <a href="presenze.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Presenze</a>
     <a href="esploratori.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Esploratori</a>
     <a href="calendario.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Calendario</a>
