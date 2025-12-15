@@ -1213,7 +1213,14 @@ const UI = {
         importantChanges: true,
         birthdayReminders: true,
         enabled: false // Richiede permesso utente
-      }
+      },
+      shortcuts: {
+        save: { key: 's', ctrl: true, meta: true, enabled: true },
+        search: { key: '/', ctrl: false, meta: false, enabled: true },
+        escape: { key: 'Escape', ctrl: false, meta: false, enabled: true },
+        help: { key: '?', ctrl: false, meta: false, enabled: true }
+      },
+      shortcutsEnabled: true
     };
   },
   
@@ -1630,9 +1637,53 @@ const UI = {
   // ============== Keyboard Shortcuts ==============
   
   /**
-   * Setup keyboard shortcuts globali
+   * Ottiene shortcuts configurati dalle preferenze utente
+   * @returns {Object} Oggetto con shortcuts configurati
+   */
+  getShortcutsConfig() {
+    const prefs = this.loadUserPreferences();
+    if (!prefs.shortcutsEnabled) {
+      return { enabled: false };
+    }
+    // Merge con default per assicurare che tutti gli shortcuts esistano
+    const defaultShortcuts = {
+      save: { key: 's', ctrl: true, meta: true, enabled: true },
+      search: { key: '/', ctrl: false, meta: false, enabled: true },
+      escape: { key: 'Escape', ctrl: false, meta: false, enabled: true },
+      help: { key: '?', ctrl: false, meta: false, enabled: true }
+    };
+    return {
+      enabled: true,
+      shortcuts: { ...defaultShortcuts, ...(prefs.shortcuts || {}) }
+    };
+  },
+  
+  /**
+   * Verifica se un evento tastiera corrisponde a uno shortcut configurato
+   * @param {KeyboardEvent} e - Evento tastiera
+   * @param {Object} shortcut - Configurazione shortcut
+   * @returns {boolean}
+   */
+  matchesShortcut(e, shortcut) {
+    if (!shortcut.enabled) return false;
+    if (e.key !== shortcut.key) return false;
+    if (shortcut.ctrl && !e.ctrlKey) return false;
+    if (shortcut.meta && !e.metaKey) return false;
+    if (!shortcut.ctrl && e.ctrlKey) return false;
+    if (!shortcut.meta && e.metaKey) return false;
+    if (e.altKey && !shortcut.alt) return false;
+    return true;
+  },
+  
+  /**
+   * Setup keyboard shortcuts globali (con configurazione personalizzabile)
    */
   setupKeyboardShortcuts() {
+    // Rimuovi listener esistente se presente
+    if (this._shortcutsHandler) {
+      document.removeEventListener('keydown', this._shortcutsHandler);
+    }
+    
     // Prevenzione attivazione shortcuts quando si digita in input/textarea
     const isEditable = (el) => {
       if (!el) return false;
@@ -1640,43 +1691,50 @@ const UI = {
       return tagName === 'input' || tagName === 'textarea' || el.isContentEditable;
     };
     
-    document.addEventListener('keydown', (e) => {
-      // Ignora se si sta digitando in un campo
+    // Handler principale
+    this._shortcutsHandler = (e) => {
+      const config = this.getShortcutsConfig();
+      if (!config.enabled) return;
+      
+      const shortcuts = config.shortcuts;
+      
+      // Ignora se si sta digitando in un campo (tranne Escape)
       if (isEditable(e.target)) {
-        // Permetti solo shortcuts che funzionano anche in input (es: Esc)
-        if (e.key === 'Escape') {
+        if (shortcuts.escape && this.matchesShortcut(e, shortcuts.escape)) {
           this.handleEscapeKey();
         }
         return;
       }
       
-      // Ctrl/Cmd + S: Salva (se c'è un form attivo)
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      // Ctrl/Cmd + S: Salva
+      if (shortcuts.save && this.matchesShortcut(e, shortcuts.save)) {
         e.preventDefault();
         this.handleSaveShortcut();
         return;
       }
       
-      // / : Focus su ricerca (se disponibile)
-      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      // / : Focus su ricerca
+      if (shortcuts.search && this.matchesShortcut(e, shortcuts.search)) {
         e.preventDefault();
         this.handleSearchShortcut();
         return;
       }
       
       // Esc: Chiudi modale
-      if (e.key === 'Escape') {
+      if (shortcuts.escape && this.matchesShortcut(e, shortcuts.escape)) {
         this.handleEscapeKey();
         return;
       }
       
       // ? : Mostra help shortcuts
-      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (shortcuts.help && this.matchesShortcut(e, shortcuts.help)) {
         e.preventDefault();
         this.showKeyboardShortcutsHelp();
         return;
       }
-    });
+    };
+    
+    document.addEventListener('keydown', this._shortcutsHandler);
   },
   
   /**
@@ -1729,26 +1787,62 @@ const UI = {
   },
   
   /**
-   * Mostra modal con lista shortcuts disponibili
+   * Formatta shortcut per visualizzazione
+   * @param {Object} shortcut - Configurazione shortcut
+   * @returns {string} Stringa formattata (es: "Ctrl + S")
+   */
+  formatShortcut(shortcut) {
+    if (!shortcut || !shortcut.enabled) return 'Disabilitato';
+    const parts = [];
+    if (shortcut.ctrl) parts.push('Ctrl');
+    if (shortcut.meta) parts.push('Cmd');
+    if (shortcut.alt) parts.push('Alt');
+    if (shortcut.key) {
+      // Formatta chiavi speciali
+      const keyMap = {
+        'Escape': 'Esc',
+        ' ': 'Spazio',
+        'ArrowUp': '↑',
+        'ArrowDown': '↓',
+        'ArrowLeft': '←',
+        'ArrowRight': '→'
+      };
+      parts.push(keyMap[shortcut.key] || shortcut.key);
+    }
+    return parts.join(' + ');
+  },
+  
+  /**
+   * Mostra modal con lista shortcuts disponibili (con configurazione personalizzata)
    */
   showKeyboardShortcutsHelp() {
-    const shortcuts = [
-      { key: 'Ctrl/Cmd + S', desc: 'Salva form attivo' },
-      { key: '/', desc: 'Focus su campo ricerca' },
-      { key: 'Esc', desc: 'Chiudi modale aperta' },
-      { key: '?', desc: 'Mostra questa guida shortcuts' }
+    const config = this.getShortcutsConfig();
+    if (!config.enabled) {
+      this.showToast('Scorciatoie tastiera disabilitate', { type: 'info' });
+      return;
+    }
+    
+    const shortcutsList = [
+      { id: 'save', desc: 'Salva form attivo', shortcut: config.shortcuts.save },
+      { id: 'search', desc: 'Focus su campo ricerca', shortcut: config.shortcuts.search },
+      { id: 'escape', desc: 'Chiudi modale aperta', shortcut: config.shortcuts.escape },
+      { id: 'help', desc: 'Mostra questa guida shortcuts', shortcut: config.shortcuts.help }
     ];
     
     const helpHtml = `
       <div class="space-y-4">
         <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">⌨️ Scorciatoie Tastiera</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Puoi personalizzare queste scorciatoie nelle preferenze.</p>
         <div class="space-y-2">
-          ${shortcuts.map(s => `
+          ${shortcutsList.map(s => `
             <div class="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
               <span class="text-gray-700 dark:text-gray-300">${s.desc}</span>
-              <kbd class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-sm font-mono text-gray-800 dark:text-gray-200">${s.key}</kbd>
+              <kbd class="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-sm font-mono text-gray-800 dark:text-gray-200">${this.formatShortcut(s.shortcut)}</kbd>
             </div>
           `).join('')}
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600">
+          <a href="preferenze.html" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">⚙️ Configura scorciatoie nelle preferenze</a>
         </div>
       </div>
     `;
@@ -1763,11 +1857,19 @@ const UI = {
         <div class="modal-content max-w-md mx-auto">
           ${helpHtml}
           <div class="mt-4 flex justify-end">
-            <button onclick="UI.closeModal('keyboardShortcutsHelpModal')" class="btn-primary">Chiudi</button>
+            <button onclick="UI.closeModal('keyboardShortcutsHelpModal')" class="btn-primary" aria-label="Chiudi modale scorciatoie">Chiudi</button>
           </div>
         </div>
       `;
       document.body.appendChild(helpModal);
+    } else {
+      // Aggiorna contenuto se modale già esiste
+      helpModal.querySelector('.modal-content').innerHTML = `
+        ${helpHtml}
+        <div class="mt-4 flex justify-end">
+          <button onclick="UI.closeModal('keyboardShortcutsHelpModal')" class="btn-primary" aria-label="Chiudi modale scorciatoie">Chiudi</button>
+        </div>
+      `;
     }
     this.showModal('keyboardShortcutsHelpModal');
   },
