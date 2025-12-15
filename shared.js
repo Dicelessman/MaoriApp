@@ -1456,7 +1456,37 @@ const UI = {
     const list = this.qs(selectors.listSelector);
     const form = this.qs(selectors.formSelector);
     const textarea = this.qs(selectors.textareaSelector);
+    const charCount = selectors.charCountSelector ? this.qs(selectors.charCountSelector) : null;
+    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+    
     if (!list || !form || !textarea) return;
+
+    // Disabilita submit se utente non loggato
+    if (submitBtn && !this.currentUser) {
+      submitBtn.disabled = true;
+      textarea.disabled = true;
+      textarea.placeholder = 'Devi essere loggato per aggiungere commenti';
+    }
+
+    // Aggiorna char count
+    const updateCharCount = () => {
+      if (charCount) {
+        const len = textarea.value.length;
+        charCount.textContent = `${len}/1000 caratteri`;
+        if (len > 1000) {
+          charCount.classList.add('text-red-500');
+        } else {
+          charCount.classList.remove('text-red-500');
+        }
+      }
+    };
+
+    // Listener per char count
+    if (textarea && !textarea._charCountBound) {
+      textarea._charCountBound = true;
+      textarea.addEventListener('input', updateCharCount);
+      updateCharCount(); // Inizializza
+    }
 
     const loadAndRender = async () => {
       const comments = await this.loadComments(targetType, targetId);
@@ -1471,9 +1501,24 @@ const UI = {
       form._bound = true;
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        await this.addComment(targetType, targetId, textarea.value);
+        if (!this.currentUser) {
+          this.showToast('Devi essere loggato per aggiungere commenti', { type: 'error' });
+          return;
+        }
+        const text = textarea.value.trim();
+        if (!text) {
+          this.showToast('Inserisci un commento', { type: 'error' });
+          return;
+        }
+        if (text.length > 1000) {
+          this.showToast('Il commento è troppo lungo (max 1000 caratteri)', { type: 'error' });
+          return;
+        }
+        await this.addComment(targetType, targetId, text);
         textarea.value = '';
+        updateCharCount();
         await loadAndRender();
+        this.showToast('Commento aggiunto', { type: 'success' });
       });
     }
   },

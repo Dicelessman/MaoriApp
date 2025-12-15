@@ -130,45 +130,67 @@
 
 <!-- Modale Dettaglio Attività -->
 <div id="activityDetailModal" class="modal" role="dialog" aria-labelledby="activityDetailTitle" aria-modal="true">
-  <div class="modal-content max-w-2xl mx-auto">
-    <div class="flex justify-between items-center mb-4">
+  <div class="modal-content max-w-2xl mx-auto max-h-[90vh] flex flex-col">
+    <div class="flex justify-between items-center mb-4 flex-shrink-0">
       <h4 id="activityDetailTitle" class="text-xl font-semibold text-gray-700"></h4>
       <button onclick="window.UI.closeModal('activityDetailModal')" class="text-gray-400 hover:text-gray-600 text-2xl leading-none" aria-label="Chiudi modale dettaglio attività">&times;</button>
     </div>
-    <p id="activityDetailMeta" class="text-gray-600 mb-4"></p>
-    
-    <div class="flex flex-wrap gap-2 mb-5">
-      <button id="copyPresentiModalBtn" class="btn-primary" aria-label="Copia elenco presenti negli appunti">Copia Presenti</button>
-      <button id="copyAssentiModalBtn" class="btn-secondary" aria-label="Copia elenco assenti negli appunti">Copia Assenti</button>
-      <button id="copyPagamentiModalBtn" class="btn-secondary" aria-label="Copia elenco pagamenti negli appunti">Copia Pagamenti</button>
-    </div>
+    <div class="overflow-y-auto flex-1 pr-2">
+      <p id="activityDetailMeta" class="text-gray-600 mb-4"></p>
+      
+      <div class="flex flex-wrap gap-2 mb-5">
+        <button id="copyPresentiModalBtn" class="btn-primary" aria-label="Copia elenco presenti negli appunti">Copia Presenti</button>
+        <button id="copyAssentiModalBtn" class="btn-secondary" aria-label="Copia elenco assenti negli appunti">Copia Assenti</button>
+        <button id="copyPagamentiModalBtn" class="btn-secondary" aria-label="Copia elenco pagamenti negli appunti">Copia Pagamenti</button>
+      </div>
 
-    <div class="grid md:grid-cols-2 gap-6 mb-6">
-      <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
-        <div class="flex items-baseline justify-between mb-2">
-          <h3 class="text-lg font-semibold text-gray-700">Presenti</h3>
-          <span id="presentiModalCount" class="text-sm text-gray-500"></span>
+      <div class="grid md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
+          <div class="flex items-baseline justify-between mb-2">
+            <h3 class="text-lg font-semibold text-gray-700">Presenti</h3>
+            <span id="presentiModalCount" class="text-sm text-gray-500"></span>
+          </div>
+          <ul id="presentiModalList" class="list-disc pl-5 text-gray-800 space-y-1 max-h-64 overflow-y-auto"></ul>
         </div>
-        <ul id="presentiModalList" class="list-disc pl-5 text-gray-800 space-y-1"></ul>
-      </div>
-      <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
-        <div class="flex items-baseline justify-between mb-2">
-          <h3 class="text-lg font-semibold text-gray-700">Assenti</h3>
-          <span id="assentiModalCount" class="text-sm text-gray-500"></span>
+        <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
+          <div class="flex items-baseline justify-between mb-2">
+            <h3 class="text-lg font-semibold text-gray-700">Assenti</h3>
+            <span id="assentiModalCount" class="text-sm text-gray-500"></span>
+          </div>
+          <ul id="assentiModalList" class="list-disc pl-5 text-gray-800 space-y-1 max-h-64 overflow-y-auto"></ul>
         </div>
-        <ul id="assentiModalList" class="list-disc pl-5 text-gray-800 space-y-1"></ul>
+      </div>
+
+      <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 mb-6">
+        <div class="flex items-baseline justify-between mb-2">
+          <h3 class="text-lg font-semibold text-gray-700">Pagamenti</h3>
+          <span id="pagamentiModalCount" class="text-sm text-gray-500"></span>
+        </div>
+        <ul id="pagamentiModalList" class="list-disc pl-5 text-gray-800 space-y-1 max-h-64 overflow-y-auto"></ul>
+      </div>
+
+      <!-- Sezione Commenti e Note -->
+      <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+        <h3 class="text-lg font-semibold text-gray-700 mb-3">💬 Commenti e Note</h3>
+        <div id="activityModalCommentsList" class="space-y-3 mb-4 max-h-64 overflow-y-auto"></div>
+        <form id="activityModalCommentForm" class="space-y-2">
+          <textarea 
+            id="activityModalCommentText" 
+            rows="3" 
+            placeholder="Aggiungi un commento o una nota su questa attività..."
+            class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200 p-2 text-sm"
+            maxlength="1000"
+          ></textarea>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500" id="activityModalCommentCharCount">0/1000 caratteri</span>
+            <button type="submit" class="btn-primary text-sm px-4 py-2" id="activityModalCommentSubmit">
+              Aggiungi Commento
+            </button>
+          </div>
+        </form>
       </div>
     </div>
-
-    <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
-      <div class="flex items-baseline justify-between mb-2">
-        <h3 class="text-lg font-semibold text-gray-700">Pagamenti</h3>
-        <span id="pagamentiModalCount" class="text-sm text-gray-500"></span>
-      </div>
-      <ul id="pagamentiModalList" class="list-disc pl-5 text-gray-800 space-y-1"></ul>
-    </div>
-
-    <div class="flex gap-2 justify-end mt-6">
+    <div class="flex gap-2 justify-end mt-4 flex-shrink-0 border-t border-gray-200 pt-4">
       <button onclick="window.UI.closeModal('activityDetailModal')" class="btn-secondary" aria-label="Chiudi modale dettaglio attività">Chiudi</button>
     </div>
   </div>

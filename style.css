@@ -180,6 +180,30 @@ body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvet
   backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
 }
 .modal.show { display: block; }
+/* Scrollbar personalizzata per modali e liste */
+.modal-content::-webkit-scrollbar,
+ul.max-h-64::-webkit-scrollbar,
+#activityModalCommentsList::-webkit-scrollbar {
+  width: 8px;
+}
+.modal-content::-webkit-scrollbar-track,
+ul.max-h-64::-webkit-scrollbar-track,
+#activityModalCommentsList::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 4px;
+}
+.modal-content::-webkit-scrollbar-thumb,
+ul.max-h-64::-webkit-scrollbar-thumb,
+#activityModalCommentsList::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
+.modal-content::-webkit-scrollbar-thumb:hover,
+ul.max-h-64::-webkit-scrollbar-thumb:hover,
+#activityModalCommentsList::-webkit-scrollbar-thumb:hover {
+  background: var(--brand);
+}
+
 .modal-content {
   background: var(--card-bg); margin: 10vh auto; padding: 24px; border-radius: var(--radius);
   border: 1px solid var(--border);

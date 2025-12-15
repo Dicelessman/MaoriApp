@@ -526,6 +526,14 @@ UI.showActivityDetailModal = function(activityId) {
   // Mostra il modale
   this.showModal('activityDetailModal');
   
+  // Setup commenti per il modale
+  this.setupCommentsForTarget('activity', activityId, {
+    listSelector: '#activityModalCommentsList',
+    formSelector: '#activityModalCommentForm',
+    textareaSelector: '#activityModalCommentText',
+    charCountSelector: '#activityModalCommentCharCount'
+  });
+  
   // Chiudi modale quando si clicca sul backdrop
   const modal = this.qs('#activityDetailModal');
   if (modal && !modal._backdropBound) {
