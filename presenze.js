@@ -1065,14 +1065,9 @@ UI.showBatchProgress = function(percent, message) {
  * Nasconde progress indicator batch
  */
 UI.hideBatchProgress = function() {
-    const indicator = this.qs('#batchProgressIndicator');
-    if (indicator) indicator.classList.add('hidden');
-    this._batchOperationCancelled = false;
-  },
-
-  /**
-   * Esporta tutte le presenze in CSV (funzione esistente per compatibilità)
-   */
+  const indicator = this.qs('#batchProgressIndicator');
+  if (indicator) indicator.classList.add('hidden');
+  this._batchOperationCancelled = false;
 };
 
 /**
