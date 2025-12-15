@@ -264,9 +264,13 @@ UI.renderPresenceTable = function() {
   // Setup pulsanti di navigazione colonne dopo che la tabella è stata renderizzata
   setTimeout(() => {
     this.setupColumnNavigation();
+    // Scroll automatico alla prossima attività dopo il setup
+    setTimeout(() => {
+      if (this._scrollToNextActivity) {
+        this._scrollToNextActivity();
+      }
+    }, 50);
   }, 100);
-
-  // Nessuno scroll automatico qui: l'utente usa picker/prev/next o il toggle
 };
 
 // Setup pulsanti di navigazione colonne
@@ -375,30 +379,36 @@ UI.setupColumnNavigation = function() {
     nextBtn._bound = true;
   }
   
+  // Funzione per scrollare alla prossima attività (riutilizzabile)
+  const scrollToNextActivity = () => {
+    const table = container.querySelector('.presence-table');
+    if (!table) return;
+    
+    // Trova la colonna con classe "next-col" (prossima attività)
+    const nextCol = table.querySelector('thead th.next-col, tbody td.next-col');
+    if (nextCol) {
+      const targetScroll = nextCol.offsetLeft - 20;
+      container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+    } else {
+      // Se non trova la classe next-col, cerca l'ultima colonna
+      const headers = table.querySelectorAll('thead th:not(.sticky)');
+      if (headers.length > 0) {
+        const lastHeader = headers[headers.length - 1];
+        const targetScroll = lastHeader.offsetLeft - 20;
+        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      }
+    }
+  };
+
   // Pulsante "Prossima" - va alla colonna della prossima attività
   if (nextActivityBtn) {
-    nextActivityBtn._clickHandler = () => {
-      const table = container.querySelector('.presence-table');
-      if (!table) return;
-      
-      // Trova la colonna con classe "next-col" (prossima attività)
-      const nextCol = table.querySelector('thead th.next-col, tbody td.next-col');
-      if (nextCol) {
-        const targetScroll = nextCol.offsetLeft - 20;
-        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
-      } else {
-        // Se non trova la classe next-col, cerca l'ultima colonna
-        const headers = table.querySelectorAll('thead th:not(.sticky)');
-        if (headers.length > 0) {
-          const lastHeader = headers[headers.length - 1];
-          const targetScroll = lastHeader.offsetLeft - 20;
-          container.scrollTo({ left: targetScroll, behavior: 'smooth' });
-        }
-      }
-    };
+    nextActivityBtn._clickHandler = scrollToNextActivity;
     nextActivityBtn.addEventListener('click', nextActivityBtn._clickHandler);
     nextActivityBtn._bound = true;
   }
+  
+  // Espone la funzione per uso esterno
+  this._scrollToNextActivity = scrollToNextActivity;
 };
 
 UI.showActivityDetailModal = function(activityId) {
