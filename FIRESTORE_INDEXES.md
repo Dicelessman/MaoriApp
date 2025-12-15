@@ -107,6 +107,21 @@ Questo documento elenca gli indici Firestore consigliati per ottimizzare le perf
 
 5. **Query Semplici**: Le query su un solo campo non richiedono indici compositi.
 
+---
+
+### Collezione: `activity-templates`
+
+**Indice per query per utente con ordinamento per nome:**
+- Collection ID: `activity-templates`
+- Fields indexed:
+  - `userId` (Ascending)
+  - `name` (Ascending)
+- Query scope: Collection
+
+**Uso**: Caricamento template attività dell'utente corrente ordinati per nome.
+
+---
+
 ## Verifica Indici
 
 Dopo aver creato gli indici, verifica che le query funzionino correttamente. Se una query fallisce, Firebase ti mostrerà un link per creare automaticamente l'indice necessario.

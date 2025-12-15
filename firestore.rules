@@ -239,6 +239,51 @@ service cloud.firestore {
       // Eliminazione: solo autore può eliminare il proprio commento
       allow delete: if isStaff() && resource.data.userId == request.auth.uid;
     }
+
+    // ============== COLLEZIONE: activity-templates ==============
+    match /activity-templates/{templateId} {
+      // Lettura: solo i propri template (filtro per userId nella query)
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Creazione: solo staff autenticato
+      allow create: if isStaff()
+        && request.resource.data.keys().hasAll(['userId', 'userEmail', 'name', 'tipo', 'descrizione', 'costo', 'createdAt'])
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.userEmail is string
+        && isValidEmail(request.resource.data.userEmail)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 200
+        && request.resource.data.tipo is string
+        && isValidActivityType(request.resource.data.tipo)
+        && request.resource.data.descrizione is string
+        && request.resource.data.descrizione.size() <= 500
+        && request.resource.data.costo is number
+        && request.resource.data.costo >= 0
+        && request.resource.data.createdAt is timestamp;
+
+      // Aggiornamento: solo proprietario può aggiornare il proprio template
+      allow update: if isStaff()
+        && resource.data.userId == request.auth.uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'userEmail', 'createdAt'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['name']) ||
+            (request.resource.data.name is string &&
+             request.resource.data.name.size() > 0 &&
+             request.resource.data.name.size() <= 200))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['tipo']) ||
+            (request.resource.data.tipo is string &&
+             isValidActivityType(request.resource.data.tipo)))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['descrizione']) ||
+            (request.resource.data.descrizione is string &&
+             request.resource.data.descrizione.size() <= 500))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['costo']) ||
+            (request.resource.data.costo is number &&
+             request.resource.data.costo >= 0));
+
+      // Eliminazione: solo proprietario può eliminare il proprio template
+      allow delete: if isStaff() && resource.data.userId == request.auth.uid;
+    }
     
     // ============== Default: nega tutto il resto ==============
     match /{document=**} {
