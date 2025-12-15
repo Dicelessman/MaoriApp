@@ -90,7 +90,8 @@ UI.setupCalendarEvents = function() {
       const dataValue = this.qs('#activityData').value;
       const data = new Date(dataValue);
       const descrizione = this.qs('#activityDescrizione').value.trim();
-      const costo = this.qs('#activityCosto').value || '0';
+      const costoValue = this.qs('#activityCosto').value || '0';
+      const costo = costoValue ? Number(costoValue) : 0;
       
       // Validazione range date
       const dateValidation = this.validateActivityDateRange(data);

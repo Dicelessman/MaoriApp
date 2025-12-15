@@ -6,7 +6,7 @@
 // Import Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import {
-  getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot, getDoc, query, limit, startAfter, orderBy, where
+  getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
@@ -305,17 +305,37 @@ class FirestoreAdapter {
 
   // Activities
   async addActivity({ tipo, data, descrizione, costo }, currentUser) {
-    const ref = await addDoc(this.cols.activities, { tipo, data, descrizione, costo });
+    // Converti data a Timestamp se è un Date object
+    const dataTimestamp = data instanceof Date ? Timestamp.fromDate(data) : data;
+    // Converti costo a numero (se è stringa o undefined/null)
+    const costoNum = costo !== undefined && costo !== null && costo !== '' ? Number(costo) : 0;
+    
+    const ref = await addDoc(this.cols.activities, { 
+      tipo, 
+      data: dataTimestamp, 
+      descrizione, 
+      costo: costoNum 
+    });
     if (currentUser) {
-      await this.addAuditLog('create', 'activities', ref.id, { tipo, data, descrizione, costo }, currentUser.uid, currentUser.email);
+      await this.addAuditLog('create', 'activities', ref.id, { tipo, data: dataTimestamp, descrizione, costo: costoNum }, currentUser.uid, currentUser.email);
     }
     return ref.id;
   }
 
   async updateActivity({ id, tipo, data, descrizione, costo }, currentUser) {
-    await setDoc(doc(this.db, 'activities', id), { tipo, data, descrizione, costo }, { merge: true });
+    // Converti data a Timestamp se è un Date object
+    const dataTimestamp = data instanceof Date ? Timestamp.fromDate(data) : data;
+    // Converti costo a numero (se è stringa o undefined/null)
+    const costoNum = costo !== undefined && costo !== null && costo !== '' ? Number(costo) : 0;
+    
+    await setDoc(doc(this.db, 'activities', id), { 
+      tipo, 
+      data: dataTimestamp, 
+      descrizione, 
+      costo: costoNum 
+    }, { merge: true });
     if (currentUser) {
-      await this.addAuditLog('update', 'activities', id, { tipo, data, descrizione, costo }, currentUser.uid, currentUser.email);
+      await this.addAuditLog('update', 'activities', id, { tipo, data: dataTimestamp, descrizione, costo: costoNum }, currentUser.uid, currentUser.email);
     }
   }
 
