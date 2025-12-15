@@ -1369,20 +1369,31 @@ const UI = {
     if (!this.currentUser?.uid || !targetType || !targetId) return [];
     try {
       const commentsRef = collection(DATA.adapter.db, 'comments');
+      // Query senza orderBy per evitare bisogno di indice composito
+      // Ordiniamo i risultati in JavaScript invece
       const q = query(
         commentsRef,
         where('targetType', '==', targetType),
-        where('targetId', '==', targetId),
-        orderBy('timestamp', 'desc')
+        where('targetId', '==', targetId)
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(docSnap => ({
+      const comments = snapshot.docs.map(docSnap => ({
         id: docSnap.id,
         ...docSnap.data(),
         timestamp: docSnap.data().timestamp?.toDate() || new Date()
       }));
+      // Ordina per timestamp decrescente (più recenti prima)
+      return comments.sort((a, b) => {
+        const timeA = a.timestamp?.getTime() || 0;
+        const timeB = b.timestamp?.getTime() || 0;
+        return timeB - timeA; // decrescente
+      });
     } catch (error) {
       console.error('Errore caricamento commenti:', error);
+      // Se è un errore di permessi, mostra messaggio più utile
+      if (error.code === 'permission-denied') {
+        console.warn('Permessi insufficienti per leggere commenti. Assicurati di essere loggato.');
+      }
       return [];
     }
   },
@@ -1416,7 +1427,12 @@ const UI = {
       this.showToast('Commento aggiunto', { type: 'success', duration: 1500 });
     } catch (error) {
       console.error('Errore salvataggio commento:', error);
-      this.showToast('Errore nel salvataggio del commento', { type: 'error' });
+      // Messaggi di errore più specifici
+      if (error.code === 'permission-denied') {
+        this.showToast('Permessi insufficienti. Assicurati di essere loggato correttamente.', { type: 'error' });
+      } else {
+        this.showToast('Errore nel salvataggio del commento: ' + (error.message || 'Errore sconosciuto'), { type: 'error' });
+      }
     }
   },
 
