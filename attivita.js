@@ -147,6 +147,14 @@ UI.renderActivityPage = async function() {
       copy(txt);
     });
   }
+  
+  // Setup commenti per la pagina attività
+  this.setupCommentsForTarget('activity', activityId, {
+    listSelector: '#activityCommentsList',
+    formSelector: '#activityCommentForm',
+    textareaSelector: '#activityCommentText',
+    charCountSelector: '#activityCommentCharCount'
+  });
 };
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -235,6 +235,7 @@ UI.renderCalendarList = function() {
           </div>
         </div>
         <div class="flex gap-2">
+          <a href="attivita.html?id=${a.id}" aria-label="Apri dettaglio attività" class="p-2 text-gray-500 hover:text-blue-600 rounded-full" title="Apri dettaglio attività">📄</a>
           <button aria-label="Modifica attività" class="p-2 text-gray-500 hover:text-green-600 rounded-full" onclick="UI.openEditActivityModal('${a.id}')" ${UI.currentUser ? '' : 'disabled'}>✏️</button>
           <button aria-label="Elimina attività" class="p-2 text-gray-500 hover:text-red-600 rounded-full" onclick="UI.confirmDeleteActivity('${a.id}')" ${UI.currentUser ? '' : 'disabled'}>🗑️</button>
         </div>
