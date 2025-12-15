@@ -1304,10 +1304,12 @@ const UI = {
     
     try {
       const templatesRef = collection(DATA.adapter.db, 'activity-templates');
+      // Query senza orderBy per evitare bisogno di indice composito
+      // Ordiniamo i risultati in JavaScript invece
       const q = query(
         templatesRef,
-        where('userId', '==', this.currentUser.uid),
-        orderBy('name', 'asc')
+        where('userId', '==', this.currentUser.uid)
+        // orderBy('name', 'asc') rimosso per evitare indice composito
       );
       const snapshot = await getDocs(q);
       const templates = snapshot.docs.map(docSnap => {
@@ -1319,6 +1321,12 @@ const UI = {
           descrizione: data.descrizione || '',
           costo: data.costo ?? 0
         };
+      });
+      // Ordina in JavaScript per nome (case-insensitive)
+      templates.sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB, 'it');
       });
       // Mantiene in memoria per riutilizzo rapido
       this._activityTemplates = templates;
