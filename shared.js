@@ -6,7 +6,7 @@
 // Import Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import {
-  getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp
+  getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, updateDoc, onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
@@ -948,8 +948,13 @@ const UI = {
       });
     }
 
-    // Modali event listeners
-    this.setupModalEventListeners();
+      // Modali event listeners
+      this.setupModalEventListeners();
+      
+      // Setup notifiche in-app (se loggato)
+      if (this.currentUser?.uid) {
+        this.setupInAppNotifications();
+      }
   },
 
   // ============== Dark Mode / Theme Management ==============
@@ -1393,15 +1398,25 @@ const UI = {
   /**
    * Gestisce notifiche in foreground (quando app è aperta)
    */
-  handleForegroundNotification(payload) {
+  async handleForegroundNotification(payload) {
     const notificationTitle = payload.notification?.title || payload.data?.title || 'Notifica Scout Maori';
+    const notificationBody = payload.notification?.body || payload.data?.body || 'Nuova notifica';
     const notificationOptions = {
-      body: payload.notification?.body || payload.data?.body || 'Nuova notifica',
+      body: notificationBody,
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       tag: payload.data?.tag || 'default',
       data: payload.data || {}
     };
+    
+    // Salva come notifica in-app
+    await this.saveInAppNotification({
+      type: payload.data?.type || 'info',
+      title: notificationTitle,
+      body: notificationBody,
+      url: payload.data?.url || null,
+      notificationType: payload.data?.notificationType || 'info'
+    });
     
     // Usa Notification API per mostrare notifica anche in foreground
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -1421,7 +1436,7 @@ const UI = {
       setTimeout(() => notification.close(), 5000);
     } else {
       // Fallback: mostra toast se notifiche non disponibili
-      this.showToast(notificationTitle + ': ' + notificationOptions.body, {
+      this.showToast(notificationTitle + ': ' + notificationBody, {
         type: 'info',
         duration: 5000
       });
@@ -1484,6 +1499,15 @@ const UI = {
               });
             }
             
+            // Salva anche come notifica in-app
+            await this.saveInAppNotification({
+              type: 'activity',
+              title: 'Attività Imminente',
+              body: message,
+              url: '/calendario.html',
+              notificationType: 'activity'
+            });
+            
             localStorage.setItem('lastActivityReminderCheck', today.toISOString());
           }
         }
@@ -1542,6 +1566,15 @@ const UI = {
               data: { url: '/esploratori.html' }
             });
           }
+          
+          // Salva anche come notifica in-app
+          await this.saveInAppNotification({
+            type: 'birthday',
+            title: '🎂 Compleanni Oggi',
+            body: message,
+            url: '/esploratori.html',
+            notificationType: 'birthday'
+          });
           
           localStorage.setItem('lastBirthdayReminderCheck', today.toISOString());
         }
@@ -1605,6 +1638,15 @@ const UI = {
             });
           }
           
+          // Salva anche come notifica in-app
+          await this.saveInAppNotification({
+            type: 'payment',
+            title: 'Pagamenti Mancanti',
+            body: `${totalUnpaid} pagamento/i da registrare per ${unpaidActivities.length} attività`,
+            url: '/pagamenti.html',
+            notificationType: 'payment'
+          });
+          
           localStorage.setItem('lastPaymentReminderCheck', today.toISOString());
         }
       }
@@ -1632,6 +1674,268 @@ const UI = {
         data: { url: url || '/' }
       });
     }
+    
+    // Salva anche come notifica in-app
+    this.saveInAppNotification({ type, title, body, url, notificationType: 'important' });
+  },
+
+  // ============== Notifiche In-App ==============
+  
+  /**
+   * Salva una notifica in-app in Firestore
+   * @param {Object} notification - Oggetto notifica { type, title, body, url, notificationType }
+   */
+  async saveInAppNotification({ type, title, body, url, notificationType = 'info' }) {
+    if (!this.currentUser?.uid) return;
+    
+    try {
+      const notificationsRef = collection(DATA.adapter.db, 'in-app-notifications');
+      await addDoc(notificationsRef, {
+        userId: this.currentUser.uid,
+        userEmail: this.currentUser.email,
+        type: notificationType || type || 'info',
+        title: title || 'Notifica',
+        body: body || '',
+        url: url || null,
+        read: false,
+        createdAt: Timestamp.now()
+      });
+      
+      // Aggiorna badge
+      this.updateNotificationsBadge();
+    } catch (error) {
+      console.error('Errore salvataggio notifica in-app:', error);
+    }
+  },
+  
+  /**
+   * Carica notifiche in-app da Firestore
+   * @returns {Promise<Array>} Array di notifiche
+   */
+  async loadInAppNotifications(limitCount = 50) {
+    if (!this.currentUser?.uid) return [];
+    
+    try {
+      const notificationsRef = collection(DATA.adapter.db, 'in-app-notifications');
+      const q = query(
+        notificationsRef,
+        where('userId', '==', this.currentUser.uid),
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      );
+      
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date()
+      }));
+    } catch (error) {
+      console.error('Errore caricamento notifiche in-app:', error);
+      return [];
+    }
+  },
+  
+  /**
+   * Segna una notifica come letta
+   * @param {string} notificationId - ID della notifica
+   */
+  async markNotificationAsRead(notificationId) {
+    if (!this.currentUser?.uid || !notificationId) return;
+    
+    try {
+      const notificationRef = doc(DATA.adapter.db, 'in-app-notifications', notificationId);
+      await setDoc(notificationRef, { read: true }, { merge: true });
+      
+      // Aggiorna badge e lista
+      this.updateNotificationsBadge();
+      this.renderNotificationsList();
+    } catch (error) {
+      console.error('Errore aggiornamento notifica:', error);
+    }
+  },
+  
+  /**
+   * Segna tutte le notifiche come lette
+   */
+  async markAllNotificationsAsRead() {
+    if (!this.currentUser?.uid) return;
+    
+    try {
+      const notifications = await this.loadInAppNotifications(100);
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      
+      const batch = unreadIds.map(id => {
+        const notificationRef = doc(DATA.adapter.db, 'in-app-notifications', id);
+        return setDoc(notificationRef, { read: true }, { merge: true });
+      });
+      
+      await Promise.all(batch);
+      
+      // Aggiorna badge e lista
+      this.updateNotificationsBadge();
+      this.renderNotificationsList();
+      this.showToast('Tutte le notifiche sono state segnate come lette', { type: 'success' });
+    } catch (error) {
+      console.error('Errore aggiornamento notifiche:', error);
+      this.showToast('Errore durante l\'aggiornamento', { type: 'error' });
+    }
+  },
+  
+  /**
+   * Aggiorna badge conteggio notifiche non lette
+   */
+  async updateNotificationsBadge() {
+    if (!this.currentUser?.uid) return;
+    
+    try {
+      const notifications = await this.loadInAppNotifications(100);
+      const unreadCount = notifications.filter(n => !n.read).length;
+      
+      const badge = this.qs('#notificationsBadge');
+      if (badge) {
+        if (unreadCount > 0) {
+          badge.textContent = unreadCount > 99 ? '99+' : unreadCount.toString();
+          badge.style.display = 'flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    } catch (error) {
+      console.error('Errore aggiornamento badge notifiche:', error);
+    }
+  },
+  
+  /**
+   * Renderizza lista notifiche nel dropdown
+   */
+  async renderNotificationsList() {
+    const container = this.qs('#notificationsList');
+    const empty = this.qs('#notificationsEmpty');
+    if (!container || !empty) return;
+    
+    try {
+      const notifications = await this.loadInAppNotifications(20);
+      
+      if (notifications.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      
+      empty.style.display = 'none';
+      
+      container.innerHTML = notifications.map(n => {
+        const timeAgo = this.formatTimeAgo(n.createdAt);
+        const icon = {
+          'activity': '📅',
+          'payment': '💳',
+          'important': '⚠️',
+          'birthday': '🎂',
+          'info': 'ℹ️'
+        }[n.type] || '🔔';
+        
+        return `
+          <div class="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${!n.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}" 
+               data-notification-id="${n.id}" 
+               role="menuitem"
+               ${n.url ? `onclick="window.location.href='${n.url}'; UI.markNotificationAsRead('${n.id}')"` : `onclick="UI.markNotificationAsRead('${n.id}')"`}>
+            <div class="flex items-start gap-3">
+              <span class="text-2xl flex-shrink-0">${icon}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 ${!n.read ? 'font-bold' : ''}">${this.escapeHtml(n.title)}</p>
+                  ${!n.read ? '<span class="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1"></span>' : ''}
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${this.escapeHtml(n.body)}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">${timeAgo}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (error) {
+      console.error('Errore rendering notifiche:', error);
+      container.innerHTML = '<div class="p-4 text-center text-gray-500">Errore nel caricamento notifiche</div>';
+    }
+  },
+  
+  /**
+   * Formatta tempo relativo (es: "2 minuti fa", "1 ora fa")
+   */
+  formatTimeAgo(date) {
+    if (!date) return '';
+    const now = new Date();
+    const diffMs = now - (date instanceof Date ? date : new Date(date));
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Adesso';
+    if (diffMins < 60) return `${diffMins} ${diffMins === 1 ? 'minuto' : 'minuti'} fa`;
+    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'ora' : 'ore'} fa`;
+    if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? 'giorno' : 'giorni'} fa`;
+    
+    return date.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+  },
+  
+  /**
+   * Setup notifiche in-app (bell icon e dropdown)
+   */
+  setupInAppNotifications() {
+    if (!this.currentUser?.uid) {
+      const container = this.qs('#notificationsContainer');
+      if (container) container.style.display = 'none';
+      return;
+    }
+    
+    // Mostra container notifiche
+    const container = this.qs('#notificationsContainer');
+    if (container) container.style.display = 'block';
+    
+    // Setup bell button
+    const bell = this.qs('#notificationsBell');
+    const dropdown = this.qs('#notificationsDropdown');
+    const markAllReadBtn = this.qs('#markAllReadBtn');
+    
+    if (bell && dropdown) {
+      // Toggle dropdown
+      bell.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.style.display !== 'none';
+        
+        if (isOpen) {
+          dropdown.style.display = 'none';
+          bell.setAttribute('aria-expanded', 'false');
+        } else {
+          dropdown.style.display = 'block';
+          bell.setAttribute('aria-expanded', 'true');
+          this.renderNotificationsList();
+        }
+      });
+      
+      // Chiudi dropdown quando si clicca fuori
+      document.addEventListener('click', (e) => {
+        if (!bell.contains(e.target) && !dropdown.contains(e.target)) {
+          dropdown.style.display = 'none';
+          bell.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+    
+    // Setup mark all as read
+    if (markAllReadBtn) {
+      markAllReadBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await this.markAllNotificationsAsRead();
+      });
+    }
+    
+    // Carica badge iniziale
+    this.updateNotificationsBadge();
+    
+    // Setup listener real-time per nuove notifiche (opzionale, può essere costoso)
+    // Si potrebbe usare onSnapshot per aggiornamenti in tempo reale
   },
 
   // ============== Keyboard Shortcuts ==============

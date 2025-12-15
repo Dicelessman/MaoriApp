@@ -689,6 +689,15 @@ select {
   pointer-events: none;
 }
 
+/* Notifiche In-App */
+#notificationsDropdown {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] #notificationsDropdown {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
 /* Context menu styles */
 #contextMenu {
   backdrop-filter: blur(8px);

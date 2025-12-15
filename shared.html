@@ -18,6 +18,25 @@
       <span id="connectionStatus" class="text-xs px-2 py-1 rounded-full bg-green-800/50 hidden" role="status" aria-live="polite" title="Stato connessione">
         <span id="connectionStatusText">Online</span>
       </span>
+      <!-- Notifiche In-App -->
+      <div id="notificationsContainer" class="relative" style="display: none;">
+        <button id="notificationsBell" class="relative p-2 text-white hover:bg-green-800 rounded-full focus:outline-none focus:ring-2 focus:ring-white" aria-label="Notifiche" aria-expanded="false" aria-haspopup="true">
+          <span class="text-2xl">🔔</span>
+          <span id="notificationsBadge" class="absolute top-0 right-0 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" style="display: none;">0</span>
+        </button>
+        <div id="notificationsDropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto" style="display: none;" role="menu">
+          <div class="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300">Notifiche</h3>
+            <button id="markAllReadBtn" class="text-sm text-blue-600 dark:text-blue-400 hover:underline" aria-label="Segna tutte come lette">Segna tutte lette</button>
+          </div>
+          <div id="notificationsList" class="divide-y divide-gray-200 dark:divide-gray-700">
+            <!-- Notifiche verranno inserite qui dinamicamente -->
+          </div>
+          <div id="notificationsEmpty" class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
+            Nessuna notifica
+          </div>
+        </div>
+      </div>
       <span id="loggedInUserEmail" class="text-white text-lg" aria-label="Email utente loggato"></span>
       <nav id="hamburgerMenu" class="md:hidden" aria-label="Menu di navigazione mobile">
         <button class="hamburger-icon text-white p-3" aria-label="Apri menu di navigazione" aria-expanded="false" aria-controls="hamburgerMenuLinks">&#9776;</button>
