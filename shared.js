@@ -1292,6 +1292,192 @@ const UI = {
     }
   },
 
+  // ============== Activity Templates ==============
+  /**
+   * Carica template attività per l'utente corrente
+   * @returns {Promise<Array>} Array di template { id, name, tipo, descrizione, costo }
+   */
+  async loadActivityTemplates() {
+    if (!this.currentUser?.uid) return [];
+    
+    try {
+      const templatesRef = collection(DATA.adapter.db, 'activity-templates');
+      const q = query(
+        templatesRef,
+        where('userId', '==', this.currentUser.uid),
+        orderBy('name', 'asc')
+      );
+      const snapshot = await getDocs(q);
+      const templates = snapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          name: data.name || data.descrizione || 'Template attività',
+          tipo: data.tipo || 'Riunione',
+          descrizione: data.descrizione || '',
+          costo: data.costo ?? 0
+        };
+      });
+      // Mantiene in memoria per riutilizzo rapido
+      this._activityTemplates = templates;
+      return templates;
+    } catch (error) {
+      console.error('Errore caricamento template attività:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Salva un nuovo template attività per l'utente corrente
+   * @param {Object} activity - { tipo, descrizione, costo }
+   */
+  async saveActivityTemplate(activity) {
+    if (!this.currentUser?.uid) {
+      this.showToast('Devi essere loggato per salvare un template.', { type: 'error' });
+      return;
+    }
+    const { tipo, descrizione, costo } = activity || {};
+    const name = descrizione && descrizione.trim() ? descrizione.trim() : `${tipo || 'Attività'} (${new Date().toLocaleDateString('it-IT')})`;
+    
+    try {
+      const templatesRef = collection(DATA.adapter.db, 'activity-templates');
+      await addDoc(templatesRef, {
+        userId: this.currentUser.uid,
+        userEmail: this.currentUser.email,
+        name,
+        tipo: tipo || 'Riunione',
+        descrizione: descrizione || '',
+        costo: typeof costo === 'number' ? costo : Number(costo || 0),
+        createdAt: Timestamp.now()
+      });
+      this.showToast('Template attività salvato', { type: 'success', duration: 2000 });
+      await this.loadActivityTemplates();
+    } catch (error) {
+      console.error('Errore salvataggio template attività:', error);
+      this.showToast('Errore nel salvataggio del template', { type: 'error' });
+    }
+  },
+
+  // ============== Commenti e Annotazioni ==============
+  /**
+   * Carica commenti per un target (activity, presence, scout)
+   * @param {string} targetType - 'activity' | 'presence' | 'scout'
+   * @param {string} targetId
+   * @returns {Promise<Array>} Array di commenti
+   */
+  async loadComments(targetType, targetId) {
+    if (!this.currentUser?.uid || !targetType || !targetId) return [];
+    try {
+      const commentsRef = collection(DATA.adapter.db, 'comments');
+      const q = query(
+        commentsRef,
+        where('targetType', '==', targetType),
+        where('targetId', '==', targetId),
+        orderBy('timestamp', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+        timestamp: docSnap.data().timestamp?.toDate() || new Date()
+      }));
+    } catch (error) {
+      console.error('Errore caricamento commenti:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Salva un commento per un target
+   * @param {string} targetType
+   * @param {string} targetId
+   * @param {string} text
+   */
+  async addComment(targetType, targetId, text) {
+    if (!this.currentUser?.uid) {
+      this.showToast('Devi essere loggato per aggiungere commenti.', { type: 'error' });
+      return;
+    }
+    const trimmed = (text || '').trim();
+    if (!trimmed) {
+      this.showToast('Il commento non può essere vuoto.', { type: 'error' });
+      return;
+    }
+    try {
+      const commentsRef = collection(DATA.adapter.db, 'comments');
+      await addDoc(commentsRef, {
+        targetType,
+        targetId,
+        userId: this.currentUser.uid,
+        userEmail: this.currentUser.email,
+        text: trimmed,
+        timestamp: Timestamp.now()
+      });
+      this.showToast('Commento aggiunto', { type: 'success', duration: 1500 });
+    } catch (error) {
+      console.error('Errore salvataggio commento:', error);
+      this.showToast('Errore nel salvataggio del commento', { type: 'error' });
+    }
+  },
+
+  /**
+   * Renderizza lista commenti in un container
+   */
+  renderCommentsList(comments, container) {
+    if (!container) return;
+    if (!comments || comments.length === 0) {
+      container.innerHTML = '<p class="text-sm text-gray-500">Nessun commento ancora. Scrivi il primo!</p>';
+      return;
+    }
+    const rows = comments.map(c => {
+      const dateStr = c.timestamp
+        ? c.timestamp.toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : '';
+      const author = this.escapeHtml(c.userEmail || '');
+      const text = this.escapeHtml(c.text || '');
+      return `
+        <div class="border-b border-gray-200 dark:border-gray-700 last:border-0 py-2">
+          <div class="flex justify-between items-baseline gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400 truncate">${author}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">${dateStr}</span>
+          </div>
+          <p class="text-sm text-gray-800 dark:text-gray-100 mt-1 whitespace-pre-wrap break-words">${text}</p>
+        </div>
+      `;
+    }).join('');
+    container.innerHTML = rows;
+  },
+
+  /**
+   * Setup commenti per un target generico (activity, presence, scout)
+   * selectors: { listSelector, formSelector, textareaSelector }
+   */
+  async setupCommentsForTarget(targetType, targetId, selectors) {
+    const list = this.qs(selectors.listSelector);
+    const form = this.qs(selectors.formSelector);
+    const textarea = this.qs(selectors.textareaSelector);
+    if (!list || !form || !textarea) return;
+
+    const loadAndRender = async () => {
+      const comments = await this.loadComments(targetType, targetId);
+      this.renderCommentsList(comments, list);
+    };
+
+    // Carica inizialmente
+    await loadAndRender();
+
+    // Gestione submit
+    if (!form._bound) {
+      form._bound = true;
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await this.addComment(targetType, targetId, textarea.value);
+        textarea.value = '';
+        await loadAndRender();
+      });
+    }
+  },
+
   // ============== Firebase Cloud Messaging (Push Notifications) ==============
   
   /**

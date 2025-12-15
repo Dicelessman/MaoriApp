@@ -24,6 +24,7 @@ UI.renderActivityPage = async function() {
     if (t) t.textContent = 'Attività — non trovata';
     return;
   }
+  const activityId = activity.id;
 
   // Header
   const d = this.toJsDate(activity.data);
@@ -87,6 +88,17 @@ UI.renderActivityPage = async function() {
     .sort((a,b)=>a.nome.localeCompare(b.nome))
     .map(x => mkLi(`${x.nome} — ${x.metodo}`)).join('');
   if (pagamentiCount) pagamentiCount.textContent = `${pagamenti.length} pagamenti`;
+
+  // Commenti attività
+  try {
+    await this.setupCommentsForTarget('activity', activityId, {
+      listSelector: '#activityCommentsList',
+      formSelector: '#activityCommentForm',
+      textareaSelector: '#activityCommentText'
+    });
+  } catch (error) {
+    console.error('Errore setup commenti attività:', error);
+  }
 
   // Bottoni copia
   const copy = async (text) => {

@@ -35,6 +35,11 @@ service cloud.firestore {
       return type in ['Riunione', 'Attività lunga', 'Uscita', 'Campo'];
     }
     
+    // Helper function: valida tipo target commenti
+    function isValidCommentTargetType(t) {
+      return t in ['activity', 'presence', 'scout'];
+    }
+    
     // ============== COLLEZIONE: scouts ==============
     match /scouts/{scoutId} {
       // Lettura: tutti gli utenti autenticati possono leggere
@@ -198,6 +203,41 @@ service cloud.firestore {
       
       // Eliminazione: NEGATO (append-only, solo per sicurezza)
       allow delete: if false;
+    }
+
+    // ============== COLLEZIONE: comments ==============
+    match /comments/{commentId} {
+      // Lettura: tutti gli utenti autenticati possono leggere i commenti
+      allow read: if isAuthenticated();
+
+      // Creazione: solo staff autenticato
+      allow create: if isStaff()
+        && request.resource.data.keys().hasAll(['targetType', 'targetId', 'userId', 'userEmail', 'text', 'timestamp'])
+        && isValidCommentTargetType(request.resource.data.targetType)
+        && request.resource.data.targetId is string
+        && request.resource.data.targetId.size() > 0
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.userEmail is string
+        && isValidEmail(request.resource.data.userEmail)
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.timestamp is timestamp;
+
+      // Aggiornamento: solo autore può aggiornare il proprio commento (testo o editedAt)
+      allow update: if isStaff()
+        && resource.data.userId == request.auth.uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['targetType', 'targetId', 'userId', 'userEmail', 'timestamp'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['text']) ||
+            (request.resource.data.text is string &&
+             request.resource.data.text.size() > 0 &&
+             request.resource.data.text.size() <= 1000))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['editedAt']) ||
+            request.resource.data.editedAt is timestamp);
+
+      // Eliminazione: solo autore può eliminare il proprio commento
+      allow delete: if isStaff() && resource.data.userId == request.auth.uid;
     }
     
     // ============== Default: nega tutto il resto ==============

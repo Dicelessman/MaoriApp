@@ -5,6 +5,64 @@ UI.renderCurrentPage = function() {
   this.setupCalendarEvents();
 };
 
+UI.initActivityTemplatesUI = async function() {
+  const select = this.qs('#activityTemplateSelect');
+  const applyBtn = this.qs('#applyActivityTemplateBtn');
+  const saveBtn = this.qs('#saveActivityTemplateBtn');
+  const tipoInput = this.qs('#activityTipo');
+  const descrInput = this.qs('#activityDescrizione');
+  const costoInput = this.qs('#activityCosto');
+
+  if (!select || !applyBtn || !saveBtn || !tipoInput || !descrInput || !costoInput) return;
+  if (!this.currentUser) return;
+
+  // Carica template e popola select
+  const templates = await this.loadActivityTemplates();
+  select.innerHTML = '<option value=\"\">Nessun template</option>' + 
+    templates.map(t => `<option value=\"${t.id}\">${this.escapeHtml(t.name)}</option>`).join('');
+
+  // Applica template selezionato
+  applyBtn.addEventListener('click', () => {
+    const id = select.value;
+    if (!id) {
+      this.showToast('Seleziona un template prima di applicare.', { type: 'info' });
+      return;
+    }
+    const tmpl = (this._activityTemplates || []).find(t => t.id === id);
+    if (!tmpl) {
+      this.showToast('Template non trovato.', { type: 'error' });
+      return;
+    }
+    tipoInput.value = tmpl.tipo || 'Riunione';
+    descrInput.value = tmpl.descrizione || '';
+    costoInput.value = tmpl.costo != null ? String(tmpl.costo) : '';
+    this.showToast('Template applicato.', { type: 'success', duration: 1500 });
+  });
+
+  // Salva template dai valori correnti del form
+  saveBtn.addEventListener('click', async () => {
+    if (!this.currentUser) {
+      this.showToast('Devi essere loggato per salvare un template.', { type: 'error' });
+      return;
+    }
+    const tipo = tipoInput.value;
+    const descrizione = descrInput.value.trim();
+    const costo = costoInput.value ? Number(costoInput.value) : 0;
+
+    if (!descrizione) {
+      this.showToast('Inserisci una descrizione per salvare un template.', { type: 'error' });
+      descrInput.focus();
+      return;
+    }
+
+    await this.saveActivityTemplate({ tipo, descrizione, costo });
+    // Ricarica select
+    const templatesUpdated = this._activityTemplates || await this.loadActivityTemplates();
+    select.innerHTML = '<option value=\"\">Nessun template</option>' + 
+      templatesUpdated.map(t => `<option value=\"${t.id}\">${this.escapeHtml(t.name)}</option>`).join('');
+  });
+};
+
 UI.setupCalendarEvents = function() {
   const form = this.qs('#addActivityForm');
   if (form && !form._bound) {
@@ -45,6 +103,11 @@ UI.setupCalendarEvents = function() {
       }
     });
     
+    // Inizializza UI template attività (solo se utente loggato)
+    if (this.currentUser) {
+      this.initActivityTemplatesUI();
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!this.currentUser) { 
