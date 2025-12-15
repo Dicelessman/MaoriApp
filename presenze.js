@@ -592,12 +592,12 @@ UI.showActivityDetailModal = function(activityId) {
   }
 };
   
-  // ============== Batch Operations ==============
-  
-  /**
-   * Inizializza sistema batch operations
-   */
-  setupBatchOperations: function() {
+// ============== Batch Operations ==============
+
+/**
+ * Inizializza sistema batch operations
+ */
+UI.setupBatchOperations = function() {
     if (!this.batchSelection) {
       this.batchSelection = {
         selectedScoutIds: new Set(),
@@ -614,12 +614,12 @@ UI.showActivityDetailModal = function(activityId) {
     
     // Aggiorna barra azioni
     this.updateBatchActionBar();
-  },
-  
-  /**
-   * Popola select attività per batch operations
-   */
-  updateBatchActivitySelect: function() {
+};
+
+/**
+ * Popola select attività per batch operations
+ */
+UI.updateBatchActivitySelect = function() {
     const select = this.qs('#batchActivitySelect');
     if (!select) return;
     
@@ -645,10 +645,10 @@ UI.showActivityDetailModal = function(activityId) {
     }
   },
   
-  /**
-   * Setup pulsanti azioni batch
-   */
-  setupBatchActionButtons: function() {
+/**
+ * Setup pulsanti azioni batch
+ */
+UI.setupBatchActionButtons = function() {
     const markPresentBtn = this.qs('#batchMarkPresentBtn');
     const markAbsentBtn = this.qs('#batchMarkAbsentBtn');
     const applyPaymentBtn = this.qs('#batchApplyPaymentBtn');
@@ -692,10 +692,10 @@ UI.showActivityDetailModal = function(activityId) {
     }
   },
   
-  /**
-   * Toggle selezione singolo esploratore
-   */
-  toggleBatchSelection: function(scoutId, checked) {
+/**
+ * Toggle selezione singolo esploratore
+ */
+UI.toggleBatchSelection = function(scoutId, checked) {
     if (!this.batchSelection) {
       this.batchSelection = {
         selectedScoutIds: new Set(),
@@ -732,10 +732,10 @@ UI.showActivityDetailModal = function(activityId) {
     this.updateBatchActionBar();
   },
   
-  /**
-   * Toggle selezione tutti
-   */
-  toggleSelectAll: function(checked) {
+/**
+ * Toggle selezione tutti
+ */
+UI.toggleSelectAll = function(checked) {
     if (!this.batchSelection) {
       this.batchSelection = {
         selectedScoutIds: new Set(),
@@ -770,10 +770,10 @@ UI.showActivityDetailModal = function(activityId) {
     this.updateBatchActionBar();
   },
   
-  /**
-   * Pulisce selezione batch
-   */
-  clearBatchSelection: function() {
+/**
+ * Pulisce selezione batch
+ */
+UI.clearBatchSelection = function() {
     if (this.batchSelection) {
       this.batchSelection.selectedScoutIds.clear();
       this.batchSelection.isSelectAll = false;
@@ -792,10 +792,10 @@ UI.showActivityDetailModal = function(activityId) {
     this.updateBatchActionBar();
   },
   
-  /**
-   * Aggiorna barra azioni batch
-   */
-  updateBatchActionBar: function() {
+/**
+ * Aggiorna barra azioni batch
+ */
+UI.updateBatchActionBar = function() {
     const bar = this.qs('#batchActionBar');
     const countSpan = this.qs('#batchSelectionCount');
     const markPresentBtn = this.qs('#batchMarkPresentBtn');
@@ -830,10 +830,10 @@ UI.showActivityDetailModal = function(activityId) {
     }
   },
   
-  /**
-   * Esegue azione batch
-   */
-  executeBatchAction: async function(action) {
+/**
+ * Esegue azione batch
+ */
+UI.executeBatchAction = async function(action) {
     if (!this.currentUser) {
       this.showToast('Devi essere loggato per eseguire operazioni batch', { type: 'error' });
       return;
@@ -885,10 +885,10 @@ UI.showActivityDetailModal = function(activityId) {
     }
   },
   
-  /**
-   * Segna presenti in batch
-   */
-  batchMarkPresent: async function(scoutIds, activityId) {
+/**
+ * Segna presenti in batch
+ */
+UI.batchMarkPresent = async function(scoutIds, activityId) {
     const total = scoutIds.length;
     for (let i = 0; i < total; i++) {
       if (this._batchOperationCancelled) break;
@@ -902,10 +902,10 @@ UI.showActivityDetailModal = function(activityId) {
     }
   },
   
-  /**
-   * Segna assenti in batch
-   */
-  batchMarkAbsent: async function(scoutIds, activityId) {
+/**
+ * Segna assenti in batch
+ */
+UI.batchMarkAbsent = async function(scoutIds, activityId) {
     const total = scoutIds.length;
     for (let i = 0; i < total; i++) {
       if (this._batchOperationCancelled) break;
@@ -918,10 +918,10 @@ UI.showActivityDetailModal = function(activityId) {
     }
   },
   
-  /**
-   * Applica pagamento in batch
-   */
-  batchApplyPayment: async function(scoutIds, activityId) {
+/**
+ * Applica pagamento in batch
+ */
+UI.batchApplyPayment = async function(scoutIds, activityId) {
     // Chiedi tipo pagamento
     const paymentType = await this.promptPaymentType();
     if (!paymentType) return;
@@ -939,10 +939,10 @@ UI.showActivityDetailModal = function(activityId) {
     }
   },
   
-  /**
-   * Prompt tipo pagamento (usa modale invece di prompt)
-   */
-  promptPaymentType: async function() {
+/**
+ * Prompt tipo pagamento (usa modale invece di prompt)
+ */
+UI.promptPaymentType = async function() {
     return new Promise((resolve) => {
       const types = ['Contanti', 'Satispay', 'Bonifico'];
       // Usa confirmModal per scegliere tipo pagamento
@@ -1000,19 +1000,19 @@ UI.showActivityDetailModal = function(activityId) {
     });
   },
   
-  /**
-   * Esporta selezionati in CSV
-   */
-  batchExport: async function(scoutIds) {
+/**
+ * Esporta selezionati in CSV
+ */
+UI.batchExport = async function(scoutIds) {
     const selectedScouts = (this.state.scouts || []).filter(s => scoutIds.includes(s.id));
     // Esporta CSV per gli esploratori selezionati
     this.exportSelectedScoutsToCSV(selectedScouts);
   },
   
-  /**
-   * Esporta CSV per esploratori selezionati
-   */
-  exportSelectedScoutsToCSV: function(selectedScouts) {
+/**
+ * Esporta CSV per esploratori selezionati
+ */
+UI.exportSelectedScoutsToCSV = function(selectedScouts) {
     if (!selectedScouts || selectedScouts.length === 0) {
       this.showToast('Nessun esploratore selezionato', { type: 'error' });
       return;
@@ -1048,10 +1048,10 @@ UI.showActivityDetailModal = function(activityId) {
     this.showToast(`CSV esportato per ${selectedScouts.length} esploratore/i`, { type: 'success' });
   },
   
-  /**
-   * Mostra progress indicator batch
-   */
-  showBatchProgress: function(percent, message) {
+/**
+ * Mostra progress indicator batch
+ */
+UI.showBatchProgress = function(percent, message) {
     const indicator = this.qs('#batchProgressIndicator');
     const progressBar = this.qs('#batchProgressBar');
     const progressMessage = this.qs('#batchProgressMessage');
@@ -1061,10 +1061,10 @@ UI.showActivityDetailModal = function(activityId) {
     if (progressMessage) progressMessage.textContent = message || 'Elaborazione in corso...';
   },
   
-  /**
-   * Nasconde progress indicator batch
-   */
-  hideBatchProgress: function() {
+/**
+ * Nasconde progress indicator batch
+ */
+UI.hideBatchProgress = function() {
     const indicator = this.qs('#batchProgressIndicator');
     if (indicator) indicator.classList.add('hidden');
     this._batchOperationCancelled = false;
@@ -1073,10 +1073,14 @@ UI.showActivityDetailModal = function(activityId) {
   /**
    * Esporta tutte le presenze in CSV (funzione esistente per compatibilità)
    */
-  exportToCSV: function() {
-    const scouts = this.state.scouts || [];
-    this.exportSelectedScoutsToCSV(scouts);
-  },
+};
+
+/**
+ * Esporta tutte le presenze in CSV (funzione esistente per compatibilità)
+ */
+UI.exportToCSV = function() {
+  const scouts = this.state.scouts || [];
+  this.exportSelectedScoutsToCSV(scouts);
 };
 
 // Inizializza la pagina presenze
