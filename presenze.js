@@ -589,7 +589,8 @@ UI.showActivityDetailModal = function(activityId) {
         this.closeModal('activityDetailModal');
       }
     });
-  },
+  }
+};
   
   // ============== Batch Operations ==============
   
