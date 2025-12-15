@@ -127,8 +127,33 @@ UI.renderPresenceTable = function() {
   // Nessun auto-scroll iniziale: lasciamo solo scroll manuale
 
   body.innerHTML = '';
-  thDates.innerHTML = '<th id="thScoutName" rowspan="2" class="cursor-pointer select-none sticky left-0 !bg-green-800 !text-white !p-4 !border-r !border-white/50 text-left" title="Ordina per Esploratore">Esploratore</th>';
+  // Checkbox "Seleziona tutti" nell'header
+  const selectAllChecked = this.batchSelection?.isSelectAll ? 'checked' : '';
+  thDates.innerHTML = `<th id="thScoutName" rowspan="2" class="cursor-pointer select-none sticky left-0 !bg-green-800 !text-white !p-4 !border-r !border-white/50 text-left" title="Ordina per Esploratore">
+    <div class="flex items-center gap-2">
+      <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 cursor-pointer" ${selectAllChecked} title="Seleziona tutti gli esploratori">
+      <span>Esploratore</span>
+    </div>
+  </th>`;
   thNames.innerHTML = '';
+  
+  // Inizializza selezione batch se non esiste
+  if (!this.batchSelection) {
+    this.batchSelection = {
+      selectedScoutIds: new Set(),
+      selectedActivityId: null,
+      isSelectAll: false
+    };
+  }
+  
+  // Setup checkbox "Seleziona tutti"
+  const selectAllCheckbox = this.qs('#selectAllCheckbox');
+  if (selectAllCheckbox && !selectAllCheckbox._bound) {
+    selectAllCheckbox._bound = true;
+    selectAllCheckbox.addEventListener('change', (e) => {
+      this.toggleSelectAll(e.target.checked);
+    });
+  }
 
   const totalScouts = (this.state.scouts || []).length;
   const acts = this.getActivitiesSorted();
@@ -223,9 +248,16 @@ UI.renderPresenceTable = function() {
     const totalActsConsidered = validActIds.length;
     const presentCount = allPresences.filter(p => p.esploratoreId === s.id && p.stato === 'Presente' && validActIds.includes(p.attivitaId)).length;
     const perc = totalActsConsidered ? Math.round((presentCount / totalActsConsidered) * 100) : 0;
-    let row = `<tr><td class=\"p-4 border-r-2 border-gray-200 bg-gray-50 font-semibold text-left sticky left-0\">${s.nome} ${s.cognome}
-      <div class=\"text-xs font-normal text-gray-500\">${presentCount} / ${totalActsConsidered} (${perc}%)</div>
-    </td>`;
+    const isSelected = this.batchSelection?.selectedScoutIds?.has(s.id) || false;
+    const checkedAttr = isSelected ? 'checked' : '';
+    let row = `<tr data-scout-id="${s.id}" class="${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}">
+      <td class=\"p-4 border-r-2 border-gray-200 bg-gray-50 font-semibold text-left sticky left-0\">
+        <div class="flex items-center gap-2">
+          <input type="checkbox" class="batch-checkbox w-4 h-4 cursor-pointer" data-scout-id="${s.id}" ${checkedAttr} title="Seleziona esploratore">
+          <span>${s.nome} ${s.cognome}</span>
+        </div>
+        <div class=\"text-xs font-normal text-gray-500 ml-6\">${presentCount} / ${totalActsConsidered} (${perc}%)</div>
+      </td>`;
 
     acts.forEach(a => {
       const presence = this.getPresence(s.id, a.id) || { stato:'NR', pagato:false, tipoPagamento:null };
@@ -260,6 +292,20 @@ UI.renderPresenceTable = function() {
     row += `</tr>`;
     body.insertAdjacentHTML('beforeend', row);
   });
+  
+  // Setup checkbox individuali dopo rendering
+  body.querySelectorAll('.batch-checkbox').forEach(checkbox => {
+    if (!checkbox._bound) {
+      checkbox._bound = true;
+      checkbox.addEventListener('change', (e) => {
+        const scoutId = e.target.getAttribute('data-scout-id');
+        this.toggleBatchSelection(scoutId, e.target.checked);
+      });
+    }
+  });
+  
+  // Setup barra azioni batch
+  this.setupBatchOperations();
 
   // Setup pulsanti di navigazione colonne dopo che la tabella è stata renderizzata
   setTimeout(() => {
@@ -544,6 +590,493 @@ UI.showActivityDetailModal = function(activityId) {
       }
     });
   }
+};
+
+  // ============== Batch Operations ==============
+  
+  /**
+   * Inizializza sistema batch operations
+   */
+  setupBatchOperations() {
+    if (!this.batchSelection) {
+      this.batchSelection = {
+        selectedScoutIds: new Set(),
+        selectedActivityId: null,
+        isSelectAll: false
+      };
+    }
+    
+    // Popola select attività
+    this.updateBatchActivitySelect();
+    
+    // Setup event listeners per barra azioni
+    this.setupBatchActionButtons();
+    
+    // Aggiorna barra azioni
+    this.updateBatchActionBar();
+  },
+  
+  /**
+   * Popola select attività per batch operations
+   */
+  updateBatchActivitySelect() {
+    const select = this.qs('#batchActivitySelect');
+    if (!select) return;
+    
+    const acts = this.getActivitiesSorted();
+    select.innerHTML = '<option value="">Seleziona attività...</option>' + 
+      acts.map(a => {
+        const d = this.toJsDate(a.data);
+        const ds = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' });
+        return `<option value="${a.id}">${ds} - ${a.tipo}</option>`;
+      }).join('');
+    
+    if (this.batchSelection.selectedActivityId) {
+      select.value = this.batchSelection.selectedActivityId;
+    }
+    
+    // Listener per cambio attività
+    if (!select._bound) {
+      select._bound = true;
+      select.addEventListener('change', (e) => {
+        this.batchSelection.selectedActivityId = e.target.value || null;
+        this.updateBatchActionBar();
+      });
+    }
+  },
+  
+  /**
+   * Setup pulsanti azioni batch
+   */
+  setupBatchActionButtons() {
+    const markPresentBtn = this.qs('#batchMarkPresentBtn');
+    const markAbsentBtn = this.qs('#batchMarkAbsentBtn');
+    const applyPaymentBtn = this.qs('#batchApplyPaymentBtn');
+    const exportBtn = this.qs('#batchExportBtn');
+    const clearBtn = this.qs('#batchClearBtn');
+    const cancelBtn = this.qs('#batchCancelBtn');
+    
+    if (markPresentBtn && !markPresentBtn._bound) {
+      markPresentBtn._bound = true;
+      markPresentBtn.addEventListener('click', () => this.executeBatchAction('markPresent'));
+    }
+    
+    if (markAbsentBtn && !markAbsentBtn._bound) {
+      markAbsentBtn._bound = true;
+      markAbsentBtn.addEventListener('click', () => this.executeBatchAction('markAbsent'));
+    }
+    
+    if (applyPaymentBtn && !applyPaymentBtn._bound) {
+      applyPaymentBtn._bound = true;
+      applyPaymentBtn.addEventListener('click', () => this.executeBatchAction('applyPayment'));
+    }
+    
+    if (exportBtn && !exportBtn._bound) {
+      exportBtn._bound = true;
+      exportBtn.addEventListener('click', () => this.executeBatchAction('export'));
+    }
+    
+    if (clearBtn && !clearBtn._bound) {
+      clearBtn._bound = true;
+      clearBtn.addEventListener('click', () => this.clearBatchSelection());
+    }
+    
+    if (cancelBtn && !cancelBtn._bound) {
+      cancelBtn._bound = true;
+      cancelBtn.addEventListener('click', () => {
+        if (this._batchOperationCancelled) {
+          this._batchOperationCancelled = true;
+          this.hideBatchProgress();
+        }
+      });
+    }
+  },
+  
+  /**
+   * Toggle selezione singolo esploratore
+   */
+  toggleBatchSelection(scoutId, checked) {
+    if (!this.batchSelection) {
+      this.batchSelection = {
+        selectedScoutIds: new Set(),
+        selectedActivityId: null,
+        isSelectAll: false
+      };
+    }
+    
+    if (checked) {
+      this.batchSelection.selectedScoutIds.add(scoutId);
+    } else {
+      this.batchSelection.selectedScoutIds.delete(scoutId);
+      this.batchSelection.isSelectAll = false;
+    }
+    
+    // Aggiorna UI checkbox nella riga
+    const row = this.qs(`tr[data-scout-id="${scoutId}"]`);
+    if (row) {
+      if (checked) {
+        row.classList.add('bg-blue-50', 'dark:bg-blue-900/20');
+      } else {
+        row.classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+      }
+    }
+    
+    // Aggiorna checkbox "seleziona tutti"
+    const selectAllCheckbox = this.qs('#selectAllCheckbox');
+    if (selectAllCheckbox) {
+      const totalScouts = (this.state.scouts || []).length;
+      selectAllCheckbox.checked = this.batchSelection.selectedScoutIds.size === totalScouts && totalScouts > 0;
+      this.batchSelection.isSelectAll = selectAllCheckbox.checked;
+    }
+    
+    this.updateBatchActionBar();
+  },
+  
+  /**
+   * Toggle selezione tutti
+   */
+  toggleSelectAll(checked) {
+    if (!this.batchSelection) {
+      this.batchSelection = {
+        selectedScoutIds: new Set(),
+        selectedActivityId: null,
+        isSelectAll: false
+      };
+    }
+    
+    this.batchSelection.isSelectAll = checked;
+    
+    if (checked) {
+      // Seleziona tutti
+      (this.state.scouts || []).forEach(s => {
+        this.batchSelection.selectedScoutIds.add(s.id);
+        const row = this.qs(`tr[data-scout-id="${s.id}"]`);
+        if (row) {
+          row.classList.add('bg-blue-50', 'dark:bg-blue-900/20');
+          const checkbox = row.querySelector('.batch-checkbox');
+          if (checkbox) checkbox.checked = true;
+        }
+      });
+    } else {
+      // Deseleziona tutti
+      this.batchSelection.selectedScoutIds.clear();
+      this.qs('#presenceTableBody')?.querySelectorAll('tr[data-scout-id]').forEach(row => {
+        row.classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+        const checkbox = row.querySelector('.batch-checkbox');
+        if (checkbox) checkbox.checked = false;
+      });
+    }
+    
+    this.updateBatchActionBar();
+  },
+  
+  /**
+   * Pulisce selezione batch
+   */
+  clearBatchSelection() {
+    if (this.batchSelection) {
+      this.batchSelection.selectedScoutIds.clear();
+      this.batchSelection.isSelectAll = false;
+    }
+    
+    // Aggiorna UI
+    const selectAllCheckbox = this.qs('#selectAllCheckbox');
+    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+    
+    this.qs('#presenceTableBody')?.querySelectorAll('tr[data-scout-id]').forEach(row => {
+      row.classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+      const checkbox = row.querySelector('.batch-checkbox');
+      if (checkbox) checkbox.checked = false;
+    });
+    
+    this.updateBatchActionBar();
+  },
+  
+  /**
+   * Aggiorna barra azioni batch
+   */
+  updateBatchActionBar() {
+    const bar = this.qs('#batchActionBar');
+    const countSpan = this.qs('#batchSelectionCount');
+    const markPresentBtn = this.qs('#batchMarkPresentBtn');
+    const markAbsentBtn = this.qs('#batchMarkAbsentBtn');
+    const applyPaymentBtn = this.qs('#batchApplyPaymentBtn');
+    
+    if (!bar || !countSpan) return;
+    
+    const count = this.batchSelection?.selectedScoutIds?.size || 0;
+    const hasSelection = count > 0;
+    const hasActivity = !!this.batchSelection?.selectedActivityId;
+    
+    // Mostra/nascondi barra
+    if (hasSelection) {
+      bar.classList.remove('hidden');
+      countSpan.textContent = count;
+    } else {
+      bar.classList.add('hidden');
+    }
+    
+    // Abilita/disabilita pulsanti che richiedono attività
+    if (markPresentBtn) markPresentBtn.disabled = !hasSelection || !hasActivity;
+    if (markAbsentBtn) markAbsentBtn.disabled = !hasSelection || !hasActivity;
+    if (applyPaymentBtn) {
+      // Verifica se l'attività selezionata ha un costo
+      if (hasActivity) {
+        const activity = (this.state.activities || []).find(a => a.id === this.batchSelection.selectedActivityId);
+        applyPaymentBtn.disabled = !hasSelection || !activity || parseFloat(activity.costo || '0') <= 0;
+      } else {
+        applyPaymentBtn.disabled = true;
+      }
+    }
+  },
+  
+  /**
+   * Esegue azione batch
+   */
+  async executeBatchAction(action) {
+    if (!this.currentUser) {
+      this.showToast('Devi essere loggato per eseguire operazioni batch', { type: 'error' });
+      return;
+    }
+    
+    const selectedIds = Array.from(this.batchSelection?.selectedScoutIds || []);
+    if (selectedIds.length === 0) {
+      this.showToast('Seleziona almeno un esploratore', { type: 'error' });
+      return;
+    }
+    
+    const activityId = this.batchSelection?.selectedActivityId;
+    if (!activityId && action !== 'export') {
+      this.showToast('Seleziona un\'attività', { type: 'error' });
+      return;
+    }
+    
+    this._batchOperationCancelled = false;
+    this.showBatchProgress(0, `Inizio operazione batch: ${action}...`);
+    
+    try {
+      switch (action) {
+        case 'markPresent':
+          await this.batchMarkPresent(selectedIds, activityId);
+          break;
+        case 'markAbsent':
+          await this.batchMarkAbsent(selectedIds, activityId);
+          break;
+        case 'applyPayment':
+          await this.batchApplyPayment(selectedIds, activityId);
+          break;
+        case 'export':
+          await this.batchExport(selectedIds);
+          break;
+      }
+      
+      if (!this._batchOperationCancelled) {
+        this.showToast(`Operazione completata su ${selectedIds.length} esploratore/i`, { type: 'success' });
+        // Ricarica dati
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.renderPresenceTable();
+      }
+    } catch (error) {
+      console.error('Errore operazione batch:', error);
+      this.showToast('Errore durante operazione batch: ' + (error.message || 'Errore sconosciuto'), { type: 'error' });
+    } finally {
+      this.hideBatchProgress();
+    }
+  },
+  
+  /**
+   * Segna presenti in batch
+   */
+  async batchMarkPresent(scoutIds, activityId) {
+    const total = scoutIds.length;
+    for (let i = 0; i < total; i++) {
+      if (this._batchOperationCancelled) break;
+      
+      const scoutId = scoutIds[i];
+      await DATA.updatePresence({ field: 'stato', value: 'Presente', scoutId, activityId }, this.currentUser);
+      
+      this.showBatchProgress(Math.round(((i + 1) / total) * 100), `Segnato presente: ${i + 1}/${total}`);
+      // Piccolo delay per non sovraccaricare Firestore
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  },
+  
+  /**
+   * Segna assenti in batch
+   */
+  async batchMarkAbsent(scoutIds, activityId) {
+    const total = scoutIds.length;
+    for (let i = 0; i < total; i++) {
+      if (this._batchOperationCancelled) break;
+      
+      const scoutId = scoutIds[i];
+      await DATA.updatePresence({ field: 'stato', value: 'Assente', scoutId, activityId }, this.currentUser);
+      
+      this.showBatchProgress(Math.round(((i + 1) / total) * 100), `Segnato assente: ${i + 1}/${total}`);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  },
+  
+  /**
+   * Applica pagamento in batch
+   */
+  async batchApplyPayment(scoutIds, activityId) {
+    // Chiedi tipo pagamento
+    const paymentType = await this.promptPaymentType();
+    if (!paymentType) return;
+    
+    const total = scoutIds.length;
+    for (let i = 0; i < total; i++) {
+      if (this._batchOperationCancelled) break;
+      
+      const scoutId = scoutIds[i];
+      await DATA.updatePresence({ field: 'pagato', value: true, scoutId, activityId }, this.currentUser);
+      await DATA.updatePresence({ field: 'tipoPagamento', value: paymentType, scoutId, activityId }, this.currentUser);
+      
+      this.showBatchProgress(Math.round(((i + 1) / total) * 100), `Pagamento applicato: ${i + 1}/${total}`);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  },
+  
+  /**
+   * Prompt tipo pagamento (usa modale invece di prompt)
+   */
+  async promptPaymentType() {
+    return new Promise((resolve) => {
+      const types = ['Contanti', 'Satispay', 'Bonifico'];
+      // Usa confirmModal per scegliere tipo pagamento
+      this.showConfirmModal({
+        title: 'Scegli Tipo Pagamento',
+        message: 'Seleziona il tipo di pagamento da applicare:',
+        confirmText: 'Contanti',
+        cancelText: 'Annulla',
+        onConfirm: () => resolve('Contanti'),
+        onCancel: () => {
+          // Mostra altri due bottoni per Satispay e Bonifico
+          // Per semplicità, risolviamo con Contanti di default
+          // In futuro si può migliorare con modale custom
+          resolve(null);
+        },
+        customButtons: [
+          { text: 'Satispay', action: () => resolve('Satispay'), class: 'btn-secondary' },
+          { text: 'Bonifico', action: () => resolve('Bonifico'), class: 'btn-secondary' }
+        ]
+      });
+      // Per ora, usiamo un approccio semplificato: chiediamo con modale custom
+      // Creiamo modale temporaneo
+      const modalId = 'batchPaymentTypeModal';
+      const existing = this.qs(`#${modalId}`);
+      if (existing) existing.remove();
+      
+      const modal = document.createElement('div');
+      modal.id = modalId;
+      modal.className = 'modal show';
+      modal.innerHTML = `
+        <div class="modal-content max-w-sm mx-auto">
+          <h4 class="text-xl font-semibold text-gray-700 mb-4">Scegli Tipo Pagamento</h4>
+          <div class="space-y-2">
+            <button class="w-full btn-primary" data-type="Contanti">💵 Contanti</button>
+            <button class="w-full btn-secondary" data-type="Satispay">📱 Satispay</button>
+            <button class="w-full btn-secondary" data-type="Bonifico">🏦 Bonifico</button>
+            <button class="w-full btn-secondary mt-4" data-type="cancel">Annulla</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.remove();
+          resolve(null);
+        }
+        const button = e.target.closest('button[data-type]');
+        if (button) {
+          const type = button.getAttribute('data-type');
+          modal.remove();
+          resolve(type === 'cancel' ? null : type);
+        }
+      });
+    });
+  },
+  
+  /**
+   * Esporta selezionati in CSV
+   */
+  async batchExport(scoutIds) {
+    const selectedScouts = (this.state.scouts || []).filter(s => scoutIds.includes(s.id));
+    // Esporta CSV per gli esploratori selezionati
+    this.exportSelectedScoutsToCSV(selectedScouts);
+  },
+  
+  /**
+   * Esporta CSV per esploratori selezionati
+   */
+  exportSelectedScoutsToCSV(selectedScouts) {
+    if (!selectedScouts || selectedScouts.length === 0) {
+      this.showToast('Nessun esploratore selezionato', { type: 'error' });
+      return;
+    }
+    
+    const acts = this.getActivitiesSorted();
+    const headers = ['Esploratore', ...acts.map(a => {
+      const d = this.toJsDate(a.data);
+      return isNaN(d) ? a.tipo : d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' });
+    })];
+    
+    const rows = selectedScouts.map(s => {
+      const scoutName = `${s.nome} ${s.cognome}`;
+      const presences = acts.map(a => {
+        const p = this.getPresence(s.id, a.id);
+        if (!p || p.stato === 'NR') return '';
+        if (p.stato === 'X') return 'X';
+        return p.stato === 'Presente' ? 'P' : 'A';
+      });
+      return [scoutName, ...presences];
+    });
+    
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `presenze_selezionate_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    this.showToast(`CSV esportato per ${selectedScouts.length} esploratore/i`, { type: 'success' });
+  },
+  
+  /**
+   * Mostra progress indicator batch
+   */
+  showBatchProgress(percent, message) {
+    const indicator = this.qs('#batchProgressIndicator');
+    const progressBar = this.qs('#batchProgressBar');
+    const progressMessage = this.qs('#batchProgressMessage');
+    
+    if (indicator) indicator.classList.remove('hidden');
+    if (progressBar) progressBar.style.width = `${percent}%`;
+    if (progressMessage) progressMessage.textContent = message || 'Elaborazione in corso...';
+  },
+  
+  /**
+   * Nasconde progress indicator batch
+   */
+  hideBatchProgress() {
+    const indicator = this.qs('#batchProgressIndicator');
+    if (indicator) indicator.classList.add('hidden');
+    this._batchOperationCancelled = false;
+  },
+
+  /**
+   * Esporta tutte le presenze in CSV (funzione esistente per compatibilità)
+   */
+  exportToCSV() {
+    const scouts = this.state.scouts || [];
+    this.exportSelectedScoutsToCSV(scouts);
+  },
 };
 
 // Inizializza la pagina presenze

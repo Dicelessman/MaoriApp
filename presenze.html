@@ -40,7 +40,54 @@
       <section id="presencesTab" class="tab-content active">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-2xl font-semibold text-gray-700">Registro Presenze</h2>
-          <button onclick="UI.exportToCSV()" class="btn-primary px-4 py-2 text-sm">📊 Esporta CSV</button>
+          <div class="flex gap-2 items-center">
+            <button onclick="UI.exportToCSV()" class="btn-primary px-4 py-2 text-sm">📊 Esporta CSV</button>
+          </div>
+        </div>
+
+        <!-- Barra Azioni Batch -->
+        <div id="batchActionBar" class="hidden bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4 flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-semibold text-blue-700 dark:text-blue-300">
+              <span id="batchSelectionCount">0</span> esploratore/i selezionato/i
+            </span>
+            <select id="batchActivitySelect" class="px-3 py-1.5 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 text-sm focus:border-blue-500 focus:ring-blue-200">
+              <option value="">Seleziona attività...</option>
+            </select>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <button id="batchMarkPresentBtn" class="btn-primary text-sm px-3 py-1.5" disabled title="Segna tutti selezionati come Presenti">
+              ✓ Segna Presenti
+            </button>
+            <button id="batchMarkAbsentBtn" class="btn-secondary text-sm px-3 py-1.5" disabled title="Segna tutti selezionati come Assenti">
+              ✗ Segna Assenti
+            </button>
+            <button id="batchApplyPaymentBtn" class="btn-secondary text-sm px-3 py-1.5" disabled title="Applica pagamento a tutti selezionati">
+              💳 Applica Pagamento
+            </button>
+            <button id="batchExportBtn" class="btn-secondary text-sm px-3 py-1.5" title="Esporta selezionati in CSV">
+              📊 Esporta Selezionati
+            </button>
+            <button id="batchClearBtn" class="btn-secondary text-sm px-3 py-1.5" title="Deseleziona tutti">
+              ✕ Annulla Selezione
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Indicator Batch -->
+        <div id="batchProgressIndicator" class="hidden bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
+          <div class="flex items-center gap-3">
+            <div class="flex-shrink-0">
+              <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-green-700 dark:text-green-300" id="batchProgressMessage">Elaborazione in corso...</p>
+              <div class="w-full bg-green-200 dark:bg-green-800 rounded-full h-2 mt-2">
+                <div id="batchProgressBar" class="bg-green-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+            <button id="batchCancelBtn" class="btn-secondary text-sm px-3 py-1.5">Annulla</button>
+          </div>
         </div>
 
         <!-- Pulsanti di navigazione colonne 2 -->
