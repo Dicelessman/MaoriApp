@@ -452,16 +452,22 @@ UI.renderMonthlyCalendar = function() {
   
   // Carica mese corrente o salvato
   let currentMonth;
-  const savedMonth = localStorage.getItem('calendarCurrentMonth');
-  if (savedMonth) {
-    // Parse la data salvata (YYYY-MM-DD o ISO string)
-    const savedDate = new Date(savedMonth);
-    // Se la data è valida, usala; altrimenti usa la data corrente
-    if (!isNaN(savedDate.getTime())) {
-      currentMonth = new Date(savedDate.getFullYear(), savedDate.getMonth(), 1);
+  const savedMonthKey = localStorage.getItem('calendarCurrentMonth');
+  if (savedMonthKey) {
+    // Prova a parse come formato "YYYY-MM" oppure come ISO string
+    if (/^\d{4}-\d{2}$/.test(savedMonthKey)) {
+      // Formato YYYY-MM (anno-mese)
+      const [year, month] = savedMonthKey.split('-').map(Number);
+      currentMonth = new Date(year, month - 1, 1); // month è 1-based, quindi sottraiamo 1
     } else {
-      currentMonth = new Date();
-      currentMonth.setDate(1);
+      // Formato ISO string legacy - convertiamo a YYYY-MM per evitare problemi di fuso orario
+      const savedDate = new Date(savedMonthKey);
+      if (!isNaN(savedDate.getTime())) {
+        currentMonth = new Date(savedDate.getFullYear(), savedDate.getMonth(), 1);
+      } else {
+        currentMonth = new Date();
+        currentMonth.setDate(1);
+      }
     }
   } else {
     currentMonth = new Date();
@@ -472,9 +478,6 @@ UI.renderMonthlyCalendar = function() {
   
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
-  
-  // Debug
-  console.log('Mese corrente:', year, month + 1, currentMonth.toLocaleDateString('it-IT'));
   
   // Aggiorna header
   monthYearEl.textContent = currentMonth.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
@@ -488,8 +491,10 @@ UI.renderMonthlyCalendar = function() {
       newMonth.setDate(1);
       newMonth.setHours(0, 0, 0, 0);
       this._calendarCurrentMonth = newMonth;
-      // Salva come stringa ISO per mantenere la compatibilità
-      localStorage.setItem('calendarCurrentMonth', this._calendarCurrentMonth.toISOString());
+      // Salva come formato YYYY-MM per evitare problemi di fuso orario
+      const year = newMonth.getFullYear();
+      const month = String(newMonth.getMonth() + 1).padStart(2, '0');
+      localStorage.setItem('calendarCurrentMonth', `${year}-${month}`);
       this.renderMonthlyCalendar();
     });
   }
@@ -502,8 +507,10 @@ UI.renderMonthlyCalendar = function() {
       newMonth.setDate(1);
       newMonth.setHours(0, 0, 0, 0);
       this._calendarCurrentMonth = newMonth;
-      // Salva come stringa ISO per mantenere la compatibilità
-      localStorage.setItem('calendarCurrentMonth', this._calendarCurrentMonth.toISOString());
+      // Salva come formato YYYY-MM per evitare problemi di fuso orario
+      const year = newMonth.getFullYear();
+      const month = String(newMonth.getMonth() + 1).padStart(2, '0');
+      localStorage.setItem('calendarCurrentMonth', `${year}-${month}`);
       this.renderMonthlyCalendar();
     });
   }
@@ -515,11 +522,10 @@ UI.renderMonthlyCalendar = function() {
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
   // getDay() restituisce 0=domenica, 1=lunedì, ..., 6=sabato
-  // Lo usiamo direttamente perché i giorni nell'HTML sono: Dom, Lun, Mar, Mer, Gio, Ven, Sab
-  const startingDayOfWeek = firstDay.getDay();
-  
-  // Debug
-  console.log('Primo giorno del mese:', firstDay.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }), 'getDay():', startingDayOfWeek, '(0=Dom, 1=Lun, ..., 6=Sab)');
+  // Convertiamo in scala settimana lavorativa italiana: 0=lunedì, 1=martedì, ..., 6=domenica
+  // Formula: (getDay() + 6) % 7 trasforma 0->6, 1->0, 2->1, ..., 6->5
+  const jsDayOfWeek = firstDay.getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
+  const startingDayOfWeek = (jsDayOfWeek + 6) % 7; // 0=Lun, 1=Mar, ..., 6=Dom
   
   // Rimuovi celle giorni esistenti (mantieni headers)
   const existingCells = grid.querySelectorAll('.calendar-day-cell');
