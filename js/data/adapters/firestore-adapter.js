@@ -19,8 +19,7 @@ export class FirestoreAdapter {
             scouts: collection(db, COLLECTIONS.SCOUTS),
             staff: collection(db, COLLECTIONS.STAFF),
             activities: collection(db, COLLECTIONS.ACTIVITIES),
-            presences: collection(db, COLLECTIONS.PRESENCES),
-            auditLogs: collection(db, COLLECTIONS.AUDIT_LOGS)
+            presences: collection(db, COLLECTIONS.PRESENCES)
         };
     }
     async loadAll(options = {}) {
@@ -97,22 +96,6 @@ export class FirestoreAdapter {
         const snapshot = await getDocs(q);
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     }
-    async addAuditLog(action, collection, documentId, changes, userId, userEmail) {
-        try {
-            await addDoc(this.cols.auditLogs, {
-                action,
-                collection,
-                documentId,
-                changes,
-                userId,
-                userEmail,
-                timestamp: new Date()
-            });
-        }
-        catch (error) {
-            console.error('Errore nel salvataggio audit log:', error);
-        }
-    }
     // Activities
     async addActivity({ tipo, data, descrizione, costo }, currentUser) {
         // Converti data a Timestamp se è un Date object
@@ -125,9 +108,6 @@ export class FirestoreAdapter {
             descrizione,
             costo: costoNum
         });
-        if (currentUser) {
-            await this.addAuditLog('create', 'activities', ref.id, { tipo, data: dataTimestamp, descrizione, costo: costoNum }, currentUser.uid, currentUser.email);
-        }
         return ref.id;
     }
     async updateActivity({ id, tipo, data, descrizione, costo }, currentUser) {
@@ -141,55 +121,31 @@ export class FirestoreAdapter {
             descrizione,
             costo: costoNum
         }, { merge: true });
-        if (currentUser) {
-            await this.addAuditLog('update', 'activities', id, { tipo, data: dataTimestamp, descrizione, costo: costoNum }, currentUser.uid, currentUser.email);
-        }
     }
     async deleteActivity(id, currentUser) {
         await deleteDoc(doc(this.db, 'activities', id));
-        if (currentUser) {
-            await this.addAuditLog('delete', 'activities', id, {}, currentUser.uid, currentUser.email);
-        }
     }
     // Staff
     async addStaff({ nome, cognome, email }, currentUser) {
         const ref = await addDoc(this.cols.staff, { nome, cognome, email });
-        if (currentUser) {
-            await this.addAuditLog('create', 'staff', ref.id, { nome, cognome, email }, currentUser.uid, currentUser.email);
-        }
         return ref.id;
     }
     async updateStaff({ id, nome, cognome, email }, currentUser) {
         await setDoc(doc(this.db, 'staff', id), { nome, cognome, email }, { merge: true });
-        if (currentUser) {
-            await this.addAuditLog('update', 'staff', id, { nome, cognome, email }, currentUser.uid, currentUser.email);
-        }
     }
     async deleteStaff(id, currentUser) {
         await deleteDoc(doc(this.db, 'staff', id));
-        if (currentUser) {
-            await this.addAuditLog('delete', 'staff', id, {}, currentUser.uid, currentUser.email);
-        }
     }
     // Scouts
     async addScout({ nome, cognome }, currentUser) {
         const ref = await addDoc(this.cols.scouts, { nome, cognome });
-        if (currentUser) {
-            await this.addAuditLog('create', 'scouts', ref.id, { nome, cognome }, currentUser.uid, currentUser.email);
-        }
         return ref.id;
     }
     async updateScout({ id, nome, cognome, ...rest }, currentUser) {
         await setDoc(doc(this.db, 'scouts', id), { nome, cognome, ...rest }, { merge: true });
-        if (currentUser) {
-            await this.addAuditLog('update', 'scouts', id, { nome, cognome, ...rest }, currentUser.uid, currentUser.email);
-        }
     }
     async deleteScout(id, currentUser) {
         await deleteDoc(doc(this.db, 'scouts', id));
-        if (currentUser) {
-            await this.addAuditLog('delete', 'scouts', id, {}, currentUser.uid, currentUser.email);
-        }
     }
     // Presences
     async updatePresence({ field, value, scoutId, activityId }, currentUser) {
@@ -204,9 +160,6 @@ export class FirestoreAdapter {
                 attivitaId: activityId,
                 [field]: value
             });
-        }
-        if (currentUser) {
-            await this.addAuditLog('update', 'presences', `${scoutId}_${activityId}`, { field, value, scoutId, activityId }, currentUser.uid, currentUser.email);
         }
     }
 }
