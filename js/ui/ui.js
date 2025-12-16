@@ -192,6 +192,49 @@ export const UI = {
         return skeletons.join('');
     },
 
+    renderInBatches({ container, items, batchSize = 50, renderItem, onComplete }) {
+        if (!container) return;
+        container.innerHTML = '';
+        if (!items || items.length === 0) {
+            container.innerHTML = '<div class="p-4 text-center text-gray-500">Nessun elemento</div>';
+            if (onComplete) onComplete();
+            return;
+        }
+
+        let index = 0;
+        const total = items.length;
+
+        const processBatch = () => {
+            const end = Math.min(index + batchSize, total);
+            const fragment = document.createDocumentFragment();
+
+            for (let i = index; i < end; i++) {
+                const item = items[i];
+                const html = renderItem(item);
+                if (typeof html === 'string') {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html.trim();
+                    if (temp.firstElementChild) {
+                        fragment.appendChild(temp.firstElementChild);
+                    }
+                } else if (html instanceof Node) {
+                    fragment.appendChild(html);
+                }
+            }
+
+            container.appendChild(fragment);
+            index = end;
+
+            if (index < total) {
+                requestAnimationFrame(processBatch);
+            } else {
+                if (onComplete) onComplete();
+            }
+        };
+
+        requestAnimationFrame(processBatch);
+    },
+
     async init() {
         try {
             this.setupTheme();
@@ -821,10 +864,93 @@ export const UI = {
     },
 
     setupFormValidation(form, rules) {
-        // ... same as before
+        if (!form || !rules) return;
+        Object.keys(rules).forEach(fieldId => {
+            const input = form.querySelector(`#${fieldId}`);
+            if (!input) return;
+            const rule = rules[fieldId];
+            const fieldGroup = input.closest('.field-group') || input.parentElement;
+            let errorEl = fieldGroup ? fieldGroup.querySelector('.field-error') : null;
+            if (!errorEl && fieldGroup) {
+                errorEl = document.createElement('span');
+                errorEl.className = 'field-error';
+                input.parentElement.appendChild(errorEl);
+            }
+            const validateField = () => {
+                const value = input.value.trim();
+                const validation = this.validateFieldValue(value, rule);
+                input.classList.remove('valid', 'invalid');
+                fieldGroup?.classList.remove('has-error', 'is-valid');
+                if (validation.valid) {
+                    input.classList.add('valid');
+                    fieldGroup?.classList.add('is-valid');
+                    if (errorEl) errorEl.textContent = '';
+                } else {
+                    input.classList.add('invalid');
+                    fieldGroup?.classList.add('has-error');
+                    if (errorEl) errorEl.textContent = validation.error || '';
+                }
+                return validation.valid;
+            };
+            let timeout;
+            input.addEventListener('input', () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(validateField, 300);
+            });
+            input.addEventListener('blur', validateField);
+            if (input.value) setTimeout(validateField, 100);
+        });
     },
-    validateForm(form, rules) { return { valid: true }; },
-    validateFieldValue(val, rule) { return { valid: true }; },
+
+    validateFieldValue(value, rule) {
+        if (rule.required && (!value || value.trim() === '')) return { valid: false, error: rule.requiredMessage || 'Campo obbligatorio' };
+        if (!value || value.trim() === '') return { valid: true, error: '' };
+        if (rule.type === 'email') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value.trim())) return { valid: false, error: 'Email non valida' };
+        }
+        if (rule.minLength && value.length < rule.minLength) return { valid: false, error: `Minimo ${rule.minLength} caratteri` };
+        if (rule.maxLength && value.length > rule.maxLength) return { valid: false, error: `Massimo ${rule.maxLength} caratteri` };
+        if (rule.pattern && !rule.pattern.test(value)) return { valid: false, error: rule.patternMessage || 'Formato non valido' };
+        if (rule.validator && typeof rule.validator === 'function') {
+            const result = rule.validator(value);
+            if (typeof result === 'string') return { valid: false, error: result };
+            if (result === false) return { valid: false, error: rule.customMessage || 'Valore non valido' };
+        }
+        return { valid: true, error: '' };
+    },
+
+    validateForm(form, rules) {
+        if (!form || !rules) return { valid: true, errors: {} };
+        const errors = {};
+        let allValid = true;
+        Object.keys(rules).forEach(fieldId => {
+            const input = form.querySelector(`#${fieldId}`);
+            if (!input) return;
+            const value = input.value.trim();
+            const rule = rules[fieldId];
+            const validation = this.validateFieldValue(value, rule);
+            if (!validation.valid) {
+                errors[fieldId] = validation.error;
+                allValid = false;
+                input.classList.add('invalid');
+                const fieldGroup = input.closest('.field-group') || input.parentElement;
+                fieldGroup?.classList.add('has-error');
+                let errorEl = fieldGroup?.querySelector('.field-error');
+                if (!errorEl && fieldGroup) {
+                    errorEl = document.createElement('span');
+                    errorEl.className = 'field-error';
+                    input.parentElement.appendChild(errorEl);
+                }
+                if (errorEl) errorEl.textContent = validation.error;
+            } else {
+                input.classList.add('valid');
+                const fieldGroup = input.closest('.field-group') || input.parentElement;
+                fieldGroup?.classList.add('is-valid');
+            }
+        });
+        return { valid: allValid, errors };
+    },
 
     escapeHtml(str) {
         if (str == null) return '';
@@ -847,10 +973,220 @@ export const UI = {
     checkDuplicateScout(n, c, xId) { return (this.state.scouts || []).some(s => s.id !== xId && s.nome.toLowerCase() === n.toLowerCase() && s.cognome.toLowerCase() === c.toLowerCase()); },
     checkDuplicateStaffEmail(e, xId) { return (this.state.staff || []).some(s => s.id !== xId && s.email.toLowerCase() === e.toLowerCase()); },
 
-    setupInstallPrompt() { },
-    setupKeyboardShortcuts() { },
+    setupInstallPrompt() {
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            this.deferredPrompt = e;
+            const btn = this.qs('#installAppBtn');
+            if (btn) {
+                btn.style.display = 'block';
+                btn.addEventListener('click', () => {
+                    this.deferredPrompt.prompt();
+                    this.deferredPrompt.userChoice.then((choice) => {
+                        if (choice.outcome === 'accepted') {
+                            console.log('App installata');
+                        }
+                        this.deferredPrompt = null;
+                    });
+                });
+            }
+        });
+    },
 
-    exportAllData() { return { scouts: this.state.scouts, staff: this.state.staff, activities: this.state.activities, presences: this.state.presences }; },
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modals = document.querySelectorAll('.modal.show');
+                modals.forEach(m => this.closeModal(m.id));
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                // Save action if applicable
+            }
+        });
+    },
+
+    // Export/Import Methods
+    exportAllData() {
+        if (!this.state) throw new Error('Nessun dato');
+        return {
+            version: this.appVersion,
+            exportDate: new Date().toISOString(),
+            data: {
+                scouts: this.state.scouts || [],
+                staff: this.state.staff || [],
+                activities: this.state.activities || [],
+                presences: this.state.presences || []
+            }
+        };
+    },
+
+    downloadJSONExport() {
+        try {
+            const exportData = this.exportAllData();
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `maori-backup-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            this.showToast('Backup scaricato', { type: 'success' });
+        } catch (e) {
+            this.showToast('Errore backup', { type: 'error' });
+            console.error(e);
+        }
+    },
+
+    // Gesture Support
+    setupSwipeDelete(container, onDelete, itemSelector = '> div', itemIdAttr = 'data-id') {
+        if (!container || typeof onDelete !== 'function') return;
+        if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) return;
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let currentElement = null;
+        const swipeThreshold = 80;
+        const deleteThreshold = 150;
+
+        container.addEventListener('touchstart', (e) => {
+            const item = e.target.closest(itemSelector);
+            if (!item || item.hasAttribute('data-swipe-disabled') || e.target.closest('a, button')) return;
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            currentElement = item;
+            item.style.transition = 'transform 0.1s linear';
+        }, { passive: false });
+
+        container.addEventListener('touchmove', (e) => {
+            if (!currentElement) return;
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
+            if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+            if (deltaX < 0) {
+                e.preventDefault();
+                currentElement.style.transform = `translateX(${deltaX}px)`;
+                if (Math.abs(deltaX) > deleteThreshold) currentElement.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
+                else currentElement.style.backgroundColor = '';
+            }
+        }, { passive: false });
+
+        container.addEventListener('touchend', (e) => {
+            if (!currentElement) return;
+            const touch = e.changedTouches[0];
+            const deltaX = touch.clientX - touchStartX;
+            if (deltaX < -swipeThreshold) {
+                const id = currentElement.getAttribute(itemIdAttr);
+                if (id) {
+                    currentElement.style.transform = 'translateX(-100%)';
+                    setTimeout(() => { onDelete(id); currentElement.style.transform = ''; currentElement.style.backgroundColor = ''; }, 200);
+                } else {
+                    currentElement.style.transform = '';
+                }
+            } else {
+                currentElement.style.transform = '';
+            }
+            currentElement.style.backgroundColor = '';
+            currentElement = null;
+        }, { passive: true });
+    },
+
+    setupLongPress(elements, handler, duration = 500) {
+        if (!elements || !handler) return;
+        const els = elements instanceof NodeList ? Array.from(elements) : (Array.isArray(elements) ? elements : [elements]);
+
+        els.forEach(el => {
+            let timer;
+            let startX, startY;
+
+            el.addEventListener('touchstart', (e) => {
+                if (e.target.closest('a, button')) return;
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                timer = setTimeout(() => {
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    e.preventDefault();
+                    if (typeof handler === 'function') handler(el, e);
+                }, duration);
+            }, { passive: false });
+
+            el.addEventListener('touchmove', (e) => {
+                if (Math.abs(e.touches[0].clientX - startX) > 10 || Math.abs(e.touches[0].clientY - startY) > 10) {
+                    clearTimeout(timer);
+                }
+            }, { passive: true });
+
+            el.addEventListener('touchend', () => clearTimeout(timer));
+            el.addEventListener('touchcancel', () => clearTimeout(timer));
+        });
+    },
+
+    showContextMenu(target, actions) {
+        const existing = document.getElementById('contextMenu');
+        if (existing) existing.remove();
+
+        const menu = document.createElement('div');
+        menu.id = 'contextMenu';
+        menu.style.cssText = `position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 9999; padding: 8px; min-width: 250px;`;
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            menu.style.background = '#1f2937';
+            menu.style.color = 'white';
+        }
+
+        actions.forEach(a => {
+            const btn = document.createElement('button');
+            btn.className = `w-full text-left px-4 py-3 flex items-center gap-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${a.danger ? 'text-red-500' : ''}`;
+            btn.innerHTML = `<span class="text-xl">${a.icon || ''}</span><span>${a.label}</span>`;
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                menu.remove();
+                if (a.action) a.action();
+            };
+            menu.appendChild(btn);
+        });
+
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 9998;';
+        overlay.onclick = () => { menu.remove(); overlay.remove(); };
+
+        document.body.appendChild(overlay);
+        document.body.appendChild(menu);
+    },
+
+    setupPullToRefresh(container, onRefresh) {
+        if (!container || !onRefresh) return;
+        let startY = 0;
+        let pulling = false;
+
+        container.addEventListener('touchstart', (e) => {
+            if (container.scrollTop <= 0) {
+                startY = e.touches[0].clientY;
+                pulling = true;
+            }
+        }, { passive: true });
+
+        container.addEventListener('touchmove', (e) => {
+            if (!pulling) return;
+            const split = e.touches[0].clientY - startY;
+            if (split > 0 && container.scrollTop <= 0) {
+                // Visual feedback could go here
+            }
+        }, { passive: true });
+
+        container.addEventListener('touchend', async (e) => {
+            if (!pulling) return;
+            const split = e.changedTouches[0].clientY - startY;
+            if (split > 80 && container.scrollTop <= 0) {
+                await onRefresh();
+            }
+            pulling = false;
+        }, { passive: true });
+    },
 
     logNetworkInfo() { },
     runConnectivityProbe() { window.addEventListener('online', () => this.updateConnectionStatus(true)); window.addEventListener('offline', () => this.updateConnectionStatus(false)); },
