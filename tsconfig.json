@@ -26,17 +26,13 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "./dist",
+    "outDir": ".",
     "removeComments": false,
-    "noEmit": true, // Non emettere file JS, solo type-check
-    /* Completeness */
-    "skipLibCheck": true,
-    "allowImportingTsExtensions": true
+    "noEmit": false,
+    "skipLibCheck": true
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.js" // Include JS per type-check incrementale
+    "js/utils/*.ts"
   ],
   "exclude": [
     "node_modules",

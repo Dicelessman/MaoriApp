@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateFieldValue, sanitizeInput } from '../js/utils/validation.ts';
+import { validateFieldValue, sanitizeInput } from '../js/utils/validation.js';
 
 
 describe('Validation Functions', () => {

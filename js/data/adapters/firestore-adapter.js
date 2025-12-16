@@ -7,8 +7,8 @@ import {
     db, auth, messaging,
     collection, doc, getDocs, addDoc, setDoc, deleteDoc, updateDoc,
     onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp
-} from '../../core/firebase.ts';
-import { COLLECTIONS } from '../../utils/constants.ts';
+} from '../../core/firebase.js';
+import { COLLECTIONS } from '../../utils/constants.js';
 
 export class FirestoreAdapter {
     constructor() {
