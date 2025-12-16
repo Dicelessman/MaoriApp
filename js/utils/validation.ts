@@ -3,7 +3,7 @@
  * @module utils/validation
  */
 
-import { VALIDATION_RULES } from './constants';
+import { VALIDATION_RULES } from './constants.ts';
 
 export interface ValidationResult {
     valid: boolean;

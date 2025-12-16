@@ -30,7 +30,8 @@
     "removeComments": false,
     "noEmit": true, // Non emettere file JS, solo type-check
     /* Completeness */
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true
   },
   "include": [
     "**/*.ts",
