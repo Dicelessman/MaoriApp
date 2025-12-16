@@ -1,4 +1,4 @@
-const CACHE_NAME = "presenziario-cache-v3"; // bump cache
+const CACHE_NAME = "presenziario-cache-v4"; // bump cache
 const RUNTIME_CACHE = "presenziario-runtime-v1";
 const URLS_TO_CACHE = [
   "/",
@@ -19,7 +19,16 @@ const URLS_TO_CACHE = [
   "/esploratori.js",
   "/staff.js",
   "/audit-logs.js",
-  "/manifest.json"
+  "/manifest.json",
+  "/config.js",
+  "/js/core/firebase.js",
+  "/js/utils/constants.js",
+  "/js/utils/utils.js",
+  "/js/utils/validation.js",
+  "/js/ui/ui.js",
+  "/js/data/data-facade.js",
+  "/js/data/adapters/firestore-adapter.js",
+  "/js/data/adapters/local-adapter.js"
 ];
 
 // Install
@@ -28,7 +37,7 @@ self.addEventListener("install", (event) => {
     caches.open(CACHE_NAME).then((cache) => {
       // Usa add() invece di addAll() per gestire errori individuali
       return Promise.all(
-        URLS_TO_CACHE.map(url => 
+        URLS_TO_CACHE.map(url =>
           cache.add(url).catch(err => {
             console.warn(`Failed to cache ${url}:`, err);
             // Continua anche se un file fallisce
@@ -64,7 +73,7 @@ self.addEventListener("fetch", (event) => {
       .then(async (networkResponse) => {
         // Clona e metti in cache se ok
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          try { await cache.put(request, networkResponse.clone()); } catch (e) {}
+          try { await cache.put(request, networkResponse.clone()); } catch (e) { }
         }
         return networkResponse;
       })
