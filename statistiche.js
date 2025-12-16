@@ -82,6 +82,9 @@ UI.renderStatistiche = async function() {
   
   const scouts = this.state.scouts || [];
   
+  // Renderizza KPI cards
+  this.renderKPICards(scouts);
+  
   // Calcola statistiche composizione
   this.renderComposizioneStats(scouts);
   
@@ -96,6 +99,128 @@ UI.renderStatistiche = async function() {
   
   // Setup report presenze avanzati
   this.renderPresenceReport();
+};
+
+// ============== KPI Cards ==============
+UI.renderKPICards = function(scouts) {
+  const kpiContainer = document.getElementById('kpiCards');
+  if (!kpiContainer) return;
+  
+  const activities = this.state.activities || [];
+  const presences = this.getDedupedPresences();
+  
+  // Calcola totale esploratori
+  const totalScouts = scouts.length;
+  
+  // Calcola presenza media (ultimi 3 mesi)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const threeMonthsAgo = new Date(today);
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  
+  const recentActivities = activities.filter(a => {
+    const activityDate = this.toJsDate(a.data);
+    if (!activityDate) return false;
+    return activityDate >= threeMonthsAgo && activityDate <= today;
+  });
+  
+  let totalPresences = 0;
+  let totalPossiblePresences = 0;
+  
+  scouts.forEach(scout => {
+    recentActivities.forEach(activity => {
+      const presence = presences.find(p => 
+        p.esploratoreId === scout.id && p.attivitaId === activity.id
+      );
+      totalPossiblePresences++;
+      if (presence && presence.stato === 'Presente') {
+        totalPresences++;
+      }
+    });
+  });
+  
+  const avgPresence = totalPossiblePresences > 0 
+    ? Math.round((totalPresences / totalPossiblePresences) * 100) 
+    : 0;
+  
+  // Calcola totale attività
+  const totalActivities = activities.length;
+  const pastActivities = activities.filter(a => {
+    const activityDate = this.toJsDate(a.data);
+    if (!activityDate) return false;
+    return activityDate < today;
+  }).length;
+  const upcomingActivities = totalActivities - pastActivities;
+  
+  // Calcola esploratori attivi (presenti almeno una volta negli ultimi 3 mesi)
+  const activeScoutsSet = new Set();
+  scouts.forEach(scout => {
+    const hasPresence = recentActivities.some(activity => {
+      const presence = presences.find(p => 
+        p.esploratoreId === scout.id && p.attivitaId === activity.id && p.stato === 'Presente'
+      );
+      return !!presence;
+    });
+    if (hasPresence) {
+      activeScoutsSet.add(scout.id);
+    }
+  });
+  const activeScouts = activeScoutsSet.size;
+  
+  // Calcola pattuglie attive
+  const activePattuglieSet = new Set();
+  scouts.forEach(scout => {
+    if (activeScoutsSet.has(scout.id) && scout.pv_pattuglia) {
+      activePattuglieSet.add(scout.pv_pattuglia);
+    }
+  });
+  const activePattuglie = activePattuglieSet.size;
+  
+  // Renderizza KPI cards
+  kpiContainer.innerHTML = `
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-blue-100 text-sm font-medium mb-1">Totale Esploratori</p>
+          <p class="text-3xl font-bold">${totalScouts}</p>
+        </div>
+        <div class="text-4xl opacity-80">👥</div>
+      </div>
+    </div>
+    
+    <div class="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-green-100 text-sm font-medium mb-1">Presenza Media</p>
+          <p class="text-3xl font-bold">${avgPresence}%</p>
+          <p class="text-green-100 text-xs mt-1">Ultimi 3 mesi</p>
+        </div>
+        <div class="text-4xl opacity-80">📊</div>
+      </div>
+    </div>
+    
+    <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-purple-100 text-sm font-medium mb-1">Attività Totali</p>
+          <p class="text-3xl font-bold">${totalActivities}</p>
+          <p class="text-purple-100 text-xs mt-1">${upcomingActivities} prossime</p>
+        </div>
+        <div class="text-4xl opacity-80">📅</div>
+      </div>
+    </div>
+    
+    <div class="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-6 rounded-lg shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-orange-100 text-sm font-medium mb-1">Esploratori Attivi</p>
+          <p class="text-3xl font-bold">${activeScouts}</p>
+          <p class="text-orange-100 text-xs mt-1">${activePattuglie} pattuglie</p>
+        </div>
+        <div class="text-4xl opacity-80">⭐</div>
+      </div>
+    </div>
+  `;
 };
 
 // ============== Composizione del Reparto ==============
