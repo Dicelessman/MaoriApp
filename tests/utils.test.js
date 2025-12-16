@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit } from '../js/utils/utils.js';
+import { escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit } from '../js/utils/utils';
 
 describe('Utility Functions', () => {
   describe('escapeHtml', () => {

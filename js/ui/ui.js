@@ -9,10 +9,10 @@ import {
     getToken, onMessage,
     collection, doc, getDocs, addDoc, setDoc, deleteDoc, updateDoc,
     onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp
-} from '../core/firebase.js';
-import { APP_VERSION, THEME } from '../utils/constants.js';
-import { escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit } from '../utils/utils.js';
-import { setupFormValidation, validateForm, validateFieldValue } from '../utils/validation.js';
+} from '../core/firebase';
+import { APP_VERSION, THEME } from '../utils/constants';
+import { escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit } from '../utils/utils';
+import { setupFormValidation, validateForm, validateFieldValue } from '../utils/validation';
 
 export const UI = {
     appVersion: APP_VERSION,

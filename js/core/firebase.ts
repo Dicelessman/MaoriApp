@@ -3,13 +3,13 @@
  * @module core/firebase
  */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, updateDoc, onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, updateDoc, onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp } from "firebase/firestore";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 // Init Config
-const firebaseConfig = (typeof window !== 'undefined' && window.__FIREBASE_CONFIG__) || {
+const firebaseConfig = (typeof window !== 'undefined' && (window as any).__FIREBASE_CONFIG__) || {
     apiKey: "AIzaSyAoa8Rrlplr001PitiFrqBkrbEWL3TWrL4",
     authDomain: "presenziariomaori.firebaseapp.com",
     projectId: "presenziariomaori",
@@ -24,7 +24,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 // Initialize FCM only in browser and if service worker is supported
-let messaging = null;
+let messaging: any = null;
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     try {
         messaging = getMessaging(app);

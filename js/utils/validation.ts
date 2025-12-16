@@ -3,14 +3,31 @@
  * @module utils/validation
  */
 
-import { VALIDATION_RULES } from './constants.js';
+import { VALIDATION_RULES } from './constants';
+
+export interface ValidationResult {
+    valid: boolean;
+    error: string;
+}
+
+export interface ValidationRule {
+    required?: boolean;
+    requiredMessage?: string;
+    type?: 'email' | 'text' | 'number' | 'date';
+    minLength?: number;
+    maxLength?: number;
+    pattern?: RegExp;
+    patternMessage?: string;
+    validator?: (value: any) => boolean | string;
+    customMessage?: string;
+}
 
 /**
  * Sanitizes input string to remove potentially dangerous characters
- * @param {string} input - The input string
- * @returns {string} The sanitized string
+ * @param input - The input string
+ * @returns The sanitized string
  */
-export function sanitizeInput(input) {
+export function sanitizeInput(input: any): any {
     if (typeof input !== 'string') return input;
     // Remove scripts and potentially malicious tags basically
     return input.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
@@ -20,11 +37,11 @@ export function sanitizeInput(input) {
 
 /**
  * Validates a single field value against a rule
- * @param {any} value - The value to validate
- * @param {Object} rule - The validation rule
- * @returns {Object} { valid: boolean, error: string }
+ * @param value - The value to validate
+ * @param rule - The validation rule
+ * @returns { valid: boolean, error: string }
  */
-export function validateFieldValue(value, rule) {
+export function validateFieldValue(value: any, rule: ValidationRule): ValidationResult {
     if (rule.required && (value === null || value === undefined || (typeof value === 'string' && value.trim() === ''))) {
         return { valid: false, error: rule.requiredMessage || 'Campo obbligatorio' };
     }
@@ -60,23 +77,25 @@ export function validateFieldValue(value, rule) {
     return { valid: true, error: '' };
 }
 
+export interface FormValidationResult {
+    valid: boolean;
+    errors: Record<string, string>;
+}
+
 /**
  * Validates a form against a set of rules
- * @param {HTMLElement} form - The form element
- * @param {Object} rules - Map of field IDs to validation rules
- * @returns {Object} { valid: boolean, errors: Object }
+ * @param form - The form element
+ * @param rules - Map of field IDs to validation rules
+ * @returns { valid: boolean, errors: Object }
  */
-export function validateForm(form, rules) {
+export function validateForm(form: HTMLElement | null, rules: Record<string, ValidationRule>): FormValidationResult {
     if (!form || !rules) return { valid: true, errors: {} };
-    const errors = {};
+    const errors: Record<string, string> = {};
     let allValid = true;
 
     Object.keys(rules).forEach(fieldId => {
-        const input = form.querySelector(`#${fieldId}`);
+        const input = form.querySelector(`#${fieldId}`) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
         if (!input) return;
-
-        // Sanitize value in place if needed (optional strategy, but safer to sanitize on use)
-        // const sanitizedVal = sanitizeInput(input.value); 
 
         const value = input.value;
         const rule = rules[fieldId];
@@ -88,7 +107,7 @@ export function validateForm(form, rules) {
         if (!errorEl && fieldGroup) {
             errorEl = document.createElement('span');
             errorEl.className = 'field-error';
-            input.parentElement.appendChild(errorEl);
+            input.parentElement?.appendChild(errorEl);
         }
 
         if (!validation.valid) {
@@ -112,14 +131,14 @@ export function validateForm(form, rules) {
 }
 
 /**
-     * Sets up real-time validation for a form
-     * @param {HTMLElement} form - The form element
-     * @param {Object} rules - Validation rules map
-     */
-export function setupFormValidation(form, rules) {
+ * Sets up real-time validation for a form
+ * @param form - The form element
+ * @param rules - Validation rules map
+ */
+export function setupFormValidation(form: HTMLElement | null, rules: Record<string, ValidationRule>): void {
     if (!form || !rules) return;
     Object.keys(rules).forEach(fieldId => {
-        const input = form.querySelector(`#${fieldId}`);
+        const input = form.querySelector(`#${fieldId}`) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
         if (!input) return;
         const rule = rules[fieldId];
         const fieldGroup = input.closest('.field-group') || input.parentElement;
@@ -128,11 +147,11 @@ export function setupFormValidation(form, rules) {
         if (!errorEl && fieldGroup) {
             errorEl = document.createElement('span');
             errorEl.className = 'field-error';
-            input.parentElement.appendChild(errorEl);
+            input.parentElement?.appendChild(errorEl);
         }
 
         const validateField = () => {
-            const value = input.value; // Sanitization happens on usage or server-side? Better to use raw value for validation check.
+            const value = input.value;
             const validation = validateFieldValue(value, rule);
 
             input.classList.remove('valid', 'invalid');
@@ -150,10 +169,10 @@ export function setupFormValidation(form, rules) {
             return validation.valid;
         };
 
-        let timeout;
+        let timeout: number;
         input.addEventListener('input', () => {
             clearTimeout(timeout);
-            timeout = setTimeout(validateField, 300);
+            timeout = window.setTimeout(validateField, 300);
         });
         input.addEventListener('blur', validateField);
         // Initial check if value exists

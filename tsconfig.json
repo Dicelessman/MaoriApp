@@ -1,10 +1,13 @@
 {
   "compilerOptions": {
     /* Language and Environment */
-    "target": "ES2020",
+    "target": "ESNext",
     "module": "ESNext",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
     /* Interop Constraints */
     "moduleResolution": "bundler",
     "allowJs": true,
@@ -14,17 +17,11 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    
     /* Type Checking - Graduale */
-    "strict": false,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
-    "strictFunctionTypes": false,
-    "strictBindCallApply": false,
-    "strictPropertyInitialization": false,
-    "noImplicitThis": false,
-    "alwaysStrict": false,
-    
+    /* Type Checking - Graduale */
+    "strict": true,
+    "noImplicitAny": true, // Explicitly set for clarity, though implied
+    "strictNullChecks": true,
     /* Emit */
     "declaration": true,
     "declarationMap": true,
@@ -32,7 +29,6 @@
     "outDir": "./dist",
     "removeComments": false,
     "noEmit": true, // Non emettere file JS, solo type-check
-    
     /* Completeness */
     "skipLibCheck": true
   },
@@ -43,9 +39,6 @@
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "tests",
-    "vitest.config.js"
+    "dist"
   ]
 }
-
