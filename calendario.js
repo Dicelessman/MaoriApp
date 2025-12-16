@@ -380,7 +380,25 @@ UI.setupCalendarViewToggle = function() {
   const monthlyView = this.qs('#monthlyCalendarView');
   const listView = this.qs('#listCalendarView');
   
-  if (!toggle || !toggleText || !monthlyView || !listView) return;
+  if (!toggle || !toggleText || !monthlyView || !listView) {
+    console.warn('Elementi per toggle vista calendario non trovati', {
+      toggle: !!toggle,
+      toggleText: !!toggleText,
+      monthlyView: !!monthlyView,
+      listView: !!listView
+    });
+    return;
+  }
+  
+  // Evita di aggiungere l'event listener più volte
+  if (toggle._bound) {
+    console.log('Toggle già configurato, skip');
+    return;
+  }
+  toggle._bound = true;
+  
+  // Salva riferimento a this per uso nel callback
+  const self = this;
   
   // Carica vista salvata
   const viewMode = localStorage.getItem('calendarViewMode') || 'list';
@@ -394,24 +412,31 @@ UI.setupCalendarViewToggle = function() {
     toggleText.textContent = '📅 Vista Calendario';
   }
   
-  toggle.addEventListener('click', () => {
+  toggle.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Toggle click rilevato');
+    
     const currentMode = monthlyView.classList.contains('hidden') ? 'list' : 'month';
     const newMode = currentMode === 'list' ? 'month' : 'list';
     
+    console.log('Cambio vista da', currentMode, 'a', newMode);
     localStorage.setItem('calendarViewMode', newMode);
     
     if (newMode === 'month') {
       monthlyView.classList.remove('hidden');
       listView.classList.add('hidden');
       toggleText.textContent = '📋 Vista Lista';
-      this.renderMonthlyCalendar();
+      self.renderMonthlyCalendar();
     } else {
       monthlyView.classList.add('hidden');
       listView.classList.remove('hidden');
       toggleText.textContent = '📅 Vista Calendario';
-      this.renderCalendarList();
+      self.renderCalendarList();
     }
   });
+  
+  console.log('Event listener toggle configurato');
 };
 
 /**
