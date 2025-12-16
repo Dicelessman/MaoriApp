@@ -486,9 +486,18 @@ UI.renderMonthlyCalendar = function() {
   if (prevBtn && !prevBtn._bound) {
     prevBtn._bound = true;
     prevBtn.addEventListener('click', () => {
-      const newMonth = new Date(this._calendarCurrentMonth);
-      newMonth.setMonth(newMonth.getMonth() - 1);
-      newMonth.setDate(1);
+      // Usa sempre new Date(year, month, 1) invece di setMonth() per evitare problemi
+      const currentYear = this._calendarCurrentMonth.getFullYear();
+      const currentMonthIndex = this._calendarCurrentMonth.getMonth();
+      // Calcola mese e anno precedente
+      let prevYear = currentYear;
+      let prevMonthIndex = currentMonthIndex - 1;
+      if (prevMonthIndex < 0) {
+        prevMonthIndex = 11; // Dicembre
+        prevYear = currentYear - 1;
+      }
+      // Crea nuova data usando sempre il primo giorno del mese
+      const newMonth = new Date(prevYear, prevMonthIndex, 1);
       newMonth.setHours(0, 0, 0, 0);
       this._calendarCurrentMonth = newMonth;
       // Salva come formato YYYY-MM per evitare problemi di fuso orario
@@ -502,9 +511,18 @@ UI.renderMonthlyCalendar = function() {
   if (nextBtn && !nextBtn._bound) {
     nextBtn._bound = true;
     nextBtn.addEventListener('click', () => {
-      const newMonth = new Date(this._calendarCurrentMonth);
-      newMonth.setMonth(newMonth.getMonth() + 1);
-      newMonth.setDate(1);
+      // Usa sempre new Date(year, month, 1) invece di setMonth() per evitare problemi
+      const currentYear = this._calendarCurrentMonth.getFullYear();
+      const currentMonthIndex = this._calendarCurrentMonth.getMonth();
+      // Calcola mese e anno successivo
+      let nextYear = currentYear;
+      let nextMonthIndex = currentMonthIndex + 1;
+      if (nextMonthIndex > 11) {
+        nextMonthIndex = 0; // Gennaio
+        nextYear = currentYear + 1;
+      }
+      // Crea nuova data usando sempre il primo giorno del mese
+      const newMonth = new Date(nextYear, nextMonthIndex, 1);
       newMonth.setHours(0, 0, 0, 0);
       this._calendarCurrentMonth = newMonth;
       // Salva come formato YYYY-MM per evitare problemi di fuso orario
