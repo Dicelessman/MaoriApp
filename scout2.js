@@ -262,6 +262,13 @@ UI.renderScoutPage = async function() {
   
   // Inizializza gestione sezioni specialità espandibili
   this.initSpecialitaSections();
+  
+  // Inizializza navigazione tra sezioni
+  setTimeout(() => {
+    if (this.initSectionNavigation) {
+      this.initSectionNavigation();
+    }
+  }, 100);
 };
 
 // Popola i dropdown delle sfide da challenges.json
@@ -993,8 +1000,81 @@ UI.toggleSpecialitaSection = function(specialitaIndex) {
   console.log('Classi finali icon:', icon.className);
 };
 
+// ============== Gestione Navigazione Sezioni ==============
+
+/**
+ * Inizializza la navigazione tra sezioni
+ */
+UI.initSectionNavigation = function() {
+  const navLinks = document.querySelectorAll('.section-nav-link');
+  const sections = document.querySelectorAll('section[id^="section-"]');
+  
+  // Funzione per evidenziare la sezione corrente
+  const updateActiveSection = () => {
+    const scrollPos = window.scrollY + 150; // Offset per la navbar sticky
+    
+    sections.forEach(section => {
+      const sectionTop = section.offsetTop;
+      const sectionHeight = section.offsetHeight;
+      const sectionId = section.id;
+      
+      if (scrollPos >= sectionTop && scrollPos < sectionTop + sectionHeight) {
+        // Rimuovi active da tutti i link
+        navLinks.forEach(link => {
+          link.classList.remove('bg-green-100', 'text-green-700', 'font-semibold');
+          if (document.documentElement.dataset.theme === 'dark') {
+            link.classList.remove('bg-green-800', 'text-green-300');
+          }
+        });
+        
+        // Aggiungi active al link corrispondente
+        const activeLink = document.querySelector(`a[href="#${sectionId}"]`);
+        if (activeLink) {
+          activeLink.classList.add('bg-green-100', 'text-green-700', 'font-semibold');
+          if (document.documentElement.dataset.theme === 'dark') {
+            activeLink.classList.add('bg-green-800', 'text-green-300');
+            activeLink.classList.remove('bg-green-100', 'text-green-700');
+          }
+        }
+      }
+    });
+  };
+  
+  // Aggiorna durante lo scroll
+  let scrollTimeout;
+  window.addEventListener('scroll', () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(updateActiveSection, 50);
+  });
+  
+  // Aggiorna all'inizio
+  updateActiveSection();
+  
+  // Smooth scroll per i link di navigazione
+  navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = link.getAttribute('href').substring(1);
+      const targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        const offsetTop = targetElement.offsetTop - 80; // Offset per la navbar sticky
+        window.scrollTo({
+          top: offsetTop,
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Scheda Esploratore (scout2) caricata');
+  // Inizializza navigazione sezioni dopo che la pagina è stata renderizzata
+  setTimeout(() => {
+    if (typeof UI !== 'undefined' && UI.initSectionNavigation) {
+      UI.initSectionNavigation();
+    }
+  }, 500);
 });
 
 UI.printScoutSheet = async function() {

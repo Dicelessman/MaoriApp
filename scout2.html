@@ -52,7 +52,7 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between" id="scoutHeader">
         <h2 id="scoutTitle" class="text-2xl font-semibold text-gray-700">Scheda Esploratore</h2>
         <div class="flex items-center gap-2">
           <a href="esploratori.html" class="btn-secondary">← Torna alla lista</a>
@@ -61,10 +61,28 @@
         </div>
       </div>
 
+      <!-- Barra di navigazione sticky -->
+      <nav id="sectionNav" class="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm mb-4 -mx-6 px-6 py-2">
+        <div class="flex flex-wrap gap-2 items-center justify-between">
+          <div class="flex flex-wrap gap-2">
+            <a href="#section-anagrafici" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Anagrafici</a>
+            <a href="#section-contatti" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Contatti</a>
+            <a href="#section-sanitarie" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Sanitarie</a>
+            <a href="#section-progressione" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Progressione</a>
+            <a href="#section-specialita" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Specialità</a>
+            <a href="#section-eventi" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Eventi</a>
+            <a href="#section-documenti" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Documenti</a>
+          </div>
+          <a href="#scoutHeader" class="text-sm px-3 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors font-medium">
+            ⬆ Torna su
+          </a>
+        </div>
+      </nav>
+
       <form id="scoutForm" class="space-y-8">
         <input type="hidden" id="scoutId" />
 
-        <section class="bg-gray-50 p-6 rounded-lg shadow-inner">
+        <section id="section-anagrafici" class="bg-gray-50 p-6 rounded-lg shadow-inner scroll-mt-20">
           <h3 class="text-xl font-semibold text-gray-700 mb-4">Dati anagrafici</h3>
           <div class="grid md:grid-cols-2 gap-4">
             <div><label class="block text-sm">Nome</label><input id="anag_nome" class="input" /></div>
@@ -83,9 +101,12 @@
             <div><label class="block text-sm">Email</label><input id="anag_email" class="input" /></div>
             <div><label class="block text-sm">Telefono</label><input id="anag_telefono" type="number" class="input" /></div>
           </div>
+          <div class="mt-4 text-right">
+            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          </div>
         </section>
 
-        <section class="bg-gray-50 p-6 rounded-lg shadow-inner">
+        <section id="section-contatti" class="bg-gray-50 p-6 rounded-lg shadow-inner scroll-mt-20">
           <h3 class="text-xl font-semibold text-gray-700 mb-4">Contatti</h3>
           <div class="grid md:grid-cols-3 gap-4">
             <div><label class="block text-sm">Genitore 1</label><input id="ct_g1_nome" class="input" /></div>
@@ -95,9 +116,12 @@
             <div><label class="block text-sm">Telefono</label><input id="ct_g2_tel" type="number" class="input" /></div>
             <div><label class="block text-sm">Email</label><input id="ct_g2_email" class="input" /></div>
           </div>
+          <div class="mt-4 text-right">
+            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          </div>
         </section>
 
-        <section class="bg-gray-50 p-6 rounded-lg shadow-inner">
+        <section id="section-sanitarie" class="bg-gray-50 p-6 rounded-lg shadow-inner scroll-mt-20">
           <h3 class="text-xl font-semibold text-gray-700 mb-4">Informazioni Sanitarie</h3>
           <div class="grid md:grid-cols-2 gap-4">
             <div class="md:col-span-2"><label class="block text-sm">Gruppo Sanguigno</label><select id="san_gruppo" class="input">
@@ -118,9 +142,12 @@
             <div class="md:col-span-2"><label class="block text-sm">Certificazioni</label><textarea id="san_cert" class="textarea w-full"></textarea></div>
             <div class="md:col-span-2"><label class="block text-sm">Altro</label><textarea id="san_altro" class="textarea w-full"></textarea></div>
           </div>
+          <div class="mt-4 text-right">
+            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          </div>
         </section>
 
-        <section class="bg-green-100 p-6 rounded-lg shadow-inner">
+        <section id="section-progressione" class="bg-green-100 p-6 rounded-lg shadow-inner scroll-mt-20">
           <h3 class="text-xl font-semibold text-gray-700 mb-4">Progressione Verticale</h3>
           <div class="grid md:grid-cols-2 gap-4">
             <div><label class="block text-sm">Promessa</label><input id="pv_promessa" type="date" class="input" /></div>
@@ -370,9 +397,12 @@
               </div>
             </div>
           </div>
+          <div class="mt-4 text-right">
+            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          </div>
         </section>
 
-        <section class="bg-green-100 p-6 rounded-lg shadow-inner">
+        <section id="section-specialita" class="bg-green-100 p-6 rounded-lg shadow-inner scroll-mt-20">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-semibold text-gray-700">Specialità (PO)</h3>
             <button type="button" id="addSpecialitaBtn" class="btn-primary">+ Aggiungi Specialità</button>
@@ -380,9 +410,12 @@
           <div id="specialitaContainer" class="space-y-4">
             <!-- Le specialità verranno aggiunte dinamicamente qui -->
           </div>
+          <div class="mt-4 text-right">
+            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          </div>
         </section>
 
-        <section class="bg-green-300 p-6 rounded-lg shadow-inner">
+        <section id="section-eventi" class="bg-green-300 p-6 rounded-lg shadow-inner scroll-mt-20">
           <h3 class="text-xl font-semibold text-gray-700 mb-4">Eventi</h3>
           <div class="space-y-4">
             <div><label class="block text-sm">Campo Estivo 1</label><div class="grid grid-cols-2 gap-2"><input id="ev_ce1_dt" type="date" class="input" /><input id="ev_ce1_tx" class="input" /></div></div>
@@ -397,9 +430,12 @@
             <div><label class="block text-sm">Jamboree</label><div class="grid grid-cols-2 gap-2"><input id="ev_jam_dt" type="date" class="input" /><input id="ev_jam_tx" class="input" /></div></div>
             <div><label class="block text-sm">Note</label><textarea id="ev_note" class="textarea textarea-auto-resize"></textarea></div>
           </div>
+          <div class="mt-4 text-right">
+            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          </div>
         </section>
 
-        <section class="bg-purple-300 p-6 rounded-lg shadow-inner">
+        <section id="section-documenti" class="bg-purple-300 p-6 rounded-lg shadow-inner scroll-mt-20">
           <h3 class="text-xl font-semibold text-gray-700 mb-4">Documenti</h3>
           <div class="space-y-4">
             <div><label class="block text-sm">Quota anno</label><input id="doc_quota1" type="number" min="2022" max="2100" step="1" class="input" placeholder="Anno" /></div>
@@ -423,6 +459,9 @@
               <label class="block text-sm">Liberatoria immagini</label>
             </div>
             <div><label class="block text-sm">Note</label><textarea id="doc_note" class="textarea textarea-auto-resize"></textarea></div>
+          </div>
+          <div class="mt-4 text-right">
+            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
           </div>
         </section>
 
