@@ -115,7 +115,6 @@ UI.renderDocumentiMatrix = function() {
                 step="1"
                 class="w-full text-xs border border-gray-300 rounded px-1 py-0.5 text-center" 
                 value="${yearValue}"
-                placeholder="Anno"
                 data-scout-id="${scout.id}"
                 data-field="${col.key}"
                 onchange="UI.updateDocumentoYear({scoutId:'${scout.id}', field:'${col.key}', value:this.value})"
