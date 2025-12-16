@@ -3438,6 +3438,200 @@ const UI = {
       this.showToast('Errore durante l\'import: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
     }
   },
+  
+  /**
+   * Esporta tutti i dati in formato Excel (.xlsx)
+   */
+  downloadExcelExport() {
+    try {
+      if (typeof XLSX === 'undefined') {
+        throw new Error('Libreria Excel non disponibile. Ricarica la pagina.');
+      }
+      
+      const wb = XLSX.utils.book_new();
+      
+      // Sheet 1: Presenze
+      if (this.state && this.state.presences && this.state.presences.length > 0) {
+        const presencesData = [];
+        const headers = ['Esploratore Nome', 'Esploratore Cognome', 'Attività Tipo', 'Attività Data', 'Attività Descrizione', 'Stato', 'Pagato', 'Tipo Pagamento'];
+        presencesData.push(headers);
+        
+        const scoutsMap = new Map((this.state.scouts || []).map(s => [s.id, s]));
+        const activitiesMap = new Map((this.state.activities || []).map(a => [a.id, a]));
+        
+        this.state.presences.forEach(p => {
+          const scout = scoutsMap.get(p.esploratoreId);
+          const activity = activitiesMap.get(p.attivitaId);
+          const activityDate = activity?.data ? 
+            (activity.data.toDate ? activity.data.toDate().toLocaleDateString('it-IT') : new Date(activity.data).toLocaleDateString('it-IT')) : '';
+          
+          presencesData.push([
+            scout?.nome || '',
+            scout?.cognome || '',
+            activity?.tipo || '',
+            activityDate,
+            activity?.descrizione || '',
+            p.stato || '',
+            p.pagato ? 'Sì' : 'No',
+            p.tipoPagamento || ''
+          ]);
+        });
+        
+        const ws1 = XLSX.utils.aoa_to_sheet(presencesData);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Presenze');
+      }
+      
+      // Sheet 2: Attività
+      if (this.state && this.state.activities && this.state.activities.length > 0) {
+        const activitiesData = [];
+        const headers = ['ID', 'Tipo', 'Data', 'Descrizione', 'Costo'];
+        activitiesData.push(headers);
+        
+        this.state.activities.forEach(a => {
+          const dateStr = a.data ? 
+            (a.data.toDate ? a.data.toDate().toLocaleDateString('it-IT') : new Date(a.data).toLocaleDateString('it-IT')) : '';
+          activitiesData.push([
+            a.id || '',
+            a.tipo || '',
+            dateStr,
+            a.descrizione || '',
+            a.costo || '0'
+          ]);
+        });
+        
+        const ws2 = XLSX.utils.aoa_to_sheet(activitiesData);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Attività');
+      }
+      
+      // Sheet 3: Esploratori
+      if (this.state && this.state.scouts && this.state.scouts.length > 0) {
+        const scoutsData = [];
+        const headers = ['Nome', 'Cognome', 'Sesso', 'Data Nascita', 'Pattuglia', 'Anno Scout', 'CP/VCP'];
+        scoutsData.push(headers);
+        
+        this.state.scouts.forEach(s => {
+          const birthDate = s.dataNascita ? 
+            (s.dataNascita.toDate ? s.dataNascita.toDate().toLocaleDateString('it-IT') : new Date(s.dataNascita).toLocaleDateString('it-IT')) : '';
+          scoutsData.push([
+            s.nome || '',
+            s.cognome || '',
+            s.sesso || '',
+            birthDate,
+            s.pv_pattuglia || '',
+            s.anno_scout || '',
+            s.cp_vcp || ''
+          ]);
+        });
+        
+        const ws3 = XLSX.utils.aoa_to_sheet(scoutsData);
+        XLSX.utils.book_append_sheet(wb, ws3, 'Esploratori');
+      }
+      
+      // Genera file
+      const dateStr = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `maori-app-export-${dateStr}.xlsx`);
+      
+      this.showToast('Export Excel completato', { type: 'success' });
+    } catch (error) {
+      console.error('Errore export Excel:', error);
+      this.showToast('Errore durante l\'export Excel: ' + (error.message || 'Errore sconosciuto'), { type: 'error' });
+    }
+  },
+  
+  /**
+   * Importa dati da file CSV
+   * @param {File} file - File CSV da importare
+   * @param {object} options - Opzioni import
+   */
+  async handleCSVImport(file, options = { merge: false }) {
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      if (lines.length < 2) {
+        throw new Error('File CSV vuoto o formato non valido');
+      }
+      
+      // Parse CSV (semplificato, assume virgola come separatore e virgolette per escape)
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      const rows = lines.slice(1).map(line => {
+        const values = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim());
+        return values;
+      });
+      
+      // Converti in formato JSON per usare importJSONData esistente
+      // Per ora supporta solo import di presenze (se headers contengono le colonne giuste)
+      if (headers.includes('Esploratore Nome') && headers.includes('Attività Tipo')) {
+        // Questo è un export di presenze - per ora avvisa che non è completamente supportato
+        throw new Error('Import CSV presenze non ancora completamente supportato. Usa JSON o Excel per import completo.');
+      } else {
+        throw new Error('Formato CSV non riconosciuto. Usa il formato di export standard.');
+      }
+    } catch (error) {
+      console.error('Errore import CSV:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Importa dati da file Excel
+   * @param {File} file - File Excel da importare
+   * @param {object} options - Opzioni import
+   */
+  async handleExcelImport(file, options = { merge: false }) {
+    try {
+      if (typeof XLSX === 'undefined') {
+        throw new Error('Libreria Excel non disponibile. Ricarica la pagina.');
+      }
+      
+      const arrayBuffer = await file.arrayBuffer();
+      const wb = XLSX.read(arrayBuffer, { type: 'array' });
+      
+      // Converti Excel in formato JSON
+      const importData = {
+        data: {
+          scouts: [],
+          staff: [],
+          activities: [],
+          presences: []
+        }
+      };
+      
+      // Leggi sheet Esploratori
+      if (wb.SheetNames.includes('Esploratori')) {
+        const ws = wb.Sheets['Esploratori'];
+        const data = XLSX.utils.sheet_to_json(ws);
+        // Converti in formato standard (semplificato - assumiamo colonne standard)
+        // Per ora avvisa che è un formato limitato
+        console.warn('Import Excel esploratori: formato limitato, usa JSON per import completo');
+      }
+      
+      // Per ora, Excel import è limitato - meglio usare JSON
+      throw new Error('Import Excel completo non ancora implementato. Usa il formato JSON per import completo dei dati.');
+    } catch (error) {
+      console.error('Errore import Excel:', error);
+      throw error;
+    }
+  },
 
   // ============== Mobile Gesture Support ==============
   

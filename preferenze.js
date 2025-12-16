@@ -366,6 +366,9 @@ UI.renderPreferencesPage = function() {
     });
   }
   
+  // Setup Export/Import
+  this.setupExportImport();
+  
   // Setup reset shortcuts
   if (resetShortcutsBtn) {
     resetShortcutsBtn.addEventListener('click', async () => {
@@ -461,6 +464,71 @@ UI.renderPreferencesPage = function() {
         this.applyTheme('auto');
         this.renderPreferencesPage(); // Ricarica
         this.showToast('Preferenze ripristinate', { type: 'success' });
+      }
+    });
+  }
+};
+
+// Setup Export/Import handlers
+UI.setupExportImport = function() {
+  // Export JSON
+  const exportJSONBtn = document.getElementById('exportJSONBtn');
+  if (exportJSONBtn) {
+    exportJSONBtn.addEventListener('click', () => {
+      this.downloadJSONExport();
+    });
+  }
+  
+  // Export Presences CSV
+  const exportPresencesCSVBtn = document.getElementById('exportPresencesCSVBtn');
+  if (exportPresencesCSVBtn) {
+    exportPresencesCSVBtn.addEventListener('click', () => {
+      this.downloadPresencesCSV();
+    });
+  }
+  
+  // Export Activities CSV
+  const exportActivitiesCSVBtn = document.getElementById('exportActivitiesCSVBtn');
+  if (exportActivitiesCSVBtn) {
+    exportActivitiesCSVBtn.addEventListener('click', () => {
+      this.downloadActivitiesCSV();
+    });
+  }
+  
+  // Export Excel
+  const exportExcelBtn = document.getElementById('exportExcelBtn');
+  if (exportExcelBtn) {
+    exportExcelBtn.addEventListener('click', () => {
+      this.downloadExcelExport();
+    });
+  }
+  
+  // Import file
+  const importFileInput = document.getElementById('importFileInput');
+  if (importFileInput) {
+    importFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      try {
+        const mergeMode = document.getElementById('importMergeMode')?.checked || false;
+        
+        if (file.name.endsWith('.json')) {
+          await this.handleJSONImport(file, { merge: mergeMode });
+        } else if (file.name.endsWith('.csv')) {
+          await this.handleCSVImport(file, { merge: mergeMode });
+        } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+          await this.handleExcelImport(file, { merge: mergeMode });
+        } else {
+          this.showToast('Formato file non supportato. Usa JSON, CSV o Excel.', { type: 'error' });
+        }
+        
+        // Reset input
+        e.target.value = '';
+      } catch (error) {
+        console.error('Errore import:', error);
+        this.showToast('Errore durante l\'import: ' + (error.message || 'Errore sconosciuto'), { type: 'error' });
+        e.target.value = '';
       }
     });
   }
