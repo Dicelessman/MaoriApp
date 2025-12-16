@@ -451,12 +451,30 @@ UI.renderMonthlyCalendar = function() {
   if (!grid || !monthYearEl) return;
   
   // Carica mese corrente o salvato
+  let currentMonth;
   const savedMonth = localStorage.getItem('calendarCurrentMonth');
-  const currentMonth = savedMonth ? new Date(savedMonth) : new Date();
+  if (savedMonth) {
+    // Parse la data salvata (YYYY-MM-DD o ISO string)
+    const savedDate = new Date(savedMonth);
+    // Se la data è valida, usala; altrimenti usa la data corrente
+    if (!isNaN(savedDate.getTime())) {
+      currentMonth = new Date(savedDate.getFullYear(), savedDate.getMonth(), 1);
+    } else {
+      currentMonth = new Date();
+      currentMonth.setDate(1);
+    }
+  } else {
+    currentMonth = new Date();
+    currentMonth.setDate(1);
+  }
+  currentMonth.setHours(0, 0, 0, 0);
   this._calendarCurrentMonth = currentMonth;
   
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
+  
+  // Debug
+  console.log('Mese corrente:', year, month + 1, currentMonth.toLocaleDateString('it-IT'));
   
   // Aggiorna header
   monthYearEl.textContent = currentMonth.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
@@ -466,8 +484,11 @@ UI.renderMonthlyCalendar = function() {
     prevBtn._bound = true;
     prevBtn.addEventListener('click', () => {
       const newMonth = new Date(this._calendarCurrentMonth);
-      newMonth.setMonth(month - 1);
+      newMonth.setMonth(newMonth.getMonth() - 1);
+      newMonth.setDate(1);
+      newMonth.setHours(0, 0, 0, 0);
       this._calendarCurrentMonth = newMonth;
+      // Salva come stringa ISO per mantenere la compatibilità
       localStorage.setItem('calendarCurrentMonth', this._calendarCurrentMonth.toISOString());
       this.renderMonthlyCalendar();
     });
@@ -477,18 +498,28 @@ UI.renderMonthlyCalendar = function() {
     nextBtn._bound = true;
     nextBtn.addEventListener('click', () => {
       const newMonth = new Date(this._calendarCurrentMonth);
-      newMonth.setMonth(month + 1);
+      newMonth.setMonth(newMonth.getMonth() + 1);
+      newMonth.setDate(1);
+      newMonth.setHours(0, 0, 0, 0);
       this._calendarCurrentMonth = newMonth;
+      // Salva come stringa ISO per mantenere la compatibilità
       localStorage.setItem('calendarCurrentMonth', this._calendarCurrentMonth.toISOString());
       this.renderMonthlyCalendar();
     });
   }
   
   // Calcola primo giorno del mese e giorno della settimana
+  // Usiamo currentMonth direttamente per evitare problemi con la conversione
   const firstDay = new Date(year, month, 1);
+  firstDay.setHours(0, 0, 0, 0);
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
-  const startingDayOfWeek = firstDay.getDay(); // 0 = domenica
+  // getDay() restituisce 0=domenica, 1=lunedì, ..., 6=sabato
+  // Lo usiamo direttamente perché i giorni nell'HTML sono: Dom, Lun, Mar, Mer, Gio, Ven, Sab
+  const startingDayOfWeek = firstDay.getDay();
+  
+  // Debug
+  console.log('Primo giorno del mese:', firstDay.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }), 'getDay():', startingDayOfWeek, '(0=Dom, 1=Lun, ..., 6=Sab)');
   
   // Rimuovi celle giorni esistenti (mantieni headers)
   const existingCells = grid.querySelectorAll('.calendar-day-cell');
