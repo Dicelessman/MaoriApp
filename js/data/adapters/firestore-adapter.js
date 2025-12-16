@@ -8,13 +8,20 @@ import {
     collection, doc, getDocs, addDoc, setDoc, deleteDoc, updateDoc,
     onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp
 } from '../../core/firebase.js';
+import { COLLECTIONS } from '../../utils/constants.js';
 
 export class FirestoreAdapter {
     constructor() {
         this.db = db;
         this.auth = auth;
         this.messaging = messaging;
-        this.cols = cols;
+        this.cols = {
+            scouts: collection(db, COLLECTIONS.SCOUTS),
+            staff: collection(db, COLLECTIONS.STAFF),
+            activities: collection(db, COLLECTIONS.ACTIVITIES),
+            presences: collection(db, COLLECTIONS.PRESENCES),
+            auditLogs: collection(db, COLLECTIONS.AUDIT_LOGS)
+        };
     }
 
     async loadAll(options = {}) {
