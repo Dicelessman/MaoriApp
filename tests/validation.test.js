@@ -87,6 +87,7 @@ describe('Validation Functions', () => {
 
     it('should validate required number fields', () => {
       const isRequiredNumber = (value) => {
+        if (value === '' || (typeof value === 'string' && value.trim() === '')) return false;
         return value !== null && value !== undefined && !isNaN(Number(value));
       };
 
