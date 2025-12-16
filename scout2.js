@@ -522,7 +522,8 @@ UI.collectSpecialita = function() {
   const container = this.qs('#specialitaContainer');
   if (!container) return [];
   
-  return Array.from(container.children).map(div => {
+  // Raccogli tutte le specialità dal DOM
+  const allSpecialita = Array.from(container.children).map(div => {
     const spId = div.querySelector('select[id$="_nome"]')?.id.replace('_nome', '') || '';
     const get = (suffix) => {
       const el = this.qs(`#${spId}${suffix}`);
@@ -533,7 +534,7 @@ UI.collectSpecialita = function() {
     };
     const getChk = (suffix) => !!this.qs(`#${spId}${suffix}`)?.checked;
     
-    return {
+    const spec = {
       nome: get('_nome') || '',
       ottenuta: !!this.qs(`#${spId}_ott_chk`)?.checked,
       brevetto: getChk('_brevetto'),
@@ -546,7 +547,53 @@ UI.collectSpecialita = function() {
       cr_data: get('_cr_data'),
       note: get('_note') || ''
     };
+    
+    // Calcola se questa specialità ha dati
+    spec._hasData = !!(spec.nome.trim() && (
+      spec.ottenuta || spec.brevetto || spec.distintivo || 
+      spec.data || spec.p1_data || spec.p2_data || spec.p3_data || 
+      spec.cr_data || (spec.cr_text && spec.cr_text.trim()) || 
+      (spec.note && spec.note.trim())
+    ));
+    
+    return spec;
   });
+  
+  // Filtra specialità senza nome (vuote)
+  const withName = allSpecialita.filter(spec => spec.nome && spec.nome.trim());
+  
+  // Rimuovi duplicati: mantieni solo la prima occorrenza per nome (case-insensitive)
+  // Se ci sono più occorrenze, preferisci quella con più dati
+  const seen = new Map();
+  const deduplicated = [];
+  
+  withName.forEach(spec => {
+    const nomeKey = spec.nome.trim().toLowerCase();
+    const existing = seen.get(nomeKey);
+    
+    if (!existing) {
+      // Prima occorrenza di questo nome
+      seen.set(nomeKey, spec);
+      deduplicated.push(spec);
+    } else {
+      // Duplicato trovato - mantieni quello con più dati
+      if (spec._hasData && !existing._hasData) {
+        // La nuova ha dati, la vecchia no - sostituisci
+        const index = deduplicated.indexOf(existing);
+        if (index !== -1) {
+          deduplicated[index] = spec;
+          seen.set(nomeKey, spec);
+        }
+      } else if (spec._hasData === existing._hasData) {
+        // Entrambe hanno o non hanno dati - mantieni la prima (già presente)
+        // Non fare nulla
+      }
+      // Se la nuova non ha dati e la vecchia sì, mantieni la vecchia
+    }
+  });
+  
+  // Rimuovi il campo temporaneo _hasData prima di restituire
+  return deduplicated.map(({ _hasData, ...spec }) => spec);
 };
 
 UI.setCheckDate = function(prefix, val) {
