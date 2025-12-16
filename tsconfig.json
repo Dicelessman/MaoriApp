@@ -32,7 +32,8 @@
     "skipLibCheck": true
   },
   "include": [
-    "js/utils/*.ts"
+    "js/utils/*.ts",
+    "js/data/**/*.ts"
   ],
   "exclude": [
     "node_modules",

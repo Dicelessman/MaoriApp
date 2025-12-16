@@ -7,13 +7,23 @@ import { LocalAdapter } from './adapters/local-adapter.js';
 import { FirestoreAdapter } from './adapters/firestore-adapter.js';
 import { COLLECTIONS } from '../utils/constants.js';
 
+interface CacheEntry<T> {
+    value: T;
+    expires: number;
+    needsRefresh: boolean;
+    timestamp: number;
+}
+
 class CacheManager {
+    private cache: Map<string, CacheEntry<any>>;
+    private defaultTTL: number;
+
     constructor() {
         this.cache = new Map();
         this.defaultTTL = 5 * 60 * 1000; // 5 minuti
     }
 
-    get(key, allowStale = false) {
+    get<T>(key: string, allowStale: boolean = false): T | null {
         const entry = this.cache.get(key);
         if (!entry) return null;
 
@@ -33,7 +43,7 @@ class CacheManager {
         return null;
     }
 
-    set(key, value, ttl = null) {
+    set<T>(key: string, value: T, ttl: number | null = null): void {
         const expires = Date.now() + (ttl || this.defaultTTL);
         this.cache.set(key, {
             value,
@@ -43,7 +53,7 @@ class CacheManager {
         });
     }
 
-    invalidate(key = null) {
+    invalidate(key: string | null = null): void {
         if (key === null) {
             this.cache.clear();
         } else {
@@ -51,22 +61,37 @@ class CacheManager {
         }
     }
 
-    needsRefresh(key) {
+    needsRefresh(key: string): boolean {
         const entry = this.cache.get(key);
         return entry ? (entry.needsRefresh || Date.now() > entry.expires) : true;
     }
 }
 
+// Define a common interface for Adapters
+interface DataAdapter {
+    loadAll(): Promise<any>;
+    addActivity(p: any, currentUser: any): Promise<any>;
+    updateActivity(p: any, currentUser: any): Promise<void>;
+    deleteActivity(id: string, currentUser: any): Promise<void>;
+    addStaff(p: any, currentUser: any): Promise<any>;
+    updateStaff(p: any, currentUser: any): Promise<void>;
+    deleteStaff(id: string, currentUser: any): Promise<void>;
+    addScout(p: any, currentUser: any): Promise<any>;
+    updateScout(p: any, currentUser: any): Promise<void>;
+    deleteScout(id: string, currentUser: any): Promise<void>;
+    updatePresence(p: any, currentUser: any): Promise<void>;
+}
+
 export const DATA = {
-    adapter: new LocalAdapter(),
+    adapter: new LocalAdapter() as any as DataAdapter, // Force cast until adapters are typed
     cache: new CacheManager(),
 
     useFirestore() {
-        this.adapter = new FirestoreAdapter();
+        this.adapter = new FirestoreAdapter() as any as DataAdapter;
         this.cache.invalidate();
     },
 
-    async loadAll(forceRefresh = false) {
+    async loadAll(forceRefresh: boolean = false): Promise<any> {
         const cacheKey = 'loadAll';
 
         if (this.adapter instanceof LocalAdapter) {
@@ -103,61 +128,61 @@ export const DATA = {
         try { console.info('[Cache] Invalidated after write operation'); } catch { }
     },
 
-    async addActivity(p, currentUser) {
+    async addActivity(p: any, currentUser: any) {
         const result = await this.adapter.addActivity(p, currentUser);
         this._invalidateCache();
         return result;
     },
 
-    async updateActivity(p, currentUser) {
+    async updateActivity(p: any, currentUser: any) {
         const result = await this.adapter.updateActivity(p, currentUser);
         this._invalidateCache();
         return result;
     },
 
-    async deleteActivity(id, currentUser) {
+    async deleteActivity(id: string, currentUser: any) {
         const result = await this.adapter.deleteActivity(id, currentUser);
         this._invalidateCache();
         return result;
     },
 
-    async addStaff(p, currentUser) {
+    async addStaff(p: any, currentUser: any) {
         const result = await this.adapter.addStaff(p, currentUser);
         this._invalidateCache();
         return result;
     },
 
-    async updateStaff(p, currentUser) {
+    async updateStaff(p: any, currentUser: any) {
         const result = await this.adapter.updateStaff(p, currentUser);
         this._invalidateCache();
         return result;
     },
 
-    async deleteStaff(id, currentUser) {
+    async deleteStaff(id: string, currentUser: any) {
         const result = await this.adapter.deleteStaff(id, currentUser);
         this._invalidateCache();
         return result;
     },
 
-    async addScout(p, currentUser) {
+    async addScout(p: any, currentUser: any) {
         const result = await this.adapter.addScout(p, currentUser);
         this._invalidateCache();
         return result;
     },
 
-    async updateScout(id, p, currentUser) {
+    async updateScout(id: string, p: any, currentUser: any) {
         const result = await this.adapter.updateScout({ id, ...p }, currentUser);
         this._invalidateCache();
         return result;
     },
 
-    async deleteScout(id, currentUser) {
+    async deleteScout(id: string, currentUser: any) {
         const result = await this.adapter.deleteScout(id, currentUser);
         this._invalidateCache();
         return result;
     },
 
-    async updatePresence(p, currentUser) {
+    async updatePresence(p: any, currentUser: any) {
         const result = await this.adapter.updatePresence(p, currentUser);
         this._invalidateCache();
         return result;

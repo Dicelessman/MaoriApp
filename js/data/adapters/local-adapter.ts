@@ -3,7 +3,47 @@
  * @module data/adapters/local-adapter
  */
 
+interface Scout {
+    id: string;
+    nome: string;
+    cognome: string;
+    [key: string]: any;
+}
+
+interface Staff {
+    id: string;
+    nome: string;
+    cognome: string;
+    email?: string;
+}
+
+interface Activity {
+    id: string;
+    tipo: string;
+    data: Date | any; // allow any for serialization convenience
+    descrizione?: string;
+    costo?: string | number;
+}
+
+interface Presence {
+    esploratoreId: string;
+    attivitaId: string;
+    stato: string;
+    pagato: boolean;
+    tipoPagamento: string | null;
+    [key: string]: any;
+}
+
+interface LocalState {
+    scouts: Scout[];
+    staff: Staff[];
+    activities: Activity[];
+    presences: Presence[];
+}
+
 export class LocalAdapter {
+    private state: LocalState;
+
     constructor() {
         const saved = JSON.parse(localStorage.getItem('presenziario-state') || '{}');
         this.state = {
@@ -28,6 +68,10 @@ export class LocalAdapter {
                 { esploratoreId: 's3', attivitaId: 'a1', stato: 'Presente', pagato: true, tipoPagamento: 'Bonifico' }
             ]
         };
+        // Restore dates
+        this.state.activities.forEach(a => {
+            if (typeof a.data === 'string') a.data = new Date(a.data);
+        });
     }
 
     persist() {
@@ -39,7 +83,7 @@ export class LocalAdapter {
     }
 
     // Activities
-    async addActivity({ tipo, data, descrizione, costo }, currentUser) {
+    async addActivity({ tipo, data, descrizione, costo }: any, currentUser: any) {
         const id = 'a' + (Math.random().toString(36).slice(2, 8));
         this.state.activities.push({ id, tipo, data, descrizione, costo });
         this.persist();
@@ -47,13 +91,13 @@ export class LocalAdapter {
         return id;
     }
 
-    async updateActivity({ id, tipo, data, descrizione, costo }, currentUser) {
-        const a = this.state.activities.find(x => x.id === id);
+    async updateActivity({ id, tipo, data, descrizione, costo }: any, currentUser: any) {
+        const a: any = this.state.activities.find(x => x.id === id);
         if (a) { a.tipo = tipo; a.data = data; a.descrizione = descrizione; a.costo = costo; this.persist(); }
         console.log('LocalAdapter: updateActivity', { id, tipo, data, descrizione, costo, currentUser: currentUser?.email });
     }
 
-    async deleteActivity(id, currentUser) {
+    async deleteActivity(id: string, currentUser: any) {
         this.state.activities = this.state.activities.filter(a => a.id !== id);
         this.state.presences = this.state.presences.filter(p => p.attivitaId !== id);
         this.persist();
@@ -61,7 +105,7 @@ export class LocalAdapter {
     }
 
     // Staff
-    async addStaff({ nome, cognome, email }, currentUser) {
+    async addStaff({ nome, cognome, email }: any, currentUser: any) {
         const id = 'st' + (Math.random().toString(36).slice(2, 8));
         this.state.staff.push({ id, nome, cognome, email });
         this.persist();
@@ -69,20 +113,20 @@ export class LocalAdapter {
         return id;
     }
 
-    async updateStaff({ id, nome, cognome, email }, currentUser) {
+    async updateStaff({ id, nome, cognome, email }: any, currentUser: any) {
         const m = this.state.staff.find(s => s.id === id);
         if (m) { m.nome = nome; m.cognome = cognome; m.email = email; this.persist(); }
         console.log('LocalAdapter: updateStaff', { id, nome, cognome, email, currentUser: currentUser?.email });
     }
 
-    async deleteStaff(id, currentUser) {
+    async deleteStaff(id: string, currentUser: any) {
         this.state.staff = this.state.staff.filter(s => s.id !== id);
         this.persist();
         console.log('LocalAdapter: deleteStaff', { id, currentUser: currentUser?.email });
     }
 
     // Scouts
-    async addScout({ nome, cognome }, currentUser) {
+    async addScout({ nome, cognome }: any, currentUser: any) {
         const id = 's' + (Math.random().toString(36).slice(2, 8));
         this.state.scouts.push({ id, nome, cognome });
         this.state.activities.forEach(a => this.state.presences.push({ esploratoreId: id, attivitaId: a.id, stato: 'NR', pagato: false, tipoPagamento: null }));
@@ -91,21 +135,19 @@ export class LocalAdapter {
         return id;
     }
 
-    async updateScout({ id, nome, cognome }, currentUser) {
-        const s = this.state.scouts.find(x => x.id === id);
+    async updateScout({ id, nome, cognome, ...rest }: any, currentUser: any) {
+        const s: any = this.state.scouts.find(x => x.id === id);
         if (s) {
             // Unisci tutti i campi passati
             Object.assign(s, { nome, cognome });
             // Se sono stati passati altri campi nel payload originale, includili
-            for (const [k, v] of Object.entries(arguments[0] || {})) {
-                if (k !== 'id') s[k] = v;
-            }
+            Object.assign(s, rest);
             this.persist();
         }
         console.log('LocalAdapter: updateScout', { id, currentUser: currentUser?.email });
     }
 
-    async deleteScout(id, currentUser) {
+    async deleteScout(id: string, currentUser: any) {
         this.state.scouts = this.state.scouts.filter(s => s.id !== id);
         this.state.presences = this.state.presences.filter(p => p.esploratoreId !== id);
         this.persist();
@@ -113,7 +155,7 @@ export class LocalAdapter {
     }
 
     // Presences 
-    async updatePresence({ field, value, scoutId, activityId }, currentUser) {
+    async updatePresence({ field, value, scoutId, activityId }: any, currentUser: any) {
         const p = this.state.presences.find(x => x.esploratoreId === scoutId && x.attivitaId === activityId);
         if (!p) return;
         p[field] = value;
