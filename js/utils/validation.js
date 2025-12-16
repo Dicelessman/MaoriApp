@@ -108,5 +108,52 @@ export function validateForm(form, rules) {
         }
     });
 
-    return { valid: allValid, errors };
-}
+    /**
+     * Sets up real-time validation for a form
+     * @param {HTMLElement} form - The form element
+     * @param {Object} rules - Validation rules map
+     */
+    export function setupFormValidation(form, rules) {
+        if (!form || !rules) return;
+        Object.keys(rules).forEach(fieldId => {
+            const input = form.querySelector(`#${fieldId}`);
+            if (!input) return;
+            const rule = rules[fieldId];
+            const fieldGroup = input.closest('.field-group') || input.parentElement;
+            let errorEl = fieldGroup ? fieldGroup.querySelector('.field-error') : null;
+
+            if (!errorEl && fieldGroup) {
+                errorEl = document.createElement('span');
+                errorEl.className = 'field-error';
+                input.parentElement.appendChild(errorEl);
+            }
+
+            const validateField = () => {
+                const value = input.value; // Sanitization happens on usage or server-side? Better to use raw value for validation check.
+                const validation = validateFieldValue(value, rule);
+
+                input.classList.remove('valid', 'invalid');
+                fieldGroup?.classList.remove('has-error', 'is-valid');
+
+                if (validation.valid) {
+                    input.classList.add('valid');
+                    fieldGroup?.classList.add('is-valid');
+                    if (errorEl) errorEl.textContent = '';
+                } else {
+                    input.classList.add('invalid');
+                    fieldGroup?.classList.add('has-error');
+                    if (errorEl) errorEl.textContent = validation.error || '';
+                }
+                return validation.valid;
+            };
+
+            let timeout;
+            input.addEventListener('input', () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(validateField, 300);
+            });
+            input.addEventListener('blur', validateField);
+            // Initial check if value exists
+            if (input.value) setTimeout(validateField, 100);
+        });
+    }
