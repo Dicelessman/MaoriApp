@@ -43,3 +43,4 @@ export const VALIDATION_RULES = {
     EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     // Aggiungere altre regex comuni qui
 };
+//# sourceMappingURL=constants.js.map

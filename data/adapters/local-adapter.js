@@ -126,3 +126,4 @@ export class LocalAdapter {
         console.log('LocalAdapter: updatePresence', { field, value, scoutId, activityId, currentUser: currentUser?.email });
     }
 }
+//# sourceMappingURL=local-adapter.js.map

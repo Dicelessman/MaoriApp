@@ -1207,3 +1207,4 @@ export const UI = {
     checkRateLimit(key) { return true; },
     debounceWithRateLimit(key, fn, ms) { setTimeout(fn, ms); }
 };
+//# sourceMappingURL=ui.js.map

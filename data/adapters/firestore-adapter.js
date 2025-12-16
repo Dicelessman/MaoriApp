@@ -110,7 +110,7 @@ export class FirestoreAdapter {
             });
         }
         catch (error) {
-            console.error('Errore nel salvataggio audit log:', error);
+            console.warn('Attenzione: salvataggio audit log fallito (permessi insufficienti? Core operazione OK).', error.code || error);
         }
     }
     // Activities
@@ -210,3 +210,4 @@ export class FirestoreAdapter {
         }
     }
 }
+//# sourceMappingURL=firestore-adapter.js.map

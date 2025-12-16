@@ -134,8 +134,8 @@ export class FirestoreAdapter {
                 userEmail,
                 timestamp: new Date()
             });
-        } catch (error) {
-            console.error('Errore nel salvataggio audit log:', error);
+        } catch (error: any) {
+            console.warn('Attenzione: salvataggio audit log fallito (permessi insufficienti? Core operazione OK).', error.code || error);
         }
     }
 

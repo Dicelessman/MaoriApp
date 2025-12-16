@@ -33,7 +33,8 @@
   },
   "include": [
     "js/utils/*.ts",
-    "js/data/**/*.ts"
+    "js/data/**/*.ts",
+    "js/ui/*.ts"
   ],
   "exclude": [
     "node_modules",
