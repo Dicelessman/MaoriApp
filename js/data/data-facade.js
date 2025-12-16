@@ -5,6 +5,7 @@
 
 import { LocalAdapter } from './adapters/local-adapter.js';
 import { FirestoreAdapter } from './adapters/firestore-adapter.js';
+import { COLLECTIONS } from '../utils/constants.js';
 
 class CacheManager {
     constructor() {

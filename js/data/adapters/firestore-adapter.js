@@ -4,7 +4,7 @@
  */
 
 import {
-    db, auth, messaging, cols,
+    db, auth, messaging,
     collection, doc, getDocs, addDoc, setDoc, deleteDoc, updateDoc,
     onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp
 } from '../../core/firebase.js';

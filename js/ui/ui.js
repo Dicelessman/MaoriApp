@@ -10,9 +10,12 @@ import {
     collection, doc, getDocs, addDoc, setDoc, deleteDoc, updateDoc,
     onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp
 } from '../core/firebase.js';
+import { APP_VERSION, THEME } from '../utils/constants.js';
+import { escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit } from '../utils/utils.js';
+import { setupFormValidation, validateForm, validateFieldValue } from '../utils/validation.js';
 
 export const UI = {
-    appVersion: 'v3',
+    appVersion: APP_VERSION,
     selectedStaffId: null,
     staffToDeleteId: null,
     scoutToDeleteId: null,
@@ -650,24 +653,24 @@ export const UI = {
     },
 
     getSystemTheme() {
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
-        return 'light';
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return THEME.DARK;
+        return THEME.LIGHT;
     },
     getCurrentTheme() {
         try {
             const saved = localStorage.getItem('app-theme');
-            if (saved === 'dark' || saved === 'light') return saved;
+            if (saved === THEME.DARK || saved === THEME.LIGHT) return saved;
         } catch (e) { }
         return this.getSystemTheme();
     },
     applyTheme(theme) {
-        if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        if (theme === THEME.DARK) document.documentElement.setAttribute('data-theme', 'dark');
         else document.documentElement.setAttribute('data-theme', 'light');
         setTimeout(() => {
             const toggle = this.qs('#themeToggle');
             if (toggle) {
                 const icon = toggle.querySelector('.theme-toggle-icon');
-                if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+                if (icon) icon.textContent = theme === THEME.DARK ? '☀️' : '🌙';
             }
         }, 50);
     },
@@ -855,114 +858,20 @@ export const UI = {
         this.updateNotificationsBadge();
     },
 
-    formatTimeAgo(date) {
-        if (!date) return '';
-        const min = Math.floor((new Date() - date) / 60000);
-        if (min < 60) return `${min} min fa`;
-        if (min < 1440) return `${Math.floor(min / 60)} h fa`;
-        return date.toLocaleDateString();
-    },
+    // ... (rest of the file methods)
 
-    setupFormValidation(form, rules) {
-        if (!form || !rules) return;
-        Object.keys(rules).forEach(fieldId => {
-            const input = form.querySelector(`#${fieldId}`);
-            if (!input) return;
-            const rule = rules[fieldId];
-            const fieldGroup = input.closest('.field-group') || input.parentElement;
-            let errorEl = fieldGroup ? fieldGroup.querySelector('.field-error') : null;
-            if (!errorEl && fieldGroup) {
-                errorEl = document.createElement('span');
-                errorEl.className = 'field-error';
-                input.parentElement.appendChild(errorEl);
-            }
-            const validateField = () => {
-                const value = input.value.trim();
-                const validation = this.validateFieldValue(value, rule);
-                input.classList.remove('valid', 'invalid');
-                fieldGroup?.classList.remove('has-error', 'is-valid');
-                if (validation.valid) {
-                    input.classList.add('valid');
-                    fieldGroup?.classList.add('is-valid');
-                    if (errorEl) errorEl.textContent = '';
-                } else {
-                    input.classList.add('invalid');
-                    fieldGroup?.classList.add('has-error');
-                    if (errorEl) errorEl.textContent = validation.error || '';
-                }
-                return validation.valid;
-            };
-            let timeout;
-            input.addEventListener('input', () => {
-                clearTimeout(timeout);
-                timeout = setTimeout(validateField, 300);
-            });
-            input.addEventListener('blur', validateField);
-            if (input.value) setTimeout(validateField, 100);
-        });
-    },
+    // Re-export imported utilities for compatibility if needed, or just let them be used internally.
+    // However, existing code might call UI.escapeHtml.
+    escapeHtml,
+    toJsDate,
+    formatTimeAgo,
+    setupFormValidation,
+    validateForm,
+    validateFieldValue,
+    debounceWithRateLimit,
 
-    validateFieldValue(value, rule) {
-        if (rule.required && (!value || value.trim() === '')) return { valid: false, error: rule.requiredMessage || 'Campo obbligatorio' };
-        if (!value || value.trim() === '') return { valid: true, error: '' };
-        if (rule.type === 'email') {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(value.trim())) return { valid: false, error: 'Email non valida' };
-        }
-        if (rule.minLength && value.length < rule.minLength) return { valid: false, error: `Minimo ${rule.minLength} caratteri` };
-        if (rule.maxLength && value.length > rule.maxLength) return { valid: false, error: `Massimo ${rule.maxLength} caratteri` };
-        if (rule.pattern && !rule.pattern.test(value)) return { valid: false, error: rule.patternMessage || 'Formato non valido' };
-        if (rule.validator && typeof rule.validator === 'function') {
-            const result = rule.validator(value);
-            if (typeof result === 'string') return { valid: false, error: result };
-            if (result === false) return { valid: false, error: rule.customMessage || 'Valore non valido' };
-        }
-        return { valid: true, error: '' };
-    },
+    // ... (other methods)
 
-    validateForm(form, rules) {
-        if (!form || !rules) return { valid: true, errors: {} };
-        const errors = {};
-        let allValid = true;
-        Object.keys(rules).forEach(fieldId => {
-            const input = form.querySelector(`#${fieldId}`);
-            if (!input) return;
-            const value = input.value.trim();
-            const rule = rules[fieldId];
-            const validation = this.validateFieldValue(value, rule);
-            if (!validation.valid) {
-                errors[fieldId] = validation.error;
-                allValid = false;
-                input.classList.add('invalid');
-                const fieldGroup = input.closest('.field-group') || input.parentElement;
-                fieldGroup?.classList.add('has-error');
-                let errorEl = fieldGroup?.querySelector('.field-error');
-                if (!errorEl && fieldGroup) {
-                    errorEl = document.createElement('span');
-                    errorEl.className = 'field-error';
-                    input.parentElement.appendChild(errorEl);
-                }
-                if (errorEl) errorEl.textContent = validation.error;
-            } else {
-                input.classList.add('valid');
-                const fieldGroup = input.closest('.field-group') || input.parentElement;
-                fieldGroup?.classList.add('is-valid');
-            }
-        });
-        return { valid: allValid, errors };
-    },
-
-    escapeHtml(str) {
-        if (str == null) return '';
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    },
-
-    toJsDate(firestoreDate) {
-        if (firestoreDate && firestoreDate.toDate) return firestoreDate.toDate();
-        return new Date(firestoreDate);
-    },
     rebuildPresenceIndex() {
         this.presenceIndex = new Map();
         (this.state.presences || []).forEach(p => this.presenceIndex.set(`${p.esploratoreId}_${p.attivitaId}`, p));

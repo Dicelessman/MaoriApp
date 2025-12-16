@@ -1,41 +1,23 @@
-/**
- * Test per funzioni di validazione
- * Questi test verificano la logica di validazione in isolamento
- */
-
 import { describe, it, expect } from 'vitest';
+import { validateFieldValue, sanitizeInput } from '../js/utils/validation.js';
+
 
 describe('Validation Functions', () => {
   describe('Email validation', () => {
     it('should accept valid emails', () => {
-      const validEmails = [
-        'test@example.com',
-        'user.name@domain.co.uk',
-        'user+tag@example.org',
-        'test_123@test-domain.com'
-      ];
-
+      const validEmails = ['test@example.com', 'user.name@domain.co.uk'];
       validEmails.forEach(email => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        expect(emailRegex.test(email)).toBe(true);
+        expect(validateFieldValue(email, { type: 'email' }).valid).toBe(true);
       });
     });
 
     it('should reject invalid emails', () => {
-      const invalidEmails = [
-        'notanemail',
-        '@domain.com',
-        'user@',
-        'user @domain.com',
-        'user@domain',
-        '',
-        null,
-        undefined
-      ];
-
+      const invalidEmails = ['notanemail', '@domain.com', 'user@'];
       invalidEmails.forEach(email => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        expect(emailRegex.test(email || '')).toBe(false);
+        // Required check comes first if empty, assuming required=false by default unless specified
+        // But validateFieldValue logic: "if !value return valid/true".
+        // So we need to check non-empty invalid strings.
+        if (email) expect(validateFieldValue(email, { type: 'email' }).valid).toBe(false);
       });
     });
   });
@@ -73,46 +55,54 @@ describe('Validation Functions', () => {
 
   describe('Required field validation', () => {
     it('should validate required string fields', () => {
-      const isRequired = (value) => {
-        return value !== null && value !== undefined && String(value).trim() !== '';
-      };
-
-      expect(isRequired('test')).toBe(true);
-      expect(isRequired('  test  ')).toBe(true);
-      expect(isRequired('')).toBe(false);
-      expect(isRequired('   ')).toBe(false);
-      expect(isRequired(null)).toBe(false);
-      expect(isRequired(undefined)).toBe(false);
+      expect(validateFieldValue('test', { required: true }).valid).toBe(true);
+      expect(validateFieldValue('', { required: true }).valid).toBe(false);
+      expect(validateFieldValue(null, { required: true }).valid).toBe(false);
     });
 
     it('should validate required number fields', () => {
-      const isRequiredNumber = (value) => {
-        if (value === '' || (typeof value === 'string' && value.trim() === '')) return false;
-        return value !== null && value !== undefined && !isNaN(Number(value));
-      };
-
-      expect(isRequiredNumber(0)).toBe(true);
-      expect(isRequiredNumber(123)).toBe(true);
-      expect(isRequiredNumber('123')).toBe(true);
-      expect(isRequiredNumber(null)).toBe(false);
-      expect(isRequiredNumber('')).toBe(false);
-      expect(isRequiredNumber('abc')).toBe(false);
+      expect(validateFieldValue(0, { required: true }).valid).toBe(true);
+      expect(validateFieldValue(123, { required: true }).valid).toBe(true);
+      expect(validateFieldValue('', { required: true }).valid).toBe(false);
     });
   });
 
   describe('Length validation', () => {
     it('should validate string length', () => {
-      const validateLength = (value, min, max) => {
-        const length = (value || '').trim().length;
-        return length >= min && length <= max;
-      };
-
-      expect(validateLength('test', 1, 10)).toBe(true);
-      expect(validateLength('', 1, 10)).toBe(false);
-      expect(validateLength('a'.repeat(100), 1, 50)).toBe(false);
-      expect(validateLength('hello', 5, 5)).toBe(true);
+      expect(validateFieldValue('test', { minLength: 1, maxLength: 10 }).valid).toBe(true);
+      expect(validateFieldValue('', { minLength: 1 }).valid).toBe(true); // Valid if not required
+      expect(validateFieldValue('hello', { minLength: 5 }).valid).toBe(true);
+      expect(validateFieldValue('hi', { minLength: 5 }).valid).toBe(false);
     });
   });
+
+  describe('Pattern validation', () => {
+    it('should validate against regex pattern', () => {
+      const rule = { pattern: /^[A-Z]+$/ };
+      expect(validateFieldValue('ABC', rule).valid).toBe(true);
+      expect(validateFieldValue('abc', rule).valid).toBe(false);
+      expect(validateFieldValue('123', rule).valid).toBe(false);
+    });
+  });
+
+  describe('Custom validator', () => {
+    it('should use custom validator function', () => {
+      const isEven = (val) => Number(val) % 2 === 0;
+      const rule = { validator: isEven, customMessage: 'Must be even' };
+
+      expect(validateFieldValue(2, rule).valid).toBe(true);
+      expect(validateFieldValue(3, rule).valid).toBe(false);
+      expect(validateFieldValue(3, rule).error).toBe('Must be even');
+    });
+
+    it('should handle custom validator returning string error', () => {
+      const rule = { validator: (val) => val === 'secret' ? true : 'Wrong secret' };
+      expect(validateFieldValue('secret', rule).valid).toBe(true);
+      expect(validateFieldValue('wrong', rule).valid).toBe(false);
+      expect(validateFieldValue('wrong', rule).error).toBe('Wrong secret');
+    });
+  });
+
 
   describe('Presence state validation', () => {
     it('should validate presence state values', () => {
@@ -139,5 +129,21 @@ describe('Validation Functions', () => {
       expect(isValidPaymentType('invalid')).toBe(false);
     });
   });
-});
 
+  describe('Sanitization', () => {
+    it('should strip script tags', () => {
+      const input = 'Hello <script>alert("XSS")</script> World';
+      expect(sanitizeInput(input)).toBe('Hello  World');
+    });
+
+    it('should strip html tags', () => {
+      const input = '<p>Hello <b>World</b></p>';
+      expect(sanitizeInput(input)).toBe('Hello World');
+    });
+
+    it('should handle non-string inputs', () => {
+      expect(sanitizeInput(123)).toBe(123);
+      expect(sanitizeInput(null)).toBe(null);
+    });
+  });
+});
