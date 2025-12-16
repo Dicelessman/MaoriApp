@@ -89,11 +89,10 @@ UI.renderScoutPage = async function() {
   }
   this.qs('#scoutId').value = id;
   
-  // Imposta l'anno minimo per i campi quota (anno corrente)
-  const currentYear = new Date().getFullYear();
+  // Imposta l'anno minimo per i campi quota (2022)
   ['doc_quota1', 'doc_quota2', 'doc_quota3', 'doc_quota4'].forEach(id => {
     const el = this.qs(`#${id}`);
-    if (el) el.min = currentYear.toString();
+    if (el) el.min = '2022';
   });
 
   // Carica i JSON all'inizio

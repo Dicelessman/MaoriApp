@@ -104,15 +104,13 @@ UI.renderDocumentiMatrix = function() {
           }
         }
         
-        // Anno corrente come minimo
-        const currentYear = new Date().getFullYear();
-        
+        // Anno minimo: 2022
         if (canEdit) {
           html += `
             <td class="border border-gray-300 p-1">
               <input 
                 type="number" 
-                min="${currentYear}" 
+                min="2022" 
                 max="2100" 
                 step="1"
                 class="w-full text-xs border border-gray-300 rounded px-1 py-0.5 text-center" 
@@ -210,7 +208,7 @@ UI.updateDocumentoYear = async function({ scoutId, field, value }) {
     let dateValue = null;
     if (value && value.trim() !== '') {
       const year = parseInt(value);
-      if (!isNaN(year) && year >= 2000 && year <= 2100) {
+      if (!isNaN(year) && year >= 2022 && year <= 2100) {
         dateValue = `${year}-01-01`;
       }
     }
