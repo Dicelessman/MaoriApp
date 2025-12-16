@@ -3633,6 +3633,116 @@ const UI = {
     }
   },
 
+  /**
+   * Genera e scarica file .ics (iCalendar) per le attività
+   * Formato supportato da Google Calendar, Apple Calendar, Outlook, ecc.
+   */
+  downloadCalendarICS() {
+    try {
+      const activities = (this.state.activities || []).slice()
+        .filter(a => {
+          const activityDate = this.toJsDate(a.data);
+          return activityDate && !isNaN(activityDate.getTime());
+        })
+        .sort((a, b) => this.toJsDate(a.data) - this.toJsDate(b.data));
+      
+      if (activities.length === 0) {
+        this.showToast('Nessuna attività da esportare', { type: 'info' });
+        return;
+      }
+      
+      // Genera contenuto .ics
+      const lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Reparto Maori//Calendario Attività//IT',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'X-WR-CALNAME:Calendario Attività Reparto Maori',
+        'X-WR-CALDESC:Calendario delle attività del Reparto Scout Maori',
+        'X-WR-TIMEZONE:Europe/Rome'
+      ];
+      
+      activities.forEach(activity => {
+        const activityDate = this.toJsDate(activity.data);
+        if (!activityDate || isNaN(activityDate.getTime())) return;
+        
+        // Imposta inizio attività (default: 20:00)
+        const startDate = new Date(activityDate);
+        startDate.setHours(20, 0, 0, 0);
+        
+        // Fine attività (default: 2 ore dopo)
+        const endDate = new Date(startDate);
+        endDate.setHours(22, 0, 0, 0);
+        
+        // Formatta date in formato iCalendar (YYYYMMDDTHHMMSS)
+        const formatICSDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const seconds = String(date.getSeconds()).padStart(2, '0');
+          return `${year}${month}${day}T${hours}${minutes}${seconds}`;
+        };
+        
+        // Genera UID univoco
+        const uid = `maori-activity-${activity.id}-${formatICSDate(startDate)}@repartomaori`;
+        
+        // Escape testo per formato .ics
+        const escapeICS = (text) => {
+          if (!text) return '';
+          return String(text)
+            .replace(/\\/g, '\\\\')
+            .replace(/;/g, '\\;')
+            .replace(/,/g, '\\,')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '');
+        };
+        
+        const summary = `${activity.tipo}${activity.costo && parseFloat(activity.costo) > 0 ? ` - €${activity.costo}` : ''}`;
+        const description = activity.descrizione || '';
+        
+        // Aggiungi evento
+        lines.push(
+          'BEGIN:VEVENT',
+          `UID:${uid}`,
+          `DTSTAMP:${formatICSDate(new Date())}`,
+          `DTSTART:${formatICSDate(startDate)}`,
+          `DTEND:${formatICSDate(endDate)}`,
+          `SUMMARY:${escapeICS(summary)}`,
+          description ? `DESCRIPTION:${escapeICS(description)}` : '',
+          `LOCATION:Reparto Scout Maori`,
+          `STATUS:CONFIRMED`,
+          `SEQUENCE:0`,
+          'END:VEVENT'
+        );
+      });
+      
+      lines.push('END:VCALENDAR');
+      
+      // Rimuovi righe vuote
+      const icsContent = lines.filter(line => line !== '').join('\r\n');
+      
+      // Crea blob e scarica
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.download = `calendario-maori-${dateStr}.ics`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      this.showToast(`Calendario esportato (${activities.length} attività)`, { type: 'success' });
+    } catch (error) {
+      console.error('Errore export calendario:', error);
+      this.showToast('Errore durante l\'export del calendario: ' + (error.message || 'Errore sconosciuto'), { type: 'error' });
+    }
+  },
+
   // ============== Mobile Gesture Support ==============
   
   /**

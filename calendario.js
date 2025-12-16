@@ -10,6 +10,7 @@ UI.renderCurrentPage = function() {
   }
   this.setupCalendarEvents();
   this.setupCalendarViewToggle();
+  this.setupCalendarExport();
 };
 
 UI.initActivityTemplatesUI = async function() {
@@ -655,5 +656,20 @@ UI.renderMonthlyCalendar = function() {
       grid.appendChild(emptyCell);
     }
   }
+};
+
+/**
+ * Setup export calendario .ics
+ */
+UI.setupCalendarExport = function() {
+  const exportBtn = this.qs('#exportCalendarICSBtn');
+  if (!exportBtn) return;
+  
+  if (exportBtn._bound) return;
+  exportBtn._bound = true;
+  
+  exportBtn.addEventListener('click', () => {
+    this.downloadCalendarICS();
+  });
 };
 
