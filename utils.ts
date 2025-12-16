@@ -14,7 +14,7 @@ export function toYyyyMmDd(date: Date | { toDate: () => Date } | string | null |
   } else if (date instanceof Date) {
     d = date;
   } else {
-    d = new Date(date);
+    d = new Date(date as string);
   }
   if (isNaN(d.getTime())) return '';
   return d.toISOString().split('T')[0];
@@ -29,7 +29,7 @@ export function toJsDate(firestoreDate: { toDate: () => Date } | Date | string |
     return (firestoreDate as { toDate: () => Date }).toDate();
   }
   if (firestoreDate instanceof Date) return firestoreDate;
-  const d = new Date(firestoreDate);
+  const d = new Date(firestoreDate as string);
   return isNaN(d.getTime()) ? null : d;
 }
 
