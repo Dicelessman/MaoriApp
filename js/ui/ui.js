@@ -722,10 +722,13 @@ export const UI = {
         return this.getSystemTheme();
     },
     applyTheme(theme) {
-        if (theme === THEME.DARK)
+        if (theme === THEME.DARK) {
             document.documentElement.setAttribute('data-theme', 'dark');
-        else
+            document.documentElement.classList.add('dark');
+        } else {
             document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.classList.remove('dark');
+        }
         setTimeout(() => {
             const toggle = this.qs('#themeToggle');
             if (toggle) {

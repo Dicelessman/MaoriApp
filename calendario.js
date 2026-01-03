@@ -295,8 +295,8 @@ UI.renderCalendarList = function () {
     const ds = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
     const isNext = a.id === nextActivityId;
     const costoLabel = parseFloat(a.costo || '0') > 0 ? ` — Costo: € ${a.costo}` : '';
-    const bgClass = isNext ? 'bg-green-50 border-l-4 border-green-500' : 'bg-white';
-    const textClass = isNext ? 'text-green-800' : 'text-green-700';
+    const bgClass = isNext ? 'bg-green-50 dark:bg-green-900/50 border-l-4 border-green-500' : 'bg-white dark:bg-gray-800';
+    const textClass = isNext ? 'text-green-800 dark:text-green-100' : 'text-green-700 dark:text-gray-300';
     const canDrag = this.currentUser ? '' : 'data-drag-disabled';
     list.insertAdjacentHTML('beforeend', `
       <div class="p-4 ${bgClass} rounded-lg shadow-sm flex items-start justify-between gap-4 swipeable-item drag-item" data-id="${a.id}" data-item-id="${a.id}" ${canDrag}>
