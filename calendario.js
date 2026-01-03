@@ -1,19 +1,13 @@
 // calendario.js - Logica specifica per la pagina Calendario
 
-UI.renderCurrentPage = function() {
-  // Verifica vista corrente (mese o lista)
-  const viewMode = localStorage.getItem('calendarViewMode') || 'list';
-  if (viewMode === 'month') {
-    this.renderMonthlyCalendar();
-  } else {
-    this.renderCalendarList();
-  }
+UI.renderCurrentPage = function () {
+  this.renderCalendarList();
   this.setupCalendarEvents();
-  this.setupCalendarViewToggle();
+  // removed setupCalendarViewToggle
   this.setupCalendarExport();
 };
 
-UI.initActivityTemplatesUI = async function() {
+UI.initActivityTemplatesUI = async function () {
   const select = this.qs('#activityTemplateSelect');
   const applyBtn = this.qs('#applyActivityTemplateBtn');
   const saveBtn = this.qs('#saveActivityTemplateBtn');
@@ -26,7 +20,7 @@ UI.initActivityTemplatesUI = async function() {
 
   // Carica template e popola select
   const templates = await this.loadActivityTemplates();
-  select.innerHTML = '<option value=\"\">Nessun template</option>' + 
+  select.innerHTML = '<option value=\"\">Nessun template</option>' +
     templates.map(t => `<option value=\"${t.id}\">${this.escapeHtml(t.name)}</option>`).join('');
 
   // Applica template selezionato
@@ -66,16 +60,16 @@ UI.initActivityTemplatesUI = async function() {
     await this.saveActivityTemplate({ tipo, descrizione, costo });
     // Ricarica select
     const templatesUpdated = this._activityTemplates || await this.loadActivityTemplates();
-    select.innerHTML = '<option value=\"\">Nessun template</option>' + 
+    select.innerHTML = '<option value=\"\">Nessun template</option>' +
       templatesUpdated.map(t => `<option value=\"${t.id}\">${this.escapeHtml(t.name)}</option>`).join('');
   });
 };
 
-UI.setupCalendarEvents = function() {
+UI.setupCalendarEvents = function () {
   const form = this.qs('#addActivityForm');
   if (form && !form._bound) {
     form._bound = true;
-    
+
     // Setup validazione real-time
     const validActivityTypes = ['Riunione', 'Attività lunga', 'Uscita', 'Campo'];
     this.setupFormValidation(form, {
@@ -110,7 +104,7 @@ UI.setupCalendarEvents = function() {
         }
       }
     });
-    
+
     // Inizializza UI template attività (solo se utente loggato)
     if (this.currentUser) {
       this.initActivityTemplatesUI();
@@ -118,11 +112,11 @@ UI.setupCalendarEvents = function() {
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!this.currentUser) { 
-        this.showToast('Devi essere loggato per aggiungere attività.', { type: 'error' }); 
-        return; 
+      if (!this.currentUser) {
+        this.showToast('Devi essere loggato per aggiungere attività.', { type: 'error' });
+        return;
       }
-      
+
       // Validazione form completa
       const validation = this.validateForm(form, {
         activityTipo: {
@@ -147,7 +141,7 @@ UI.setupCalendarEvents = function() {
           }
         }
       });
-      
+
       if (!validation.valid) {
         const firstError = Object.values(validation.errors)[0];
         this.showToast(firstError, { type: 'error' });
@@ -156,14 +150,14 @@ UI.setupCalendarEvents = function() {
         if (input) input.focus();
         return;
       }
-      
+
       const tipo = this.qs('#activityTipo').value;
       const dataValue = this.qs('#activityData').value;
       const data = new Date(dataValue);
       const descrizione = this.qs('#activityDescrizione').value.trim();
       const costoValue = this.qs('#activityCosto').value || '0';
       const costo = costoValue ? Number(costoValue) : 0;
-      
+
       // Validazione range date
       const dateValidation = this.validateActivityDateRange(data);
       if (!dateValidation.valid) {
@@ -175,7 +169,7 @@ UI.setupCalendarEvents = function() {
         // Warning non blocca, ma informa
         this.showToast(dateValidation.warning, { type: 'warning', duration: 3000 });
       }
-      
+
       const submitBtn = form.querySelector('button[type="submit"]');
       const originalText = submitBtn?.textContent;
       this.setButtonLoading(submitBtn, true, originalText);
@@ -186,7 +180,7 @@ UI.setupCalendarEvents = function() {
         this.renderCalendarList();
         form.reset();
         this.showToast('Attività aggiunta con successo');
-        
+
         // Reset classi validazione
         form.querySelectorAll('.valid, .invalid').forEach(el => {
           el.classList.remove('valid', 'invalid');
@@ -205,9 +199,80 @@ UI.setupCalendarEvents = function() {
       }
     });
   }
+
+  // Edit Activity Form
+  const editForm = this.qs('#editActivityForm');
+  if (editForm && !editForm._bound) {
+    editForm._bound = true;
+
+    // Use same validation logic as add form if possible, or simple check
+    editForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!this.currentUser) return;
+
+      const id = this.qs('#editActivityId').value;
+      const tipo = this.qs('#editActivityTipo').value;
+      const dataValue = this.qs('#editActivityData').value;
+      const data = new Date(dataValue);
+      const descrizione = this.qs('#editActivityDescrizione').value.trim();
+      const costoValue = this.qs('#editActivityCosto').value;
+      const costo = costoValue ? Number(costoValue) : 0;
+
+      // Basic validation
+      if (!id || !tipo || !descrizione || isNaN(data.getTime())) {
+        this.showToast('Compila tutti i campi obbligatori', { type: 'error' });
+        return;
+      }
+
+      const submitBtn = editForm.querySelector('button[type="submit"]');
+      const originalText = submitBtn?.textContent;
+      this.setButtonLoading(submitBtn, true, originalText);
+
+      try {
+        await DATA.updateActivity({ id, tipo, data, descrizione, costo }, this.currentUser);
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.renderCalendarList();
+        this.closeModal('editActivityModal');
+        this.showToast('Attività modificata');
+      } catch (error) {
+        console.error('Errore modifica attività:', error);
+        this.showToast('Errore durante la modifica: ' + error.message, { type: 'error' });
+      } finally {
+        this.setButtonLoading(submitBtn, false, originalText);
+      }
+    });
+  }
+
+  // Delete Activity Confirmation
+  const confirmDeleteBtn = this.qs('#confirmDeleteActivityBtn');
+  if (confirmDeleteBtn && !confirmDeleteBtn._bound) {
+    confirmDeleteBtn._bound = true;
+    confirmDeleteBtn.addEventListener('click', async () => {
+      if (!this.activityToDeleteId || !this.currentUser) return;
+
+      const originalText = confirmDeleteBtn.textContent;
+      this.setButtonLoading(confirmDeleteBtn, true, originalText);
+
+      try {
+        await DATA.deleteActivity(this.activityToDeleteId, this.currentUser);
+        this.state = await DATA.loadAll();
+        this.rebuildPresenceIndex();
+        this.renderCalendarList();
+        this.closeModal('confirmDeleteActivityModal');
+        this.showToast('Attività eliminata');
+      } catch (error) {
+        console.error('Errore eliminazione attività:', error);
+        this.showToast('Errore eliminazione: ' + error.message, { type: 'error' });
+      } finally {
+        this.setButtonLoading(confirmDeleteBtn, false, originalText);
+        this.activityToDeleteId = null;
+      }
+    });
+  }
 };
 
-UI.renderCalendarList = function() {
+UI.renderCalendarList = function () {
   const list = this.qs('#calendarList');
   if (!list) return;
   list.innerHTML = '';
@@ -218,10 +283,10 @@ UI.renderCalendarList = function() {
     return;
   }
 
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
   let nextActivityId = null;
   for (const a of activities) {
-    const d = this.toJsDate(a.data); const dd = new Date(d); dd.setHours(0,0,0,0);
+    const d = this.toJsDate(a.data); const dd = new Date(d); dd.setHours(0, 0, 0, 0);
     if (dd >= today) { nextActivityId = a.id; break; }
   }
 
@@ -250,12 +315,12 @@ UI.renderCalendarList = function() {
       </div>
     `);
   });
-  
+
   // Setup drag & drop per riordinare attività (solo se utente loggato)
   if (this.currentUser) {
     const preferences = this.loadUserPreferences();
     const savedOrder = preferences?.activityOrder || null;
-    
+
     // Se c'è un ordine salvato, riordina le attività
     if (savedOrder && savedOrder.length === activities.length) {
       const orderMap = new Map(savedOrder.map((id, idx) => [id, idx]));
@@ -269,7 +334,7 @@ UI.renderCalendarList = function() {
       });
       items.forEach(item => list.appendChild(item));
     }
-    
+
     this.setupDragAndDrop(
       list,
       '.drag-item',
@@ -286,7 +351,7 @@ UI.renderCalendarList = function() {
       }
     );
   }
-  
+
   // Setup swipe delete e pull-to-refresh per calendario
   if ('ontouchstart' in window) {
     if (this.currentUser) {
@@ -294,14 +359,14 @@ UI.renderCalendarList = function() {
         this.confirmDeleteActivity(activityId);
       }, '.swipeable-item', 'data-id');
     }
-    
+
     // Setup long press per menu contestuale attività
     const items = list.querySelectorAll('.swipeable-item');
     items.forEach(item => {
       const activityId = item.getAttribute('data-id');
       const activity = this.state.activities?.find(a => a.id === activityId);
       if (!activity) return;
-      
+
       this.setupLongPress(item, (element, e) => {
         const actions = [
           {
@@ -325,7 +390,7 @@ UI.renderCalendarList = function() {
             }
           }
         ];
-        
+
         if (this.currentUser) {
           actions.push(
             {
@@ -345,11 +410,11 @@ UI.renderCalendarList = function() {
             }
           );
         }
-        
+
         this.showContextMenu(element, actions);
       });
     });
-    
+
     const scrollContainer = list.parentElement;
     if (scrollContainer) {
       this.setupPullToRefresh(scrollContainer, async () => {
@@ -370,304 +435,53 @@ UI.renderCalendarList = function() {
   }
 };
 
-// ============== Vista Calendario Mensile ==============
 
-/**
- * Setup toggle vista calendario/lista
- */
-UI.setupCalendarViewToggle = function() {
-  const toggle = this.qs('#calendarViewToggle');
-  const toggleText = this.qs('#calendarViewToggleText');
-  const monthlyView = this.qs('#monthlyCalendarView');
-  const listView = this.qs('#listCalendarView');
-  
-  if (!toggle || !toggleText || !monthlyView || !listView) {
-    console.warn('Elementi per toggle vista calendario non trovati', {
-      toggle: !!toggle,
-      toggleText: !!toggleText,
-      monthlyView: !!monthlyView,
-      listView: !!listView
-    });
+UI.openEditActivityModal = function (id) {
+  const activity = (this.state.activities || []).find(a => a.id === id);
+  if (!activity) {
+    this.showToast('Attività non trovata', { type: 'error' });
     return;
   }
-  
-  // Evita di aggiungere l'event listener più volte
-  if (toggle._bound) {
-    console.log('Toggle già configurato, skip');
-    return;
-  }
-  toggle._bound = true;
-  
-  // Salva riferimento a this per uso nel callback
-  const self = this;
-  
-  // Carica vista salvata
-  const viewMode = localStorage.getItem('calendarViewMode') || 'list';
-  if (viewMode === 'month') {
-    monthlyView.classList.remove('hidden');
-    listView.classList.add('hidden');
-    toggleText.textContent = '📋 Vista Lista';
-  } else {
-    monthlyView.classList.add('hidden');
-    listView.classList.remove('hidden');
-    toggleText.textContent = '📅 Vista Calendario';
-  }
-  
-  toggle.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Toggle click rilevato');
-    
-    const currentMode = monthlyView.classList.contains('hidden') ? 'list' : 'month';
-    const newMode = currentMode === 'list' ? 'month' : 'list';
-    
-    console.log('Cambio vista da', currentMode, 'a', newMode);
-    localStorage.setItem('calendarViewMode', newMode);
-    
-    if (newMode === 'month') {
-      monthlyView.classList.remove('hidden');
-      listView.classList.add('hidden');
-      toggleText.textContent = '📋 Vista Lista';
-      self.renderMonthlyCalendar();
-    } else {
-      monthlyView.classList.add('hidden');
-      listView.classList.remove('hidden');
-      toggleText.textContent = '📅 Vista Calendario';
-      self.renderCalendarList();
-    }
-  });
-  
-  console.log('Event listener toggle configurato');
+
+  const form = this.qs('#editActivityForm');
+  if (!form) return;
+
+  this.qs('#editActivityId').value = activity.id;
+  this.qs('#editActivityTipo').value = activity.tipo;
+
+  // Convert/Format date for input type="date"
+  const dateObj = this.toJsDate(activity.data);
+  const dateStr = !isNaN(dateObj) ? dateObj.toISOString().split('T')[0] : '';
+  this.qs('#editActivityData').value = dateStr;
+
+  this.qs('#editActivityDescrizione').value = activity.descrizione;
+  this.qs('#editActivityCosto').value = activity.costo || 0;
+
+  this.showModal('editActivityModal');
 };
 
-/**
- * Renderizza calendario mensile
- */
-UI.renderMonthlyCalendar = function() {
-  const grid = this.qs('#calendarGrid');
-  const monthYearEl = this.qs('#currentMonthYear');
-  const prevBtn = this.qs('#prevMonthBtn');
-  const nextBtn = this.qs('#nextMonthBtn');
-  
-  if (!grid || !monthYearEl) return;
-  
-  // Carica mese corrente o salvato
-  let currentMonth;
-  const savedMonthKey = localStorage.getItem('calendarCurrentMonth');
-  if (savedMonthKey) {
-    // Prova a parse come formato "YYYY-MM" oppure come ISO string
-    if (/^\d{4}-\d{2}$/.test(savedMonthKey)) {
-      // Formato YYYY-MM (anno-mese)
-      const [year, month] = savedMonthKey.split('-').map(Number);
-      currentMonth = new Date(year, month - 1, 1); // month è 1-based, quindi sottraiamo 1
-    } else {
-      // Formato ISO string legacy - convertiamo a YYYY-MM per evitare problemi di fuso orario
-      const savedDate = new Date(savedMonthKey);
-      if (!isNaN(savedDate.getTime())) {
-        currentMonth = new Date(savedDate.getFullYear(), savedDate.getMonth(), 1);
-      } else {
-        currentMonth = new Date();
-        currentMonth.setDate(1);
-      }
-    }
-  } else {
-    currentMonth = new Date();
-    currentMonth.setDate(1);
-  }
-  currentMonth.setHours(0, 0, 0, 0);
-  this._calendarCurrentMonth = currentMonth;
-  
-  const year = currentMonth.getFullYear();
-  const month = currentMonth.getMonth();
-  
-  // Aggiorna header
-  monthYearEl.textContent = currentMonth.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
-  
-  // Navigazione mesi
-  if (prevBtn && !prevBtn._bound) {
-    prevBtn._bound = true;
-    prevBtn.addEventListener('click', () => {
-      // Usa sempre new Date(year, month, 1) invece di setMonth() per evitare problemi
-      const currentYear = this._calendarCurrentMonth.getFullYear();
-      const currentMonthIndex = this._calendarCurrentMonth.getMonth();
-      // Calcola mese e anno precedente
-      let prevYear = currentYear;
-      let prevMonthIndex = currentMonthIndex - 1;
-      if (prevMonthIndex < 0) {
-        prevMonthIndex = 11; // Dicembre
-        prevYear = currentYear - 1;
-      }
-      // Crea nuova data usando sempre il primo giorno del mese
-      const newMonth = new Date(prevYear, prevMonthIndex, 1);
-      newMonth.setHours(0, 0, 0, 0);
-      this._calendarCurrentMonth = newMonth;
-      // Salva come formato YYYY-MM per evitare problemi di fuso orario
-      const year = newMonth.getFullYear();
-      const month = String(newMonth.getMonth() + 1).padStart(2, '0');
-      localStorage.setItem('calendarCurrentMonth', `${year}-${month}`);
-      this.renderMonthlyCalendar();
-    });
-  }
-  
-  if (nextBtn && !nextBtn._bound) {
-    nextBtn._bound = true;
-    nextBtn.addEventListener('click', () => {
-      // Usa sempre new Date(year, month, 1) invece di setMonth() per evitare problemi
-      const currentYear = this._calendarCurrentMonth.getFullYear();
-      const currentMonthIndex = this._calendarCurrentMonth.getMonth();
-      // Calcola mese e anno successivo
-      let nextYear = currentYear;
-      let nextMonthIndex = currentMonthIndex + 1;
-      if (nextMonthIndex > 11) {
-        nextMonthIndex = 0; // Gennaio
-        nextYear = currentYear + 1;
-      }
-      // Crea nuova data usando sempre il primo giorno del mese
-      const newMonth = new Date(nextYear, nextMonthIndex, 1);
-      newMonth.setHours(0, 0, 0, 0);
-      this._calendarCurrentMonth = newMonth;
-      // Salva come formato YYYY-MM per evitare problemi di fuso orario
-      const year = newMonth.getFullYear();
-      const month = String(newMonth.getMonth() + 1).padStart(2, '0');
-      localStorage.setItem('calendarCurrentMonth', `${year}-${month}`);
-      this.renderMonthlyCalendar();
-    });
-  }
-  
-  // Calcola primo giorno del mese e giorno della settimana
-  // Usiamo currentMonth direttamente per evitare problemi con la conversione
-  const firstDay = new Date(year, month, 1);
-  firstDay.setHours(0, 0, 0, 0);
-  const lastDay = new Date(year, month + 1, 0);
-  const daysInMonth = lastDay.getDate();
-  // getDay() restituisce 0=domenica, 1=lunedì, ..., 6=sabato
-  // Convertiamo in scala settimana lavorativa italiana: 0=lunedì, 1=martedì, ..., 6=domenica
-  // Formula: (getDay() + 6) % 7 trasforma 0->6, 1->0, 2->1, ..., 6->5
-  const jsDayOfWeek = firstDay.getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
-  const startingDayOfWeek = (jsDayOfWeek + 6) % 7; // 0=Lun, 1=Mar, ..., 6=Dom
-  
-  // Rimuovi celle giorni esistenti (mantieni headers)
-  const existingCells = grid.querySelectorAll('.calendar-day-cell');
-  existingCells.forEach(cell => cell.remove());
-  
-  // Aggiungi celle vuote per giorni prima del primo giorno del mese
-  for (let i = 0; i < startingDayOfWeek; i++) {
-    const emptyCell = document.createElement('div');
-    emptyCell.className = 'p-2 min-h-[80px] bg-gray-50 dark:bg-gray-800';
-    grid.appendChild(emptyCell);
-  }
-  
-  // Colori per tipo attività (con supporto dark mode)
-  const activityTypeColors = {
-    'Riunione': 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200',
-    'Attività lunga': 'bg-purple-100 dark:bg-purple-900 border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-200',
-    'Uscita': 'bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700 text-green-800 dark:text-green-200',
-    'Campo': 'bg-orange-100 dark:bg-orange-900 border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-200'
-  };
-  
-  // Raggruppa attività per giorno
-  const activities = (this.state.activities || []).slice();
-  const activitiesByDate = new Map();
-  
-  activities.forEach(a => {
-    const d = this.toJsDate(a.data);
-    if (isNaN(d)) return;
-    const dateKey = d.toISOString().split('T')[0]; // YYYY-MM-DD
-    if (!activitiesByDate.has(dateKey)) {
-      activitiesByDate.set(dateKey, []);
-    }
-    activitiesByDate.get(dateKey).push(a);
-  });
-  
-  // Aggiungi celle per ogni giorno del mese
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  for (let day = 1; day <= daysInMonth; day++) {
-    const cellDate = new Date(year, month, day);
-    const dateKey = cellDate.toISOString().split('T')[0];
-    const dayActivities = activitiesByDate.get(dateKey) || [];
-    const isToday = cellDate.getTime() === today.getTime();
-    const isPast = cellDate < today;
-    
-    const cell = document.createElement('div');
-    cell.className = `calendar-day-cell p-2 min-h-[80px] border border-gray-200 dark:border-gray-700 ${isToday ? 'bg-green-50 dark:bg-green-900 border-green-400 dark:border-green-600' : isPast ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'} ${!isPast ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800' : ''}`;
-    
-    // Numero giorno
-    const dayNumber = document.createElement('div');
-    dayNumber.className = `text-sm font-semibold mb-1 ${isToday ? 'text-green-700 dark:text-green-300' : 'text-gray-700 dark:text-gray-300'}`;
-    dayNumber.textContent = day;
-    cell.appendChild(dayNumber);
-    
-    // Attività del giorno (max 3 visibili)
-    if (dayActivities.length > 0) {
-      const activitiesList = document.createElement('div');
-      activitiesList.className = 'space-y-1';
-      
-      dayActivities.slice(0, 3).forEach(activity => {
-        const activityEl = document.createElement('div');
-        activityEl.className = `text-xs p-1 rounded border ${activityTypeColors[activity.tipo] || 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200'} truncate`;
-        activityEl.textContent = activity.tipo;
-        activityEl.title = `${activity.tipo}: ${activity.descrizione}`;
-        activityEl.addEventListener('click', (e) => {
-          e.stopPropagation();
-          window.location.href = `attivita.html?id=${activity.id}`;
-        });
-        activitiesList.appendChild(activityEl);
-      });
-      
-      if (dayActivities.length > 3) {
-        const moreEl = document.createElement('div');
-        moreEl.className = 'text-xs text-gray-500 dark:text-gray-400 italic';
-        moreEl.textContent = `+${dayActivities.length - 3} altre`;
-        activitiesList.appendChild(moreEl);
-      }
-      
-      cell.appendChild(activitiesList);
-    }
-    
-    // Click su cella per aggiungere attività (solo per giorni futuri o oggi)
-    if (!isPast) {
-      cell.addEventListener('click', () => {
-        // Imposta data nel form e mostra form
-        const dateInput = this.qs('#activityData');
-        if (dateInput) {
-          dateInput.value = dateKey;
-          // Scrolla al form
-          const formSection = dateInput.closest('section');
-          if (formSection) {
-            formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            dateInput.focus();
-          }
-        }
-      });
-    }
-    
-    grid.appendChild(cell);
-  }
-  
-  // Aggiungi celle vuote per completare la griglia (ultima riga)
-  const totalCells = startingDayOfWeek + daysInMonth;
-  const remainingCells = 7 - (totalCells % 7);
-  if (remainingCells < 7) {
-    for (let i = 0; i < remainingCells; i++) {
-      const emptyCell = document.createElement('div');
-      emptyCell.className = 'p-2 min-h-[80px] bg-gray-50 dark:bg-gray-800';
-      grid.appendChild(emptyCell);
-    }
-  }
+UI.confirmDeleteActivity = function (id) {
+  this.activityToDeleteId = id;
+  const activity = (this.state.activities || []).find(a => a.id === id);
+  const label = activity ? `${activity.tipo} del ${this.toJsDate(activity.data).toLocaleDateString()}` : 'questa attività';
+
+  const infoEl = this.qs('#activityInfoToDelete');
+  if (infoEl) infoEl.textContent = label;
+
+  this.showModal('confirmDeleteActivityModal');
 };
+
 
 /**
  * Setup export calendario .ics
  */
-UI.setupCalendarExport = function() {
+UI.setupCalendarExport = function () {
   const exportBtn = this.qs('#exportCalendarICSBtn');
   if (!exportBtn) return;
-  
+
   if (exportBtn._bound) return;
   exportBtn._bound = true;
-  
+
   exportBtn.addEventListener('click', () => {
     this.downloadCalendarICS();
   });
