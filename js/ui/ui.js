@@ -944,10 +944,14 @@ export const UI = {
         const bell = this.qs('#notificationsBell');
         const drop = this.qs('#notificationsDropdown');
         if (bell && drop) {
-            bell.addEventListener('click', e => { e.stopPropagation(); drop.style.display = drop.style.display === 'none' ? 'block' : 'none'; if (drop.style.display === 'block')
-                this.renderNotificationsList(); });
-            document.addEventListener('click', e => { if (!bell.contains(e.target) && !drop.contains(e.target))
-                drop.style.display = 'none'; });
+            bell.addEventListener('click', e => {
+                e.stopPropagation(); drop.style.display = drop.style.display === 'none' ? 'block' : 'none'; if (drop.style.display === 'block')
+                    this.renderNotificationsList();
+            });
+            document.addEventListener('click', e => {
+                if (!bell.contains(e.target) && !drop.contains(e.target))
+                    drop.style.display = 'none';
+            });
         }
         this.updateNotificationsBadge();
     },
@@ -1036,6 +1040,78 @@ export const UI = {
             this.showToast('Errore backup', { type: 'error' });
             console.error(e);
         }
+    },
+    setupDragAndDrop(container, itemSelector, onReorder, options = {}) {
+        const { handle = null, disabled = null } = options;
+        let draggedItem = null;
+        let placeholder = null;
+
+        const getDragItem = (target) => target.closest(itemSelector);
+
+        container.addEventListener('dragstart', (e) => {
+            const item = getDragItem(e.target);
+            if (!item) return;
+
+            if (disabled && item.matches(disabled)) {
+                e.preventDefault();
+                return;
+            }
+            if (handle && !e.target.closest(handle)) {
+                e.preventDefault();
+                return;
+            }
+
+            draggedItem = item;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', item.dataset.id || '');
+
+            placeholder = document.createElement('div');
+            placeholder.className = 'placeholder-item';
+            placeholder.style.height = `${item.offsetHeight}px`;
+            placeholder.style.backgroundColor = '#f3f4f6';
+            placeholder.style.border = '2px dashed #d1d5db';
+            placeholder.style.borderRadius = '0.5rem';
+            placeholder.style.marginBottom = '0.5rem';
+
+            setTimeout(() => {
+                item.style.display = 'none';
+                if (item.parentNode) item.parentNode.insertBefore(placeholder, item.nextSibling);
+            }, 0);
+        });
+
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const target = getDragItem(e.target);
+            if (!target || target === draggedItem || target === placeholder) return;
+
+            const rect = target.getBoundingClientRect();
+            const after = e.clientY > rect.top + rect.height / 2;
+
+            if (after) {
+                container.insertBefore(placeholder, target.nextSibling);
+            } else {
+                container.insertBefore(placeholder, target);
+            }
+        });
+
+        container.addEventListener('dragend', () => {
+            if (!draggedItem) return;
+            draggedItem.style.display = '';
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.insertBefore(draggedItem, placeholder);
+                placeholder.remove();
+            }
+            placeholder = null;
+            draggedItem = null;
+
+            const newOrder = Array.from(container.querySelectorAll(itemSelector))
+                .map(el => el.dataset.id)
+                .filter(id => id);
+
+            if (onReorder) onReorder(newOrder);
+        });
     },
     // Gesture Support
     setupSwipeDelete(container, onDelete, itemSelector = '> div', itemIdAttr = 'data-id') {
@@ -1186,10 +1262,12 @@ export const UI = {
     },
     logNetworkInfo() { },
     runConnectivityProbe() { window.addEventListener('online', () => this.updateConnectionStatus(true)); window.addEventListener('offline', () => this.updateConnectionStatus(false)); },
-    updateConnectionStatus(online) { const s = this.qs('#connectionStatus'); if (s) {
-        s.textContent = online ? 'Online' : 'Offline';
-        s.className = online ? 'online' : 'offline';
-    } },
+    updateConnectionStatus(online) {
+        const s = this.qs('#connectionStatus'); if (s) {
+            s.textContent = online ? 'Online' : 'Offline';
+            s.className = online ? 'online' : 'offline';
+        }
+    },
     renderCurrentPage() { },
     renderStaffSelectionList() {
         const c = this.qs('#staffListForSelection');
