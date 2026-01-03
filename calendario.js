@@ -487,3 +487,63 @@ UI.setupCalendarExport = function () {
   });
 };
 
+/**
+ * Helpers Mancanti
+ */
+UI.loadActivityTemplates = async function () {
+  try {
+    if (!this.currentUser) return [];
+    // Potremmo salvarli su Firestore o LocalStorage. Per ora LocalStorage per semplicità.
+    const key = `activity_templates_${this.currentUser.uid}`;
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    console.error('Errore caricamento template:', e);
+    return [];
+  }
+};
+
+UI.saveActivityTemplate = async function (template) {
+  try {
+    if (!this.currentUser) return;
+    const key = `activity_templates_${this.currentUser.uid}`;
+    const current = await this.loadActivityTemplates();
+
+    // Check if duplicate name or content?? Simple add for now
+    const newTemplate = {
+      id: Date.now().toString(),
+      name: `${template.tipo} - ${template.descrizione}`,
+      ...template
+    };
+
+    current.push(newTemplate);
+    localStorage.setItem(key, JSON.stringify(current));
+    this.showToast('Template salvato locale', { type: 'success' });
+    this._activityTemplates = current; // Aggiorna cache locale
+  } catch (e) {
+    console.error('Errore salvataggio template:', e);
+    this.showToast('Errore nel salvare il template', { type: 'error' });
+  }
+};
+
+UI.validateActivityDateRange = function (date) {
+  if (!date || isNaN(date.getTime())) {
+    return { valid: false, warning: 'Data non valida' };
+  }
+
+  // Esempio: Warning se data è nel passato di oltre 1 anno o nel futuro di oltre 2 anni
+  const now = new Date();
+  const oneYearAgo = new Date(); oneYearAgo.setFullYear(now.getFullYear() - 1);
+  const twoYearsFuture = new Date(); twoYearsFuture.setFullYear(now.getFullYear() + 2);
+
+  if (date < oneYearAgo) {
+    return { valid: true, warning: 'Attenzione: La data è nel passato remoto (più di 1 anno fa).' };
+  }
+  if (date > twoYearsFuture) {
+    return { valid: true, warning: 'Attenzione: La data è molto lontana nel futuro.' };
+  }
+
+  return { valid: true };
+};
+
+
