@@ -41,23 +41,24 @@ export class LocalAdapter {
         return this.state;
     }
     // Activities
-    async addActivity({ tipo, data, descrizione, costo }, currentUser) {
+    async addActivity({ tipo, data, dataFine, descrizione, costo }, currentUser) {
         const id = 'a' + (Math.random().toString(36).slice(2, 8));
-        this.state.activities.push({ id, tipo, data, descrizione, costo });
+        this.state.activities.push({ id, tipo, data, dataFine, descrizione, costo });
         this.persist();
-        console.log('LocalAdapter: addActivity', { tipo, data, descrizione, costo, id, currentUser: currentUser?.email });
+        console.log('LocalAdapter: addActivity', { tipo, data, dataFine, descrizione, costo, id, currentUser: currentUser?.email });
         return id;
     }
-    async updateActivity({ id, tipo, data, descrizione, costo }, currentUser) {
+    async updateActivity({ id, tipo, data, dataFine, descrizione, costo }, currentUser) {
         const a = this.state.activities.find(x => x.id === id);
         if (a) {
             a.tipo = tipo;
             a.data = data;
+            a.dataFine = dataFine;
             a.descrizione = descrizione;
             a.costo = costo;
             this.persist();
         }
-        console.log('LocalAdapter: updateActivity', { id, tipo, data, descrizione, costo, currentUser: currentUser?.email });
+        console.log('LocalAdapter: updateActivity', { id, tipo, data, dataFine, descrizione, costo, currentUser: currentUser?.email });
     }
     async deleteActivity(id, currentUser) {
         this.state.activities = this.state.activities.filter(a => a.id !== id);

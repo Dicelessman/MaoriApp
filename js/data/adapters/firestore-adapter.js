@@ -97,27 +97,33 @@ export class FirestoreAdapter {
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     }
     // Activities
-    async addActivity({ tipo, data, descrizione, costo }, currentUser) {
+    async addActivity({ tipo, data, dataFine, descrizione, costo }, currentUser) {
         // Converti data a Timestamp se è un Date object
         const dataTimestamp = data instanceof Date ? Timestamp.fromDate(data) : data;
+        const dataFineTimestamp = dataFine instanceof Date ? Timestamp.fromDate(dataFine) : (dataFine || null);
+
         // Converti costo a numero (se è stringa o undefined/null)
         const costoNum = costo !== undefined && costo !== null && costo !== '' ? Number(costo) : 0;
         const ref = await addDoc(this.cols.activities, {
             tipo,
             data: dataTimestamp,
+            dataFine: dataFineTimestamp,
             descrizione,
             costo: costoNum
         });
         return ref.id;
     }
-    async updateActivity({ id, tipo, data, descrizione, costo }, currentUser) {
+    async updateActivity({ id, tipo, data, dataFine, descrizione, costo }, currentUser) {
         // Converti data a Timestamp se è un Date object
         const dataTimestamp = data instanceof Date ? Timestamp.fromDate(data) : data;
+        const dataFineTimestamp = dataFine instanceof Date ? Timestamp.fromDate(dataFine) : (dataFine || null);
+
         // Converti costo a numero (se è stringa o undefined/null)
         const costoNum = costo !== undefined && costo !== null && costo !== '' ? Number(costo) : 0;
         await setDoc(doc(this.db, 'activities', id), {
             tipo,
             data: dataTimestamp,
+            dataFine: dataFineTimestamp,
             descrizione,
             costo: costoNum
         }, { merge: true });

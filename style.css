@@ -160,11 +160,11 @@ html {
 /* Activity Type Colors */
 /* Evento Adulti - Purple */
 .bg-purple-50 {
-  background-color: #f5f3ff;
+  background-color: #f5f3ff !important;
 }
 
 .bg-purple-100 {
-  background-color: #ede9fe;
+  background-color: #ede9fe !important;
 }
 
 .text-purple-700 {
@@ -199,11 +199,11 @@ html {
 
 /* Riunione Adulti - Slate/Gray */
 .bg-slate-50 {
-  background-color: #f8fafc;
+  background-color: #f8fafc !important;
 }
 
 .bg-slate-100 {
-  background-color: #f1f5f9;
+  background-color: #f1f5f9 !important;
 }
 
 .text-slate-700 {
@@ -239,11 +239,11 @@ html {
 
 /* Eventi con esterni - Amber/Orange */
 .bg-amber-50 {
-  background-color: #fffbeb;
+  background-color: #fffbeb !important;
 }
 
 .bg-amber-100 {
-  background-color: #fef3c7;
+  background-color: #fef3c7 !important;
 }
 
 .text-amber-700 {
