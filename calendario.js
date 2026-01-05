@@ -595,10 +595,15 @@ UI.openEditActivityModal = function (id) {
   // Trigger visibility logic force update
   const multiDayTypes = ['Uscita', 'Campo', 'Evento Adulti', 'Eventi con esterni'];
   if (dataFineInput && typeInput) {
-    if (multiDayTypes.includes(activity.tipo)) {
+    const isMultiDay = multiDayTypes.includes(typeInput.value);
+    const hasDataFine = !!dateFineStr; // If data already exists, show it (defensive)
+
+    if (isMultiDay || hasDataFine) {
       if (dataFineInput.parentElement) dataFineInput.parentElement.style.display = 'block';
+      else dataFineInput.style.display = 'block';
     } else {
       if (dataFineInput.parentElement) dataFineInput.parentElement.style.display = 'none';
+      else dataFineInput.style.display = 'none';
     }
   }
 
