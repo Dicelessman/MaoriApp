@@ -630,44 +630,11 @@ export const UI = {
                 }
             });
         }
-        const editActivityForm = this.qs('#editActivityForm');
-        if (editActivityForm && !editActivityForm._bound) {
-            editActivityForm._bound = true;
-            const validActivityTypes = ['Riunione', 'Attività lunga', 'Uscita', 'Campo'];
-            this.setupFormValidation(editActivityForm, {
-                editActivityTipo: { required: true, validator: v => validActivityTypes.includes(v) },
-                editActivityData: { required: true },
-                editActivityDescrizione: { required: true }
-            });
-            editActivityForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!this.currentUser)
-                    return;
-                const submitBtn = editActivityForm.querySelector('button[type="submit"]');
-                const originalText = submitBtn?.textContent;
-                this.setButtonLoading(submitBtn, true, originalText);
-                try {
-                    const id = this.qs('#editActivityId').value;
-                    const tipo = this.qs('#editActivityTipo').value;
-                    const data = new Date(this.qs('#editActivityData').value);
-                    const descrizione = this.qs('#editActivityDescrizione').value;
-                    const costo = this.qs('#editActivityCosto').value || '0';
-                    await DATA.updateActivity({ id, tipo, data, descrizione, costo }, this.currentUser);
-                    this.closeModal('editActivityModal');
-                    this.state = await DATA.loadAll();
-                    this.rebuildPresenceIndex();
-                    this.renderCurrentPage();
-                    this.showToast('Attività modificata');
-                }
-                catch (e) {
-                    console.error(e);
-                    this.showToast('Errore', { type: 'error' });
-                }
-                finally {
-                    this.setButtonLoading(submitBtn, false, originalText);
-                }
-            });
-        }
+        // EDIT ACTIVITY FORM: Logica spostata in calendario.js
+        // Rimosso da ui.js per evitare conflitti e doppia gestione.
+        /*
+         * La gestione è ora in calendario.js:UI.setupCalendarEvents
+         */
         const confirmDeleteActivityButton = this.qs('#confirmDeleteActivityButton');
         if (confirmDeleteActivityButton && !confirmDeleteActivityButton._bound) {
             confirmDeleteActivityButton._bound = true;
