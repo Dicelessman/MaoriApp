@@ -590,20 +590,25 @@ UI.openEditActivityModal = function (id) {
   const dateFineObj = activity.dataFine ? this.toJsDate(activity.dataFine) : null;
   const dateFineStr = (dateFineObj && !isNaN(dateFineObj)) ? dateFineObj.toISOString().split('T')[0] : '';
   const dataFineInput = this.qs('#editActivityDataFine');
-  if (dataFineInput) dataFineInput.value = dateFineStr;
+  if (dataFineInput) {
+    dataFineInput.value = dateFineStr;
 
-  // Trigger visibility logic force update
-  const multiDayTypes = ['Uscita', 'Campo', 'Evento Adulti', 'Eventi con esterni'];
-  if (dataFineInput && typeInput) {
-    const isMultiDay = multiDayTypes.includes(typeInput.value);
-    const hasDataFine = !!dateFineStr; // If data already exists, show it (defensive)
+    // Trigger visibility logic force update
+    const multiDayTypes = ['Uscita', 'Campo', 'Evento Adulti', 'Eventi con esterni'];
 
+    // Use activity.tipo directly to avoid DOM update lags (though synchronous)
+    const typeValue = activity.tipo || (typeInput ? typeInput.value : ''); // Fallback to typeInput.value if activity.tipo is missing
+    const isMultiDay = multiDayTypes.includes(typeValue);
+    const hasDataFine = !!dateFineStr;
+
+    // console.log('EditModal Visibility:', { type: typeValue, isMultiDay, hasDataFine });
+
+    const elToShow = dataFineInput.parentElement || dataFineInput;
     if (isMultiDay || hasDataFine) {
-      if (dataFineInput.parentElement) dataFineInput.parentElement.style.display = 'block';
-      else dataFineInput.style.display = 'block';
+      elToShow.style.display = 'block';
+      elToShow.classList.remove('hidden'); // Tailwind support just in case
     } else {
-      if (dataFineInput.parentElement) dataFineInput.parentElement.style.display = 'none';
-      else dataFineInput.style.display = 'none';
+      elToShow.style.display = 'none';
     }
   }
 
