@@ -884,7 +884,7 @@ export const UI = {
     },
     async checkBirthdayReminders() { }, // Placeholder for brevity, similar structure
     async checkPaymentReminders() { },
-    notifyImportantChange({ type, title, body, url }) {
+    notifyImportantChange({ type, title, body, url = null }) {
         this.saveInAppNotification({ type, title, body, url, notificationType: 'important' });
     },
     async saveInAppNotification(n) {
