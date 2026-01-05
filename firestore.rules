@@ -32,7 +32,7 @@ service cloud.firestore {
     
     // Helper function: valida tipo attività
     function isValidActivityType(type) {
-      return type in ['Riunione', 'Attività lunga', 'Uscita', 'Campo'];
+      return type in ['Riunione', 'Attività lunga', 'Uscita', 'Campo', 'Evento Adulti', 'Riunione Adulti', 'Eventi con esterni'];
     }
     
     // Helper function: valida tipo target commenti
@@ -122,7 +122,10 @@ service cloud.firestore {
         && request.resource.data.descrizione.size() > 0
         && request.resource.data.descrizione.size() <= 500
         && (!request.resource.data.keys().hasAny(['costo']) || 
-            (request.resource.data.costo is number && request.resource.data.costo >= 0));
+            (request.resource.data.costo is number && request.resource.data.costo >= 0))
+        && (!request.resource.data.keys().hasAny(['dataFine']) || 
+            request.resource.data.dataFine == null || 
+            request.resource.data.dataFine is timestamp);
       
       // Aggiornamento: solo staff autenticato
       allow update: if isStaff()
@@ -137,7 +140,10 @@ service cloud.firestore {
              && request.resource.data.descrizione.size() > 0 
              && request.resource.data.descrizione.size() <= 500))
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['costo']) || 
-            (request.resource.data.costo is number && request.resource.data.costo >= 0));
+            (request.resource.data.costo is number && request.resource.data.costo >= 0))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['dataFine']) || 
+            request.resource.data.dataFine == null || 
+            request.resource.data.dataFine is timestamp);
       
       // Eliminazione: solo staff autenticato
       allow delete: if isStaff();
