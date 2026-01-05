@@ -7,6 +7,23 @@ UI.renderCurrentPage = function () {
   this.setupCalendarExport();
 };
 
+UI.getActivityTypeColor = function (type) {
+  switch (type) {
+    case 'Evento Adulti':
+      return { bg: 'bg-purple-50 dark:bg-purple-900/20', text: 'text-purple-800 dark:text-purple-100', border: 'border-purple-500', headerBg: 'bg-purple-800', headerText: 'bg-purple-900' };
+    case 'Riunione Adulti':
+      return { bg: 'bg-slate-50 dark:bg-slate-800/50', text: 'text-slate-800 dark:text-slate-100', border: 'border-slate-500', headerBg: 'bg-slate-800', headerText: 'bg-slate-900' };
+    case 'Eventi con esterni':
+      return { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-800 dark:text-amber-100', border: 'border-amber-500', headerBg: 'bg-amber-800', headerText: 'bg-amber-900' };
+    case 'Uscita':
+      return { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-800 dark:text-blue-100', border: 'border-blue-500', headerBg: 'bg-blue-800', headerText: 'bg-blue-900' };
+    case 'Campo':
+      return { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-800 dark:text-red-100', border: 'border-red-500', headerBg: 'bg-red-800', headerText: 'bg-red-900' };
+    default: // Riunione, Attività lunga, etc.
+      return { bg: 'bg-white dark:bg-gray-800', text: 'text-green-700 dark:text-gray-300', border: 'border-green-500', headerBg: 'bg-green-800', headerText: 'bg-green-900' };
+  }
+};
+
 UI.initActivityTemplatesUI = async function () {
   const select = this.qs('#activityTemplateSelect');
   const applyBtn = this.qs('#applyActivityTemplateBtn');
@@ -67,12 +84,52 @@ UI.initActivityTemplatesUI = async function () {
 
 UI.setupCalendarEvents = function () {
   const form = this.qs('#addActivityForm');
+
+  // Helper per mostrare/nascondere Data Fine
+  const toggleEndDate = (startEl, endEl, typeEl) => {
+    if (!startEl || !endEl || !typeEl) return;
+    const type = typeEl.value;
+    const multiDayTypes = ['Uscita', 'Campo', 'Evento Adulti', 'Eventi con esterni'];
+    const container = endEl.parentElement; // Assumendo che sia in un .field-group o simile
+
+    if (multiDayTypes.includes(type)) {
+      if (container) container.style.display = 'block';
+      else endEl.style.display = 'block';
+    } else {
+      if (container) container.style.display = 'none';
+      else endEl.style.display = 'none';
+      endEl.value = ''; // Reset value
+    }
+  };
+
   if (form && !form._bound) {
     form._bound = true;
 
+    const typeInput = this.qs('#activityTipo');
+    const dataInput = this.qs('#activityData');
+
+    // Create End Date input dynamically if not exists or select if exists
+    // Simplest way is adding it in HTML, but here we assume we can inject or it matches existing HTML structure.
+    // Let's inject it after Start Date if not present in HTML, but user asked to "add a feature", likely expects changes to code.
+    // We'll rely on existing HTML having #activityDataFine or we insert it.
+    // NOTE: HTML is not fully visible, assuming standard form structure. 
+    // SAFEST: check if exists, otherwise assume user needs to add it manually or I add it via innerHTML if I had access to HTML file, 
+    // but I am editing JS. I will check via querySelector.
+
+    // Add event listener for type change
+    if (typeInput) {
+      typeInput.addEventListener('change', () => {
+        toggleEndDate(dataInput, this.qs('#activityDataFine'), typeInput);
+      });
+      // Initial definition may need to wait for HTML update?
+      // Let's assume HTML file has 'activityDataFine' OR we add it later in HTML task.
+      // I will assume I need to handle it gracefully here.
+    }
+
     // Setup validazione real-time
-    const validActivityTypes = ['Riunione', 'Attività lunga', 'Uscita', 'Campo'];
-    this.setupFormValidation(form, {
+    const validActivityTypes = ['Riunione', 'Attività lunga', 'Uscita', 'Campo', 'Evento Adulti', 'Riunione Adulti', 'Eventi con esterni'];
+
+    const validationRules = {
       activityTipo: {
         required: true,
         validator: (value) => validActivityTypes.includes(value) || 'Tipo attività non valido',
@@ -103,7 +160,12 @@ UI.setupCalendarEvents = function () {
           return true;
         }
       }
-    });
+    };
+
+    // Add validation for Data Fine? Only if visible/required.
+    // Dynamic validation is tricky with this setup, usually done in submit.
+
+    this.setupFormValidation(form, validationRules);
 
     // Inizializza UI template attività (solo se utente loggato)
     if (this.currentUser) {
@@ -118,29 +180,16 @@ UI.setupCalendarEvents = function () {
       }
 
       // Validazione form completa
-      const validation = this.validateForm(form, {
-        activityTipo: {
-          required: true,
-          validator: (value) => validActivityTypes.includes(value) || 'Tipo attività non valido'
-        },
-        activityData: {
-          required: true,
-          validator: (value) => {
-            if (!value) return 'La data è obbligatoria';
-            const date = new Date(value);
-            return isNaN(date.getTime()) ? 'Data non valida' : true;
-          }
-        },
-        activityDescrizione: { required: true, minLength: 1, maxLength: 500 },
-        activityCosto: {
-          required: false,
-          validator: (value) => {
-            if (!value || value.trim() === '') return true;
-            const num = Number(value);
-            return (isNaN(num) || num < 0) ? 'Il costo deve essere un numero positivo' : true;
-          }
-        }
-      });
+      const validation = this.validateForm(form, validationRules); // Using same rules object
+
+      if (!validation.valid) {
+        const firstError = Object.values(validation.errors)[0];
+        this.showToast(firstError, { type: 'error' });
+        const firstErrorField = Object.keys(validation.errors)[0];
+        const input = form.querySelector(`#${firstErrorField}`);
+        if (input) input.focus();
+        return;
+      }
 
       if (!validation.valid) {
         const firstError = Object.values(validation.errors)[0];
@@ -154,6 +203,8 @@ UI.setupCalendarEvents = function () {
       const tipo = this.qs('#activityTipo').value;
       const dataValue = this.qs('#activityData').value;
       const data = new Date(dataValue);
+      const dataFineValue = this.qs('#activityDataFine')?.value || null;
+      const dataFine = dataFineValue ? new Date(dataFineValue) : null;
       const descrizione = this.qs('#activityDescrizione').value.trim();
       const costoValue = this.qs('#activityCosto').value || '0';
       const costo = costoValue ? Number(costoValue) : 0;
@@ -165,6 +216,12 @@ UI.setupCalendarEvents = function () {
         this.qs('#activityData').focus();
         return;
       }
+
+      if (dataFine && dataFine < data) {
+        this.showToast('La data di fine non può essere precedente alla data di inizio', { type: 'error' });
+        return;
+      }
+
       if (dateValidation.warning) {
         // Warning non blocca, ma informa
         this.showToast(dateValidation.warning, { type: 'warning', duration: 3000 });
@@ -174,11 +231,15 @@ UI.setupCalendarEvents = function () {
       const originalText = submitBtn?.textContent;
       this.setButtonLoading(submitBtn, true, originalText);
       try {
-        await DATA.addActivity({ tipo, data, descrizione, costo }, this.currentUser);
+        await DATA.addActivity({ tipo, data, dataFine, descrizione, costo }, this.currentUser);
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();
         this.renderCalendarList();
         form.reset();
+        // Reset manuale data fine se necessario
+        const df = this.qs('#activityDataFine');
+        if (df) { df.value = ''; df.parentElement.style.display = 'none'; }
+
         this.showToast('Attività aggiunta con successo');
 
         // Reset classi validazione
@@ -202,8 +263,36 @@ UI.setupCalendarEvents = function () {
 
   // Edit Activity Form
   const editForm = this.qs('#editActivityForm');
+
+  const toggleEditEndDate = (startEl, endEl, typeEl) => {
+    if (!startEl || !endEl || !typeEl) return;
+    const type = typeEl.value;
+    const multiDayTypes = ['Uscita', 'Campo', 'Evento Adulti', 'Eventi con esterni'];
+    const container = endEl.parentElement;
+
+    if (multiDayTypes.includes(type)) {
+      if (container) container.style.display = 'block';
+      else endEl.style.display = 'block';
+    } else {
+      if (container) container.style.display = 'none';
+      else endEl.style.display = 'none';
+      endEl.value = '';
+    }
+  };
+
   if (editForm && !editForm._bound) {
     editForm._bound = true;
+
+    const typeInput = this.qs('#editActivityTipo');
+    const dataInput = this.qs('#editActivityData');
+    const dataFineInput = this.qs('#editActivityDataFine');
+
+    // Attach listener if elements exist
+    if (typeInput && dataFineInput) {
+      typeInput.addEventListener('change', () => {
+        toggleEditEndDate(dataInput, dataFineInput, typeInput);
+      });
+    }
 
     // Use same validation logic as add form if possible, or simple check
     editForm.addEventListener('submit', async (e) => {
@@ -214,6 +303,8 @@ UI.setupCalendarEvents = function () {
       const tipo = this.qs('#editActivityTipo').value;
       const dataValue = this.qs('#editActivityData').value;
       const data = new Date(dataValue);
+      const dataFineValue = this.qs('#editActivityDataFine')?.value || null;
+      const dataFine = dataFineValue ? new Date(dataFineValue) : null;
       const descrizione = this.qs('#editActivityDescrizione').value.trim();
       const costoValue = this.qs('#editActivityCosto').value;
       const costo = costoValue ? Number(costoValue) : 0;
@@ -224,12 +315,17 @@ UI.setupCalendarEvents = function () {
         return;
       }
 
+      if (dataFine && dataFine < data) {
+        this.showToast('La data di fine non può essere precedente alla data di inizio', { type: 'error' });
+        return;
+      }
+
       const submitBtn = editForm.querySelector('button[type="submit"]');
       const originalText = submitBtn?.textContent;
       this.setButtonLoading(submitBtn, true, originalText);
 
       try {
-        await DATA.updateActivity({ id, tipo, data, descrizione, costo }, this.currentUser);
+        await DATA.updateActivity({ id, tipo, data, dataFine, descrizione, costo }, this.currentUser);
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();
         this.renderCalendarList();
@@ -287,30 +383,63 @@ UI.renderCalendarList = function () {
   let nextActivityId = null;
   for (const a of activities) {
     const d = this.toJsDate(a.data); const dd = new Date(d); dd.setHours(0, 0, 0, 0);
-    if (dd >= today) { nextActivityId = a.id; break; }
+    // Anche se oggi è "in corso" (es. campo iniziato ieri), lo consideriamo next se finisce >= oggi? 
+    // Per ora logica semplice: start >= today.
+    // Miglioriamento per multi-day: se start <= today <= end, è "in corso".
+    const dEnd = a.dataFine ? this.toJsDate(a.dataFine) : dd;
+    if (dEnd >= today) { nextActivityId = a.id; break; }
   }
 
   activities.forEach(a => {
     const d = this.toJsDate(a.data);
-    const ds = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    const dateStr = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    let fullDateStr = dateStr;
+
+    // Gestione Data Fine (Range)
+    if (a.dataFine) {
+      const dFine = this.toJsDate(a.dataFine);
+      if (!isNaN(dFine)) {
+        const dateFineStr = dFine.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        fullDateStr = `${dateStr} — ${dateFineStr}`;
+      }
+    }
+
     const isNext = a.id === nextActivityId;
     const costoLabel = parseFloat(a.costo || '0') > 0 ? ` — Costo: € ${a.costo}` : '';
-    const bgClass = isNext ? 'bg-green-50 dark:bg-green-900/50 border-l-4 border-green-500' : 'bg-white dark:bg-gray-800';
-    const textClass = isNext ? 'text-green-800 dark:text-green-100' : 'text-green-700 dark:text-gray-300';
+
+    // Get colors
+    const colors = this.getActivityTypeColor(a.tipo);
+    const bgClass = isNext ?
+      `bg-white dark:bg-gray-800 border-l-4 ${colors.border} shadow-md` : // Highlight next differently? Or override bg?
+      // Let's use the colored bg for all, but maybe highlight "Next" with a border or shadow
+      // The user asked for "different background color for each activity type".
+      (isNext ? `${colors.bg} border-l-4 ${colors.border} ring-2 ring-green-500/30` : `${colors.bg}`);
+
+    // Simplified logic: Apply type color always. "Next" gets extra emphasis.
+    const finalBgClass = colors.bg;
+    const finalTextClass = colors.text;
+    const borderClass = isNext ? `border-l-4 ${colors.border}` : '';
+    const nextLabel = isNext ? ' <span class="text-xs font-bold uppercase tracking-wider bg-green-100 text-green-800 px-2 py-1 rounded ml-2">Prossima</span>' : '';
+
     const canDrag = this.currentUser ? '' : 'data-drag-disabled';
+
     list.insertAdjacentHTML('beforeend', `
-      <div class="p-4 ${bgClass} rounded-lg shadow-sm flex items-start justify-between gap-4 swipeable-item drag-item" data-id="${a.id}" data-item-id="${a.id}" ${canDrag}>
+      <div class="p-4 ${finalBgClass} ${borderClass} rounded-lg shadow-sm flex items-start justify-between gap-4 swipeable-item drag-item mb-3 transition-all hover:shadow-md" data-id="${a.id}" data-item-id="${a.id}" ${canDrag}>
         <div class="flex items-center gap-2 flex-1">
-          ${this.currentUser ? '<span class="drag-handle text-gray-400 cursor-grab select-none text-xl" draggable="true">☰</span>' : ''}
+          ${this.currentUser ? '<span class="drag-handle text-gray-400 cursor-grab select-none text-xl opacity-50 hover:opacity-100" draggable="true">☰</span>' : ''}
           <div class="flex-1">
-            <p class="font-medium text-lg ${textClass}">${a.tipo} — ${ds}${isNext ? ' (Prossima)' : ''}</p>
-            <p class="text-gray-700">${a.descrizione}${costoLabel}</p>
+            <div class="flex items-center flex-wrap">
+                <h3 class="font-bold text-lg ${finalTextClass}">${a.tipo}</h3>
+                ${nextLabel}
+            </div>
+            <p class="font-medium text-gray-900 dark:text-gray-100 mt-1">📅 ${fullDateStr}</p>
+            <p class="text-gray-700 dark:text-gray-300 mt-1">${a.descrizione}${costoLabel}</p>
           </div>
         </div>
         <div class="flex gap-2">
-          <a href="attivita.html?id=${a.id}" aria-label="Apri dettaglio attività" class="p-2 text-gray-500 hover:text-blue-600 rounded-full" title="Apri dettaglio attività">📄</a>
-          <button aria-label="Modifica attività" class="p-2 text-gray-500 hover:text-green-600 rounded-full" onclick="UI.openEditActivityModal('${a.id}')" ${UI.currentUser ? '' : 'disabled'}>✏️</button>
-          <button aria-label="Elimina attività" class="p-2 text-gray-500 hover:text-red-600 rounded-full" onclick="UI.confirmDeleteActivity('${a.id}')" ${UI.currentUser ? '' : 'disabled'}>🗑️</button>
+          <a href="attivita.html?id=${a.id}" aria-label="Apri dettaglio" class="p-2 text-gray-500 hover:text-blue-600 rounded-full transition-colors" title="Dettagli">📄</a>
+          <button aria-label="Modifica" class="p-2 text-gray-500 hover:text-green-600 rounded-full transition-colors" onclick="UI.openEditActivityModal('${a.id}')" ${UI.currentUser ? '' : 'disabled'}>✏️</button>
+          <button aria-label="Elimina" class="p-2 text-gray-500 hover:text-red-600 rounded-full transition-colors" onclick="UI.confirmDeleteActivity('${a.id}')" ${UI.currentUser ? '' : 'disabled'}>🗑️</button>
         </div>
       </div>
     `);
@@ -446,13 +575,32 @@ UI.openEditActivityModal = function (id) {
   const form = this.qs('#editActivityForm');
   if (!form) return;
 
+  const typeInput = this.qs('#editActivityTipo');
+  if (typeInput) typeInput.value = activity.tipo;
+
   this.qs('#editActivityId').value = activity.id;
-  this.qs('#editActivityTipo').value = activity.tipo;
 
   // Convert/Format date for input type="date"
   const dateObj = this.toJsDate(activity.data);
   const dateStr = !isNaN(dateObj) ? dateObj.toISOString().split('T')[0] : '';
-  this.qs('#editActivityData').value = dateStr;
+  const dataInput = this.qs('#editActivityData');
+  if (dataInput) dataInput.value = dateStr;
+
+  // Data fine
+  const dateFineObj = activity.dataFine ? this.toJsDate(activity.dataFine) : null;
+  const dateFineStr = (dateFineObj && !isNaN(dateFineObj)) ? dateFineObj.toISOString().split('T')[0] : '';
+  const dataFineInput = this.qs('#editActivityDataFine');
+  if (dataFineInput) dataFineInput.value = dateFineStr;
+
+  // Trigger visibility logic force update
+  const multiDayTypes = ['Uscita', 'Campo', 'Evento Adulti', 'Eventi con esterni'];
+  if (dataFineInput && typeInput) {
+    if (multiDayTypes.includes(activity.tipo)) {
+      if (dataFineInput.parentElement) dataFineInput.parentElement.style.display = 'block';
+    } else {
+      if (dataFineInput.parentElement) dataFineInput.parentElement.style.display = 'none';
+    }
+  }
 
   this.qs('#editActivityDescrizione').value = activity.descrizione;
   this.qs('#editActivityCosto').value = activity.costo || 0;

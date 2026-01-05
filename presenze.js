@@ -187,17 +187,50 @@ UI.renderPresenceTable = function () {
   acts.forEach(a => {
     const allPresences = this.getDedupedPresences();
     const activityPresences = allPresences.filter(p => p.attivitaId === a.id);
-    // Escludi gli esploratori con stato "X" dal totale atteso
-    const expectedCount = activityPresences.filter(p => p.stato !== 'X').length;
+
+    // Check type for stats exclusion
+    const isExcludedType = ['Evento Adulti', 'Riunione Adulti', 'Eventi con esterni'].includes(a.tipo);
+
+    // Se tipo escluso, expectedCount = 0 per non contare nella % globale (o locale colonna)
+    // Ma per la singola colonna, se è escluso, cosa mostriamo? 0%?
+    // "non devono contare per le presenze degli esploratori" - probabilmente riferito al totale dell'esploratore? 
+    // Qui calcoliamo il % di presenze dell'attività (quanto successo ha avuto). 
+    // Se è "Evento Adulti", gli esploratori non ci sono. 
+    // Quindi expectedCount = 0.
+
+    // Escludi gli esploratori con stato "X" dal totale atteso.
+    // Se l'attività stessa è "da adulti", nessuno è tenuto a esserci, quindi expectedCount = 0.
+    const expectedCount = isExcludedType ? 0 : activityPresences.filter(p => p.stato !== 'X').length;
+
     const presentCount = activityPresences.filter(p => p.stato === 'Presente').length;
     const perc = expectedCount ? Math.round((presentCount / expectedCount) * 100) : 0;
+
     const displayDate = this.formatDisplayDate(a.data);
+
+    // Display End Date in header tooltip or text? User asked "farla apparire nel Calendario", not explicitly Presenze but good to rely on standard display. 
+    // Header space is small. Let's keep date.
+
     const isNext = a.id === nextActivityId;
-    const thDateClasses = isNext ? 'bg-green-900' : 'bg-green-800';
-    const thNameClasses = isNext ? 'bg-green-900' : 'bg-green-800';
+
+    // Use enhanced colors
+    const colors = UI.getActivityTypeColor ? UI.getActivityTypeColor(a.tipo) : { headerBg: 'bg-green-800', headerText: 'bg-green-900' };
+    const thDateClasses = isNext ? colors.headerText : colors.headerBg; // Using headerText as "darker" or distinct for Next? 
+    // Let's simpler: use headerBg. If Next, maybe darker overlay or border.
+    // Logic in calendario was: Next = border-l-4. Here standard TH.
+    // Original: isNext ? 'bg-green-900' : 'bg-green-800'
+    // New: Use colors.headerBg. If isNext, maybe brightness adjustments or inline style.
+    // Let's assume colors.headerBg is the main one.
+    // If isNext, we want to highlight it.
+
+    // Let's use specific classes if possible, currently using tailwind colors. 
+    const baseHeaderClass = colors.headerBg || 'bg-green-800';
+    const nextHeaderClass = colors.headerText || 'bg-green-900';
+
+    const finalHeaderClass = isNext ? nextHeaderClass : baseHeaderClass;
+
     const nextColClass = isNext ? ' next-col' : '';
-    thDates.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${thDateClasses}${nextColClass} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${displayDate}${isNext ? ' <span class=\"text-xs\">(Prossima)</span>' : ''}</a></th>`);
-    thNames.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${thNameClasses} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${a.tipo}</a><div class="text-xs font-normal text-white/90">${perc}% (${presentCount}/${expectedCount})</div></th>`);
+    thDates.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${finalHeaderClass}${nextColClass} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${displayDate}${isNext ? ' <span class=\"text-xs\">(Prossima)</span>' : ''}</a></th>`);
+    thNames.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${finalHeaderClass} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${a.tipo}</a><div class="text-xs font-normal text-white/90">${perc}% (${presentCount}/${expectedCount})</div></th>`);
   });
 
   // Event listeners per i link delle intestazioni
@@ -242,10 +275,18 @@ UI.renderPresenceTable = function () {
 
     const allPresences = this.getDedupedPresences();
     const validActIds = consideredIds.filter(aid => {
+      // Find activity object to check type
+      const actObject = acts.find(act => act.id === aid);
+      if (!actObject) return false;
+
+      const isExcludedType = ['Evento Adulti', 'Riunione Adulti', 'Eventi con esterni'].includes(actObject.tipo);
+      if (isExcludedType) return false; // Don't count these activities in the "expected total"
+
       const pr = allPresences.find(p => p.esploratoreId === s.id && p.attivitaId === aid);
-      return pr && (pr.stato === 'Presente' || pr.stato === 'Assente');
+      return pr && (pr.stato === 'Presente' || pr.stato === 'Assente'); // Only count if marked Present or Absent (ignore X or NR)
     });
     const totalActsConsidered = validActIds.length;
+    // Count ONLY Present in Valid Acts
     const presentCount = allPresences.filter(p => p.esploratoreId === s.id && p.stato === 'Presente' && validActIds.includes(p.attivitaId)).length;
     const perc = totalActsConsidered ? Math.round((presentCount / totalActsConsidered) * 100) : 0;
     const isSelected = this.batchSelection?.selectedScoutIds?.has(s.id) || false;
