@@ -381,6 +381,10 @@ body {
   display: block;
 }
 
+.modal.show.flex {
+  display: flex !important;
+}
+
 /* Scrollbar personalizzata per modali e liste */
 .modal-content::-webkit-scrollbar,
 ul.max-h-64::-webkit-scrollbar,
