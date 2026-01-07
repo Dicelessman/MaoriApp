@@ -88,17 +88,14 @@ UI.setupCalendarEvents = function () {
   // Helper per mostrare/nascondere Data Fine
   const toggleEndDate = (startEl, endEl, typeEl) => {
     if (!startEl || !endEl || !typeEl) return;
-    const type = typeEl.value;
-    const multiDayTypes = ['Uscita', 'Campo', 'Evento Adulti', 'Eventi con esterni'];
-    const container = endEl.parentElement; // Assumendo che sia in un .field-group o simile
-
-    if (multiDayTypes.includes(type)) {
-      if (container) container.style.display = 'block';
-      else endEl.style.display = 'block';
+    // Data Fine sempre visibile e opzionale
+    const container = endEl.parentElement;
+    if (container) {
+      container.style.display = 'block';
+      container.classList.remove('hidden');
     } else {
-      if (container) container.style.display = 'none';
-      else endEl.style.display = 'none';
-      endEl.value = ''; // Reset value
+      endEl.style.display = 'block';
+      endEl.classList.remove('hidden');
     }
   };
 
@@ -266,17 +263,14 @@ UI.setupCalendarEvents = function () {
 
   const toggleEditEndDate = (startEl, endEl, typeEl) => {
     if (!startEl || !endEl || !typeEl) return;
-    const type = typeEl.value;
-    const multiDayTypes = ['Uscita', 'Campo', 'Evento Adulti', 'Eventi con esterni'];
+    // Data Fine sempre visibile e opzionale
     const container = endEl.parentElement;
-
-    if (multiDayTypes.includes(type)) {
-      if (container) container.style.display = 'block';
-      else endEl.style.display = 'block';
+    if (container) {
+      container.style.display = 'block';
+      container.classList.remove('hidden');
     } else {
-      if (container) container.style.display = 'none';
-      else endEl.style.display = 'none';
-      endEl.value = '';
+      endEl.style.display = 'block';
+      endEl.classList.remove('hidden');
     }
   };
 
@@ -576,7 +570,17 @@ UI.openEditActivityModal = function (id) {
   if (!form) return;
 
   const typeInput = this.qs('#editActivityTipo');
-  if (typeInput) typeInput.value = activity.tipo;
+  if (typeInput) {
+    // Se il tipo non è tra le opzioni, aggiungilo dinamicamente per assicurare che venga mostrato
+    const options = Array.from(typeInput.options).map(o => o.value);
+    if (activity.tipo && !options.includes(activity.tipo)) {
+      const newOption = document.createElement('option');
+      newOption.value = activity.tipo;
+      newOption.textContent = activity.tipo;
+      typeInput.appendChild(newOption);
+    }
+    typeInput.value = activity.tipo;
+  }
 
   this.qs('#editActivityId').value = activity.id;
 
@@ -604,12 +608,9 @@ UI.openEditActivityModal = function (id) {
     // console.log('EditModal Visibility:', { type: typeValue, isMultiDay, hasDataFine });
 
     const elToShow = dataFineInput.parentElement || dataFineInput;
-    if (isMultiDay || hasDataFine) {
-      elToShow.style.display = 'block';
-      elToShow.classList.remove('hidden'); // Tailwind support just in case
-    } else {
-      elToShow.style.display = 'none';
-    }
+    // Forza visibilità sempre
+    elToShow.style.display = 'block';
+    elToShow.classList.remove('hidden');
   }
 
   this.qs('#editActivityDescrizione').value = activity.descrizione;
