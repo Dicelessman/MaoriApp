@@ -259,7 +259,7 @@ UI.setupCalendarEvents = function () {
   }
 
   // Edit Activity Form
-  const editForm = this.qs('#editActivityForm');
+  const editForm = this.qs('#cal_editActivityForm');
 
   const toggleEditEndDate = (startEl, endEl, typeEl) => {
     if (!startEl || !endEl || !typeEl) return;
@@ -277,9 +277,9 @@ UI.setupCalendarEvents = function () {
   if (editForm && !editForm._bound) {
     editForm._bound = true;
 
-    const typeInput = this.qs('#editActivityTipo');
-    const dataInput = this.qs('#editActivityData');
-    const dataFineInput = this.qs('#editActivityDataFine');
+    const typeInput = this.qs('#cal_editActivityTipo');
+    const dataInput = this.qs('#cal_editActivityData');
+    const dataFineInput = this.qs('#cal_editActivityDataFine');
 
     // Attach listener if elements exist
     if (typeInput && dataFineInput) {
@@ -293,14 +293,14 @@ UI.setupCalendarEvents = function () {
       e.preventDefault();
       if (!this.currentUser) return;
 
-      const id = this.qs('#editActivityId').value;
-      const tipo = this.qs('#editActivityTipo').value;
-      const dataValue = this.qs('#editActivityData').value;
+      const id = this.qs('#cal_editActivityId').value;
+      const tipo = this.qs('#cal_editActivityTipo').value;
+      const dataValue = this.qs('#cal_editActivityData').value;
       const data = new Date(dataValue);
-      const dataFineValue = this.qs('#editActivityDataFine')?.value || null;
+      const dataFineValue = this.qs('#cal_editActivityDataFine')?.value || null;
       const dataFine = dataFineValue ? new Date(dataFineValue) : null;
-      const descrizione = this.qs('#editActivityDescrizione').value.trim();
-      const costoValue = this.qs('#editActivityCosto').value;
+      const descrizione = this.qs('#cal_editActivityDescrizione').value.trim();
+      const costoValue = this.qs('#cal_editActivityCosto').value;
       const costo = costoValue ? Number(costoValue) : 0;
 
       // Basic validation
@@ -323,7 +323,7 @@ UI.setupCalendarEvents = function () {
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();
         this.renderCalendarList();
-        this.closeModal('editActivityModal');
+        this.closeModal('cal_editActivityModal');
         this.showToast('Attività modificata');
       } catch (error) {
         console.error('Errore modifica attività:', error);
@@ -335,7 +335,7 @@ UI.setupCalendarEvents = function () {
   }
 
   // Delete Activity Confirmation
-  const confirmDeleteBtn = this.qs('#confirmDeleteActivityBtn');
+  const confirmDeleteBtn = this.qs('#cal_confirmDeleteActivityBtn');
   if (confirmDeleteBtn && !confirmDeleteBtn._bound) {
     confirmDeleteBtn._bound = true;
     confirmDeleteBtn.addEventListener('click', async () => {
@@ -349,7 +349,7 @@ UI.setupCalendarEvents = function () {
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();
         this.renderCalendarList();
-        this.closeModal('confirmDeleteActivityModal');
+        this.closeModal('cal_confirmDeleteActivityModal');
         this.showToast('Attività eliminata');
       } catch (error) {
         console.error('Errore eliminazione attività:', error);
@@ -566,10 +566,10 @@ UI.openEditActivityModal = function (id) {
     return;
   }
 
-  const form = this.qs('#editActivityForm');
+  const form = this.qs('#cal_editActivityForm');
   if (!form) return;
 
-  const typeInput = this.qs('#editActivityTipo');
+  const typeInput = this.qs('#cal_editActivityTipo');
   if (typeInput) {
     // Definizione Tipi Standard
     const standardTypes = [
@@ -605,18 +605,18 @@ UI.openEditActivityModal = function (id) {
     typeInput.value = activity.tipo;
   }
 
-  this.qs('#editActivityId').value = activity.id;
+  this.qs('#cal_editActivityId').value = activity.id;
 
   // Convert/Format date for input type="date"
   const dateObj = this.toJsDate(activity.data);
   const dateStr = !isNaN(dateObj) ? dateObj.toISOString().split('T')[0] : '';
-  const dataInput = this.qs('#editActivityData');
+  const dataInput = this.qs('#cal_editActivityData');
   if (dataInput) dataInput.value = dateStr;
 
   // Data fine
   const dateFineObj = activity.dataFine ? this.toJsDate(activity.dataFine) : null;
   const dateFineStr = (dateFineObj && !isNaN(dateFineObj)) ? dateFineObj.toISOString().split('T')[0] : '';
-  const dataFineInput = this.qs('#editActivityDataFine');
+  const dataFineInput = this.qs('#cal_editActivityDataFine');
 
   if (dataFineInput) {
     dataFineInput.value = dateFineStr;
@@ -631,10 +631,10 @@ UI.openEditActivityModal = function (id) {
     dataFineInput.classList.remove('hidden');
   }
 
-  this.qs('#editActivityDescrizione').value = activity.descrizione;
-  this.qs('#editActivityCosto').value = activity.costo || 0;
+  this.qs('#cal_editActivityDescrizione').value = activity.descrizione;
+  this.qs('#cal_editActivityCosto').value = activity.costo || 0;
 
-  this.showModal('editActivityModal');
+  this.showModal('cal_editActivityModal');
 };
 
 UI.confirmDeleteActivity = function (id) {
@@ -642,10 +642,10 @@ UI.confirmDeleteActivity = function (id) {
   const activity = (this.state.activities || []).find(a => a.id === id);
   const label = activity ? `${activity.tipo} del ${this.toJsDate(activity.data).toLocaleDateString()}` : 'questa attività';
 
-  const infoEl = this.qs('#activityInfoToDelete');
+  const infoEl = this.qs('#cal_activityInfoToDelete');
   if (infoEl) infoEl.textContent = label;
 
-  this.showModal('confirmDeleteActivityModal');
+  this.showModal('cal_confirmDeleteActivityModal');
 };
 
 
