@@ -194,9 +194,15 @@ export const UI = {
                 onComplete();
             return;
         }
+        // Create a unique ID for this render request
+        const renderId = Symbol('renderBatch');
+        container._currentRenderId = renderId;
         let index = 0;
         const total = items.length;
         const processBatch = () => {
+            // Check if this render process is still the active one
+            if (container._currentRenderId !== renderId)
+                return;
             const end = Math.min(index + batchSize, total);
             const fragment = document.createDocumentFragment();
             for (let i = index; i < end; i++) {
@@ -213,6 +219,9 @@ export const UI = {
                     fragment.appendChild(html);
                 }
             }
+            // Append only if we are still valid
+            if (container._currentRenderId !== renderId)
+                return;
             container.appendChild(fragment);
             index = end;
             if (index < total) {
