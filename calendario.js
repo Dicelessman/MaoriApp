@@ -604,6 +604,88 @@ UI.setupCalendarExport = function () {
   });
 };
 
+UI.downloadCalendarICS = function () {
+  const activities = this.state.activities || [];
+
+  if (activities.length === 0) {
+    this.showToast('Nessuna attività da esportare', { type: 'info' });
+    return;
+  }
+
+  // Genera il contenuto ICS
+  let icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Reparto Maori//Calendario Attività//IT',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:Reparto Maori - Attività',
+    'X-WR-TIMEZONE:Europe/Rome'
+  ];
+
+  activities.forEach(activity => {
+    const startDate = this.toJsDate(activity.data);
+    if (isNaN(startDate)) return; // Skip invalid dates
+
+    const endDate = activity.dataFine ? this.toJsDate(activity.dataFine) : new Date(startDate);
+    // Se non c'è data fine, l'evento dura tutto il giorno
+    if (!activity.dataFine) {
+      endDate.setDate(endDate.getDate() + 1);
+    }
+
+    // Formato data ICS: YYYYMMDD o YYYYMMDDTHHmmss
+    const formatICSDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}${month}${day}`;
+    };
+
+    const dtstart = formatICSDate(startDate);
+    const dtend = formatICSDate(endDate);
+
+    // Crea un UID univoco per l'evento
+    const uid = `${activity.id}@repartomaori.it`;
+
+    // Escape dei caratteri speciali per ICS
+    const escapeICS = (str) => {
+      if (!str) return '';
+      return String(str).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+    };
+
+    const summary = escapeICS(`${activity.tipo}: ${activity.descrizione}`);
+    const description = escapeICS(activity.descrizione + (activity.costo ? ` - Costo: €${activity.costo}` : ''));
+
+    icsContent.push(
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${formatICSDate(new Date())}`,
+      `DTSTART;VALUE=DATE:${dtstart}`,
+      `DTEND;VALUE=DATE:${dtend}`,
+      `SUMMARY:${summary}`,
+      `DESCRIPTION:${description}`,
+      `STATUS:CONFIRMED`,
+      `TRANSP:OPAQUE`,
+      'END:VEVENT'
+    );
+  });
+
+  icsContent.push('END:VCALENDAR');
+
+  // Crea il file e scaricalo
+  const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `calendario_maori_${new Date().toISOString().split('T')[0]}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  this.showToast(`Esportate ${activities.length} attività`, { type: 'success' });
+};
+
 
 
 UI.validateActivityDateRange = function (date) {
