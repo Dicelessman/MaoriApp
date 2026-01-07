@@ -205,7 +205,7 @@ UI.renderPresenceTable = function () {
     const presentCount = activityPresences.filter(p => p.stato === 'Presente').length;
     const perc = expectedCount ? Math.round((presentCount / expectedCount) * 100) : 0;
 
-    const displayDate = this.formatDisplayDate(a.data);
+    let displayDate = this.formatDisplayDate(a.data);
 
     // Display End Date in header tooltip or text? User asked "farla apparire nel Calendario", not explicitly Presenze but good to rely on standard display. 
     // Header space is small. Let's keep date.
@@ -213,7 +213,8 @@ UI.renderPresenceTable = function () {
     const isNext = a.id === nextActivityId;
 
     // Gestione date range
-    let displayDate = this.formatDisplayDate(a.data);
+    // Gestione date range
+    // displayDate già formattato sopra, lo aggiorniamo se c'è data fine
     if (a.dataFine) {
       const dStart = this.toJsDate(a.data);
       const dEnd = this.toJsDate(a.dataFine);
