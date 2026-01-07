@@ -1,73 +1,162 @@
 <!-- Skip Links per accessibilità -->
 <a href="#main-content" class="skip-link">Salta al contenuto principale</a>
 
-<!-- Header condiviso -->
-<header class="bg-green-700 text-white p-2 rounded-t-xl flex justify-between items-center" role="banner">
+<!-- Header Minimale -->
+<header class="bg-green-700 text-white p-3 rounded-t-xl flex justify-between items-center sticky top-0 z-50 shadow-md"
+  role="banner">
+  <div class="flex items-center gap-3">
+    <button id="sidebarToggle" class="p-2 hover:bg-green-800 rounded-lg transition-colors" aria-label="Toggle Sidebar">
+      <span class="text-xl">☰</span>
+    </button>
     <div class="flex flex-col">
-      <h1 class="text-xl font-bold">Reparto Maori</h1>
-      <p class="text-green-200 text-sm mt-0.5">Presenze</p>
+      <h1 class="text-xl font-bold leading-tight">Reparto Maori</h1>
+      <span id="current-page-label" class="text-green-200 text-xs font-medium">Dashboard</span>
     </div>
-    <div id="staff-info" class="text-right flex flex-col" aria-live="polite" aria-atomic="true">
-      <span class="text-green-200 text-sm">Sei:</span>
-      <span id="selectedStaffName" class="font-semibold text-lg">Nessuno</span>
-    </div>
-    <div class="flex items-center gap-2">
-      <button id="themeToggle" class="theme-toggle" title="Cambia tema" aria-label="Cambia tema tra chiaro e scuro" aria-pressed="false">
-        <span class="theme-toggle-icon" aria-hidden="true">🌙</span>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <!-- Notifiche In-App -->
+    <div id="notificationsContainer" class="relative">
+      <button id="notificationsBell"
+        class="relative p-2 text-white hover:bg-green-800 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+        aria-label="Notifiche" aria-expanded="false" aria-haspopup="true">
+        <span class="text-xl">🔔</span>
+        <span id="notificationsBadge"
+          class="absolute top-0 right-0 bg-red-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold"
+          style="display: none;">0</span>
       </button>
-      <span id="connectionStatus" class="text-xs px-2 py-1 rounded-full bg-green-800/50 hidden" role="status" aria-live="polite" title="Stato connessione">
-        <span id="connectionStatusText">Online</span>
-      </span>
-      <!-- Notifiche In-App -->
-      <div id="notificationsContainer" class="relative" style="display: none;">
-        <button id="notificationsBell" class="relative p-2 text-white hover:bg-green-800 rounded-full focus:outline-none focus:ring-2 focus:ring-white" aria-label="Notifiche" aria-expanded="false" aria-haspopup="true">
-          <span class="text-2xl">🔔</span>
-          <span id="notificationsBadge" class="absolute top-0 right-0 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" style="display: none;">0</span>
-        </button>
-        <div id="notificationsDropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto" style="display: none;" role="menu">
-          <div class="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-            <h3 class="font-semibold text-gray-700 dark:text-gray-300">Notifiche</h3>
-            <button id="markAllReadBtn" class="text-sm text-blue-600 dark:text-blue-400 hover:underline" aria-label="Segna tutte come lette">Segna tutte lette</button>
-          </div>
-          <div id="notificationsList" class="divide-y divide-gray-200 dark:divide-gray-700">
-            <!-- Notifiche verranno inserite qui dinamicamente -->
-          </div>
-          <div id="notificationsEmpty" class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-            Nessuna notifica
+      <div id="notificationsDropdown"
+        class="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto hidden"
+        role="menu">
+        <div
+          class="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800 z-10">
+          <h3 class="font-semibold text-gray-700 dark:text-gray-300">Notifiche</h3>
+          <button id="markAllReadBtn" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Segna tutte
+            lette</button>
+        </div>
+        <div id="notificationsList" class="divide-y divide-gray-100 dark:divide-gray-700">
+          <!-- Notifiche verranno inserite qui dinamicamente -->
+        </div>
+        <div id="notificationsEmpty" class="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
+          Nessuna notifica
+        </div>
+      </div>
+    </div>
+
+    <button id="themeToggle" class="p-2 hover:bg-green-800 rounded-lg transition-colors" title="Cambia tema">
+      <span class="theme-toggle-icon">🌙</span>
+    </button>
+
+    <div id="staff-info-minimal" class="hidden sm:flex flex-col text-right">
+      <span id="selectedStaffName" class="font-semibold text-sm">Nessuno</span>
+      <span id="loggedInUserEmail" class="text-green-200 text-[10px] opacity-80"></span>
+    </div>
+  </div>
+</header>
+
+<!-- Sidebar Overlay (Mobile) -->
+<div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+
+<!-- Sidebar Navigazione -->
+<aside id="mainSidebar"
+  class="fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-900 shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:h-auto md:shadow-none"
+  aria-label="Navigazione principale">
+  <div class="flex flex-col h-full">
+    <!-- Sidebar Header (Mobile Only) -->
+    <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center md:hidden">
+      <span class="font-bold text-green-700 dark:text-green-500">Menu</span>
+      <button id="closeSidebar" class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">✕</button>
+    </div>
+
+    <!-- Sezioni Menu -->
+    <nav class="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin">
+      <!-- 1. Persone -->
+      <div>
+        <h3 class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Persone
+        </h3>
+        <div class="space-y-1">
+          <a href="esploratori.html"
+            class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
+            <span>👥</span> Esploratori
+          </a>
+          <a href="staff.html"
+            class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
+            <span>👔</span> Staff
+          </a>
+        </div>
+      </div>
+
+      <!-- 2. Calendario -->
+      <div>
+        <h3 class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
+          Calendario</h3>
+        <div class="space-y-1">
+          <a href="presenze.html"
+            class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
+            <span>✅</span> Presenze
+          </a>
+          <a href="calendario.html"
+            class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
+            <span>📅</span> Eventi
+          </a>
+        </div>
+      </div>
+
+      <!-- 3. Gestione -->
+      <div>
+        <h3 class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Gestione
+        </h3>
+        <div class="space-y-1">
+          <a href="pagamenti.html"
+            class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
+            <span>💰</span> Pagamenti
+          </a>
+          <a href="documenti.html"
+            class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
+            <span>📄</span> Documenti
+          </a>
+        </div>
+      </div>
+
+      <!-- 4. Dati -->
+      <div>
+        <h3 class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Dati</h3>
+        <div class="space-y-1">
+          <a href="dashboard.html"
+            class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
+            <span>📊</span> Dashboard
+          </a>
+          <a href="statistiche.html"
+            class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
+            <span>📈</span> Statistiche
+          </a>
+        </div>
+      </div>
+
+      <!-- 5. Utilità -->
+      <div>
+        <h3 class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Utilità
+        </h3>
+        <div class="space-y-1">
+          <div
+            class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-400 dark:text-gray-600 italic cursor-default">
+            <span>🛠️</span> Prossimamente...
           </div>
         </div>
       </div>
-      <span id="loggedInUserEmail" class="text-white text-lg" aria-label="Email utente loggato"></span>
-      <nav id="hamburgerMenu" class="md:hidden" aria-label="Menu di navigazione mobile">
-        <button class="hamburger-icon text-white p-3" aria-label="Apri menu di navigazione" aria-expanded="false" aria-controls="hamburgerMenuLinks">&#9776;</button>
-        <div id="hamburgerMenuLinks" class="nav-links space-y-2" role="menu">
-          <a href="presenze.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Presenze</a>
-          <a href="esploratori.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Esploratori</a>
-          <a href="calendario.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Calendario</a>
-          <a href="staff.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Staff</a>
-          <a href="dashboard.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Dashboard</a>
-          <a href="pagamenti.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Pagamenti</a>
-          <a href="documenti.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Documenti</a>
-          <a href="statistiche.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Statistiche</a>
-          <a href="audit-logs.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">Log Audit</a>
-          <a href="preferenze.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-800" role="menuitem">⚙️ Preferenze</a>
-          <hr class="border-white/20 my-2" role="separator">
-          <button type="button" id="logoutButton" class="tab-btn p-2 rounded-lg text-white hover:bg-red-600" style="display:none;" aria-label="Disconnetti dall'account">Logout</button>
-        </div>
-      </nav>
+    </nav>
+
+    <!-- Footer Sidebar -->
+    <div class="p-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
+      <a href="preferenze.html"
+        class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+        <span>⚙️</span> Preferenze
+      </a>
+      <button id="logoutButton"
+        class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+        style="display:none;">
+        <span>🚪</span> Logout
+      </button>
     </div>
-  </header>
-  
-  <!-- Navigazione desktop -->
-  <nav id="desktopNav" class="bg-green-600 p-2 hidden md:flex justify-center space-x-4" role="navigation" aria-label="Navigazione principale">
-    <a href="presenze.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Presenze</a>
-    <a href="esploratori.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Esploratori</a>
-    <a href="calendario.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Calendario</a>
-    <a href="staff.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Staff</a>
-    <a href="dashboard.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Dashboard</a>
-    <a href="pagamenti.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Pagamenti</a>
-    <a href="documenti.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Documenti</a>
-    <a href="statistiche.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Statistiche</a>
-    <a href="audit-logs.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">Log Audit</a>
-    <a href="preferenze.html" class="tab-btn p-2 rounded-lg text-white hover:bg-green-700">⚙️ Preferenze</a>
-  </nav>
+  </div>
+</aside>

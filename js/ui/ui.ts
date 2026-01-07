@@ -335,9 +335,65 @@ export const UI = {
             const modalsHtml = await modalsResponse.text();
             const sharedModals = this.qs('#shared-modals');
             if (sharedModals) sharedModals.innerHTML = modalsHtml;
+
+            // Aggiorna il titolo dell'header con il nome dell'unità personalizzato
+            this.updateUnitName();
+            // Inizializza la sidebar
+            this.setupSidebar();
+            this.highlightActiveNavItem();
         } catch (error) {
             console.error('Errore nel caricamento componenti condivisi:', error);
         }
+    },
+
+    setupSidebar() {
+        const toggleBtn = this.qs('#sidebarToggle');
+        const sidebar = this.qs('#mainSidebar');
+        const overlay = this.qs('#sidebarOverlay');
+        const closeBtn = this.qs('#closeSidebar');
+
+        if (!toggleBtn || !sidebar) return;
+
+        const toggleSidebar = () => {
+            sidebar.classList.toggle('active');
+            if (overlay) overlay.classList.toggle('hidden');
+        };
+
+        toggleBtn.addEventListener('click', toggleSidebar);
+        if (overlay) overlay.addEventListener('click', toggleSidebar);
+        if (closeBtn) closeBtn.addEventListener('click', toggleSidebar);
+    },
+
+    highlightActiveNavItem() {
+        const path = window.location.pathname;
+        const page = path.split('/').pop() || 'index.html';
+        const navItems = document.querySelectorAll('.nav-item');
+
+        const labels: { [key: string]: string } = {
+            'presenze.html': 'Presenze',
+            'esploratori.html': 'Esploratori',
+            'calendario.html': 'Calendario',
+            'staff.html': 'Staff',
+            'dashboard.html': 'Dashboard',
+            'pagamenti.html': 'Pagamenti',
+            'documenti.html': 'Documenti',
+            'statistiche.html': 'Statistiche',
+            'preferenze.html': 'Preferenze'
+        };
+
+        navItems.forEach(item => {
+            const href = item.getAttribute('href');
+            if (href === page) {
+                item.classList.add('active');
+                // Aggiorna etichetta pagina nell'header
+                const pageLabel = this.qs('#current-page-label');
+                if (pageLabel && labels[page]) {
+                    pageLabel.textContent = labels[page];
+                }
+            } else {
+                item.classList.remove('active');
+            }
+        });
     },
 
     setupEventListeners() {
