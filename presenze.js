@@ -212,15 +212,22 @@ UI.renderPresenceTable = function () {
 
     const isNext = a.id === nextActivityId;
 
+    // Gestione date range
+    let displayDate = this.formatDisplayDate(a.data);
+    if (a.dataFine) {
+      const dStart = this.toJsDate(a.data);
+      const dEnd = this.toJsDate(a.dataFine);
+      // Mostra range solo se date valide e diverse
+      if (!isNaN(dStart) && !isNaN(dEnd) && dEnd.getTime() > dStart.getTime()) {
+        const fmt = d => d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
+        // Es: 01/01 - 04/01
+        displayDate = `${fmt(dStart)} - ${fmt(dEnd)}`;
+      }
+    }
+
     // Use enhanced colors
     const colors = UI.getActivityTypeColor ? UI.getActivityTypeColor(a.tipo) : { headerBg: 'bg-green-800', headerText: 'bg-green-900' };
-    const thDateClasses = isNext ? colors.headerText : colors.headerBg; // Using headerText as "darker" or distinct for Next? 
-    // Let's simpler: use headerBg. If Next, maybe darker overlay or border.
-    // Logic in calendario was: Next = border-l-4. Here standard TH.
-    // Original: isNext ? 'bg-green-900' : 'bg-green-800'
-    // New: Use colors.headerBg. If isNext, maybe brightness adjustments or inline style.
-    // Let's assume colors.headerBg is the main one.
-    // If isNext, we want to highlight it.
+    const thDateClasses = isNext ? colors.headerText : colors.headerBg;
 
     // Let's use specific classes if possible, currently using tailwind colors. 
     const baseHeaderClass = colors.headerBg || 'bg-green-800';
@@ -425,6 +432,12 @@ UI.setupColumnNavigation = function () {
     prevBtn._bound = true;
   }
 
+  // Helper per larghezza colonna sticky
+  const getStickyWidth = () => {
+    const stickyTh = container.querySelector('th.sticky.left-0');
+    return stickyTh ? stickyTh.offsetWidth : 0;
+  };
+
   // Pulsante successivo
   if (nextBtn) {
     nextBtn._clickHandler = () => {
@@ -436,6 +449,11 @@ UI.setupColumnNavigation = function () {
 
       const currentScroll = container.scrollLeft;
       const containerWidth = container.clientWidth;
+      // Il punto "visibile" a destra deve considerare che a sinistra c'è la colonna sticky che copre
+      // In realtà scrollLeft sposta tutto sotto la sticky. Quindi quello che vediamo inizia da scrollLeft + stickyWidth
+      // Ma quando clicchiamo "next", vogliamo scrollare in avanti.
+
+      const stickyWidth = getStickyWidth();
       const visibleRight = currentScroll + containerWidth;
 
       // Trova la prima colonna che è parzialmente o completamente a destra della vista corrente
@@ -443,9 +461,7 @@ UI.setupColumnNavigation = function () {
 
       headers.forEach((th) => {
         const colLeft = th.offsetLeft;
-        const colRight = colLeft + th.offsetWidth;
-
-        // Se la colonna è a destra della vista corrente
+        // Consideriamo una colonna "a destra" se il suo inizio è oltre l'area visibile attuale
         if (colLeft > visibleRight - 50) {
           if (!targetCol || colLeft < targetCol.offsetLeft) {
             targetCol = th;
@@ -454,11 +470,10 @@ UI.setupColumnNavigation = function () {
       });
 
       if (targetCol) {
-        // Scrolla per mostrare la colonna successiva
-        const targetScroll = targetCol.offsetLeft - 20;
+        // Scrolla in modo che targetCol sia subito dopo la sticky
+        const targetScroll = Math.max(0, targetCol.offsetLeft - stickyWidth);
         container.scrollTo({ left: targetScroll, behavior: 'smooth' });
       } else {
-        // Se non c'è una colonna successiva, vai alla fine
         container.scrollTo({ left: table.scrollWidth, behavior: 'smooth' });
       }
     };
@@ -471,17 +486,20 @@ UI.setupColumnNavigation = function () {
     const table = container.querySelector('.presence-table');
     if (!table) return;
 
+    const stickyWidth = getStickyWidth();
+
     // Trova la colonna con classe "next-col" (prossima attività)
     const nextCol = table.querySelector('thead th.next-col, tbody td.next-col');
     if (nextCol) {
-      const targetScroll = nextCol.offsetLeft - 20;
+      // Offset per non farla finire sotto la sticky
+      const targetScroll = Math.max(0, nextCol.offsetLeft - stickyWidth);
       container.scrollTo({ left: targetScroll, behavior: 'smooth' });
     } else {
       // Se non trova la classe next-col, cerca l'ultima colonna
       const headers = table.querySelectorAll('thead th:not(.sticky)');
       if (headers.length > 0) {
         const lastHeader = headers[headers.length - 1];
-        const targetScroll = lastHeader.offsetLeft - 20;
+        const targetScroll = Math.max(0, lastHeader.offsetLeft - stickyWidth);
         container.scrollTo({ left: targetScroll, behavior: 'smooth' });
       }
     }
