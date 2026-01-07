@@ -38,10 +38,27 @@
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-2xl font-semibold text-gray-700">Calendario Attività</h2>
           <div class="flex gap-2">
-            <button id="exportCalendarICSBtn" class="btn-secondary text-sm px-4 py-2"
-              title="Esporta calendario in formato .ics per Google Calendar, Apple Calendar, ecc.">
-              📥 Export Calendario
-            </button>
+            <div class="relative inline-block">
+              <button id="exportCalendarBtn" class="btn-secondary text-sm px-4 py-2 flex items-center gap-2"
+                title="Esporta calendario">
+                📥 Export Calendario
+                <span class="text-xs">▼</span>
+              </button>
+              <div id="exportDropdown"
+                class="hidden absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <button id="exportICSBtn"
+                  class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-t-lg flex items-center gap-2">
+                  📅 Export ICS (Calendario)
+                </button>
+                <button id="exportTXTBtn" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2">
+                  📄 Export TXT (Testo)
+                </button>
+                <button id="exportODSBtn"
+                  class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-b-lg flex items-center gap-2">
+                  📊 Export ODS (Foglio di calcolo)
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

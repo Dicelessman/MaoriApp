@@ -593,15 +593,51 @@ UI.confirmDeleteActivity = function (id) {
  * Setup export calendario .ics
  */
 UI.setupCalendarExport = function () {
-  const exportBtn = this.qs('#exportCalendarICSBtn');
-  if (!exportBtn) return;
+  const exportBtn = this.qs('#exportCalendarBtn');
+  const dropdown = this.qs('#exportDropdown');
+  const icsBtn = this.qs('#exportICSBtn');
+  const txtBtn = this.qs('#exportTXTBtn');
+  const odsBtn = this.qs('#exportODSBtn');
+
+  if (!exportBtn || !dropdown) return;
 
   if (exportBtn._bound) return;
   exportBtn._bound = true;
 
-  exportBtn.addEventListener('click', () => {
-    this.downloadCalendarICS();
+  // Toggle dropdown
+  exportBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle('hidden');
   });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!exportBtn.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
+  });
+
+  // Export handlers
+  if (icsBtn) {
+    icsBtn.addEventListener('click', () => {
+      dropdown.classList.add('hidden');
+      this.downloadCalendarICS();
+    });
+  }
+
+  if (txtBtn) {
+    txtBtn.addEventListener('click', () => {
+      dropdown.classList.add('hidden');
+      this.downloadCalendarTXT();
+    });
+  }
+
+  if (odsBtn) {
+    odsBtn.addEventListener('click', () => {
+      dropdown.classList.add('hidden');
+      this.downloadCalendarODS();
+    });
+  }
 };
 
 UI.downloadCalendarICS = function () {
@@ -684,6 +720,147 @@ UI.downloadCalendarICS = function () {
   URL.revokeObjectURL(url);
 
   this.showToast(`Esportate ${activities.length} attività`, { type: 'success' });
+};
+
+UI.downloadCalendarTXT = function () {
+  const activities = this.state.activities || [];
+
+  if (activities.length === 0) {
+    this.showToast('Nessuna attività da esportare', { type: 'info' });
+    return;
+  }
+
+  // Ordina per data
+  const sorted = [...activities].sort((a, b) => {
+    const dateA = this.toJsDate(a.data);
+    const dateB = this.toJsDate(b.data);
+    return dateA - dateB;
+  });
+
+  // Genera contenuto TXT
+  let txtContent = 'CALENDARIO ATTIVITÀ - REPARTO MAORI\n';
+  txtContent += '='.repeat(60) + '\n\n';
+
+  sorted.forEach((activity, index) => {
+    const startDate = this.toJsDate(activity.data);
+    const formattedStart = !isNaN(startDate) ? startDate.toLocaleDateString('it-IT') : 'Data non valida';
+
+    txtContent += `${index + 1}. ${activity.tipo}: ${activity.descrizione}\n`;
+    txtContent += `   Data: ${formattedStart}`;
+
+    if (activity.dataFine) {
+      const endDate = this.toJsDate(activity.dataFine);
+      const formattedEnd = !isNaN(endDate) ? endDate.toLocaleDateString('it-IT') : '';
+      if (formattedEnd) {
+        txtContent += ` - ${formattedEnd}`;
+      }
+    }
+    txtContent += '\n';
+
+    if (activity.costo && activity.costo > 0) {
+      txtContent += `   Costo: €${activity.costo}\n`;
+    }
+    txtContent += '\n';
+  });
+
+  txtContent += '\n' + '='.repeat(60) + '\n';
+  txtContent += `Totale attività: ${activities.length}\n`;
+  txtContent += `Esportato il: ${new Date().toLocaleString('it-IT')}\n`;
+
+  // Download
+  const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `calendario_maori_${new Date().toISOString().split('T')[0]}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  this.showToast(`Esportate ${activities.length} attività in TXT`, { type: 'success' });
+};
+
+UI.downloadCalendarODS = function () {
+  const activities = this.state.activities || [];
+
+  if (activities.length === 0) {
+    this.showToast('Nessuna attività da esportare', { type: 'info' });
+    return;
+  }
+
+  // Ordina per data
+  const sorted = [...activities].sort((a, b) => {
+    const dateA = this.toJsDate(a.data);
+    const dateB = this.toJsDate(b.data);
+    return dateA - dateB;
+  });
+
+  // Genera XML ODS
+  const escapeXML = (str) => {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  };
+
+  let odsContent = `<?xml version="1.0" encoding="UTF-8"?>
+<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" 
+  xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" 
+  xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" 
+  xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" 
+  xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" 
+  office:version="1.2" office:mimetype="application/vnd.oasis.opendocument.spreadsheet">
+  <office:body>
+    <office:spreadsheet>
+      <table:table table:name="Calendario">
+        <table:table-column table:number-columns-repeated="5"/>
+        <table:table-row>
+          <table:table-cell office:value-type="string"><text:p>Data</text:p></table:table-cell>
+          <table:table-cell office:value-type="string"><text:p>Data Fine</text:p></table:table-cell>
+          <table:table-cell office:value-type="string"><text:p>Tipo</text:p></table:table-cell>
+          <table:table-cell office:value-type="string"><text:p>Descrizione</text:p></table:table-cell>
+          <table:table-cell office:value-type="string"><text:p>Costo (€)</text:p></table:table-cell>
+        </table:table-row>`;
+
+  sorted.forEach(activity => {
+    const startDate = this.toJsDate(activity.data);
+    const formattedStart = !isNaN(startDate) ? startDate.toLocaleDateString('it-IT') : '';
+
+    const endDate = activity.dataFine ? this.toJsDate(activity.dataFine) : null;
+    const formattedEnd = endDate && !isNaN(endDate) ? endDate.toLocaleDateString('it-IT') : '';
+
+    odsContent += `
+        <table:table-row>
+          <table:table-cell office:value-type="string"><text:p>${escapeXML(formattedStart)}</text:p></table:table-cell>
+          <table:table-cell office:value-type="string"><text:p>${escapeXML(formattedEnd)}</text:p></table:table-cell>
+          <table:table-cell office:value-type="string"><text:p>${escapeXML(activity.tipo)}</text:p></table:table-cell>
+          <table:table-cell office:value-type="string"><text:p>${escapeXML(activity.descrizione)}</text:p></table:table-cell>
+          <table:table-cell office:value-type="float" office:value="${activity.costo || 0}"><text:p>${activity.costo || 0}</text:p></table:table-cell>
+        </table:table-row>`;
+  });
+
+  odsContent += `
+      </table:table>
+    </office:spreadsheet>
+  </office:body>
+</office:document>`;
+
+  // Download
+  const blob = new Blob([odsContent], { type: 'application/vnd.oasis.opendocument.spreadsheet' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `calendario_maori_${new Date().toISOString().split('T')[0]}.ods`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  this.showToast(`Esportate ${activities.length} attività in ODS`, { type: 'success' });
 };
 
 
