@@ -764,8 +764,8 @@ UI.downloadCalendarTXT = function () {
       }
     }
 
-    // Formato: data [- data fine] Tipo:
-    txtContent += `${dateRange} ${activity.tipo}:\n`;
+    // Formato: data [- data fine] Tipo
+    txtContent += `${dateRange} ${activity.tipo}\n`;
   });
 
   // Download
