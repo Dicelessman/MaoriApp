@@ -505,18 +505,14 @@ header a {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  overflow-x: hidden;
+  /* Evita scroll orizzontale durante le transizioni */
 }
 
-@media (min-width: 768px) {
-  #app {
-    flex-direction: row;
-  }
-
-  #main-content {
-    flex: 1;
-    min-height: 100vh;
-    overflow-y: auto;
-  }
+#main-content {
+  flex: 1;
+  min-height: 100vh;
+  transition: all 0.3s ease-in-out;
 }
 
 /* Sidebar Styling */
@@ -524,13 +520,42 @@ header a {
   background-color: #ffffff;
   border-right: 1px solid #f3f4f6;
   height: 100vh;
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
+  z-index: 50;
+  width: 16rem;
+  /* w-64 */
+  transform: translateX(-100%);
+  transition: all 0.3s ease-in-out;
+}
+
+#mainSidebar.active {
+  transform: translateX(0);
 }
 
 .dark #mainSidebar {
   background-color: #111827;
   border-right: 1px solid #1f2937;
+}
+
+@media (min-width: 768px) {
+  #app {
+    flex-direction: row;
+  }
+
+  #mainSidebar {
+    position: sticky;
+    transform: translateX(0);
+    /* Reset mobile transform */
+    margin-left: -16rem;
+    /* Nascosta per default su desktop */
+  }
+
+  #mainSidebar.active {
+    margin-left: 0;
+    /* Visibile su desktop */
+  }
 }
 
 /* Nav Item Styling */

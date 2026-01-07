@@ -357,10 +357,31 @@ export const UI = {
         const closeBtn = this.qs('#closeSidebar');
         if (!toggleBtn || !sidebar)
             return;
-        const toggleSidebar = () => {
-            sidebar.classList.toggle('active');
+        // Stato iniziale: su mobile deve essere chiusa (rimuovi 'active' se presente)
+        if (window.innerWidth < 768) {
+            sidebar.classList.remove('active');
             if (overlay)
-                overlay.classList.toggle('hidden');
+                overlay.classList.add('hidden');
+        }
+        else {
+            // Su desktop per default la teniamo aperta (aggiungi 'active')
+            sidebar.classList.add('active');
+            if (overlay)
+                overlay.classList.add('hidden');
+        }
+        const toggleSidebar = () => {
+            const isActive = sidebar.classList.toggle('active');
+            // L'overlay serve solo su mobile e solo quando la sidebar è attiva
+            if (window.innerWidth < 768) {
+                if (overlay) {
+                    overlay.classList.toggle('hidden', !isActive);
+                }
+            }
+            else {
+                // Su desktop l'overlay non serve mai
+                if (overlay)
+                    overlay.classList.add('hidden');
+            }
         };
         toggleBtn.addEventListener('click', toggleSidebar);
         if (overlay)
