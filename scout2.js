@@ -6,15 +6,15 @@ UI.specialitaListData = null;
 UI._jsonLoadPromises = {}; // Promise cache per evitare fetch multipli simultanei
 
 // Carica challenges.json con cache
-UI.loadChallenges = async function() {
+UI.loadChallenges = async function () {
   // Cache hit immediata
   if (this.challengesData) return this.challengesData;
-  
+
   // Evita fetch multipli simultanei
   if (this._jsonLoadPromises.challenges) {
     return await this._jsonLoadPromises.challenges;
   }
-  
+
   try {
     this._jsonLoadPromises.challenges = fetch('challenges.json')
       .then(response => {
@@ -27,7 +27,7 @@ UI.loadChallenges = async function() {
         try { console.info('[Cache] challenges.json loaded'); } catch { }
         return data;
       });
-    
+
     return await this._jsonLoadPromises.challenges;
   } catch (e) {
     console.error('Errore caricamento challenges.json:', e);
@@ -37,15 +37,15 @@ UI.loadChallenges = async function() {
 };
 
 // Carica specialita.json con cache
-UI.loadSpecialitaList = async function() {
+UI.loadSpecialitaList = async function () {
   // Cache hit immediata
   if (this.specialitaListData) return this.specialitaListData;
-  
+
   // Evita fetch multipli simultanei
   if (this._jsonLoadPromises.specialita) {
     return await this._jsonLoadPromises.specialita;
   }
-  
+
   try {
     this._jsonLoadPromises.specialita = fetch('specialita.json')
       .then(response => {
@@ -58,7 +58,7 @@ UI.loadSpecialitaList = async function() {
         try { console.info('[Cache] specialita.json loaded'); } catch { }
         return data;
       });
-    
+
     return await this._jsonLoadPromises.specialita;
   } catch (e) {
     console.error('Errore caricamento specialita.json:', e);
@@ -68,7 +68,7 @@ UI.loadSpecialitaList = async function() {
 };
 
 // Funzione per adattare l'altezza del textarea al contenuto
-UI.autoResizeTextarea = function(textarea) {
+UI.autoResizeTextarea = function (textarea) {
   if (!textarea) return;
   // Reset height per ottenere scrollHeight corretto
   textarea.style.height = 'auto';
@@ -76,203 +76,215 @@ UI.autoResizeTextarea = function(textarea) {
   textarea.style.height = textarea.scrollHeight + 'px';
 };
 
-UI.renderCurrentPage = function() {
+UI.renderCurrentPage = function () {
   this.renderScoutPage();
 };
 
-UI.renderScoutPage = async function() {
-  const params = new URLSearchParams(location.search);
-  const id = params.get('id');
-  if (!id) {
-    this.qs('#scoutTitle').textContent = 'Scheda Esploratore — ID mancante';
+UI.renderScoutPage = async function () {
+  // Prevent overlapping renders
+  if (this._isRenderingScoutPage) {
+    console.log('[Scout2] Render già in corso, skip');
     return;
   }
-  this.qs('#scoutId').value = id;
-  
-  // Imposta l'anno minimo per i campi quota (2022)
-  ['doc_quota1', 'doc_quota2', 'doc_quota3', 'doc_quota4'].forEach(id => {
-    const el = this.qs(`#${id}`);
-    if (el) el.min = '2022';
-  });
 
-  // Carica i JSON all'inizio
-  await this.loadChallenges();
-  await this.loadSpecialitaList();
+  this._isRenderingScoutPage = true;
 
-  // Assicura stato caricato
-  if (!this.state.scouts || this.state.scouts.length === 0) {
-    this.state = await DATA.loadAll();
-    this.rebuildPresenceIndex();
-  }
-  const s = (this.state.scouts || []).find(x => x.id === id);
-  if (!s) {
-    this.qs('#scoutTitle').textContent = 'Scheda Esploratore — non trovato';
-    return;
-  }
-  this.qs('#scoutTitle').textContent = `${s.nome || ''} ${s.cognome || ''}`.trim();
+  try {
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    if (!id) {
+      this.qs('#scoutTitle').textContent = 'Scheda Esploratore — ID mancante';
+      return;
+    }
+    this.qs('#scoutId').value = id;
 
-  // Riempie i campi se presenti
-  const setVal = (sel, val) => { const el = this.qs(sel); if (el) el.value = val ?? ''; };
-  setVal('#anag_nome', s.nome);
-  setVal('#anag_cognome', s.cognome);
-  setVal('#anag_dob', this.toYyyyMmDd(s.anag_dob));
-  setVal('#anag_sesso', s.anag_sesso);
-  setVal('#anag_cf', s.anag_cf);
-  setVal('#anag_indirizzo', s.anag_indirizzo);
-  setVal('#anag_citta', s.anag_citta);
-  setVal('#anag_email', s.anag_email);
-  setVal('#anag_telefono', s.anag_telefono);
+    // Imposta l'anno minimo per i campi quota (2022)
+    ['doc_quota1', 'doc_quota2', 'doc_quota3', 'doc_quota4'].forEach(id => {
+      const el = this.qs(`#${id}`);
+      if (el) el.min = '2022';
+    });
 
-  setVal('#ct_g1_nome', s.ct_g1_nome);
-  setVal('#ct_g1_tel', s.ct_g1_tel);
-  setVal('#ct_g1_email', s.ct_g1_email);
-  setVal('#ct_g2_nome', s.ct_g2_nome);
-  setVal('#ct_g2_tel', s.ct_g2_tel);
-  setVal('#ct_g2_email', s.ct_g2_email);
+    // Carica i JSON all'inizio
+    await this.loadChallenges();
+    await this.loadSpecialitaList();
 
-  setVal('#san_gruppo', s.san_gruppo);
-  setVal('#san_intolleranze', s.san_intolleranze);
-  setVal('#san_allergie', s.san_allergie);
-  setVal('#san_farmaci', s.san_farmaci);
-  setVal('#san_vaccinazioni', s.san_vaccinazioni);
-  setVal('#san_cert', s.san_cert);
-  setVal('#san_altro', s.san_altro);
+    // Assicura stato caricato
+    if (!this.state.scouts || this.state.scouts.length === 0) {
+      this.state = await DATA.loadAll();
+      this.rebuildPresenceIndex();
+    }
+    const s = (this.state.scouts || []).find(x => x.id === id);
+    if (!s) {
+      this.qs('#scoutTitle').textContent = 'Scheda Esploratore — non trovato';
+      return;
+    }
+    this.qs('#scoutTitle').textContent = `${s.nome || ''} ${s.cognome || ''}`.trim();
 
-  setVal('#pv_promessa', this.toYyyyMmDd(s.pv_promessa));
-  const vcp = this.qs(`input[name="pv_vcp_cp"][value="${s.pv_vcp_cp}"]`);
-  if (vcp) vcp.checked = true;
-  setVal('#pv_giglio_data', this.toYyyyMmDd(s.pv_giglio_data));
-  setVal('#pv_giglio_note', s.pv_giglio_note);
-  setVal('#pv_pattuglia', s.pv_pattuglia);
+    // Riempie i campi se presenti
+    const setVal = (sel, val) => { const el = this.qs(sel); if (el) el.value = val ?? ''; };
+    setVal('#anag_nome', s.nome);
+    setVal('#anag_cognome', s.cognome);
+    setVal('#anag_dob', this.toYyyyMmDd(s.anag_dob));
+    setVal('#anag_sesso', s.anag_sesso);
+    setVal('#anag_cf', s.anag_cf);
+    setVal('#anag_indirizzo', s.anag_indirizzo);
+    setVal('#anag_citta', s.anag_citta);
+    setVal('#anag_email', s.anag_email);
+    setVal('#anag_telefono', s.anag_telefono);
 
-  // Tracce principali (flag + data)
-  this.setCheckDate('pv_traccia1', s.pv_traccia1);
-  this.setCheckDate('pv_traccia2', s.pv_traccia2);
-  this.setCheckDate('pv_traccia3', s.pv_traccia3);
+    setVal('#ct_g1_nome', s.ct_g1_nome);
+    setVal('#ct_g1_tel', s.ct_g1_tel);
+    setVal('#ct_g1_email', s.ct_g1_email);
+    setVal('#ct_g2_nome', s.ct_g2_nome);
+    setVal('#ct_g2_tel', s.ct_g2_tel);
+    setVal('#ct_g2_email', s.ct_g2_email);
 
-  // Popola dropdown sfide e carica dati
-  this.populateChallengeDropdowns();
-  this.loadChallengeData(s);
-  
-  // Adatta l'altezza dei textarea dopo il caricamento
-  setTimeout(() => {
-    const direzioni = ['io', 'al', 'mt'];
-    const passi = ['1', '2', '3'];
-    passi.forEach(passo => {
-      direzioni.forEach(dir => {
-        const textarea = this.qs(`#pv_sfida_${dir}_${passo}_text`);
+    setVal('#san_gruppo', s.san_gruppo);
+    setVal('#san_intolleranze', s.san_intolleranze);
+    setVal('#san_allergie', s.san_allergie);
+    setVal('#san_farmaci', s.san_farmaci);
+    setVal('#san_vaccinazioni', s.san_vaccinazioni);
+    setVal('#san_cert', s.san_cert);
+    setVal('#san_altro', s.san_altro);
+
+    setVal('#pv_promessa', this.toYyyyMmDd(s.pv_promessa));
+    const vcp = this.qs(`input[name="pv_vcp_cp"][value="${s.pv_vcp_cp}"]`);
+    if (vcp) vcp.checked = true;
+    setVal('#pv_giglio_data', this.toYyyyMmDd(s.pv_giglio_data));
+    setVal('#pv_giglio_note', s.pv_giglio_note);
+    setVal('#pv_pattuglia', s.pv_pattuglia);
+
+    // Tracce principali (flag + data)
+    this.setCheckDate('pv_traccia1', s.pv_traccia1);
+    this.setCheckDate('pv_traccia2', s.pv_traccia2);
+    this.setCheckDate('pv_traccia3', s.pv_traccia3);
+
+    // Popola dropdown sfide e carica dati
+    this.populateChallengeDropdowns();
+    this.loadChallengeData(s);
+
+    // Adatta l'altezza dei textarea dopo il caricamento
+    setTimeout(() => {
+      const direzioni = ['io', 'al', 'mt'];
+      const passi = ['1', '2', '3'];
+      passi.forEach(passo => {
+        direzioni.forEach(dir => {
+          const textarea = this.qs(`#pv_sfida_${dir}_${passo}_text`);
+          if (textarea) this.autoResizeTextarea(textarea);
+        });
+      });
+    }, 200);
+
+    setVal('#pv_note', s.pv_note);
+    setVal('#pv_traccia1_note', s.pv_traccia1_note);
+    setVal('#pv_traccia2_note', s.pv_traccia2_note);
+    setVal('#pv_traccia3_note', s.pv_traccia3_note);
+
+    // Adatta l'altezza dei textarea "note" dopo il caricamento
+    setTimeout(() => {
+      const noteTextareas = ['pv_note', 'pv_traccia1_note', 'pv_traccia2_note', 'pv_traccia3_note', 'ev_note', 'doc_note'];
+      noteTextareas.forEach(id => {
+        const textarea = this.qs(`#${id}`);
         if (textarea) this.autoResizeTextarea(textarea);
       });
-    });
-  }, 200);
+    }, 250);
+    setVal('#pv_sfida_bianca_1', s.pv_sfida_bianca_1);
+    setVal('#pv_sfida_bianca_2', s.pv_sfida_bianca_2);
+    setVal('#pv_sfida_bianca_3', s.pv_sfida_bianca_3);
 
-  setVal('#pv_note', s.pv_note);
-  setVal('#pv_traccia1_note', s.pv_traccia1_note);
-  setVal('#pv_traccia2_note', s.pv_traccia2_note);
-  setVal('#pv_traccia3_note', s.pv_traccia3_note);
-  
-  // Adatta l'altezza dei textarea "note" dopo il caricamento
-  setTimeout(() => {
-    const noteTextareas = ['pv_note', 'pv_traccia1_note', 'pv_traccia2_note', 'pv_traccia3_note', 'ev_note', 'doc_note'];
-    noteTextareas.forEach(id => {
-      const textarea = this.qs(`#${id}`);
-      if (textarea) this.autoResizeTextarea(textarea);
-    });
-  }, 250);
-  setVal('#pv_sfida_bianca_1', s.pv_sfida_bianca_1);
-  setVal('#pv_sfida_bianca_2', s.pv_sfida_bianca_2);
-  setVal('#pv_sfida_bianca_3', s.pv_sfida_bianca_3);
+    // Carica specialità multiple
+    this.loadSpecialita(s.specialita || []);
 
-  // Carica specialità multiple
-  this.loadSpecialita(s.specialita || []);
+    this.setPair('#ev_ce1', s.ev_ce1);
+    this.setPair('#ev_ce2', s.ev_ce2);
+    this.setPair('#ev_ce3', s.ev_ce3);
+    this.setPair('#ev_ce4', s.ev_ce4);
+    this.setPair('#ev_ccp', s.ev_ccp);
+    this.setPair('#ev_tc1', s.ev_tc1);
+    this.setPair('#ev_tc2', s.ev_tc2);
+    this.setPair('#ev_tc3', s.ev_tc3);
+    this.setPair('#ev_tc4', s.ev_tc4);
+    this.setPair('#ev_jam', s.ev_jam);
+    setVal('#ev_note', s.ev_note);
 
-  this.setPair('#ev_ce1', s.ev_ce1);
-  this.setPair('#ev_ce2', s.ev_ce2);
-  this.setPair('#ev_ce3', s.ev_ce3);
-  this.setPair('#ev_ce4', s.ev_ce4);
-  this.setPair('#ev_ccp', s.ev_ccp);
-  this.setPair('#ev_tc1', s.ev_tc1);
-  this.setPair('#ev_tc2', s.ev_tc2);
-  this.setPair('#ev_tc3', s.ev_tc3);
-  this.setPair('#ev_tc4', s.ev_tc4);
-  this.setPair('#ev_jam', s.ev_jam);
-  setVal('#ev_note', s.ev_note);
+    // Quote: estrai l'anno dalla data
+    const getYear = (dateValue) => {
+      if (!dateValue) return '';
+      const d = this.toJsDate(dateValue);
+      return isNaN(d.getTime()) ? '' : d.getFullYear().toString();
+    };
+    setVal('#doc_quota1', getYear(s.doc_quota1));
+    setVal('#doc_quota2', getYear(s.doc_quota2));
+    setVal('#doc_quota3', getYear(s.doc_quota3));
+    setVal('#doc_quota4', getYear(s.doc_quota4));
 
-  // Quote: estrai l'anno dalla data
-  const getYear = (dateValue) => {
-    if (!dateValue) return '';
-    const d = this.toJsDate(dateValue);
-    return isNaN(d.getTime()) ? '' : d.getFullYear().toString();
-  };
-  setVal('#doc_quota1', getYear(s.doc_quota1));
-  setVal('#doc_quota2', getYear(s.doc_quota2));
-  setVal('#doc_quota3', getYear(s.doc_quota3));
-  setVal('#doc_quota4', getYear(s.doc_quota4));
-  
-  // Checkbox
-  const setChk = (sel, val) => { const el = this.qs(sel); if (el) el.checked = !!val; };
-  setChk('#doc_iscr', s.doc_iscr);
-  setChk('#doc_priv', s.doc_priv);
-  setChk('#doc_san', s.doc_san);
-  setChk('#doc_liberatoria', s.doc_liberatoria);
-  
-  setVal('#doc_note', s.doc_note);
+    // Checkbox
+    const setChk = (sel, val) => { const el = this.qs(sel); if (el) el.checked = !!val; };
+    setChk('#doc_iscr', s.doc_iscr);
+    setChk('#doc_priv', s.doc_priv);
+    setChk('#doc_san', s.doc_san);
+    setChk('#doc_liberatoria', s.doc_liberatoria);
 
-  const form = this.qs('#scoutForm');
-  if (form && !form._bound) {
-    form._bound = true;
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!this.currentUser) { 
-        this.showToast('Devi essere loggato per salvare.', { type: 'error' }); 
-        return; 
-      }
-      const submitBtn = form.querySelector('button[type="submit"]');
-      const originalText = submitBtn?.textContent;
-      this.setButtonLoading(submitBtn, true, originalText);
-      try {
-        const payload = this.collectForm();
-        await DATA.updateScout(id, payload, this.currentUser);
-        this.state = await DATA.loadAll();
-        this.rebuildPresenceIndex();
-        this.showToast('Scheda salvata');
-      } catch (error) {
-        console.error('Errore salvataggio scheda:', error);
-        this.showToast('Errore durante il salvataggio: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
-      } finally {
-        this.setButtonLoading(submitBtn, false, originalText);
-      }
-    });
-    this.qs('#btnAnnulla')?.addEventListener('click', () => history.back());
-    
-    // Gestione specialità multiple
-    this.qs('#addSpecialitaBtn')?.addEventListener('click', () => this.addSpecialita());
-  }
-  
-  // Stampa scheda / Esporta PDF
-  this.qs('#printScoutBtn')?.addEventListener('click', async () => {
-    await UI.printScoutSheet();
-  });
+    setVal('#doc_note', s.doc_note);
 
-  // Inizializza gestione pattuglie (sempre, non solo se il form è bound)
-  this.initPattugliaManagement();
-  
-  // Inizializza gestione sezioni tracce espandibili
-  this.initTracciaSections();
-  
-  // Inizializza gestione sezioni specialità espandibili
-  this.initSpecialitaSections();
-  
-  // Inizializza navigazione tra sezioni
-  setTimeout(() => {
-    if (this.initSectionNavigation) {
-      this.initSectionNavigation();
+    const form = this.qs('#scoutForm');
+    if (form && !form._bound) {
+      form._bound = true;
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!this.currentUser) {
+          this.showToast('Devi essere loggato per salvare.', { type: 'error' });
+          return;
+        }
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn?.textContent;
+        this.setButtonLoading(submitBtn, true, originalText);
+        try {
+          const payload = this.collectForm();
+          await DATA.updateScout(id, payload, this.currentUser);
+          this.state = await DATA.loadAll();
+          this.rebuildPresenceIndex();
+          this.showToast('Scheda salvata');
+        } catch (error) {
+          console.error('Errore salvataggio scheda:', error);
+          this.showToast('Errore durante il salvataggio: ' + (error.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+        } finally {
+          this.setButtonLoading(submitBtn, false, originalText);
+        }
+      });
+      this.qs('#btnAnnulla')?.addEventListener('click', () => history.back());
+
+      // Gestione specialità multiple
+      this.qs('#addSpecialitaBtn')?.addEventListener('click', () => this.addSpecialita());
     }
-  }, 100);
+
+    // Stampa scheda / Esporta PDF
+    this.qs('#printScoutBtn')?.addEventListener('click', async () => {
+      await UI.printScoutSheet();
+    });
+
+    // Inizializza gestione pattuglie (sempre, non solo se il form è bound)
+    this.initPattugliaManagement();
+
+    // Inizializza gestione sezioni tracce espandibili
+    this.initTracciaSections();
+
+    // Inizializza gestione sezioni specialità espandibili
+    this.initSpecialitaSections();
+
+    // Inizializza navigazione tra sezioni
+    setTimeout(() => {
+      if (this.initSectionNavigation) {
+        this.initSectionNavigation();
+      }
+    }, 100);
+  } finally {
+    this._isRenderingScoutPage = false;
+  }
 };
 
 // Popola i dropdown delle sfide da challenges.json
-UI.populateChallengeDropdowns = function() {
+UI.populateChallengeDropdowns = function () {
   const challenges = this.challengesData;
   if (!challenges) return;
 
@@ -287,10 +299,10 @@ UI.populateChallengeDropdowns = function() {
 
       const dirUpper = dir.toUpperCase();
       const sfide = challenges[passo]?.[dirUpper] || [];
-      
+
       // Pulisce le opzioni esistenti (mantiene la prima)
       select.innerHTML = '<option value="">Seleziona sfida...</option>';
-      
+
       // Aggiunge le sfide
       sfide.forEach(sfida => {
         const option = document.createElement('option');
@@ -315,7 +327,7 @@ UI.populateChallengeDropdowns = function() {
 };
 
 // Carica i dati delle sfide salvate
-UI.loadChallengeData = function(s) {
+UI.loadChallengeData = function (s) {
   const direzioni = ['io', 'al', 'mt'];
   const passi = ['1', '2', '3'];
 
@@ -348,7 +360,7 @@ UI.loadChallengeData = function(s) {
   });
 };
 
-UI.loadSpecialita = function(specialitaArray) {
+UI.loadSpecialita = function (specialitaArray) {
   const container = this.qs('#specialitaContainer');
   if (!container) return;
   container.innerHTML = '';
@@ -356,17 +368,17 @@ UI.loadSpecialita = function(specialitaArray) {
 };
 
 // Funzione helper per applicare i colori al container della specialità
-UI.applySpecialitaColors = function(containerDiv, specialita) {
+UI.applySpecialitaColors = function (containerDiv, specialita) {
   if (!containerDiv) return;
-  
+
   // Colori di default se non specificati
   const defaultSfondo = 'white';
   const defaultBordo = 'gray';
-  
+
   // Ottieni i colori dalla specialità o usa i default
   const sfondoColore = specialita?.sfondo_colore || defaultSfondo;
   const bordoColore = specialita?.bordo_colore || defaultBordo;
-  
+
   // Applica gli stili inline
   containerDiv.style.backgroundColor = sfondoColore;
   containerDiv.style.border = `3px solid ${bordoColore}`;
@@ -374,16 +386,16 @@ UI.applySpecialitaColors = function(containerDiv, specialita) {
   containerDiv.style.overflow = 'hidden';
 };
 
-UI.addSpecialita = async function(data = null, index = null) {
+UI.addSpecialita = async function (data = null, index = null) {
   const container = this.qs('#specialitaContainer');
   if (!container) return;
-  
+
   const realIndex = index !== null ? index : container.children.length;
   const spId = `sp_${realIndex}`;
-  
+
   // Carica la lista delle specialità
   const specialitaList = await this.loadSpecialitaList();
-  
+
   // Trova la specialità selezionata per ottenere i nomi delle prove
   const selectedSpec = data?.nome ? specialitaList.find(s => s.nome === data.nome) : null;
   const prove = selectedSpec?.prove || [
@@ -391,7 +403,7 @@ UI.addSpecialita = async function(data = null, index = null) {
     { nome: 'Prova 2', id: 'p2' },
     { nome: 'Prova 3', id: 'p3' }
   ];
-  
+
   const div = document.createElement('div');
   div.className = 'rounded-lg overflow-hidden';
   // Applica i colori dinamicamente
@@ -454,7 +466,7 @@ UI.addSpecialita = async function(data = null, index = null) {
     </div>
   `;
   container.appendChild(div);
-  
+
   // Adatta l'altezza dei textarea delle prove dopo il rendering
   setTimeout(() => {
     prove.forEach((prova) => {
@@ -465,13 +477,13 @@ UI.addSpecialita = async function(data = null, index = null) {
     const noteTextarea = div.querySelector(`#${spId}_note`);
     if (noteTextarea) this.autoResizeTextarea(noteTextarea);
   }, 50);
-  
+
   // Event listener per rimuovere
   div.querySelector('.removeSpecialitaBtn')?.addEventListener('click', () => {
     div.remove();
     this.renumberSpecialita();
   });
-  
+
   // Aggiorna titolo quando cambia la specialità selezionata
   const nomeSelect = div.querySelector(`#${spId}_nome`);
   const titleSpan = div.querySelector(`#${spId}_title`);
@@ -479,14 +491,14 @@ UI.addSpecialita = async function(data = null, index = null) {
     nomeSelect.addEventListener('change', async () => {
       const v = nomeSelect.value || '';
       titleSpan.textContent = v || 'Specialità';
-      
+
       // Aggiorna i nomi e i testi delle prove quando cambia la specialità
       const specialitaList = await this.loadSpecialitaList();
       const selectedSpec = specialitaList.find(s => s.nome === v);
-      
+
       // Aggiorna i colori del container quando cambia la specialità
       this.applySpecialitaColors(div, selectedSpec);
-      
+
       if (selectedSpec && selectedSpec.prove) {
         selectedSpec.prove.forEach((prova) => {
           // Trova il label che precede l'input della data
@@ -514,7 +526,7 @@ UI.addSpecialita = async function(data = null, index = null) {
   }
 };
 
-UI.renumberSpecialita = function() {
+UI.renumberSpecialita = function () {
   const container = this.qs('#specialitaContainer');
   if (!container) return;
   Array.from(container.children).forEach((div, index) => {
@@ -525,10 +537,10 @@ UI.renumberSpecialita = function() {
   });
 };
 
-UI.collectSpecialita = function() {
+UI.collectSpecialita = function () {
   const container = this.qs('#specialitaContainer');
   if (!container) return [];
-  
+
   // Raccogli tutte le specialità dal DOM
   const allSpecialita = Array.from(container.children).map(div => {
     const spId = div.querySelector('select[id$="_nome"]')?.id.replace('_nome', '') || '';
@@ -540,7 +552,7 @@ UI.collectSpecialita = function() {
       return val === '' ? null : val;
     };
     const getChk = (suffix) => !!this.qs(`#${spId}${suffix}`)?.checked;
-    
+
     const spec = {
       nome: get('_nome') || '',
       ottenuta: !!this.qs(`#${spId}_ott_chk`)?.checked,
@@ -554,30 +566,30 @@ UI.collectSpecialita = function() {
       cr_data: get('_cr_data'),
       note: get('_note') || ''
     };
-    
+
     // Calcola se questa specialità ha dati
     spec._hasData = !!(spec.nome.trim() && (
-      spec.ottenuta || spec.brevetto || spec.distintivo || 
-      spec.data || spec.p1_data || spec.p2_data || spec.p3_data || 
-      spec.cr_data || (spec.cr_text && spec.cr_text.trim()) || 
+      spec.ottenuta || spec.brevetto || spec.distintivo ||
+      spec.data || spec.p1_data || spec.p2_data || spec.p3_data ||
+      spec.cr_data || (spec.cr_text && spec.cr_text.trim()) ||
       (spec.note && spec.note.trim())
     ));
-    
+
     return spec;
   });
-  
+
   // Filtra specialità senza nome (vuote)
   const withName = allSpecialita.filter(spec => spec.nome && spec.nome.trim());
-  
+
   // Rimuovi duplicati: mantieni solo la prima occorrenza per nome (case-insensitive)
   // Se ci sono più occorrenze, preferisci quella con più dati
   const seen = new Map();
   const deduplicated = [];
-  
+
   withName.forEach(spec => {
     const nomeKey = spec.nome.trim().toLowerCase();
     const existing = seen.get(nomeKey);
-    
+
     if (!existing) {
       // Prima occorrenza di questo nome
       seen.set(nomeKey, spec);
@@ -598,12 +610,12 @@ UI.collectSpecialita = function() {
       // Se la nuova non ha dati e la vecchia sì, mantieni la vecchia
     }
   });
-  
+
   // Rimuovi il campo temporaneo _hasData prima di restituire
   return deduplicated.map(({ _hasData, ...spec }) => spec);
 };
 
-UI.setCheckDate = function(prefix, val) {
+UI.setCheckDate = function (prefix, val) {
   const data = val?.data ? this.toYyyyMmDd(val.data) : this.toYyyyMmDd(val);
   const done = val?.done ?? (val && typeof val === 'object' ? false : !!val);
   const brevetto = val?.brevetto ?? false;
@@ -618,31 +630,31 @@ UI.setCheckDate = function(prefix, val) {
   if (distintivoChk) distintivoChk.checked = !!distintivo;
 };
 
-UI.setPair = function(prefix, val) {
+UI.setPair = function (prefix, val) {
   const dt = this.qs(`${prefix}_dt`);
   const tx = this.qs(`${prefix}_tx`);
   if (dt) dt.value = this.toYyyyMmDd(val?.data || val) || '';
   if (tx) tx.value = val?.testo || '';
 };
 
-UI.toYyyyMmDd = function(x) {
+UI.toYyyyMmDd = function (x) {
   if (!x) return '';
   const d = this.toJsDate(x);
   return isNaN(d) ? '' : d.toISOString().split('T')[0];
 };
 
-UI.collectForm = function() {
+UI.collectForm = function () {
   const get = (sel) => this.qs(sel)?.value?.trim() || '';
   const getNum = (sel) => this.qs(sel)?.value || '';
   const getChk = (sel) => !!this.qs(sel)?.checked;
   const pair = (p) => ({ data: get(`${p}_dt`) || null, testo: get(`${p}_tx`) || '' });
-  const cd = (p) => ({ 
-    done: getChk(`#${p}_chk`), 
+  const cd = (p) => ({
+    done: getChk(`#${p}_chk`),
     data: get(`#${p}_dt`) || null,
     brevetto: getChk(`#${p}_brevetto`),
     distintivo: getChk(`#${p}_distintivo`)
   });
-  
+
   const payload = {
     nome: get('#anag_nome'),
     cognome: get('#anag_cognome'),
@@ -711,7 +723,7 @@ UI.collectForm = function() {
   // Aggiungi i dati delle sfide codificate
   const direzioni = ['io', 'al', 'mt'];
   const passi = ['1', '2', '3'];
-  
+
   passi.forEach(passo => {
     direzioni.forEach(dir => {
       const codeKey = `pv_sfida_${dir}_${passo}`;
@@ -725,35 +737,35 @@ UI.collectForm = function() {
 };
 
 // ============== Gestione Pattuglie ==============
-UI.initPattugliaManagement = function() {
+UI.initPattugliaManagement = function () {
   console.log('Inizializzazione gestione pattuglie...');
   // Carica le pattuglie dal localStorage o usa quelle di default
   this.pattuglie = JSON.parse(localStorage.getItem('pattuglie') || '["Aironi", "Marmotte"]');
   this.updatePattugliaSelect();
-  
+
   // Event listeners per il modal
   this.qs('#managePattugliaBtn')?.addEventListener('click', () => this.openPattugliaModal());
   this.qs('#closePattugliaModal')?.addEventListener('click', () => this.closePattugliaModal());
   this.qs('#cancelPattugliaBtn')?.addEventListener('click', () => this.closePattugliaModal());
   this.qs('#savePattugliaBtn')?.addEventListener('click', () => this.savePattuglie());
   this.qs('#addPattugliaBtn')?.addEventListener('click', () => this.addPattuglia());
-  
+
   // Chiudi modal cliccando fuori
   this.qs('#pattugliaModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'pattugliaModal') this.closePattugliaModal();
   });
 };
 
-UI.updatePattugliaSelect = function() {
+UI.updatePattugliaSelect = function () {
   const select = this.qs('#pv_pattuglia');
   if (!select) return;
-  
+
   // Salva il valore attuale
   const currentValue = select.value;
-  
+
   // Pulisce le opzioni (mantiene la prima "Seleziona...")
   select.innerHTML = '<option value="">Seleziona pattuglia...</option>';
-  
+
   // Aggiunge le pattuglie
   this.pattuglie.forEach(pattuglia => {
     const option = document.createElement('option');
@@ -761,14 +773,14 @@ UI.updatePattugliaSelect = function() {
     option.textContent = pattuglia;
     select.appendChild(option);
   });
-  
+
   // Ripristina il valore selezionato
   if (currentValue && this.pattuglie.includes(currentValue)) {
     select.value = currentValue;
   }
 };
 
-UI.openPattugliaModal = function() {
+UI.openPattugliaModal = function () {
   console.log('Apertura modal pattuglie...');
   this.renderPattugliaList();
   const modal = this.qs('#pattugliaModal');
@@ -779,17 +791,17 @@ UI.openPattugliaModal = function() {
   }
 };
 
-UI.closePattugliaModal = function() {
+UI.closePattugliaModal = function () {
   this.qs('#pattugliaModal').classList.remove('show');
   this.qs('#newPattugliaInput').value = '';
 };
 
-UI.renderPattugliaList = function() {
+UI.renderPattugliaList = function () {
   const container = this.qs('#pattugliaList');
   if (!container) return;
-  
+
   container.innerHTML = '';
-  
+
   this.pattuglie.forEach((pattuglia, index) => {
     const div = document.createElement('div');
     div.className = 'flex items-center justify-between p-2 bg-gray-50 rounded border';
@@ -803,31 +815,31 @@ UI.renderPattugliaList = function() {
   });
 };
 
-UI.addPattuglia = function() {
+UI.addPattuglia = function () {
   const input = this.qs('#newPattugliaInput');
   const nome = input.value.trim();
-  
+
   if (!nome) {
     this.showToast('Inserisci un nome per la pattuglia', { type: 'warning' });
     return;
   }
-  
+
   if (this.pattuglie.includes(nome)) {
     this.showToast('Questa pattuglia esiste già', { type: 'warning' });
     return;
   }
-  
+
   this.pattuglie.push(nome);
   this.renderPattugliaList();
   input.value = '';
 };
 
-UI.removePattuglia = function(index) {
+UI.removePattuglia = function (index) {
   if (this.pattuglie.length <= 1) {
     this.showToast('Deve rimanere almeno una pattuglia', { type: 'warning' });
     return;
   }
-  
+
   this.showConfirmModal({
     title: 'Rimuovi pattuglia',
     message: 'Sei sicuro di voler rimuovere questa pattuglia?',
@@ -840,23 +852,23 @@ UI.removePattuglia = function(index) {
   });
 };
 
-UI.savePattuglie = function() {
+UI.savePattuglie = function () {
   // Aggiorna le pattuglie con i valori modificati
   const inputs = this.qs('#pattugliaList').querySelectorAll('input[type="text"]');
   const newPattuglie = [];
-  
+
   inputs.forEach(input => {
     const value = input.value.trim();
     if (value && !newPattuglie.includes(value)) {
       newPattuglie.push(value);
     }
   });
-  
+
   if (newPattuglie.length === 0) {
     this.showToast('Deve rimanere almeno una pattuglia', { type: 'warning' });
     return;
   }
-  
+
   this.pattuglie = newPattuglie;
   localStorage.setItem('pattuglie', JSON.stringify(this.pattuglie));
   this.updatePattugliaSelect();
@@ -865,57 +877,57 @@ UI.savePattuglie = function() {
 };
 
 // ============== Gestione Sezioni Tracce Espandibili ==============
-UI.initTracciaSections = function() {
+UI.initTracciaSections = function () {
   console.log('Inizializzazione sezioni tracce espandibili...');
-  
+
   // Evita di aggiungere più event listener
   if (this._tracciaSectionsInitialized) {
     console.log('Sezioni tracce già inizializzate');
     return;
   }
-  
+
   // Usa event delegation per gestire i click sui header tracce
   const container = document.querySelector('#scoutForm') || document.body;
-  
+
   container.addEventListener('click', (e) => {
     // Verifica se il click è su un header traccia
     const header = e.target.closest('.traccia-header');
     if (!header) return;
-    
+
     console.log('Click su header traccia:', header.dataset.traccia);
-    
+
     // Non espandere se si clicca su checkbox o input
     if (e.target.type === 'checkbox' || e.target.type === 'date') {
       console.log('Click su input, ignorato');
       return;
     }
-    
+
     const tracciaNum = header.dataset.traccia;
     console.log('Toggling traccia:', tracciaNum);
     this.toggleTracciaSection(tracciaNum);
   });
-  
+
   this._tracciaSectionsInitialized = true;
   console.log('Event delegation configurato per sezioni tracce');
 };
 
-UI.toggleTracciaSection = function(tracciaNum) {
+UI.toggleTracciaSection = function (tracciaNum) {
   console.log('toggleTracciaSection chiamata per traccia:', tracciaNum);
-  
+
   const header = document.querySelector(`.traccia-header[data-traccia="${tracciaNum}"]`);
   const content = header?.nextElementSibling;
   const icon = header?.querySelector('.expand-icon');
-  
+
   console.log('Elementi trovati:', { header: !!header, content: !!content, icon: !!icon });
-  
+
   if (!header || !content || !icon) {
     console.error('Elementi non trovati per traccia:', tracciaNum);
     return;
   }
-  
+
   const isExpanded = content.classList.contains('expanded');
   console.log('Stato attuale - espanso:', isExpanded);
-  
+
   if (isExpanded) {
     // Contrai
     console.log('Contraendo sezione...');
@@ -927,63 +939,63 @@ UI.toggleTracciaSection = function(tracciaNum) {
     content.classList.add('expanded');
     icon.classList.add('rotated');
   }
-  
+
   console.log('Classi finali content:', content.className);
   console.log('Classi finali icon:', icon.className);
 };
 
 // ============== Gestione Sezioni Specialità Espandibili ==============
-UI.initSpecialitaSections = function() {
+UI.initSpecialitaSections = function () {
   console.log('Inizializzazione sezioni specialità espandibili...');
-  
+
   // Evita di aggiungere più event listener
   if (this._specialitaSectionsInitialized) {
     console.log('Sezioni specialità già inizializzate');
     return;
   }
-  
+
   // Usa event delegation per gestire i click sui header delle specialità
   const container = document.querySelector('#specialitaContainer') || document.body;
-  
+
   container.addEventListener('click', (e) => {
     // Verifica se il click è su un header specialità
     const header = e.target.closest('.specialita-header');
     if (!header) return;
-    
+
     console.log('Click su header specialità:', header.dataset.specialita);
-    
+
     // Non espandere se si clicca su checkbox, input, select o button
     if (e.target.type === 'checkbox' || e.target.type === 'date' || e.target.tagName === 'SELECT' || e.target.classList.contains('removeSpecialitaBtn')) {
       console.log('Click su input/button, ignorato');
       return;
     }
-    
+
     const specialitaIndex = header.dataset.specialita;
     console.log('Toggling specialità:', specialitaIndex);
     this.toggleSpecialitaSection(specialitaIndex);
   });
-  
+
   this._specialitaSectionsInitialized = true;
   console.log('Event delegation configurato per sezioni specialità');
 };
 
-UI.toggleSpecialitaSection = function(specialitaIndex) {
+UI.toggleSpecialitaSection = function (specialitaIndex) {
   console.log('toggleSpecialitaSection chiamata per specialità:', specialitaIndex);
-  
+
   const header = document.querySelector(`.specialita-header[data-specialita="${specialitaIndex}"]`);
   const content = header?.nextElementSibling;
   const icon = header?.querySelector('.expand-icon');
-  
+
   console.log('Elementi trovati:', { header: !!header, content: !!content, icon: !!icon });
-  
+
   if (!header || !content || !icon) {
     console.error('Elementi non trovati per specialità:', specialitaIndex);
     return;
   }
-  
+
   const isExpanded = content.classList.contains('expanded');
   console.log('Stato attuale - espanso:', isExpanded);
-  
+
   if (isExpanded) {
     // Contrai
     console.log('Contraendo sezione specialità...');
@@ -995,7 +1007,7 @@ UI.toggleSpecialitaSection = function(specialitaIndex) {
     content.classList.add('expanded');
     icon.classList.add('rotated');
   }
-  
+
   console.log('Classi finali content:', content.className);
   console.log('Classi finali icon:', icon.className);
 };
@@ -1005,19 +1017,19 @@ UI.toggleSpecialitaSection = function(specialitaIndex) {
 /**
  * Inizializza la navigazione tra sezioni
  */
-UI.initSectionNavigation = function() {
+UI.initSectionNavigation = function () {
   const navLinks = document.querySelectorAll('.section-nav-link');
   const sections = document.querySelectorAll('section[id^="section-"]');
-  
+
   // Funzione per evidenziare la sezione corrente
   const updateActiveSection = () => {
     const scrollPos = window.scrollY + 150; // Offset per la navbar sticky
-    
+
     sections.forEach(section => {
       const sectionTop = section.offsetTop;
       const sectionHeight = section.offsetHeight;
       const sectionId = section.id;
-      
+
       if (scrollPos >= sectionTop && scrollPos < sectionTop + sectionHeight) {
         // Rimuovi active da tutti i link
         navLinks.forEach(link => {
@@ -1026,7 +1038,7 @@ UI.initSectionNavigation = function() {
             link.classList.remove('bg-green-800', 'text-green-300');
           }
         });
-        
+
         // Aggiungi active al link corrispondente
         const activeLink = document.querySelector(`a[href="#${sectionId}"]`);
         if (activeLink) {
@@ -1039,17 +1051,17 @@ UI.initSectionNavigation = function() {
       }
     });
   };
-  
+
   // Aggiorna durante lo scroll
   let scrollTimeout;
   window.addEventListener('scroll', () => {
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(updateActiveSection, 50);
   });
-  
+
   // Aggiorna all'inizio
   updateActiveSection();
-  
+
   // Smooth scroll per i link di navigazione
   navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
@@ -1077,7 +1089,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 500);
 });
 
-UI.printScoutSheet = async function() {
+UI.printScoutSheet = async function () {
   try {
     // Ottieni l'ID dell'esploratore corrente
     const scoutId = this.qs('#scoutId')?.value;
@@ -1085,19 +1097,19 @@ UI.printScoutSheet = async function() {
       alert('ID esploratore non trovato');
       return;
     }
-    
+
     // Carica i dati aggiornati da Firestore invece di usare solo il form
     // Questo garantisce che abbiamo i dati più recenti salvati
     if (!this.state.scouts || this.state.scouts.length === 0) {
       this.state = await DATA.loadAll();
     }
-    
+
     const scoutFromDb = (this.state.scouts || []).find(s => s.id === scoutId);
     if (!scoutFromDb) {
       this.showToast('Esploratore non trovato nel database', { type: 'error' });
       return;
     }
-    
+
     // Usa i dati dal database, ma integra con i dati del form per i campi che potrebbero essere stati modificati
     const formData = this.collectForm();
     const data = {
@@ -1108,23 +1120,23 @@ UI.printScoutSheet = async function() {
       nome: formData.nome || scoutFromDb.nome,
       cognome: formData.cognome || scoutFromDb.cognome
     };
-    
+
     // Debug: verifica i dati raccolti
     console.log('🔍 Debug printScoutSheet - Dati specialità da DB:', JSON.stringify(data.specialita, null, 2));
-    
+
     const challenges = await this.loadChallenges();
     const specialitaList = await this.loadSpecialitaList();
-    
+
     // Funzioni helper per formattare i dati
     const fmtDate = (d) => {
       if (!d) return '';
       const date = this.toJsDate(d);
       return isNaN(date) ? '' : date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
-    
+
     const fmtCheck = (val) => val ? '☑' : '☐';
     const fmtValue = (val) => val || '';
-    
+
     // Ottieni il testo completo delle sfide
     const getSfidaText = (passo, dir, code) => {
       if (!code || !challenges) return '';
@@ -1133,13 +1145,13 @@ UI.printScoutSheet = async function() {
       const sfida = sfide.find(s => s.code === code);
       return sfida ? sfida.text : '';
     };
-    
+
     const direzioniLabels = { io: 'IO', al: 'Gli Altri', mt: 'La Mia Traccia' };
-    
+
     // Determina il passo raggiunto e il prossimo passo
     let passoRaggiunto = 0;
     let prossimoPasso = 1;
-    
+
     if (data.pv_traccia3?.done) {
       passoRaggiunto = 3;
       prossimoPasso = null; // Ha completato tutto
@@ -1153,7 +1165,7 @@ UI.printScoutSheet = async function() {
       passoRaggiunto = 0;
       prossimoPasso = 1;
     }
-    
+
     // Determina verso cosa sta camminando
     let versoCosa = '';
     if (!data.pv_promessa && passoRaggiunto === 0) {
@@ -1165,7 +1177,7 @@ UI.printScoutSheet = async function() {
     } else if (prossimoPasso === 3) {
       versoCosa = 'il terzo Passo';
     }
-    
+
     // Costruisci HTML per la stampa
     let html = `
       <div class="print-section">
@@ -1182,12 +1194,12 @@ UI.printScoutSheet = async function() {
         <div class="print-subtitle" style="margin-top: 16px; margin-bottom: 8px;">SFIDE DA SUPERARE PER RAGGIUNGERE IL PROSSIMO PASSO</div>
         <div style="margin-top: 8px;">
     `;
-    
+
     // SFIDE DA SUPERARE PER RAGGIUNGERE IL PROSSIMO PASSO
     if (prossimoPasso) {
       const direzioni = ['io', 'al', 'mt'];
       let hasSfide = false;
-      
+
       direzioni.forEach(dir => {
         const code = data[`pv_sfida_${dir}_${prossimoPasso}`];
         const dataSfida = data[`pv_sfida_${dir}_${prossimoPasso}_data`];
@@ -1208,7 +1220,7 @@ UI.printScoutSheet = async function() {
           `;
         }
       });
-      
+
       // Sfida bianca del prossimo passo
       const sfidaBianca = data[`pv_sfida_bianca_${prossimoPasso}`];
       if (sfidaBianca) {
@@ -1225,26 +1237,26 @@ UI.printScoutSheet = async function() {
           </div>
         `;
       }
-      
+
       if (!hasSfide) {
         html += `<div style="color: #666; font-style: italic; font-size: 12px;">Nessuna sfida selezionata per il prossimo passo</div>`;
       }
     }
-    
+
     html += `
         </div>
       </div>
     `;
-    
+
     // SPECIALITA' CHE HAI GIA' OTTENUTO e CHE VUOI OTTENERE nello stesso container
     const specialitaOttenute = (data.specialita || []).filter(sp => sp.nome && sp.ottenuta);
     const specialitaDaOttenere = (data.specialita || []).filter(sp => sp.nome && !sp.ottenuta);
-    
+
     if (specialitaOttenute.length > 0 || specialitaDaOttenere.length > 0) {
       html += `
         <div class="print-section print-box">
       `;
-      
+
       // SPECIALITA' CHE HAI GIA' OTTENUTO
       if (specialitaOttenute.length > 0) {
         html += `
@@ -1259,14 +1271,14 @@ UI.printScoutSheet = async function() {
           </div>
         `;
       }
-      
+
       // SPECIALITA' CHE VUOI OTTENERE
       if (specialitaDaOttenere.length > 0) {
         html += `
           <div class="print-subtitle" style="margin-top: ${specialitaOttenute.length > 0 ? '16px' : '0'}; margin-bottom: 8px;">SPECIALITA' CHE VUOI OTTENERE</div>
           <div style="margin-top: 8px;">
         `;
-        
+
         specialitaDaOttenere.forEach((sp, idx) => {
           // Trova la specialità nella lista per ottenere le prove
           const specInfo = specialitaList.find(s => s.nome === sp.nome);
@@ -1275,19 +1287,19 @@ UI.printScoutSheet = async function() {
             { nome: 'Prova 2', id: 'p2' },
             { nome: 'Prova 3', id: 'p3' }
           ];
-          
+
           html += `
             <div style="margin-bottom: ${idx < specialitaDaOttenere.length - 1 ? '14px' : '4px'}; padding: 8px; border: 1px solid #ddd; border-radius: 3px;">
               <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">${sp.nome}</div>
           `;
-          
+
           // Mostra tutte le prove
           prove.forEach((prova, pIdx) => {
             // Accedi ai dati della prova usando la chiave corretta
             // prova.id è "p1", "p2", "p3", quindi cerchiamo "p1_data", "p2_data", "p3_data"
             const provaDataKey = `${prova.id}_data`;
             const provaData = sp[provaDataKey];
-            
+
             // Debug per ogni prova
             console.log(`🔍 Debug prova ${prova.nome} (${prova.id}):`, {
               key: provaDataKey,
@@ -1298,7 +1310,7 @@ UI.printScoutSheet = async function() {
               isEmpty: provaData === '',
               fullSp: sp
             });
-            
+
             // Se c'è una data valorizzata, segna la checkbox come completata
             // Controlla che non sia null/undefined e che non sia stringa vuota
             const isCompletata = provaData !== null && provaData !== undefined && provaData !== '';
@@ -1315,7 +1327,7 @@ UI.printScoutSheet = async function() {
               </div>
             `;
           });
-          
+
           // Prova CR
           if (sp.cr_text || sp.cr_data) {
             html += `
@@ -1331,7 +1343,7 @@ UI.printScoutSheet = async function() {
               </div>
             `;
           }
-          
+
           // Note
           if (sp.note) {
             html += `
@@ -1341,33 +1353,33 @@ UI.printScoutSheet = async function() {
               </div>
             `;
           }
-          
+
           html += `</div>`;
         });
-        
+
         html += `
           </div>
         `;
       }
-      
+
       html += `
         </div>
       `;
     }
-    
+
     // Inserisci nel printArea e stampa
     const pa = this.qs('#printArea');
     if (pa) {
       pa.innerHTML = html;
-      
+
       // Imposta il titolo del documento per il nome del file PDF
       const originalTitle = document.title;
       const pdfTitle = `Il Sentiero di ${data.nome || ''}`;
       document.title = pdfTitle;
-      
+
       // Ripristina il titolo originale dopo la stampa (con un piccolo delay)
       window.print();
-      
+
       // Ripristina il titolo dopo che la finestra di stampa si chiude
       setTimeout(() => {
         document.title = originalTitle;
