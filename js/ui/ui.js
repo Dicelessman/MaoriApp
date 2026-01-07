@@ -340,9 +340,25 @@ export const UI = {
             const sharedModals = this.qs('#shared-modals');
             if (sharedModals)
                 sharedModals.innerHTML = modalsHtml;
+            // Aggiorna il titolo dell'header con il nome dell'unità personalizzato
+            this.updateUnitName();
         }
         catch (error) {
             console.error('Errore nel caricamento componenti condivisi:', error);
+        }
+    },
+    updateUnitName() {
+        try {
+            const unitType = localStorage.getItem('unitType') || 'Reparto';
+            const unitName = localStorage.getItem('unitName') || 'Maori';
+            const fullName = `${unitType} ${unitName}`;
+            const headerTitle = this.qs('header h1');
+            if (headerTitle) {
+                headerTitle.textContent = fullName;
+            }
+        }
+        catch (error) {
+            console.error('Errore aggiornamento nome unità:', error);
         }
     },
     setupEventListeners() {

@@ -1,13 +1,53 @@
 // preferenze.js - Logica per gestione preferenze utente
 
 // Sovrascrive la funzione per il rendering della pagina corrente
-UI.renderCurrentPage = function() {
+UI.renderCurrentPage = function () {
   this.renderPreferencesPage();
 };
 
-UI.renderPreferencesPage = function() {
+UI.renderPreferencesPage = function () {
   const prefs = this.loadUserPreferences();
-  
+
+  // Configurazione Unità
+  const unitType = document.getElementById('unitType');
+  const unitName = document.getElementById('unitName');
+  const unitPreview = document.getElementById('unitPreview');
+
+  if (unitType && unitName && unitPreview) {
+    // Carica valori salvati
+    unitType.value = localStorage.getItem('unitType') || 'Reparto';
+    unitName.value = localStorage.getItem('unitName') || 'Maori';
+
+    // Aggiorna anteprima
+    const updatePreview = () => {
+      const type = unitType.value;
+      const name = unitName.value.trim() || 'Maori';
+      unitPreview.textContent = `${type} ${name}`;
+    };
+
+    updatePreview();
+
+    // Event listeners per aggiornamento anteprima in tempo reale
+    unitType.addEventListener('change', updatePreview);
+    unitName.addEventListener('input', updatePreview);
+
+    // Salva quando l'utente modifica
+    unitType.addEventListener('change', () => {
+      localStorage.setItem('unitType', unitType.value);
+      this.updateUnitName();
+      this.showToast('Tipo unità aggiornato', { type: 'success', duration: 1500 });
+    });
+
+    unitName.addEventListener('blur', () => {
+      const name = unitName.value.trim();
+      if (name) {
+        localStorage.setItem('unitName', name);
+        this.updateUnitName();
+        this.showToast('Nome unità aggiornato', { type: 'success', duration: 1500 });
+      }
+    });
+  }
+
   // Tema
   const themeSelect = document.getElementById('themeSelect');
   if (themeSelect) {
@@ -20,7 +60,7 @@ UI.renderPreferencesPage = function() {
       this.showToast('Tema aggiornato', { type: 'success' });
     });
   }
-  
+
   // Notifiche
   const notificationsEnabled = document.getElementById('notificationsEnabled');
   const notificationPermissionStatus = document.getElementById('notificationPermissionStatus');
@@ -28,7 +68,7 @@ UI.renderPreferencesPage = function() {
   const notificationPaymentReminders = document.getElementById('notificationPaymentReminders');
   const notificationImportantChanges = document.getElementById('notificationImportantChanges');
   const notificationBirthdayReminders = document.getElementById('notificationBirthdayReminders');
-  
+
   // Aggiorna stato permessi
   const updateNotificationPermissionStatus = () => {
     if ('Notification' in window) {
@@ -48,15 +88,15 @@ UI.renderPreferencesPage = function() {
       notificationPermissionStatus.className = 'text-xs text-gray-400 mt-1';
     }
   };
-  
+
   updateNotificationPermissionStatus();
-  
+
   // Checkbox notifiche abilitate
   if (notificationsEnabled) {
     notificationsEnabled.checked = prefs.notifications?.enabled || false;
     notificationsEnabled.addEventListener('change', async (e) => {
       const enabled = e.target.checked;
-      
+
       if (enabled) {
         // Richiedi permesso
         if ('Notification' in window) {
@@ -75,7 +115,7 @@ UI.renderPreferencesPage = function() {
             return;
           }
         }
-        
+
         // Inizializza FCM se non già fatto
         try {
           await this.initializeFCM();
@@ -84,7 +124,7 @@ UI.renderPreferencesPage = function() {
           this.showToast('Errore inizializzazione notifiche', { type: 'error' });
         }
       }
-      
+
       // Aggiorna preferenze
       const updatedPrefs = {
         ...prefs,
@@ -93,26 +133,26 @@ UI.renderPreferencesPage = function() {
           enabled: enabled
         }
       };
-      
+
       // Abilita/disabilita checkbox figli
-      [notificationActivityReminders, notificationPaymentReminders, 
-       notificationImportantChanges, notificationBirthdayReminders].forEach(cb => {
-        if (cb) cb.disabled = !enabled;
-      });
-      
+      [notificationActivityReminders, notificationPaymentReminders,
+        notificationImportantChanges, notificationBirthdayReminders].forEach(cb => {
+          if (cb) cb.disabled = !enabled;
+        });
+
       await this.saveUserPreferences(updatedPrefs);
       updateNotificationPermissionStatus();
       this.showToast(enabled ? 'Notifiche abilitate' : 'Notifiche disabilitate', { type: 'success' });
     });
-    
+
     // Inizializza stato checkbox figli
     const notificationsEnabledState = prefs.notifications?.enabled || false;
-    [notificationActivityReminders, notificationPaymentReminders, 
-     notificationImportantChanges, notificationBirthdayReminders].forEach(cb => {
-      if (cb) cb.disabled = !notificationsEnabledState;
-    });
+    [notificationActivityReminders, notificationPaymentReminders,
+      notificationImportantChanges, notificationBirthdayReminders].forEach(cb => {
+        if (cb) cb.disabled = !notificationsEnabledState;
+      });
   }
-  
+
   // Checkbox singole notifiche
   if (notificationActivityReminders) {
     notificationActivityReminders.checked = prefs.notifications?.activityReminders ?? true;
@@ -127,7 +167,7 @@ UI.renderPreferencesPage = function() {
       await this.saveUserPreferences(updatedPrefs);
     });
   }
-  
+
   if (notificationPaymentReminders) {
     notificationPaymentReminders.checked = prefs.notifications?.paymentReminders ?? true;
     notificationPaymentReminders.addEventListener('change', async (e) => {
@@ -141,7 +181,7 @@ UI.renderPreferencesPage = function() {
       await this.saveUserPreferences(updatedPrefs);
     });
   }
-  
+
   if (notificationImportantChanges) {
     notificationImportantChanges.checked = prefs.notifications?.importantChanges ?? true;
     notificationImportantChanges.addEventListener('change', async (e) => {
@@ -155,7 +195,7 @@ UI.renderPreferencesPage = function() {
       await this.saveUserPreferences(updatedPrefs);
     });
   }
-  
+
   if (notificationBirthdayReminders) {
     notificationBirthdayReminders.checked = prefs.notifications?.birthdayReminders ?? true;
     notificationBirthdayReminders.addEventListener('change', async (e) => {
@@ -169,7 +209,7 @@ UI.renderPreferencesPage = function() {
       await this.saveUserPreferences(updatedPrefs);
     });
   }
-  
+
   // Vista predefinita
   const defaultViewSelect = document.getElementById('defaultViewSelect');
   if (defaultViewSelect) {
@@ -180,7 +220,7 @@ UI.renderPreferencesPage = function() {
       this.showToast('Vista predefinita aggiornata', { type: 'success' });
     });
   }
-  
+
   // Ordinamento attività
   const activityOrderSelect = document.getElementById('activityOrderSelect');
   if (activityOrderSelect) {
@@ -191,29 +231,29 @@ UI.renderPreferencesPage = function() {
       this.showToast('Ordinamento aggiornato', { type: 'success' });
     });
   }
-  
+
   // Shortcuts configurazione
   const shortcutsEnabled = document.getElementById('shortcutsEnabled');
   const shortcutsConfigContainer = document.getElementById('shortcutsConfigContainer');
   const resetShortcutsBtn = document.getElementById('resetShortcutsBtn');
-  
+
   const shortcutsConfig = [
     { id: 'save', label: 'Salva form attivo', default: { key: 's', ctrl: true, meta: true, enabled: true } },
     { id: 'search', label: 'Focus su campo ricerca', default: { key: '/', ctrl: false, meta: false, enabled: true } },
     { id: 'escape', label: 'Chiudi modale aperta', default: { key: 'Escape', ctrl: false, meta: false, enabled: true } },
     { id: 'help', label: 'Mostra guida shortcuts', default: { key: '?', ctrl: false, meta: false, enabled: true } }
   ];
-  
+
   // Render configurazione shortcuts
   const renderShortcutsConfig = () => {
     const config = this.getShortcutsConfig();
     const shortcuts = config.shortcuts || {};
-    
+
     if (shortcutsConfigContainer) {
       shortcutsConfigContainer.innerHTML = shortcutsConfig.map(sc => {
         const shortcut = shortcuts[sc.id] || sc.default;
         const formatted = this.formatShortcut(shortcut);
-        
+
         return `
           <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-between mb-2">
@@ -247,7 +287,7 @@ UI.renderPreferencesPage = function() {
           </div>
         `;
       }).join('');
-      
+
       // Setup event listeners per ogni shortcut
       shortcutsConfigContainer.querySelectorAll('[data-shortcut-enabled]').forEach(cb => {
         cb.addEventListener('change', async (e) => {
@@ -260,7 +300,7 @@ UI.renderPreferencesPage = function() {
           }
           currentPrefs.shortcuts[shortcutId].enabled = enabled;
           await this.saveUserPreferences(currentPrefs);
-          
+
           // Rendi/Disabilita il pulsante di cattura
           const captureBtn = shortcutsConfigContainer.querySelector(`[data-shortcut-id="${shortcutId}"][data-shortcut-key-capture]`);
           const resetBtn = shortcutsConfigContainer.querySelector(`[data-shortcut-id="${shortcutId}"][data-shortcut-reset]`);
@@ -269,13 +309,13 @@ UI.renderPreferencesPage = function() {
             captureBtn.classList.toggle('opacity-50', !enabled);
             captureBtn.classList.toggle('cursor-not-allowed', !enabled);
           }
-          
+
           // Ricarica configurazione shortcuts
           this.setupKeyboardShortcuts();
           this.showToast(`Scorciatoia ${enabled ? 'abilitata' : 'disabilitata'}`, { type: 'success', duration: 1500 });
         });
       });
-      
+
       // Setup key capture
       let capturingKey = null;
       shortcutsConfigContainer.querySelectorAll('[data-shortcut-key-capture]').forEach(btn => {
@@ -284,11 +324,11 @@ UI.renderPreferencesPage = function() {
           capturingKey = btn.dataset.shortcutId;
           btn.textContent = 'Premi una combinazione di tasti...';
           btn.classList.add('ring-2', 'ring-green-500');
-          
+
           const handler = async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            
+
             const shortcut = {
               key: e.key,
               ctrl: e.ctrlKey,
@@ -297,23 +337,23 @@ UI.renderPreferencesPage = function() {
               shift: e.shiftKey,
               enabled: true
             };
-            
+
             // Verifica conflitti con altri shortcuts
             const currentPrefs = this.loadUserPreferences();
             const shortcuts = currentPrefs.shortcuts || {};
             let hasConflict = false;
-            
+
             for (const [id, existing] of Object.entries(shortcuts)) {
               if (id === capturingKey || !existing.enabled) continue;
               if (existing.key === shortcut.key &&
-                  existing.ctrl === shortcut.ctrl &&
-                  existing.meta === shortcut.meta &&
-                  existing.alt === shortcut.alt) {
+                existing.ctrl === shortcut.ctrl &&
+                existing.meta === shortcut.meta &&
+                existing.alt === shortcut.alt) {
                 hasConflict = true;
                 break;
               }
             }
-            
+
             if (hasConflict) {
               this.showToast('Questa combinazione è già in uso!', { type: 'error' });
               btn.textContent = this.formatShortcut(shortcuts[capturingKey] || shortcutsConfig.find(s => s.id === capturingKey).default);
@@ -323,20 +363,20 @@ UI.renderPreferencesPage = function() {
               await this.saveUserPreferences(currentPrefs);
               btn.textContent = this.formatShortcut(shortcut);
               this.showToast('Scorciatoia aggiornata', { type: 'success', duration: 1500 });
-              
+
               // Ricarica configurazione shortcuts
               this.setupKeyboardShortcuts();
             }
-            
+
             btn.classList.remove('ring-2', 'ring-green-500');
             capturingKey = null;
             document.removeEventListener('keydown', handler, true);
           };
-          
+
           document.addEventListener('keydown', handler, true);
         });
       });
-      
+
       // Setup reset individuale
       shortcutsConfigContainer.querySelectorAll('[data-shortcut-reset]').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -352,7 +392,7 @@ UI.renderPreferencesPage = function() {
       });
     }
   };
-  
+
   // Setup toggle shortcuts enabled
   if (shortcutsEnabled) {
     const config = this.getShortcutsConfig();
@@ -365,10 +405,10 @@ UI.renderPreferencesPage = function() {
       this.showToast(`Scorciatoie ${e.target.checked ? 'abilitate' : 'disabilitate'}`, { type: 'success' });
     });
   }
-  
+
   // Setup Export/Import
   this.setupExportImport();
-  
+
   // Setup reset shortcuts
   if (resetShortcutsBtn) {
     resetShortcutsBtn.addEventListener('click', async () => {
@@ -377,7 +417,7 @@ UI.renderPreferencesPage = function() {
         'Sei sicuro di voler ripristinare tutte le scorciatoie ai valori predefiniti?',
         { confirmText: 'Ripristina', cancelText: 'Annulla' }
       );
-      
+
       if (confirmed) {
         const currentPrefs = this.loadUserPreferences();
         currentPrefs.shortcuts = {};
@@ -392,17 +432,17 @@ UI.renderPreferencesPage = function() {
       }
     });
   }
-  
+
   // Render configurazione shortcuts
   renderShortcutsConfig();
-  
+
   // Sincronizza preferenze
   const syncPreferencesBtn = document.getElementById('syncPreferencesBtn');
   if (syncPreferencesBtn) {
     syncPreferencesBtn.addEventListener('click', async () => {
       syncPreferencesBtn.disabled = true;
       syncPreferencesBtn.textContent = '⏳ Sincronizzazione...';
-      
+
       try {
         await this.syncUserPreferences();
         const updatedPrefs = this.loadUserPreferences();
@@ -417,7 +457,7 @@ UI.renderPreferencesPage = function() {
       }
     });
   }
-  
+
   // Salva preferenze
   const savePreferencesBtn = document.getElementById('savePreferencesBtn');
   if (savePreferencesBtn) {
@@ -427,7 +467,7 @@ UI.renderPreferencesPage = function() {
       this.showToast('Preferenze salvate con successo', { type: 'success' });
     });
   }
-  
+
   // Ripristina default
   const resetPreferencesBtn = document.getElementById('resetPreferencesBtn');
   if (resetPreferencesBtn) {
@@ -437,7 +477,7 @@ UI.renderPreferencesPage = function() {
         'Sei sicuro di voler ripristinare tutte le preferenze ai valori predefiniti? Questa azione non può essere annullata.',
         { confirmText: 'Ripristina', cancelText: 'Annulla' }
       );
-      
+
       if (confirmed) {
         const defaultPrefs = {
           theme: 'auto',
@@ -459,7 +499,7 @@ UI.renderPreferencesPage = function() {
           },
           shortcutsEnabled: true
         };
-        
+
         await this.saveUserPreferences(defaultPrefs);
         this.applyTheme('auto');
         this.renderPreferencesPage(); // Ricarica
@@ -470,7 +510,7 @@ UI.renderPreferencesPage = function() {
 };
 
 // Setup Export/Import handlers
-UI.setupExportImport = function() {
+UI.setupExportImport = function () {
   // Export JSON
   const exportJSONBtn = document.getElementById('exportJSONBtn');
   if (exportJSONBtn) {
@@ -478,7 +518,7 @@ UI.setupExportImport = function() {
       this.downloadJSONExport();
     });
   }
-  
+
   // Export Presences CSV
   const exportPresencesCSVBtn = document.getElementById('exportPresencesCSVBtn');
   if (exportPresencesCSVBtn) {
@@ -486,7 +526,7 @@ UI.setupExportImport = function() {
       this.downloadPresencesCSV();
     });
   }
-  
+
   // Export Activities CSV
   const exportActivitiesCSVBtn = document.getElementById('exportActivitiesCSVBtn');
   if (exportActivitiesCSVBtn) {
@@ -494,7 +534,7 @@ UI.setupExportImport = function() {
       this.downloadActivitiesCSV();
     });
   }
-  
+
   // Export Excel
   const exportExcelBtn = document.getElementById('exportExcelBtn');
   if (exportExcelBtn) {
@@ -502,17 +542,17 @@ UI.setupExportImport = function() {
       this.downloadExcelExport();
     });
   }
-  
+
   // Import file
   const importFileInput = document.getElementById('importFileInput');
   if (importFileInput) {
     importFileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      
+
       try {
         const mergeMode = document.getElementById('importMergeMode')?.checked || false;
-        
+
         if (file.name.endsWith('.json')) {
           await this.handleJSONImport(file, { merge: mergeMode });
         } else if (file.name.endsWith('.csv')) {
@@ -522,7 +562,7 @@ UI.setupExportImport = function() {
         } else {
           this.showToast('Formato file non supportato. Usa JSON, CSV o Excel.', { type: 'error' });
         }
-        
+
         // Reset input
         e.target.value = '';
       } catch (error) {
