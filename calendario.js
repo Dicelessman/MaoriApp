@@ -737,35 +737,36 @@ UI.downloadCalendarTXT = function () {
     return dateA - dateB;
   });
 
-  // Genera contenuto TXT
-  let txtContent = 'CALENDARIO ATTIVITÀ - REPARTO MAORI\n';
-  txtContent += '='.repeat(60) + '\n\n';
+  // Genera contenuto TXT con formato semplificato
+  let txtContent = '';
 
-  sorted.forEach((activity, index) => {
+  sorted.forEach(activity => {
     const startDate = this.toJsDate(activity.data);
-    const formattedStart = !isNaN(startDate) ? startDate.toLocaleDateString('it-IT') : 'Data non valida';
+    if (isNaN(startDate)) return; // Skip invalid dates
 
-    txtContent += `${index + 1}. ${activity.tipo}: ${activity.descrizione}\n`;
-    txtContent += `   Data: ${formattedStart}`;
+    // Formato data: gg/mm/aa
+    const formatDate = (date) => {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = String(date.getFullYear()).slice(-2);
+      return `${day}/${month}/${year}`;
+    };
 
+    const formattedStart = formatDate(startDate);
+    let dateRange = formattedStart;
+
+    // Se c'è data fine, aggiungi il range
     if (activity.dataFine) {
       const endDate = this.toJsDate(activity.dataFine);
-      const formattedEnd = !isNaN(endDate) ? endDate.toLocaleDateString('it-IT') : '';
-      if (formattedEnd) {
-        txtContent += ` - ${formattedEnd}`;
+      if (!isNaN(endDate)) {
+        const formattedEnd = formatDate(endDate);
+        dateRange = `${formattedStart} - ${formattedEnd}`;
       }
     }
-    txtContent += '\n';
 
-    if (activity.costo && activity.costo > 0) {
-      txtContent += `   Costo: €${activity.costo}\n`;
-    }
-    txtContent += '\n';
+    // Formato: data [- data fine] Tipo:
+    txtContent += `${dateRange} ${activity.tipo}:\n`;
   });
-
-  txtContent += '\n' + '='.repeat(60) + '\n';
-  txtContent += `Totale attività: ${activities.length}\n`;
-  txtContent += `Esportato il: ${new Date().toLocaleString('it-IT')}\n`;
 
   // Download
   const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
