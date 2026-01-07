@@ -571,14 +571,37 @@ UI.openEditActivityModal = function (id) {
 
   const typeInput = this.qs('#editActivityTipo');
   if (typeInput) {
-    // Se il tipo non è tra le opzioni, aggiungilo dinamicamente per assicurare che venga mostrato
-    const options = Array.from(typeInput.options).map(o => o.value);
-    if (activity.tipo && !options.includes(activity.tipo)) {
-      const newOption = document.createElement('option');
-      newOption.value = activity.tipo;
-      newOption.textContent = activity.tipo;
-      typeInput.appendChild(newOption);
+    // Definizione Tipi Standard
+    const standardTypes = [
+      'Riunione',
+      'Attività lunga',
+      'Uscita',
+      'Campo',
+      'Evento Adulti',
+      'Riunione Adulti',
+      'Eventi con esterni'
+    ];
+
+    // Ricostruisci le opzioni per garantire che siano tutte presenti
+    typeInput.innerHTML = '';
+
+    // Aggiungi tipi standard
+    standardTypes.forEach(type => {
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = type;
+      typeInput.appendChild(option);
+    });
+
+    // Se l'attività ha un tipo custom non presente nei standard, aggiungilo
+    if (activity.tipo && !standardTypes.includes(activity.tipo)) {
+      const customOption = document.createElement('option');
+      customOption.value = activity.tipo;
+      customOption.textContent = activity.tipo;
+      typeInput.appendChild(customOption);
     }
+
+    // Seleziona il valore corretto
     typeInput.value = activity.tipo;
   }
 
@@ -594,23 +617,18 @@ UI.openEditActivityModal = function (id) {
   const dateFineObj = activity.dataFine ? this.toJsDate(activity.dataFine) : null;
   const dateFineStr = (dateFineObj && !isNaN(dateFineObj)) ? dateFineObj.toISOString().split('T')[0] : '';
   const dataFineInput = this.qs('#editActivityDataFine');
+
   if (dataFineInput) {
     dataFineInput.value = dateFineStr;
 
-    // Trigger visibility logic force update
-    const multiDayTypes = ['Uscita', 'Campo', 'Evento Adulti', 'Eventi con esterni'];
-
-    // Use activity.tipo directly to avoid DOM update lags (though synchronous)
-    const typeValue = activity.tipo || (typeInput ? typeInput.value : ''); // Fallback to typeInput.value if activity.tipo is missing
-    const isMultiDay = multiDayTypes.includes(typeValue);
-    const hasDataFine = !!dateFineStr;
-
-    // console.log('EditModal Visibility:', { type: typeValue, isMultiDay, hasDataFine });
-
-    const elToShow = dataFineInput.parentElement || dataFineInput;
-    // Forza visibilità sempre
-    elToShow.style.display = 'block';
-    elToShow.classList.remove('hidden');
+    // LOGICA VISIBILITA' DATA FINE (SEMPRE VISIBILE)
+    const elContainer = dataFineInput.parentElement;
+    if (elContainer) {
+      elContainer.style.display = 'block';
+      elContainer.classList.remove('hidden');
+    }
+    dataFineInput.style.display = 'block';
+    dataFineInput.classList.remove('hidden');
   }
 
   this.qs('#editActivityDescrizione').value = activity.descrizione;
