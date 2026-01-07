@@ -24,63 +24,6 @@ UI.getActivityTypeColor = function (type) {
   }
 };
 
-UI.initActivityTemplatesUI = async function () {
-  const select = this.qs('#activityTemplateSelect');
-  const applyBtn = this.qs('#applyActivityTemplateBtn');
-  const saveBtn = this.qs('#saveActivityTemplateBtn');
-  const tipoInput = this.qs('#activityTipo');
-  const descrInput = this.qs('#activityDescrizione');
-  const costoInput = this.qs('#activityCosto');
-
-  if (!select || !applyBtn || !saveBtn || !tipoInput || !descrInput || !costoInput) return;
-  if (!this.currentUser) return;
-
-  // Carica template e popola select
-  const templates = await this.loadActivityTemplates();
-  select.innerHTML = '<option value=\"\">Nessun template</option>' +
-    templates.map(t => `<option value=\"${t.id}\">${this.escapeHtml(t.name)}</option>`).join('');
-
-  // Applica template selezionato
-  applyBtn.addEventListener('click', () => {
-    const id = select.value;
-    if (!id) {
-      this.showToast('Seleziona un template prima di applicare.', { type: 'info' });
-      return;
-    }
-    const tmpl = (this._activityTemplates || []).find(t => t.id === id);
-    if (!tmpl) {
-      this.showToast('Template non trovato.', { type: 'error' });
-      return;
-    }
-    tipoInput.value = tmpl.tipo || 'Riunione';
-    descrInput.value = tmpl.descrizione || '';
-    costoInput.value = tmpl.costo != null ? String(tmpl.costo) : '';
-    this.showToast('Template applicato.', { type: 'success', duration: 1500 });
-  });
-
-  // Salva template dai valori correnti del form
-  saveBtn.addEventListener('click', async () => {
-    if (!this.currentUser) {
-      this.showToast('Devi essere loggato per salvare un template.', { type: 'error' });
-      return;
-    }
-    const tipo = tipoInput.value;
-    const descrizione = descrInput.value.trim();
-    const costo = costoInput.value ? Number(costoInput.value) : 0;
-
-    if (!descrizione) {
-      this.showToast('Inserisci una descrizione per salvare un template.', { type: 'error' });
-      descrInput.focus();
-      return;
-    }
-
-    await this.saveActivityTemplate({ tipo, descrizione, costo });
-    // Ricarica select
-    const templatesUpdated = this._activityTemplates || await this.loadActivityTemplates();
-    select.innerHTML = '<option value=\"\">Nessun template</option>' +
-      templatesUpdated.map(t => `<option value=\"${t.id}\">${this.escapeHtml(t.name)}</option>`).join('');
-  });
-};
 
 UI.setupCalendarEvents = function () {
   const form = this.qs('#addActivityForm');
@@ -164,10 +107,7 @@ UI.setupCalendarEvents = function () {
 
     this.setupFormValidation(form, validationRules);
 
-    // Inizializza UI template attività (solo se utente loggato)
-    if (this.currentUser) {
-      this.initActivityTemplatesUI();
-    }
+
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -664,44 +604,7 @@ UI.setupCalendarExport = function () {
   });
 };
 
-/**
- * Helpers Mancanti
- */
-UI.loadActivityTemplates = async function () {
-  try {
-    if (!this.currentUser) return [];
-    // Potremmo salvarli su Firestore o LocalStorage. Per ora LocalStorage per semplicità.
-    const key = `activity_templates_${this.currentUser.uid}`;
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : [];
-  } catch (e) {
-    console.error('Errore caricamento template:', e);
-    return [];
-  }
-};
 
-UI.saveActivityTemplate = async function (template) {
-  try {
-    if (!this.currentUser) return;
-    const key = `activity_templates_${this.currentUser.uid}`;
-    const current = await this.loadActivityTemplates();
-
-    // Check if duplicate name or content?? Simple add for now
-    const newTemplate = {
-      id: Date.now().toString(),
-      name: `${template.tipo} - ${template.descrizione}`,
-      ...template
-    };
-
-    current.push(newTemplate);
-    localStorage.setItem(key, JSON.stringify(current));
-    this.showToast('Template salvato locale', { type: 'success' });
-    this._activityTemplates = current; // Aggiorna cache locale
-  } catch (e) {
-    console.error('Errore salvataggio template:', e);
-    this.showToast('Errore nel salvare il template', { type: 'error' });
-  }
-};
 
 UI.validateActivityDateRange = function (date) {
   if (!date || isNaN(date.getTime())) {
