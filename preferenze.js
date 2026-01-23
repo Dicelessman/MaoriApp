@@ -543,7 +543,7 @@ UI.setupExportImport = function () {
     });
   }
 
-  // Import file
+  // Import file generico (JSON backup)
   const importFileInput = document.getElementById('importFileInput');
   if (importFileInput) {
     importFileInput.addEventListener('change', async (e) => {
@@ -555,15 +555,10 @@ UI.setupExportImport = function () {
 
         if (file.name.endsWith('.json')) {
           await this.handleJSONImport(file, { merge: mergeMode });
-        } else if (file.name.endsWith('.csv')) {
-          await this.handleCSVImport(file, { merge: mergeMode });
-        } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-          await this.handleExcelImport(file, { merge: mergeMode });
         } else {
-          this.showToast('Formato file non supportato. Usa JSON, CSV o Excel.', { type: 'error' });
+          this.showToast('Formato file non supportato qui. Usa JSON.', { type: 'error' });
         }
 
-        // Reset input
         e.target.value = '';
       } catch (error) {
         console.error('Errore import:', error);
@@ -572,5 +567,233 @@ UI.setupExportImport = function () {
       }
     });
   }
+
+  // Import Anagrafica CSV Especiale
+  const importAnagraficaCsvInput = document.getElementById('importAnagraficaCsvInput');
+  if (importAnagraficaCsvInput) {
+    importAnagraficaCsvInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      await this.handleAnagraficaCSVImport(file);
+      e.target.value = ''; // Reset
+    });
+  }
+};
+
+/**
+ * Gestisce l'importazione specifica del CSV anagrafica
+ */
+UI.handleAnagraficaCSVImport = async function (file) {
+  const logContainer = document.getElementById('importLogContainer');
+  const logContent = document.getElementById('importLogContent');
+
+  if (logContainer) logContainer.classList.remove('hidden');
+  if (logContent) logContent.textContent = 'Inizio lettura file...\n';
+
+  const appendLog = (msg) => {
+    if (logContent) {
+      logContent.textContent += msg + '\n';
+      logContent.scrollTop = logContent.scrollHeight;
+    }
+    console.log('[CSV Import] ' + msg);
+  };
+
+  try {
+    const text = await file.text();
+    const rows = this.parseCSV(text);
+
+    appendLog(`File letto: ${rows.length} righe trovate.`);
+
+    if (rows.length < 2) {
+      appendLog('Errore: Il file sembra vuoto o manca l\'intestazione.');
+      return;
+    }
+
+    // Mappatura colonne (basata su "generated (4).csv")
+    // "tessera","id","codiceFiscale","dataNascita","indirizzo","via","comune","nomeAnagrafico","cognome","sesso","genitore1","emailGenitore1","telefonoGenitore1","genitore2","emailGenitore2","telefonoGenitore2"
+    const header = rows[0];
+    const getIdx = (colName) => header.findIndex(h => h.toLowerCase() === colName.toLowerCase());
+
+    const mapIndices = {
+      tessera: getIdx('tessera'),
+      nome: getIdx('nomeAnagrafico'), // Note: CSV header says 'nomeAnagrafico'
+      cognome: getIdx('cognome'),
+      cf: getIdx('codiceFiscale'),
+      dob: getIdx('dataNascita'), // YYYY-MM-DD
+      indirizzo: getIdx('via'), // Preferisco 'via' a 'indirizzo' completo
+      citta: getIdx('comune'),
+      sesso: getIdx('sesso'),
+      g1_nome: getIdx('genitore1'),
+      g1_email: getIdx('emailGenitore1'),
+      g1_tel: getIdx('telefonoGenitore1'),
+      g2_nome: getIdx('genitore2'),
+      g2_email: getIdx('emailGenitore2'),
+      g2_tel: getIdx('telefonoGenitore2')
+    };
+
+    // Validation check
+    if (mapIndices.nome === -1 || mapIndices.cognome === -1) {
+      appendLog('Errore Crudale: Colonne "nomeAnagrafico" e "cognome" non trovate nel CSV.');
+      // Fallback try "nome" instead of "nomeAnagrafico" just in case
+      mapIndices.nome = getIdx('nome');
+      if (mapIndices.nome === -1) return;
+    }
+
+    appendLog('Caricamento esploratori esistenti...');
+    this.showLoadingOverlay('Analisi CSV in corso...');
+
+    // Force refresh to get all scouts including archived ones? No, usually import is for active ones mostly, 
+    // but let's load all to be sure.
+    const allData = await DATA.loadAll(true);
+    const scouts = allData.allScouts || allData.scouts || [];
+
+    appendLog(`Database caricato: ${scouts.length} esploratori totali.`);
+
+    let updatedCount = 0;
+    let notFoundCount = 0;
+    let skipCount = 0;
+    let errorCount = 0;
+
+    // Start processing rows (skip header)
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length < 2) continue; // Skip empty rows
+
+      const rawNome = row[mapIndices.nome] || '';
+      const rawCognome = row[mapIndices.cognome] || '';
+
+      if (!rawNome && !rawCognome) {
+        skipCount++;
+        continue;
+      }
+
+      // Normalize for matching
+      const norm = s => s.trim().toLowerCase();
+      const searchNome = norm(rawNome);
+      const searchCognome = norm(rawCognome);
+
+      // Find match
+      const match = scouts.find(s =>
+        norm(s.nome) === searchNome && norm(s.cognome) === searchCognome
+      );
+
+      if (match) {
+        // Prepare update payload
+        const updates = {};
+
+        const val = (idx) => {
+          const v = row[idx];
+          return (v && v.trim()) ? v.trim() : null;
+        };
+
+        // Mappa i campi solo se presenti nel CSV (sovrascrive solo se c'è valore nel CSV)
+        // Se nel CSV è vuoto, non cancella il dato esistente (policy conservativa)
+
+        const csv_cf = val(mapIndices.cf);
+        if (csv_cf) updates.anag_cf = csv_cf;
+
+        const csv_dob = val(mapIndices.dob); // Check format? CSV seems YYYY-MM-DD
+        if (csv_dob) updates.anag_dob = csv_dob; // Firestore adapter handles string dates fine usually or we convert?
+        // Adapter usually expects Date object or Timestamp. Let's ensure consistency.
+
+        const csv_sex = val(mapIndices.sesso);
+        if (csv_sex) updates.anag_sesso = csv_sex;
+
+        const csv_via = val(mapIndices.indirizzo);
+        if (csv_via) updates.anag_indirizzo = csv_via;
+
+        const csv_citta = val(mapIndices.citta);
+        if (csv_citta) updates.anag_citta = csv_citta;
+
+        // Genitori
+        const g1n = val(mapIndices.g1_nome);
+        if (g1n) updates.ct_g1_nome = g1n;
+        const g1e = val(mapIndices.g1_email);
+        if (g1e) updates.ct_g1_email = g1e;
+        const g1t = val(mapIndices.g1_tel);
+        if (g1t) updates.ct_g1_tel = g1t;
+
+        const g2n = val(mapIndices.g2_nome);
+        if (g2n) updates.ct_g2_nome = g2n;
+        const g2e = val(mapIndices.g2_email);
+        if (g2e) updates.ct_g2_email = g2e;
+        const g2t = val(mapIndices.g2_tel);
+        if (g2t) updates.ct_g2_tel = g2t;
+
+        // Censimento (Tessera) - magari salviamo in un campo note o custom? 
+        // Non vedo campo censimento esplicito nel model scout2.js, metto in note se serve?
+        // Per ora ignoro se non richiesto.
+
+        if (Object.keys(updates).length > 0) {
+          try {
+            await DATA.updateScout(match.id, updates, this.currentUser);
+            appendLog(`✅ Aggiornato: ${rawNome} ${rawCognome}`);
+            updatedCount++;
+          } catch (e) {
+            appendLog(`❌ Errore aggiornamento ${rawNome} ${rawCognome}: ${e.message}`);
+            errorCount++;
+          }
+        } else {
+          appendLog(`⏭️ Nessun nuovo dato per: ${rawNome} ${rawCognome}`);
+          skipCount++;
+        }
+
+      } else {
+        appendLog(`⚠️ Non trovato: ${rawNome} ${rawCognome}`);
+        notFoundCount++;
+      }
+    }
+
+    appendLog('-----------------------------------');
+    appendLog(`COMPLETATO: ${updatedCount} aggiornati, ${notFoundCount} non trovati, ${errorCount} errori.`);
+
+    this.showToast(`Import completato: ${updatedCount} aggiornati`);
+
+  } catch (err) {
+    appendLog('ERRORE FATALE: ' + err.message);
+    console.error(err);
+    this.showToast('Errore import CSV', { type: 'error' });
+  } finally {
+    this.hideLoadingOverlay();
+  }
+};
+
+/**
+ * Parsa una stringa CSV gestendo i doppi apici
+ */
+UI.parseCSV = function (str) {
+  const arr = [];
+  let quote = false;
+  let col = 0;
+  let row = 0;
+  let c = 0;
+
+  for (; c < str.length; c++) {
+    let cc = str[c], nc = str[c + 1];
+    arr[row] = arr[row] || [];
+    arr[row][col] = arr[row][col] || '';
+
+    if (cc === '"' && quote && nc === '"') {
+      arr[row][col] += cc; ++c; continue;
+    }
+    if (cc === '"') {
+      quote = !quote; continue;
+    }
+    if (cc === ',' && !quote) {
+      ++col; continue;
+    }
+    if (cc === '\r' && nc === '\n' && !quote) {
+      ++row; col = 0; ++c; continue;
+    }
+    if (cc === '\n' && !quote) {
+      ++row; col = 0; continue;
+    }
+    if (cc === '\r' && !quote) {
+      ++row; col = 0; continue;
+    }
+
+    arr[row][col] += cc;
+  }
+  return arr;
 };
 
