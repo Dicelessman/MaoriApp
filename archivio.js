@@ -1,6 +1,6 @@
 // archivio.js - Logica pagina Archivio
 
-// Aspetta che UI sia disponibile
+// Aspetta che UI sia disponibile e
 (function () {
     const init = () => {
         const ui = typeof window !== 'undefined' ? window.UI : (typeof UI !== 'undefined' ? UI : null);
