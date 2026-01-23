@@ -113,7 +113,7 @@ UI.renderScoutPage = async function () {
       this.state = await DATA.loadAll();
       this.rebuildPresenceIndex();
     }
-    const s = (this.state.scouts || []).find(x => x.id === id);
+    const s = (this.state.allScouts || this.state.scouts || []).find(x => x.id === id);
     if (!s) {
       this.qs('#scoutTitle').textContent = 'Scheda Esploratore — non trovato';
       return;

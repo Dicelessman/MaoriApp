@@ -63,13 +63,22 @@ function extendUI(UI) {
                         </div>
                     </div>
                     
-                    <button 
-                        onclick="UI.confirmRestoreScout('${s.id}', '${s.nome.replace(/'/g, "\\'")}', '${s.cognome.replace(/'/g, "\\'")}')"
-                        class="px-3 py-1.5 bg-white border border-green-600 text-green-700 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors flex items-center gap-2"
-                        title="Ripristina nei frequentanti"
-                    >
-                        <span>↩️</span> Ripristina
-                    </button>
+                    <div class="flex gap-2">
+                        <a 
+                            href="scout2.html?id=${s.id}"
+                            class="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+                            title="Vedi scheda"
+                        >
+                            <span>📄</span> Vedi
+                        </a>
+                        <button 
+                            onclick="UI.confirmRestoreScout('${s.id}', '${s.nome.replace(/'/g, "\\'")}', '${s.cognome.replace(/'/g, "\\'")}')"
+                            class="px-3 py-1.5 bg-white border border-green-600 text-green-700 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors flex items-center gap-2"
+                            title="Ripristina nei frequentanti"
+                        >
+                            <span>↩️</span> Ripristina
+                        </button>
+                    </div>
                 </div>
             `).join('');
 
