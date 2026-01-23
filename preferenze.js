@@ -900,4 +900,3 @@ UI.parseCSV = function (str) {
   return arr;
 };
 
-};
