@@ -42,7 +42,7 @@ function extendUI(UI) {
                 return;
             }
 
-            // Ordina per cognome, nome
+            // Ordina per cognome, nome , 
             archivedScouts.sort((a, b) =>
                 (a.cognome || '').localeCompare(b.cognome || '') ||
                 (a.nome || '').localeCompare(b.nome || '')
