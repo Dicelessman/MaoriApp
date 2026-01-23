@@ -899,3 +899,4 @@ UI.renderPreferencesPage = function () {
     return arr;
   };
 
+};
