@@ -179,6 +179,15 @@ UI.renderScouts = function (filterLetter = null) {
                   this.confirmDeleteScout(scoutId);
                 }
               });
+
+              actions.push({
+                label: 'Archivia',
+                icon: '🗂️',
+                danger: true, // Visual warning style
+                action: () => {
+                  this.confirmArchiveScout(scoutId);
+                }
+              });
             }
 
             this.showContextMenu(element, actions);
@@ -282,12 +291,14 @@ UI.renderScouts = function (filterLetter = null) {
             >
               ✏️
             </a>
+            </button>
             <button 
-              onclick="UI.confirmDeleteScout('${scout.id}')" 
-              class="p-2 text-gray-500 hover:text-red-600 rounded-full"
+              onclick="UI.confirmArchiveScout('${scout.id}')" 
+              class="p-2 text-gray-500 hover:text-orange-600 rounded-full"
+              title="Archivia"
               ${this.currentUser ? '' : 'disabled'}
             >
-              🗑️
+              🗂️
             </button>
           </div>
         </div>
@@ -324,6 +335,37 @@ UI.confirmDeleteScout = function (id) {
   this.scoutToDeleteId = id;
   this.qs('#scoutNameToDelete').textContent = `${scout.nome} ${scout.cognome}`;
   this.showModal('confirmDeleteScoutModal');
+};
+
+UI.confirmArchiveScout = function (id) {
+  if (!this.currentUser) {
+    this.showToast('Devi essere loggato per archiviare esploratori.', { type: 'error' });
+    return;
+  }
+
+  const scout = this.state.scouts.find(s => s.id === id);
+  if (!scout) return;
+
+  if (confirm(`Sei sicuro di voler archiviare ${scout.nome} ${scout.cognome}? Non apparirà più nelle liste attive ma sarà spostato in Archivio.`)) {
+    this.archiveScout(id);
+  }
+};
+
+UI.archiveScout = async function (id) {
+  this.showLoadingOverlay('Archiviazione in corso...');
+  try {
+    await DATA.updateScout(id, { archived: true }, this.currentUser);
+    this.showToast('Esploratore archiviato');
+    // Reload data to reflect changes (filtered out)
+    this.state = await DATA.loadAll(true); // Force refresh
+    this.rebuildPresenceIndex();
+    this.renderScouts();
+  } catch (error) {
+    console.error('Errore archiviazione:', error);
+    this.showToast('Errore durante l\'archiviazione', { type: 'error' });
+  } finally {
+    this.hideLoadingOverlay();
+  }
 };
 
 // Inizializza la pagina esploratori

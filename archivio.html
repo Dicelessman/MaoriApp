@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Archivio Esploratori - MaoriApp</title>
+    <meta name="description" content="Archivio storico esploratori" />
+    <meta name="theme-color" content="#16a34a" />
+
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-4">
+
+        <!-- Header condiviso -->
+        <div id="shared-header"></div>
+
+        <!-- Main -->
+        <main id="main-content" class="p-6">
+            <!-- Modali condivisi -->
+            <div id="shared-modals"></div>
+
+            <section class="tab-content active">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-semibold text-gray-700">Archivio Esploratori</h2>
+                        <p class="text-sm text-gray-500">Esploratori non più attivi nel reparto</p>
+                    </div>
+                </div>
+
+                <!-- Lista Archivio -->
+                <div id="archiveList" class="space-y-3">
+                    <div class="text-center py-8 text-gray-500">Caricamento archivio...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/config.js"></script>
+    <script type="module" src="shared.js"></script>
+    <script type="module" src="archivio.js"></script>
+</body>
+
+</html>

@@ -92,8 +92,29 @@ export const DATA = {
         }
         catch { }
         const data = await this.adapter.loadAll();
+
+        // Filter out archived scouts from the main list
+        if (data.scouts) {
+            data.allScouts = [...data.scouts]; // Keep a copy of all scouts
+            data.scouts = data.scouts.filter(s => !s.archived);
+        }
+
         this.cache.set(cacheKey, data);
         return data;
+    },
+
+    /**
+     * Carica solo gli esploratori archiviati
+     * @returns {Promise<Array>}
+     */
+    async loadArchived() {
+        // Logica ottimizzata: riusa la cache di loadAll se disponibile
+        const allData = await this.loadAll();
+        if (allData.allScouts) {
+            return allData.allScouts.filter(s => s.archived === true);
+        }
+        // Fallback (non dovrebbe accadere se loadAll popola allScouts)
+        return [];
     },
     _invalidateCache() {
         this.cache.invalidate('loadAll');
