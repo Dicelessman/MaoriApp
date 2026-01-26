@@ -646,30 +646,7 @@ UI.setupExportImport = function () {
     });
   }
 
-  // Import file generico (JSON backup)
-  const importFileInput = document.getElementById('importFileInput');
-  if (importFileInput) {
-    importFileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
 
-      try {
-        const mergeMode = document.getElementById('importMergeMode')?.checked || false;
-
-        if (file.name.endsWith('.json')) {
-          await this.handleJSONImport(file, { merge: mergeMode });
-        } else {
-          this.showToast('Formato file non supportato qui. Usa JSON.', { type: 'error' });
-        }
-
-        e.target.value = '';
-      } catch (error) {
-        console.error('Errore import:', error);
-        this.showToast('Errore durante l\'import: ' + (error.message || 'Errore sconosciuto'), { type: 'error' });
-        e.target.value = '';
-      }
-    });
-  }
 
   // Import Anagrafica CSV Especiale
   const importAnagraficaCsvInput = document.getElementById('importAnagraficaCsvInput');
