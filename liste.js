@@ -64,7 +64,7 @@ UI.renderTab = function (tabName) {
 UI.initPresenzeTab = function () {
     const select = document.getElementById('activitySelect');
     if (select.children.length <= 1) { // Populate only if empty
-        const acts = [...this.state.activities].sort((a, b) => new Date(b.data) - new Date(a.data));
+        const acts = [...this.state.activities].sort((a, b) => toJsDate(a.data) - toJsDate(b.data));
         acts.forEach(a => {
             const opt = document.createElement('option');
             opt.value = a.id;
