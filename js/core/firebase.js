@@ -49,6 +49,7 @@ export {
     messaging,
     cols,
     // Re-export specific Firebase functions used by adapters
+    collection, doc, getDocs, addDoc, setDoc, deleteDoc, updateDoc,
     onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp,
     signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, updatePassword,
     getToken, onMessage
