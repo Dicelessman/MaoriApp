@@ -800,7 +800,10 @@ UI.handleAnagraficaCSVImport = async function (file) {
         // Adapter usually expects Date object or Timestamp. Let's ensure consistency.
 
         const csv_sex = val(mapIndices.sesso);
-        if (csv_sex) updates.anag_sesso = csv_sex;
+        if (csv_sex) {
+          const sexMap = { 'M': 'maschio', 'F': 'femmina', 'm': 'maschio', 'f': 'femmina' };
+          updates.anag_sesso = sexMap[csv_sex] || csv_sex.toLowerCase();
+        }
 
         const csv_via = val(mapIndices.indirizzo);
         if (csv_via) updates.anag_indirizzo = csv_via;
