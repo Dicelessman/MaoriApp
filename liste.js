@@ -79,6 +79,8 @@ UI.initPresenzeTab = function () {
         document.getElementById('presenzeSortSurname').addEventListener('change', () => this.renderPresenzePreview());
 
         document.getElementById('printPresenzeBtn').addEventListener('click', () => this.printPresenzeList());
+        document.getElementById('copyPresenzeBtn').addEventListener('click', () => this.copyPresenzeList());
+        document.getElementById('csvPresenzeBtn').addEventListener('click', () => this.downloadPresenzeCSV());
     }
 };
 
@@ -89,15 +91,21 @@ UI.renderPresenzePreview = async function () {
     const container = document.getElementById('presenzePreview');
     const list = document.getElementById('presenzePreviewList');
     const btnPrint = document.getElementById('printPresenzeBtn');
+    const btnCopy = document.getElementById('copyPresenzeBtn');
+    const btnCsv = document.getElementById('csvPresenzeBtn');
 
     if (!actId) {
         container.classList.add('hidden');
         btnPrint.disabled = true;
+        btnCopy.disabled = true;
+        btnCsv.disabled = true;
         return;
     }
 
     container.classList.remove('hidden');
     btnPrint.disabled = false;
+    btnCopy.disabled = false;
+    btnCsv.disabled = false;
     list.innerHTML = 'Caricamento...';
 
     // Get presences
@@ -123,6 +131,8 @@ UI.renderPresenzePreview = async function () {
     scouts.forEach((s, idx) => {
         const div = document.createElement('div');
         div.className = 'p-2 border-b border-gray-100 flex justify-between items-center';
+        div.dataset.name = `${s.nome} ${s.cognome}`; // Store for CSV
+        div.dataset.dob = s.anag_dob ? toYyyyMmDd(s.anag_dob) : '';
 
         let name = sortSurname ? `${s.cognome} ${s.nome}` : `${s.nome} ${s.cognome}`;
         let meta = '';
@@ -150,7 +160,7 @@ UI.printPresenzeList = function () {
     window.print();
 };
 
-UI.copyPresenzeList = async function () {
+UI.copyPresenzeList = function () {
     const title = document.getElementById('presenzePreviewTitle').textContent;
     const listItems = document.querySelectorAll('#presenzePreviewList div');
 
@@ -162,13 +172,85 @@ UI.copyPresenzeList = async function () {
         text += `${name} ${meta ? '(' + meta + ')' : ''}\n`;
     });
 
-    try {
-        await navigator.clipboard.writeText(text);
-        this.showToast('Lista copiata negli appunti');
-    } catch (err) {
-        console.error('Errore copia:', err);
-        this.showToast('Errore durante la copia', { type: 'error' });
+    // Robust copy with fallback
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => this.showToast('Lista copiata negli appunti'))
+            .catch(err => {
+                console.error('Clipboard API failed', err);
+                this.fallbackCopyText(text);
+            });
+    } else {
+        this.fallbackCopyText(text);
     }
+};
+
+UI.fallbackCopyText = function (text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        this.showToast('Lista copiata (fallback)');
+    } catch (err) {
+        console.error('Fallback copy failed', err);
+        this.showToast('Impossibile copiare il testo', { type: 'error' });
+    }
+    document.body.removeChild(textArea);
+};
+
+UI.downloadPresenzeCSV = function () {
+    const actId = document.getElementById('activitySelect').value;
+    if (!actId) return;
+
+    // Re-fetch filtered data (or parse from DOM to respect current sort/filter)
+    // Parsing DOM is wysiwyg.
+    const listItems = document.querySelectorAll('#presenzePreviewList div');
+    const showDob = document.getElementById('presenzeShowDob').checked;
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Nome;Cognome" + (showDob ? ";Data Nascita" : "") + "\n"; // Header
+
+    listItems.forEach(div => {
+        // We stored raw data in dataset above for cleaner access
+        // But wait, renderPresenzePreview above didn't store raw data in dataset in my previous edit.
+        // Let's rely on the state + filtering again to be safe and cleaner?
+        // Actually, let's update renderPresenzePreview to store dataset or just re-calculate here.
+        // Re-calculating is safer.
+    });
+
+    // Better strategy: Re-query state using same logic
+    const presences = this.state.presences.filter(p => p.attivitaId === actId && p.stato === 'Presente');
+    const presentScoutIds = new Set(presences.map(p => p.esploratoreId));
+    let scouts = this.state.scouts.filter(s => presentScoutIds.has(s.id));
+    const sortSurname = document.getElementById('presenzeSortSurname').checked;
+
+    scouts.sort((a, b) => {
+        if (sortSurname) return (a.cognome || '').localeCompare(b.cognome || '');
+        return (a.nome || '').localeCompare(b.nome || '');
+    });
+
+    scouts.forEach(s => {
+        let row = `"${s.nome}";"${s.cognome}"`;
+        if (showDob) {
+            const dob = s.anag_dob ? toYyyyMmDd(s.anag_dob) : '';
+            row += `;"${dob}"`;
+        }
+        csvContent += row + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const actName = (this.state.activities.find(a => a.id === actId)?.tipo || 'presenze').replace(/[^a-z0-9]/gi, '_');
+    link.setAttribute("download", `${actName}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 };
 
 /* --- 2. Pattuglie --- */
