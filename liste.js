@@ -316,6 +316,7 @@ UI.initElencoTab = function () {
     };
 
     // Initial Render
+    this.elencoSort = { col: 'name', dir: 'asc' }; // Default sort
     this.renderElencoTable();
 };
 
@@ -326,52 +327,111 @@ UI.renderElencoTable = function () {
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
 
-    const activeCols = Array.from(document.querySelectorAll('.col-toggle:checked')).map(c => c.dataset.col);
+    // Define columns config
+    const columns = [
+        { id: 'name', label: 'Cognome Nome' },
+        { id: 'pattuglia', label: 'Pattuglia' },
+        { id: 'passo', label: 'Passo' },
+        { id: 'sfide', label: 'Sfide' },
+        { id: 'specialita', label: 'Specialità' },
+        { id: 'dob', label: 'Data Nascita' }
+    ];
+
+    const activeIds = Array.from(document.querySelectorAll('.col-toggle:checked')).map(c => c.dataset.col);
+    const visibleCols = columns.filter(c => c.id === 'name' || activeIds.includes(c.id));
 
     // 1. Build Header
-    let headHtml = '<tr><th class="px-4 py-2">Cognome Nome</th>';
-    if (activeCols.includes('pattuglia')) headHtml += '<th class="px-4 py-2">Pattuglia</th>';
-    if (activeCols.includes('passo')) headHtml += '<th class="px-4 py-2">Passo</th>';
-    if (activeCols.includes('sfide')) headHtml += '<th class="px-4 py-2">Sfide</th>';
-    if (activeCols.includes('specialita')) headHtml += '<th class="px-4 py-2">Specialità</th>';
-    if (activeCols.includes('dob')) headHtml += '<th class="px-4 py-2">Data Nascita</th>';
+    let headHtml = '<tr>';
+    visibleCols.forEach(col => {
+        const isSorted = this.elencoSort.col === col.id;
+        const icon = isSorted ? (this.elencoSort.dir === 'asc' ? ' 🔼' : ' 🔽') : '';
+        // Add style for pointer
+        headHtml += `<th class="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none" 
+                        data-sort="${col.id}">
+                        ${col.label}${icon}
+                     </th>`;
+    });
     headHtml += '</tr>';
     thead.innerHTML = headHtml;
 
-    // 2. Build Rows
+    // Attach sort listeners
+    thead.querySelectorAll('th').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            if (this.elencoSort.col === col) {
+                this.elencoSort.dir = this.elencoSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.elencoSort.col = col;
+                this.elencoSort.dir = 'asc';
+            }
+            this.renderElencoTable();
+        });
+    });
+
+    // 2. Prepare Data
+    let scouts = [...this.state.scouts];
+
+    // Helper to get sort value
+    const getValue = (s, colId) => {
+        switch (colId) {
+            case 'name': return (s.cognome || '') + ' ' + (s.nome || '');
+            case 'pattuglia': return s.pv_pattuglia || '';
+            case 'passo':
+                if (s.pv_traccia2_chk) return 3; // Responsabilità
+                if (s.pv_traccia1_chk) return 2; // Competenza
+                return 1; // Scoperta
+            case 'sfide': return ''; // Not really sortable easily, maybe by count? or string
+            case 'specialita': return (s.specialita?.length || 0); // Sort by count?
+            case 'dob': return s.anag_dob ? new Date(s.anag_dob).getTime() : 0;
+            default: return '';
+        }
+    };
+
+    // Sort
+    scouts.sort((a, b) => {
+        let va = getValue(a, this.elencoSort.col);
+        let vb = getValue(b, this.elencoSort.col);
+
+        // Handle strings
+        if (typeof va === 'string' && typeof vb === 'string') {
+            return this.elencoSort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        // Handle numbers
+        return this.elencoSort.dir === 'asc' ? va - vb : vb - va;
+    });
+
+    // 3. Build Rows
     tbody.innerHTML = '';
-    const scouts = [...this.state.scouts].sort((a, b) => (a.cognome || '').localeCompare(b.cognome || ''));
 
     scouts.forEach(s => {
         let rowHtml = `<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">`;
+
+        // Always Name
         rowHtml += `<td class="px-4 py-2 font-medium break-words max-w-[150px]">${escapeHtml(s.cognome)} ${escapeHtml(s.nome)}</td>`;
 
-        if (activeCols.includes('pattuglia')) {
+        if (activeIds.includes('pattuglia')) {
             let role = '';
             if (s.pv_vcp_cp === 'CP') role = ' (=)';
             if (s.pv_vcp_cp === 'VCP') role = ' (-)';
             rowHtml += `<td class="px-4 py-2">${escapeHtml(s.pv_pattuglia || '-')}${role}</td>`;
         }
 
-        if (activeCols.includes('passo')) {
+        if (activeIds.includes('passo')) {
             let currentStep = 'Scoperta';
             if (s.pv_traccia2_chk) currentStep = 'Responsabilità';
             else if (s.pv_traccia1_chk) currentStep = 'Competenza';
             rowHtml += `<td class="px-4 py-2 text-xs">${currentStep}</td>`;
         }
 
-        if (activeCols.includes('sfide')) {
+        if (activeIds.includes('sfide')) {
             let activeTrack = 1;
             if (s.pv_traccia2_chk) activeTrack = 3;
             else if (s.pv_traccia1_chk) activeTrack = 2;
-
             const getC = (t) => (s[`pv_sfida_${t}_${activeTrack}`] || '').split('_').pop() || '-';
-
             rowHtml += `<td class="px-4 py-2 font-mono text-xs">I:${getC('io')} A:${getC('al')} M:${getC('mt')}</td>`;
         }
 
-        if (activeCols.includes('specialita')) {
-            // Extract specs
+        if (activeIds.includes('specialita')) {
             let text = '-';
             if (Array.isArray(s.specialita) && s.specialita.length > 0) {
                 text = s.specialita.map(sp => sp.nome + (sp.data ? ' (C)' : '')).join(', ');
@@ -379,7 +439,7 @@ UI.renderElencoTable = function () {
             rowHtml += `<td class="px-4 py-2 text-xs break-words max-w-[200px]">${escapeHtml(text)}</td>`;
         }
 
-        if (activeCols.includes('dob')) {
+        if (activeIds.includes('dob')) {
             const d = s.anag_dob ? toJsDate(s.anag_dob).toLocaleDateString() : '';
             rowHtml += `<td class="px-4 py-2 whitespace-nowrap">${d}</td>`;
         }
