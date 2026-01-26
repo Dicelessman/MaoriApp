@@ -925,7 +925,7 @@ UI.loadUserProfile = async function () {
 
       try {
         // Aggiorna Staff su Firestore
-        await DATA.updateStaff(id, payload, this.currentUser);
+        await DATA.updateStaff(payload, this.currentUser);
         this.showToast('Profilo aggiornato con successo!');
 
         // Aggiorna stato locale

@@ -136,8 +136,8 @@ export class FirestoreAdapter {
         const ref = await addDoc(this.cols.staff, { nome, cognome, email });
         return ref.id;
     }
-    async updateStaff({ id, nome, cognome, email }, currentUser) {
-        await setDoc(doc(this.db, 'staff', id), { nome, cognome, email }, { merge: true });
+    async updateStaff({ id, nome, cognome, email, ruolo }, currentUser) {
+        await setDoc(doc(this.db, 'staff', id), { nome, cognome, email, ruolo }, { merge: true });
     }
     async deleteStaff(id, currentUser) {
         await deleteDoc(doc(this.db, 'staff', id));
