@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Liste - Scout Maori</title>
+    <meta name="description" content="Liste e Stampe Reparto Scout Maori" />
+    <meta name="theme-color" content="#16a34a" />
+
+    <!-- Favicon e icone -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome (opzionale, se serve per icone extra) -->
+
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+    <!-- jsPDF per generazione PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #printArea,
+            #printArea * {
+                visibility: visible;
+            }
+
+            #printArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 20px;
+                background: white;
+                color: black;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+
+        <!-- Header condiviso -->
+        <div id="shared-header"></div>
+
+        <!-- Main -->
+        <main id="main-content" class="p-6">
+            <!-- Modali condivisi -->
+            <div id="shared-modals"></div>
+
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">Liste e Stampe</h2>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="border-b border-gray-200 dark:border-gray-700 mb-6 overflow-x-auto">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button data-tab="presenze"
+                        class="tab-btn active border-green-500 text-green-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        📝 Presenze Attività
+                    </button>
+                    <button data-tab="pattuglie"
+                        class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        ⛺ Pattuglie
+                    </button>
+                    <button data-tab="progressione"
+                        class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        📈 Progressione (Passi)
+                    </button>
+                    <button data-tab="specialita"
+                        class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        🏅 Specialità
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Content Sections -->
+
+            <!-- 1. Presenze Attività -->
+            <div id="tab-presenze" class="tab-pane block space-y-6">
+                <div
+                    class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Lista Presenze per Attività
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Seleziona
+                                Attività</label>
+                            <select id="activitySelect" class="input w-full">
+                                <option value="">-- Seleziona un'attività --</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col justify-end space-y-2">
+                            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" id="presenzeShowDob" class="rounded text-green-600">
+                                Includi Data di Nascita
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" id="presenzeSortSurname" class="rounded text-green-600" checked>
+                                Ordina per Cognome Nome
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="printPresenzeBtn" class="btn-primary" disabled>🖨️ Stampa Lista</button>
+                        <button id="copyPresenzeBtn" class="btn-secondary" disabled>📋 Copia Testo</button>
+                    </div>
+                </div>
+
+                <!-- Preview Area -->
+                <div id="presenzePreview"
+                    class="hidden bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-700">
+                    <h4 class="font-bold text-center mb-2" id="presenzePreviewTitle"></h4>
+                    <div id="presenzePreviewList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Pattuglie -->
+            <div id="tab-pattuglie" class="tab-pane hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Liste Pattuglie</h3>
+                    <button id="printPattuglieBtn" class="btn-secondary">🖨️ Stampa Tutto</button>
+                </div>
+                <div id="pattuglieContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Cards Pattuglie -->
+                </div>
+            </div>
+
+            <!-- 3. Progressione -->
+            <div id="tab-progressione" class="tab-pane hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Stato Progressione Verticale</h3>
+                    <button id="printProgressioneBtn" class="btn-secondary">🖨️ Stampa</button>
+                </div>
+                <div
+                    class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Esploratore</th>
+                                <th scope="col" class="px-6 py-3">Attuale</th>
+                                <th scope="col" class="px-6 py-3">Sfide Selezionate</th>
+                            </tr>
+                        </thead>
+                        <tbody id="progressioneTableBody">
+                            <!-- Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 4. Specialità -->
+            <div id="tab-specialita" class="tab-pane hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Albo Specialità</h3>
+                </div>
+                <div id="specialitaContainer" class="space-y-4">
+                    <!-- Specialita list items -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="printArea" style="display:none"></div>
+
+    <!-- Scripts -->
+    <script src="/config.js"></script>
+    <script type="module" src="shared.js"></script>
+    <script type="module" src="liste.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js")
+                .then(reg => console.log("Service Worker registrato:", reg.scope))
+                .catch(err => console.error("SW registration failed:", err));
+        }
+    </script>
+</body>
+
+</html>
