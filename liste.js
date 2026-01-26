@@ -1,7 +1,7 @@
 // liste.js
 import { UI } from './js/ui/ui.js';
 import { DATA } from './js/data/data-facade.js';
-import { escapeHtml, toYyyyMmDd } from './js/utils/utils.js';
+import { escapeHtml, toYyyyMmDd, toJsDate } from './js/utils/utils.js';
 
 // Extend UI for Liste page
 UI.currentTab = 'presenze';
@@ -68,7 +68,7 @@ UI.initPresenzeTab = function () {
         acts.forEach(a => {
             const opt = document.createElement('option');
             opt.value = a.id;
-            const dateStr = new Date(a.data).toLocaleDateString('it-IT');
+            const dateStr = toJsDate(a.data).toLocaleDateString('it-IT');
             opt.textContent = `${dateStr} - ${a.tipo} ${a.descrizione || ''}`;
             select.appendChild(opt);
         });
@@ -117,7 +117,7 @@ UI.renderPresenzePreview = async function () {
 
     // Render
     const act = this.state.activities.find(a => a.id === actId);
-    document.getElementById('presenzePreviewTitle').textContent = `Presenti: ${act.tipo} del ${new Date(act.data).toLocaleDateString()}`;
+    document.getElementById('presenzePreviewTitle').textContent = `Presenti: ${act.tipo} del ${toJsDate(act.data).toLocaleDateString()}`;
 
     list.innerHTML = '';
     scouts.forEach((s, idx) => {
