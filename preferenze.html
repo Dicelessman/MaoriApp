@@ -46,301 +46,312 @@
           <div
             class="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-lg shadow-sm border-2 border-indigo-200 dark:border-indigo-800">
             <h3 class="text-lg font-semibold text-indigo-800 dark:text-indigo-300 mb-4">👤 Profilo Utente</h3>
-            <div class="space-y-4">
+
+            <form id="userProfileForm" class="space-y-4">
+              <input type="hidden" id="userProfileId"> <!-- ID dello staff -->
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome e Cognome</label>
-                  <div class="text-gray-900 dark:text-white font-medium text-lg" id="userProfileName">Caricamento...
-                  </div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome</label>
+                  <input type="text" id="userProfileNome" class="input w-full" placeholder="Nome">
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                  <div class="text-gray-900 dark:text-white font-medium" id="userProfileEmail">...</div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cognome</label>
+                  <input type="text" id="userProfileCognome" class="input w-full" placeholder="Cognome">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Contatto</label>
+                  <input type="email" id="userProfileEmail" class="input w-full" placeholder="Email">
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">⚠️ Modifica l'email di contatto nel database,
+                    non l'email di accesso (login).</p>
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ruolo</label>
-                  <div
-                    class="inline-block px-3 py-1 bg-indigo-100 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 rounded-full text-sm font-semibold"
-                    id="userProfileRole">...</div>
+                  <input type="text" id="userProfileRole" class="input w-full" placeholder="Es. Capo Reparto, Vice...">
                 </div>
               </div>
 
-              <div class="pt-4 border-t border-indigo-200 dark:border-indigo-800">
-                <button type="button" id="togglePasswordChange"
-                  class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-sm font-medium flex items-center gap-2">
-                  <span>🔑</span> Cambia Password
-                </button>
-
-                <div id="passwordChangeForm"
-                  class="hidden mt-4 bg-white dark:bg-gray-800 p-4 rounded-lg border border-indigo-100 dark:border-indigo-900 space-y-3">
-                  <div>
-                    <label class="block text-sm text-gray-600 dark:text-gray-400">Nuova Password</label>
-                    <input type="password" id="newPassword" class="input w-full mt-1" placeholder="Min. 6 caratteri"
-                      autocomplete="new-password">
-                  </div>
-                  <div>
-                    <label class="block text-sm text-gray-600 dark:text-gray-400">Conferma Password</label>
-                    <input type="password" id="confirmNewPassword" class="input w-full mt-1"
-                      autocomplete="new-password">
-                  </div>
-                  <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" id="cancelPasswordChange"
-                      class="btn-secondary text-xs px-3 py-1">Annulla</button>
-                    <button type="button" id="submitPasswordChange"
-                      class="btn-primary bg-indigo-600 hover:bg-indigo-700 text-xs px-3 py-1">Aggiorna Password</button>
-                  </div>
-                </div>
+              <div class="flex justify-end pt-2">
+                <button type="submit" id="saveUserProfileBtn" class="btn-primary bg-indigo-600 hover:bg-indigo-700">💾
+                  Salva Modifiche Profilo</button>
               </div>
-            </div>
-          </div>
+            </form>
 
-          <!-- Configurazione Unità -->
-          <div
-            class="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg shadow-sm border-2 border-green-200 dark:border-green-800">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🏕️ Configurazione Unità</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Personalizza il nome della tua unità che apparirà
-              nell'header
-              dell'applicazione</p>
-            <div class="space-y-4">
-              <div>
-                <label for="unitType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo di
-                  Unità</label>
-                <select id="unitType"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
-                  <option value="Reparto">Reparto</option>
-                  <option value="Branco">Branco</option>
-                  <option value="Compagnia">Compagnia</option>
-                </select>
-              </div>
-              <div>
-                <label for="unitName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nome
-                  Unità</label>
-                <input type="text" id="unitName" placeholder="es. Maori, Aquile, Lupi..."
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
-              </div>
-              <div class="bg-white dark:bg-gray-800 p-3 rounded border border-green-300 dark:border-green-700">
-                <p class="text-sm text-gray-600 dark:text-gray-400">Anteprima: <span id="unitPreview"
-                    class="font-bold text-green-700 dark:text-green-400">Reparto Maori</span></p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tema -->
-          <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🎨 Aspetto</h3>
-            <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tema</label>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Scegli tra tema chiaro o scuro</p>
-                </div>
-                <select id="themeSelect"
-                  class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
-                  <option value="light">Chiaro</option>
-                  <option value="dark">Scuro</option>
-                  <option value="auto">Automatico (segue sistema)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <!-- Notifiche -->
-          <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🔔 Notifiche</h3>
-            <div class="space-y-4">
-              <div class="flex items-center justify-between">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notifiche Abilitate</label>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Abilita notifiche push del browser</p>
-                  <span id="notificationPermissionStatus" class="text-xs text-gray-400 dark:text-gray-500 mt-1"></span>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="notificationsEnabled" class="sr-only peer">
-                  <div
-                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
-                  </div>
-                </label>
-              </div>
-
-              <div class="ml-4 space-y-3 border-l-2 border-gray-300 dark:border-gray-600 pl-4">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria
-                      Attività</label>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Notifica 3 giorni prima di un'attività</p>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="notificationActivityReminders" class="sr-only peer" disabled>
-                    <div
-                      class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
-                    </div>
-                  </label>
-                </div>
-
-                <div class="flex items-center justify-between">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria
-                      Pagamenti</label>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per pagamenti mancanti</p>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="notificationPaymentReminders" class="sr-only peer" disabled>
-                    <div
-                      class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
-                    </div>
-                  </label>
-                </div>
-
-                <div class="flex items-center justify-between">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Modifiche
-                      Importanti</label>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per cambiamenti significativi</p>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="notificationImportantChanges" class="sr-only peer" disabled>
-                    <div
-                      class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
-                    </div>
-                  </label>
-                </div>
-
-                <div class="flex items-center justify-between">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Compleanni
-                      Esploratori</label>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per compleanni degli esploratori</p>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="notificationBirthdayReminders" class="sr-only peer" disabled>
-                    <div
-                      class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Visualizzazione -->
-          <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">👁️ Visualizzazione</h3>
-            <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Vista Predefinita</label>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Pagina da aprire all'accesso</p>
-                </div>
-                <select id="defaultViewSelect"
-                  class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
-                  <option value="">Automatica</option>
-                  <option value="presenze.html">Presenze</option>
-                  <option value="dashboard.html">Dashboard</option>
-                  <option value="calendario.html">Calendario</option>
-                  <option value="esploratori.html">Esploratori</option>
-                  <option value="staff.html">Staff</option>
-                </select>
-              </div>
-
-              <div class="flex items-center justify-between">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ordinamento Attività</label>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Come ordinare le attività nel calendario</p>
-                </div>
-                <select id="activityOrderSelect"
-                  class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
-                  <option value="">Data (cronologico)</option>
-                  <option value="name">Nome</option>
-                  <option value="type">Tipo</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <!-- Scorciatoie Tastiera -->
-          <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">⌨️ Scorciatoie Tastiera</h3>
-            <div class="space-y-4">
-              <div class="flex items-center justify-between mb-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Abilita Scorciatoie</label>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Consenti l'uso di scorciatoie da tastiera</p>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="shortcutsEnabled" class="sr-only peer">
-                  <div
-                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
-                  </div>
-                </label>
-              </div>
-
-              <div id="shortcutsConfigContainer" class="space-y-3">
-                <!-- Shortcuts verranno inseriti qui dinamicamente -->
-              </div>
-
-              <button id="resetShortcutsBtn"
-                class="w-full md:w-auto px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm">
-                🔄 Ripristina Scorciatoie Default
+            <div class="pt-4 mt-4 border-t border-indigo-200 dark:border-indigo-800">
+              <button type="button" id="togglePasswordChange"
+                class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-sm font-medium flex items-center gap-2">
+                <span>🔑</span> Cambia Password Login
               </button>
-            </div>
-          </div>
 
-          <!-- Export/Import Dati -->
-          <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">📊 Export/Import Dati</h3>
-            <div class="space-y-4">
-              <div>
-                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Export</h4>
-                <div class="flex flex-wrap gap-2">
-                  <button id="exportJSONBtn"
-                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
-                    📄 Export JSON
-                  </button>
-                  <button id="exportPresencesCSVBtn"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                    📊 Export Presenze CSV
-                  </button>
-                  <button id="exportActivitiesCSVBtn"
-                    class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
-                    📅 Export Attività CSV
-                  </button>
-                  <button id="exportExcelBtn"
-                    class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm">
-                    📗 Export Excel
-                  </button>
+              <div id="passwordChangeForm"
+                class="hidden mt-4 bg-white dark:bg-gray-800 p-4 rounded-lg border border-indigo-100 dark:border-indigo-900 space-y-3">
+                <div>
+                  <label class="block text-sm text-gray-600 dark:text-gray-400">Nuova Password</label>
+                  <input type="password" id="newPassword" class="input w-full mt-1" placeholder="Min. 6 caratteri"
+                    autocomplete="new-password">
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Importazione Dati Anagrafici da CSV -->
-          <div
-            class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg shadow-sm border border-blue-200 dark:border-blue-800">
-            <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-4">📥 Importazione Dati Anagrafici</h3>
-            <p class="text-sm text-blue-600 dark:text-blue-400 mb-4">Carica un file CSV per aggiornare i dati anagrafici
-              degli esploratori
-              esistenti. Il sistema cercherà corrispondenze per Nome e Cognome.</p>
-
-            <div class="space-y-4">
-              <label class="block w-full">
-                <input type="file" id="importAnagraficaCsvInput" accept=".csv" class="hidden">
-                <div
-                  class="w-full border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-lg p-6 text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors">
-                  <span class="text-3xl block mb-2">📄</span>
-                  <span class="text-sm font-medium text-blue-700 dark:text-blue-300">Clicca per selezionare il file CSV
-                    (es. generated.csv)</span>
+                <div>
+                  <label class="block text-sm text-gray-600 dark:text-gray-400">Conferma Password</label>
+                  <input type="password" id="confirmNewPassword" class="input w-full mt-1" autocomplete="new-password">
                 </div>
-              </label>
-
-              <div id="importLogContainer" class="hidden">
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Risultato Importazione:</h4>
-                <div id="importLogContent"
-                  class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3 text-xs font-mono h-40 overflow-y-auto whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+                <div class="flex justify-end gap-2 pt-2">
+                  <button type="button" id="cancelPasswordChange"
+                    class="btn-secondary text-xs px-3 py-1">Annulla</button>
+                  <button type="button" id="submitPasswordChange"
+                    class="btn-primary bg-indigo-600 hover:bg-indigo-700 text-xs px-3 py-1">Aggiorna Password</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- Configurazione Unità -->
+        <div
+          class="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg shadow-sm border-2 border-green-200 dark:border-green-800">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🏕️ Configurazione Unità</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Personalizza il nome della tua unità che apparirà
+            nell'header
+            dell'applicazione</p>
+          <div class="space-y-4">
+            <div>
+              <label for="unitType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo di
+                Unità</label>
+              <select id="unitType"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="Reparto">Reparto</option>
+                <option value="Branco">Branco</option>
+                <option value="Compagnia">Compagnia</option>
+              </select>
+            </div>
+            <div>
+              <label for="unitName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nome
+                Unità</label>
+              <input type="text" id="unitName" placeholder="es. Maori, Aquile, Lupi..."
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-3 rounded border border-green-300 dark:border-green-700">
+              <p class="text-sm text-gray-600 dark:text-gray-400">Anteprima: <span id="unitPreview"
+                  class="font-bold text-green-700 dark:text-green-400">Reparto Maori</span></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tema -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🎨 Aspetto</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tema</label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Scegli tra tema chiaro o scuro</p>
+              </div>
+              <select id="themeSelect"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="light">Chiaro</option>
+                <option value="dark">Scuro</option>
+                <option value="auto">Automatico (segue sistema)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifiche -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🔔 Notifiche</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notifiche Abilitate</label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Abilita notifiche push del browser</p>
+                <span id="notificationPermissionStatus" class="text-xs text-gray-400 dark:text-gray-500 mt-1"></span>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="notificationsEnabled" class="sr-only peer">
+                <div
+                  class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                </div>
+              </label>
+            </div>
+
+            <div class="ml-4 space-y-3 border-l-2 border-gray-300 dark:border-gray-600 pl-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria
+                    Attività</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Notifica 3 giorni prima di un'attività</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notificationActivityReminders" class="sr-only peer" disabled>
+                  <div
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                  </div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria
+                    Pagamenti</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per pagamenti mancanti</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notificationPaymentReminders" class="sr-only peer" disabled>
+                  <div
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                  </div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Modifiche
+                    Importanti</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per cambiamenti significativi</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notificationImportantChanges" class="sr-only peer" disabled>
+                  <div
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                  </div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Compleanni
+                    Esploratori</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per compleanni degli esploratori</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notificationBirthdayReminders" class="sr-only peer" disabled>
+                  <div
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visualizzazione -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">👁️ Visualizzazione</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Vista Predefinita</label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Pagina da aprire all'accesso</p>
+              </div>
+              <select id="defaultViewSelect"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Automatica</option>
+                <option value="presenze.html">Presenze</option>
+                <option value="dashboard.html">Dashboard</option>
+                <option value="calendario.html">Calendario</option>
+                <option value="esploratori.html">Esploratori</option>
+                <option value="staff.html">Staff</option>
+              </select>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ordinamento Attività</label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Come ordinare le attività nel calendario</p>
+              </div>
+              <select id="activityOrderSelect"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Data (cronologico)</option>
+                <option value="name">Nome</option>
+                <option value="type">Tipo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scorciatoie Tastiera -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">⌨️ Scorciatoie Tastiera</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Abilita Scorciatoie</label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Consenti l'uso di scorciatoie da tastiera</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="shortcutsEnabled" class="sr-only peer">
+                <div
+                  class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                </div>
+              </label>
+            </div>
+
+            <div id="shortcutsConfigContainer" class="space-y-3">
+              <!-- Shortcuts verranno inseriti qui dinamicamente -->
+            </div>
+
+            <button id="resetShortcutsBtn"
+              class="w-full md:w-auto px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm">
+              🔄 Ripristina Scorciatoie Default
+            </button>
+          </div>
+        </div>
+
+        <!-- Export/Import Dati -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">📊 Export/Import Dati</h3>
+          <div class="space-y-4">
+            <div>
+              <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Export</h4>
+              <div class="flex flex-wrap gap-2">
+                <button id="exportJSONBtn"
+                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                  📄 Export JSON
+                </button>
+                <button id="exportPresencesCSVBtn"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                  📊 Export Presenze CSV
+                </button>
+                <button id="exportActivitiesCSVBtn"
+                  class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
+                  📅 Export Attività CSV
+                </button>
+                <button id="exportExcelBtn"
+                  class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm">
+                  📗 Export Excel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Importazione Dati Anagrafici da CSV -->
+        <div
+          class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg shadow-sm border border-blue-200 dark:border-blue-800">
+          <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-4">📥 Importazione Dati Anagrafici</h3>
+          <p class="text-sm text-blue-600 dark:text-blue-400 mb-4">Carica un file CSV per aggiornare i dati anagrafici
+            degli esploratori
+            esistenti. Il sistema cercherà corrispondenze per Nome e Cognome.</p>
+
+          <div class="space-y-4">
+            <label class="block w-full">
+              <input type="file" id="importAnagraficaCsvInput" accept=".csv" class="hidden">
+              <div
+                class="w-full border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-lg p-6 text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors">
+                <span class="text-3xl block mb-2">📄</span>
+                <span class="text-sm font-medium text-blue-700 dark:text-blue-300">Clicca per selezionare il file CSV
+                  (es. generated.csv)</span>
+              </div>
+            </label>
+
+            <div id="importLogContainer" class="hidden">
+              <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Risultato Importazione:</h4>
+              <div id="importLogContent"
+                class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3 text-xs font-mono h-40 overflow-y-auto whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+              </div>
+            </div>
+          </div>
+        </div>
+  </div>
   </div>
 
   <!-- Dati e Sincronizzazione -->

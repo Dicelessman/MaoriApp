@@ -848,21 +848,21 @@ UI.handleAnagraficaCSVImport = async function (file) {
  * Carica e visualizza i dati del profilo utente
  */
 UI.loadUserProfile = async function () {
-  const nameEl = document.getElementById('userProfileName');
-  const emailEl = document.getElementById('userProfileEmail');
-  const roleEl = document.getElementById('userProfileRole');
+  // Campi Input
+  const nomeInput = document.getElementById('userProfileNome');
+  const cognomeInput = document.getElementById('userProfileCognome');
+  const emailInput = document.getElementById('userProfileEmail');
+  const roleInput = document.getElementById('userProfileRole');
+  const idInput = document.getElementById('userProfileId');
+  const saveBtn = document.getElementById('saveUserProfileBtn');
 
-  if (!nameEl || !emailEl || !roleEl) return; // Uscita se non siamo nella pagina giusta
+  if (!nomeInput || !emailInput) return;
 
-  // Aspetta che currentUser sia popolato (se chiamato troppo presto)
+  // Aspetta che currentUser sia popolato
   if (!this.currentUser) {
-    // Retry breve
     setTimeout(() => this.loadUserProfile(), 500);
     return;
   }
-
-  const email = this.currentUser.email;
-  emailEl.textContent = email;
 
   // Cerca lo staff corrispondente
   try {
@@ -870,30 +870,87 @@ UI.loadUserProfile = async function () {
       this.state = await DATA.loadAll();
     }
 
+    const loginEmail = this.currentUser.email;
     const staffMember = (this.state.staff || []).find(s =>
-      s.email && s.email.toLowerCase().trim() === email.toLowerCase().trim()
+      s.email && s.email.toLowerCase().trim() === loginEmail.toLowerCase().trim()
     );
 
     if (staffMember) {
-      nameEl.textContent = `${staffMember.nome} ${staffMember.cognome}`;
-      roleEl.textContent = staffMember.ruolo || 'Non assegnato (Staff)';
+      nomeInput.value = staffMember.nome || '';
+      cognomeInput.value = staffMember.cognome || '';
+      emailInput.value = staffMember.email || loginEmail;
+      roleInput.value = staffMember.ruolo || '';
+      idInput.value = staffMember.id;
     } else {
-      nameEl.textContent = 'Utente (Profilo non trovato in Staff)';
-      roleEl.textContent = 'Ospite';
+      // Se non trovato, pre-popola email ma non ID
+      emailInput.value = loginEmail;
+      roleInput.value = '';
+      // Potremmo disabilitare il salvataggio se non ha ID staff? 
+      // O permettere la creazione di un nuovo record staff? Per ora update solo esistente.
+      if (saveBtn && !staffMember) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Profilo Staff non trovato (Contatta Admin)';
+      }
     }
   } catch (e) {
     console.error('Errore caricamento profilo:', e);
-    nameEl.textContent = 'Errore caricamento dati';
+    this.showToast('Errore caricamento dati profilo', { type: 'error' });
   }
 
-  // Gestione Password Change
+  // Handler Salvataggio Profilo
+  const form = document.getElementById('userProfileForm');
+  if (form) {
+    // Rimuovi listener precedenti clonando
+    const newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+
+    newForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('userProfileId').value;
+      if (!id) {
+        this.showToast('Impossibile salvare: ID staff mancante', { type: 'error' });
+        return;
+      }
+
+      const payload = {
+        id: id,
+        nome: document.getElementById('userProfileNome').value.trim(),
+        cognome: document.getElementById('userProfileCognome').value.trim(),
+        email: document.getElementById('userProfileEmail').value.trim(),
+        ruolo: document.getElementById('userProfileRole').value.trim()
+      };
+
+      const btn = document.getElementById('saveUserProfileBtn');
+      this.setButtonLoading(btn, true);
+
+      try {
+        // Aggiorna Staff su Firestore
+        await DATA.updateStaff(id, payload, this.currentUser);
+        this.showToast('Profilo aggiornato con successo!');
+
+        // Aggiorna stato locale
+        this.state = await DATA.loadAll();
+
+        // Aggiorna eventuale UI che dipende da questo (es header nome)
+        // Se c'è header refresh logic, chiamala.
+        // UI.updateHeaderUserInfo() se esistesse.
+
+      } catch (err) {
+        console.error('Errore salvataggio profilo:', err);
+        this.showToast('Errore durante il salvataggio.', { type: 'error' });
+      } finally {
+        this.setButtonLoading(btn, false);
+      }
+    });
+  }
+
+  // Gestione Password Change (codice esistente)
   const toggleBtn = document.getElementById('togglePasswordChange');
   const formDiv = document.getElementById('passwordChangeForm');
   const cancelBtn = document.getElementById('cancelPasswordChange');
   const submitBtn = document.getElementById('submitPasswordChange');
 
   if (toggleBtn && formDiv) {
-    // Rimuovi listener precedenti (clonazione nodo)
     const newToggle = toggleBtn.cloneNode(true);
     toggleBtn.parentNode.replaceChild(newToggle, toggleBtn);
 
@@ -925,24 +982,16 @@ UI.loadUserProfile = async function () {
 
         this.setButtonLoading(submitBtn, true);
         try {
-          // Import dinamico per evitare dipendenze circolari se necessario, 
-          // ma qui usiamo DATA.adapter.auth se esposto o importiamo Firebase helpers
-          // updatePassword è stato aggiunto a firebase.js exports
           const { updatePassword } = await import('./core/firebase.js');
-
           await updatePassword(this.currentUser, p1);
-
-          this.showToast('Password aggiornata con successo! Effettua nuovamente il login.');
+          this.showToast('Password aggiornata con successo!');
           formDiv.classList.add('hidden');
-
-          // Logout forzato per sicurezza o opzionale?
-          // Meglio lasciare l'utente loggato, la sessione si aggiorna.
         } catch (error) {
           console.error('Errore cambio password:', error);
           if (error.code === 'auth/requires-recent-login') {
-            this.showToast('Per sicurezza, devi esserti loggato di recente. Esegui Logout e Login e riprova.', { type: 'warning', duration: 5000 });
+            this.showToast('Per sicurezza, devi esserti loggato di recente. Esegui Logout e Login.', { type: 'warning' });
           } else {
-            this.showToast('Errore aggiornamento password: ' + error.message, { type: 'error' });
+            this.showToast('Errore: ' + error.message, { type: 'error' });
           }
         } finally {
           this.setButtonLoading(submitBtn, false);
