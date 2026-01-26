@@ -60,7 +60,7 @@ UI.renderTab = function (tabName) {
     }
 };
 
-/* --- 1. Presenze --- */
+/* --- 1. Presenze -n-- */
 UI.initPresenzeTab = function () {
     const select = document.getElementById('activitySelect');
     if (select.children.length <= 1) { // Populate only if empty
