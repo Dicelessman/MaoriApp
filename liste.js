@@ -103,7 +103,7 @@ UI.renderPresenzePreview = async function () {
     // Get presences
     // Note: presences are loaded all. We filter by activityId.
     // Presences structure: id: "scoutId_actId", esploratoreId, attivitaId, presente: boolean
-    const presences = this.state.presences.filter(p => p.attivitaId === actId && p.presente === true);
+    const presences = this.state.presences.filter(p => p.attivitaId === actId && p.stato === 'Presente');
     const presentScoutIds = new Set(presences.map(p => p.esploratoreId));
 
     // Get scouts
