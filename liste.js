@@ -208,12 +208,13 @@ UI.initPattuglieTab = function () {
         members.forEach(m => {
             // Maybe add icons for roles (Capo, Vice) if available in logic
             let role = '';
-            if (m.pv_vcp_cp === 'CP') role = '⭐ CP';
-            else if (m.pv_vcp_cp === 'VCP') role = '⭐ VCP';
+            let roleClass = '';
+            if (m.pv_vcp_cp === 'CP') { role = '='; roleClass = 'text-yellow-600 font-extrabold text-lg'; }
+            else if (m.pv_vcp_cp === 'VCP') { role = '-'; roleClass = 'text-yellow-600 font-extrabold text-lg'; }
 
-            html += `<li class="flex justify-between">
+            html += `<li class="flex justify-between items-center">
                 <span>${escapeHtml(m.cognome)} ${escapeHtml(m.nome)}</span>
-                <span class="text-orange-600 font-bold text-xs">${role}</span>
+                <span class="${roleClass}" title="${m.pv_vcp_cp}">${role}</span>
              </li>`;
         });
         html += `</ul>`;
