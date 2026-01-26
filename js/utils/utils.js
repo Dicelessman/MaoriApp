@@ -57,11 +57,23 @@ const debounceTimers = {};
  * @param delay - Delay in milliseconds
  */
 export function debounceWithRateLimit(key, fn, delay) {
-    if (debounceTimers[key]) {
-        clearTimeout(debounceTimers[key]);
-    }
     debounceTimers[key] = window.setTimeout(() => {
         delete debounceTimers[key];
         fn();
     }, delay);
+}
+
+/**
+ * Formats a Date object to YYYY-MM-DD string for input[type=date]
+ * @param date - The Date object or timestamp
+ * @returns The formatted string or empty string
+ */
+export function toYyyyMmDd(date) {
+    if (!date) return '';
+    try {
+        const d = toJsDate(date);
+        return d.toISOString().split('T')[0];
+    } catch {
+        return '';
+    }
 }
