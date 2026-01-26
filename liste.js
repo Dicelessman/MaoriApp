@@ -150,6 +150,27 @@ UI.printPresenzeList = function () {
     window.print();
 };
 
+UI.copyPresenzeList = async function () {
+    const title = document.getElementById('presenzePreviewTitle').textContent;
+    const listItems = document.querySelectorAll('#presenzePreviewList div');
+
+    let text = `${title}\n\n`;
+    listItems.forEach(div => {
+        // Extract text content cleanly (removing HTML tags but keeping structure)
+        const name = div.querySelector('span.font-medium').textContent;
+        const meta = div.querySelector('span.text-xs')?.textContent || '';
+        text += `${name} ${meta ? '(' + meta + ')' : ''}\n`;
+    });
+
+    try {
+        await navigator.clipboard.writeText(text);
+        this.showToast('Lista copiata negli appunti');
+    } catch (err) {
+        console.error('Errore copia:', err);
+        this.showToast('Errore durante la copia', { type: 'error' });
+    }
+};
+
 /* --- 2. Pattuglie --- */
 UI.initPattuglieTab = function () {
     const container = document.getElementById('pattuglieContainer');
