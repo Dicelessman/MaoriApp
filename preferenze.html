@@ -38,48 +38,52 @@
 
       <!-- Contenuto Preferenze -->
       <section id="preferencesTab" class="tab-content active">
-        <h2 class="text-2xl font-semibold text-gray-700 mb-6">Preferenze Utente</h2>
+        <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-6">Preferenze Utente</h2>
 
         <div class="space-y-6">
 
           <!-- Configurazione Unità -->
-          <div class="bg-green-50 p-6 rounded-lg shadow-sm border-2 border-green-200">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4">🏕️ Configurazione Unità</h3>
-            <p class="text-sm text-gray-600 mb-4">Personalizza il nome della tua unità che apparirà nell'header
+          <div
+            class="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg shadow-sm border-2 border-green-200 dark:border-green-800">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🏕️ Configurazione Unità</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Personalizza il nome della tua unità che apparirà
+              nell'header
               dell'applicazione</p>
             <div class="space-y-4">
               <div>
-                <label for="unitType" class="block text-sm font-medium text-gray-700 mb-2">Tipo di Unità</label>
+                <label for="unitType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo di
+                  Unità</label>
                 <select id="unitType"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
                   <option value="Reparto">Reparto</option>
                   <option value="Branco">Branco</option>
                   <option value="Compagnia">Compagnia</option>
                 </select>
               </div>
               <div>
-                <label for="unitName" class="block text-sm font-medium text-gray-700 mb-2">Nome Unità</label>
+                <label for="unitName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nome
+                  Unità</label>
                 <input type="text" id="unitName" placeholder="es. Maori, Aquile, Lupi..."
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
               </div>
-              <div class="bg-white p-3 rounded border border-green-300">
-                <p class="text-sm text-gray-600">Anteprima: <span id="unitPreview"
-                    class="font-bold text-green-700">Reparto Maori</span></p>
+              <div class="bg-white dark:bg-gray-800 p-3 rounded border border-green-300 dark:border-green-700">
+                <p class="text-sm text-gray-600 dark:text-gray-400">Anteprima: <span id="unitPreview"
+                    class="font-bold text-green-700 dark:text-green-400">Reparto Maori</span></p>
               </div>
             </div>
           </div>
 
           <!-- Tema -->
-          <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4">🎨 Aspetto</h3>
+          <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🎨 Aspetto</h3>
             <div class="space-y-3">
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700">Tema</label>
-                  <p class="text-sm text-gray-500">Scegli tra tema chiaro o scuro</p>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tema</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Scegli tra tema chiaro o scuro</p>
                 </div>
                 <select id="themeSelect"
-                  class="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                  class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
                   <option value="light">Chiaro</option>
                   <option value="dark">Scuro</option>
                   <option value="auto">Automatico (segue sistema)</option>
@@ -89,72 +93,76 @@
           </div>
 
           <!-- Notifiche -->
-          <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4">🔔 Notifiche</h3>
+          <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🔔 Notifiche</h3>
             <div class="space-y-4">
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700">Notifiche Abilitate</label>
-                  <p class="text-sm text-gray-500">Abilita notifiche push del browser</p>
-                  <span id="notificationPermissionStatus" class="text-xs text-gray-400 mt-1"></span>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notifiche Abilitate</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Abilita notifiche push del browser</p>
+                  <span id="notificationPermissionStatus" class="text-xs text-gray-400 dark:text-gray-500 mt-1"></span>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" id="notificationsEnabled" class="sr-only peer">
                   <div
-                    class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
                   </div>
                 </label>
               </div>
 
-              <div class="ml-4 space-y-3 border-l-2 border-gray-300 pl-4">
+              <div class="ml-4 space-y-3 border-l-2 border-gray-300 dark:border-gray-600 pl-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700">Promemoria Attività</label>
-                    <p class="text-sm text-gray-500">Notifica 3 giorni prima di un'attività</p>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria
+                      Attività</label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Notifica 3 giorni prima di un'attività</p>
                   </div>
                   <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="notificationActivityReminders" class="sr-only peer" disabled>
                     <div
-                      class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                      class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
                     </div>
                   </label>
                 </div>
 
                 <div class="flex items-center justify-between">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700">Promemoria Pagamenti</label>
-                    <p class="text-sm text-gray-500">Notifica per pagamenti mancanti</p>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria
+                      Pagamenti</label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per pagamenti mancanti</p>
                   </div>
                   <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="notificationPaymentReminders" class="sr-only peer" disabled>
                     <div
-                      class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                      class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
                     </div>
                   </label>
                 </div>
 
                 <div class="flex items-center justify-between">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700">Modifiche Importanti</label>
-                    <p class="text-sm text-gray-500">Notifica per cambiamenti significativi</p>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Modifiche
+                      Importanti</label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per cambiamenti significativi</p>
                   </div>
                   <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="notificationImportantChanges" class="sr-only peer" disabled>
                     <div
-                      class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                      class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
                     </div>
                   </label>
                 </div>
 
                 <div class="flex items-center justify-between">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700">Compleanni Esploratori</label>
-                    <p class="text-sm text-gray-500">Notifica per compleanni degli esploratori</p>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Compleanni
+                      Esploratori</label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per compleanni degli esploratori</p>
                   </div>
                   <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="notificationBirthdayReminders" class="sr-only peer" disabled>
                     <div
-                      class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                      class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
                     </div>
                   </label>
                 </div>
@@ -163,16 +171,16 @@
           </div>
 
           <!-- Visualizzazione -->
-          <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4">👁️ Visualizzazione</h3>
+          <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">👁️ Visualizzazione</h3>
             <div class="space-y-3">
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700">Vista Predefinita</label>
-                  <p class="text-sm text-gray-500">Pagina da aprire all'accesso</p>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Vista Predefinita</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Pagina da aprire all'accesso</p>
                 </div>
                 <select id="defaultViewSelect"
-                  class="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                  class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
                   <option value="">Automatica</option>
                   <option value="presenze.html">Presenze</option>
                   <option value="dashboard.html">Dashboard</option>
@@ -184,11 +192,11 @@
 
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700">Ordinamento Attività</label>
-                  <p class="text-sm text-gray-500">Come ordinare le attività nel calendario</p>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ordinamento Attività</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Come ordinare le attività nel calendario</p>
                 </div>
                 <select id="activityOrderSelect"
-                  class="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                  class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
                   <option value="">Data (cronologico)</option>
                   <option value="name">Nome</option>
                   <option value="type">Tipo</option>
@@ -198,18 +206,18 @@
           </div>
 
           <!-- Scorciatoie Tastiera -->
-          <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4">⌨️ Scorciatoie Tastiera</h3>
+          <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">⌨️ Scorciatoie Tastiera</h3>
             <div class="space-y-4">
               <div class="flex items-center justify-between mb-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700">Abilita Scorciatoie</label>
-                  <p class="text-sm text-gray-500">Consenti l'uso di scorciatoie da tastiera</p>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Abilita Scorciatoie</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Consenti l'uso di scorciatoie da tastiera</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" id="shortcutsEnabled" class="sr-only peer">
                   <div
-                    class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
                   </div>
                 </label>
               </div>
@@ -219,18 +227,18 @@
               </div>
 
               <button id="resetShortcutsBtn"
-                class="w-full md:w-auto px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm">
+                class="w-full md:w-auto px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm">
                 🔄 Ripristina Scorciatoie Default
               </button>
             </div>
           </div>
 
           <!-- Export/Import Dati -->
-          <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4">📊 Export/Import Dati</h3>
+          <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">📊 Export/Import Dati</h3>
             <div class="space-y-4">
               <div>
-                <h4 class="text-sm font-medium text-gray-700 mb-2">Export</h4>
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Export</h4>
                 <div class="flex flex-wrap gap-2">
                   <button id="exportJSONBtn"
                     class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
@@ -284,14 +292,14 @@
   </div>
 
   <!-- Dati e Sincronizzazione -->
-  <div class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">💾 Dati</h3>
+  <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">💾 Dati</h3>
     <div class="space-y-3">
       <button id="syncPreferencesBtn"
         class="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
         🔄 Sincronizza Preferenze
       </button>
-      <p class="text-sm text-gray-500">Sincronizza le preferenze con il server (se loggato)</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Sincronizza le preferenze con il server (se loggato)</p>
     </div>
   </div>
 
@@ -302,7 +310,7 @@
       💾 Salva Preferenze
     </button>
     <button id="resetPreferencesBtn"
-      class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium">
+      class="flex-1 px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium">
       🔄 Ripristina Default
     </button>
   </div>
