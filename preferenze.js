@@ -8,6 +8,9 @@ UI.renderCurrentPage = function () {
 UI.renderPreferencesPage = function () {
   const prefs = this.loadUserPreferences();
 
+  // Carica i dati utente
+  this.loadUserProfile();
+
   // Configurazione Unità
   const unitType = document.getElementById('unitType');
   const unitName = document.getElementById('unitName');
@@ -838,6 +841,114 @@ UI.handleAnagraficaCSVImport = async function (file) {
     this.showToast('Errore import CSV', { type: 'error' });
   } finally {
     this.hideLoadingOverlay();
+  }
+};
+
+/**
+ * Carica e visualizza i dati del profilo utente
+ */
+UI.loadUserProfile = async function () {
+  const nameEl = document.getElementById('userProfileName');
+  const emailEl = document.getElementById('userProfileEmail');
+  const roleEl = document.getElementById('userProfileRole');
+
+  if (!nameEl || !emailEl || !roleEl) return; // Uscita se non siamo nella pagina giusta
+
+  // Aspetta che currentUser sia popolato (se chiamato troppo presto)
+  if (!this.currentUser) {
+    // Retry breve
+    setTimeout(() => this.loadUserProfile(), 500);
+    return;
+  }
+
+  const email = this.currentUser.email;
+  emailEl.textContent = email;
+
+  // Cerca lo staff corrispondente
+  try {
+    if (!this.state.staff || this.state.staff.length === 0) {
+      this.state = await DATA.loadAll();
+    }
+
+    const staffMember = (this.state.staff || []).find(s =>
+      s.email && s.email.toLowerCase().trim() === email.toLowerCase().trim()
+    );
+
+    if (staffMember) {
+      nameEl.textContent = `${staffMember.nome} ${staffMember.cognome}`;
+      roleEl.textContent = staffMember.ruolo || 'Non assegnato (Staff)';
+    } else {
+      nameEl.textContent = 'Utente (Profilo non trovato in Staff)';
+      roleEl.textContent = 'Ospite';
+    }
+  } catch (e) {
+    console.error('Errore caricamento profilo:', e);
+    nameEl.textContent = 'Errore caricamento dati';
+  }
+
+  // Gestione Password Change
+  const toggleBtn = document.getElementById('togglePasswordChange');
+  const formDiv = document.getElementById('passwordChangeForm');
+  const cancelBtn = document.getElementById('cancelPasswordChange');
+  const submitBtn = document.getElementById('submitPasswordChange');
+
+  if (toggleBtn && formDiv) {
+    // Rimuovi listener precedenti (clonazione nodo)
+    const newToggle = toggleBtn.cloneNode(true);
+    toggleBtn.parentNode.replaceChild(newToggle, toggleBtn);
+
+    newToggle.addEventListener('click', () => {
+      formDiv.classList.toggle('hidden');
+    });
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        formDiv.classList.add('hidden');
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmNewPassword').value = '';
+      });
+    }
+
+    if (submitBtn) {
+      submitBtn.addEventListener('click', async () => {
+        const p1 = document.getElementById('newPassword').value;
+        const p2 = document.getElementById('confirmNewPassword').value;
+
+        if (!p1 || p1.length < 6) {
+          this.showToast('La password deve essere di almeno 6 caratteri', { type: 'error' });
+          return;
+        }
+        if (p1 !== p2) {
+          this.showToast('Le password non coincidono', { type: 'error' });
+          return;
+        }
+
+        this.setButtonLoading(submitBtn, true);
+        try {
+          // Import dinamico per evitare dipendenze circolari se necessario, 
+          // ma qui usiamo DATA.adapter.auth se esposto o importiamo Firebase helpers
+          // updatePassword è stato aggiunto a firebase.js exports
+          const { updatePassword } = await import('./core/firebase.js');
+
+          await updatePassword(this.currentUser, p1);
+
+          this.showToast('Password aggiornata con successo! Effettua nuovamente il login.');
+          formDiv.classList.add('hidden');
+
+          // Logout forzato per sicurezza o opzionale?
+          // Meglio lasciare l'utente loggato, la sessione si aggiorna.
+        } catch (error) {
+          console.error('Errore cambio password:', error);
+          if (error.code === 'auth/requires-recent-login') {
+            this.showToast('Per sicurezza, devi esserti loggato di recente. Esegui Logout e Login e riprova.', { type: 'warning', duration: 5000 });
+          } else {
+            this.showToast('Errore aggiornamento password: ' + error.message, { type: 'error' });
+          }
+        } finally {
+          this.setButtonLoading(submitBtn, false);
+        }
+      });
+    }
   }
 };
 
