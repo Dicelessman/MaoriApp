@@ -54,9 +54,7 @@ UI.setupTabs = function () {
 UI.renderTab = function (tabName) {
     switch (tabName) {
         case 'presenze': this.initPresenzeTab(); break;
-        case 'pattuglie': this.initPattuglieTab(); break;
-        case 'progressione': this.initProgressioneTab(); break;
-        case 'specialita': this.initSpecialitaTab(); break;
+        case 'elenco': this.initElencoTab(); break;
     }
 };
 
@@ -253,221 +251,141 @@ UI.downloadPresenzeCSV = function () {
     document.body.removeChild(link);
 };
 
-/* --- 2. Pattuglie --- */
-UI.initPattuglieTab = function () {
-    const container = document.getElementById('pattuglieContainer');
-
-    // Group by Patrol
-    const patrols = {};
-    const unassigned = [];
-
-    this.state.scouts.forEach(s => {
-        // Assume pv_pattuglia is the field. Check scout2.js to confirm field name. 
-        // In Step 227 scout2.html shows: <select id="pv_pattuglia" ...>
-        const pat = s.pv_pattuglia;
-        if (pat) {
-            if (!patrols[pat]) patrols[pat] = [];
-            patrols[pat].push(s);
-        } else {
-            unassigned.push(s);
+/* --- 2. Elenco Completo --- */
+UI.initElencoTab = function () {
+    // Listeners for columns
+    const toggles = document.querySelectorAll('.col-toggle');
+    toggles.forEach(t => {
+        // Avoid double binding
+        if (!t._bound) {
+            t._bound = true;
+            t.addEventListener('change', () => this.renderElencoTable());
         }
     });
 
-    // Render
-    container.innerHTML = '';
-
-    Object.keys(patrols).sort().forEach(patName => {
-        const members = patrols[patName].sort((a, b) => (a.cognome || '').localeCompare(b.cognome || ''));
-
-        const card = document.createElement('div');
-        card.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border border-orange-200 dark:border-orange-900/30';
-
-        let html = `<h4 class="text-lg font-bold text-orange-700 dark:text-orange-400 mb-3 border-b pb-2 flex justify-between">
-            ${escapeHtml(patName)} <span class="text-sm font-normal text-gray-500">${members.length} membri</span>
-        </h4>`;
-
-        html += `<ul class="space-y-1 text-sm">`;
-        members.forEach(m => {
-            // Maybe add icons for roles (Capo, Vice) if available in logic
-            let role = '';
-            let roleClass = '';
-            if (m.pv_vcp_cp === 'CP') { role = '='; roleClass = 'text-yellow-600 font-extrabold text-lg'; }
-            else if (m.pv_vcp_cp === 'VCP') { role = '-'; roleClass = 'text-yellow-600 font-extrabold text-lg'; }
-
-            html += `<li class="flex justify-between items-center">
-                <span>${escapeHtml(m.cognome)} ${escapeHtml(m.nome)}</span>
-                <span class="${roleClass}" title="${m.pv_vcp_cp}">${role}</span>
-             </li>`;
-        });
-        html += `</ul>`;
-
-        card.innerHTML = html;
-        container.appendChild(card);
-    });
-
-    // Unassigned if any
-    if (unassigned.length > 0) {
-        const card = document.createElement('div');
-        card.className = 'bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow';
-        card.innerHTML = `<h4 class="text-lg font-bold text-gray-600 dark:text-gray-300 mb-3">Non Assegnati (${unassigned.length})</h4>
-        <ul class="space-y-1 text-sm list-disc pl-4">
-            ${unassigned.map(m => `<li>${escapeHtml(m.cognome)} ${escapeHtml(m.nome)}</li>`).join('')}
-        </ul>`;
-        container.appendChild(card);
-    }
-
-    document.getElementById('printPattuglieBtn').onclick = () => {
-        const content = document.getElementById('pattuglieContainer').innerHTML;
+    document.getElementById('printElencoBtn').onclick = () => {
+        const table = document.getElementById('elencoTable').outerHTML;
         const printArea = document.getElementById('printArea');
         printArea.innerHTML = `
             <div class="print-header text-center mb-6">
-                <h1 class="text-2xl font-bold">Pattuglie Reparto Maori</h1>
+                <h1 class="text-2xl font-bold">Elenco Esploratori Maori</h1>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                ${content}
-            </div>
+            ${table}
          `;
         window.print();
     };
+
+    document.getElementById('copyElencoBtn').onclick = () => {
+        // Simple Copy
+        const rows = document.querySelectorAll('#elencoTable tbody tr');
+        let text = "Elenco Maori\n\n";
+        rows.forEach(r => {
+            const cols = Array.from(r.querySelectorAll('td')).map(c => c.textContent.trim());
+            text += cols.join('\t') + '\n';
+        });
+
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => this.showToast('Copiato')).catch(() => this.fallbackCopyText(text));
+        } else {
+            this.fallbackCopyText(text);
+        }
+    };
+
+    document.getElementById('csvElencoBtn').onclick = () => {
+        // Headers
+        const activeCols = Array.from(document.querySelectorAll('.col-toggle:checked')).map(c => c.dataset.col);
+        let csv = "Cognome;Nome";
+        if (activeCols.includes('pattuglia')) csv += ";Pattuglia";
+        if (activeCols.includes('passo')) csv += ";Passo";
+        if (activeCols.includes('sfide')) csv += ";Sfide";
+        if (activeCols.includes('specialita')) csv += ";Specialita";
+        if (activeCols.includes('dob')) csv += ";Data Nascita";
+        csv += "\n";
+
+        const rows = document.querySelectorAll('#elencoTable tbody tr');
+        rows.forEach(r => {
+            csv += Array.from(r.querySelectorAll('td')).map(c => `"${c.textContent.trim().replace(/"/g, '""')}"`).join(';') + "\n";
+        });
+
+        const link = document.createElement("a");
+        link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + csv));
+        link.setAttribute("download", `elenco_maori_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Initial Render
+    this.renderElencoTable();
 };
 
-/* --- 3. Progressione --- */
-UI.initProgressioneTab = function () {
-    const tbody = document.getElementById('progressioneTableBody');
-    tbody.innerHTML = '';
+UI.renderElencoTable = function () {
+    const table = document.getElementById('elencoTable');
+    if (!table) return;
 
-    // Sort all by surname
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+
+    const activeCols = Array.from(document.querySelectorAll('.col-toggle:checked')).map(c => c.dataset.col);
+
+    // 1. Build Header
+    let headHtml = '<tr><th class="px-4 py-2">Cognome Nome</th>';
+    if (activeCols.includes('pattuglia')) headHtml += '<th class="px-4 py-2">Pattuglia</th>';
+    if (activeCols.includes('passo')) headHtml += '<th class="px-4 py-2">Passo</th>';
+    if (activeCols.includes('sfide')) headHtml += '<th class="px-4 py-2">Sfide</th>';
+    if (activeCols.includes('specialita')) headHtml += '<th class="px-4 py-2">Specialità</th>';
+    if (activeCols.includes('dob')) headHtml += '<th class="px-4 py-2">Data Nascita</th>';
+    headHtml += '</tr>';
+    thead.innerHTML = headHtml;
+
+    // 2. Build Rows
+    tbody.innerHTML = '';
     const scouts = [...this.state.scouts].sort((a, b) => (a.cognome || '').localeCompare(b.cognome || ''));
 
-    // Determine current step. Logic:
-    // If Step 3 completed -> "Competenza" (or whatever is next/max)
-    // If Step 2 completed -> Step 3
-    // If Step 1 completed -> Step 2
-    // Else -> Step 1 (Scoperta)
-
-    // We check `pv_tracciaX_chk` (from scout2.html analysis)
-
     scouts.forEach(s => {
-        let currentStep = 'Scoperta (Passo 1)';
-        let activeTrack = 1;
+        let rowHtml = `<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">`;
+        rowHtml += `<td class="px-4 py-2 font-medium break-words max-w-[150px]">${escapeHtml(s.cognome)} ${escapeHtml(s.nome)}</td>`;
 
-        // Check completamento
-        if (s.pv_traccia2_chk) { currentStep = 'Responsabilità (Passo 3)'; activeTrack = 3; }
-        else if (s.pv_traccia1_chk) { currentStep = 'Competenza (Passo 2)'; activeTrack = 2; }
-
-        // Get selected challenges for active, active+1? 
-        // User asked "con sigle delle prove che hanno scelto"
-        // Le prove sono in pv_sfida_io_X, pv_sfida_al_X, pv_sfida_mt_X
-        // X = activeTrack generally.
-
-        const getChallenge = (type, track) => {
-            const val = s[`pv_sfida_${type}_${track}`]; // Value is likely the ID/Key of challenge
-            // We verify challenges data in scout2.js normally, but here maybe just show code
-            return val ? val.split('_').pop() : '-'; // e.g. "io_1_natura" -> "natura"? Or just show full string?
-            // Let's just show initials or short text. 
-            // Better: just show the raw value or a placeholder if mapping needed.
-            return val || '-';
-        };
-
-        const io = getChallenge('io', activeTrack);
-        const al = getChallenge('al', activeTrack);
-        const mt = getChallenge('mt', activeTrack);
-
-        const tr = document.createElement('tr');
-        tr.className = 'bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600';
-        tr.innerHTML = `
-            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                ${escapeHtml(s.cognome)} ${escapeHtml(s.nome)}
-            </td>
-            <td class="px-6 py-4">
-                <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">${currentStep}</span>
-            </td>
-            <td class="px-6 py-4 font-mono text-xs">
-                IO: ${io}<br>AL: ${al}<br>MT: ${mt}
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    document.getElementById('printProgressioneBtn').onclick = () => {
-        // Table print
-        const table = document.querySelector('#tab-progressione table').outerHTML;
-        const printArea = document.getElementById('printArea');
-        printArea.innerHTML = `
-           <h1 class="text-xl font-bold mb-4">Progressione Verticale</h1>
-           ${table}
-        `;
-        window.print();
-    };
-};
-
-/* --- 4. Specialità --- */
-UI.initSpecialitaTab = function () {
-    const container = document.getElementById('specialitaContainer');
-    container.innerHTML = 'Caricamento specialità...';
-
-    // We need the canonical list of specialties. 
-    // Usually loaded from 'specialita.json'.
-    // We can fetch it here.
-    fetch('specialita.json').then(r => r.json()).then(specs => {
-        // specs is Array of { nome, area, ... } or Object?
-        // Assume Array based on scout2.js "loadSpecialitaList" return [] default.
-
-        // Sort specs
-        specs.sort((a, b) => a.nome.localeCompare(b.nome));
-
-        // Map scouts to specs
-        // Scouts have `specialita` array of objects: { nome, data, status (conseguita/programma) }
-        // Or fields? scout2.html doesn't show specialita section implementation details in the snippet (is dynamic).
-        // Let's assume proper data model based on "loadAll".
-
-        // We iterate all scouts and build a map: SpecName -> { done: [names], todo: [names] }
-        const map = {};
-
-        this.state.scouts.forEach(s => {
-            // Check where specs are stored. 
-            // If they are in s.specialita (array)
-            if (Array.isArray(s.specialita)) {
-                s.specialita.forEach(sp => {
-                    if (!map[sp.nome]) map[sp.nome] = { done: [], todo: [] };
-                    const fullname = `${s.cognome} ${s.nome}`;
-                    if (sp.data) { // Conseguita if date exists? Or explicit status?
-                        map[sp.nome].done.push(fullname);
-                    } else {
-                        map[sp.nome].todo.push(fullname);
-                    }
-                });
-            }
-        });
-
-        // Render
-        container.innerHTML = '';
-        specs.forEach(sp => {
-            const data = map[sp.nome] || { done: [], todo: [] };
-            if (data.done.length === 0 && data.todo.length === 0) return; // Hide empty? Or show all? User said "associati gli esploratori", likely hide unused.
-
-            const div = document.createElement('div');
-            div.className = 'bg-white dark:bg-gray-800 p-4 rounded border border-gray-200 dark:border-gray-700';
-
-            let html = `<h4 class="font-bold text-lg mb-2">${escapeHtml(sp.nome)} <span class="text-xs text-gray-500">(${sp.area})</span></h4>`;
-
-            if (data.done.length > 0) {
-                html += `<div class="mb-2"><span class="text-xs font-bold text-green-600 uppercase">Conseguite:</span> <span class="text-sm">${data.done.join(', ')}</span></div>`;
-            }
-            if (data.todo.length > 0) {
-                html += `<div><span class="text-xs font-bold text-yellow-600 uppercase">In Programma:</span> <span class="text-sm">${data.todo.join(', ')}</span></div>`;
-            }
-
-            div.innerHTML = html;
-            container.appendChild(div);
-        });
-
-        if (container.children.length === 0) {
-            container.innerHTML = '<p class="text-gray-500 italic">Nessuna specialità assegnata.</p>';
+        if (activeCols.includes('pattuglia')) {
+            let role = '';
+            if (s.pv_vcp_cp === 'CP') role = ' (=)';
+            if (s.pv_vcp_cp === 'VCP') role = ' (-)';
+            rowHtml += `<td class="px-4 py-2">${escapeHtml(s.pv_pattuglia || '-')}${role}</td>`;
         }
 
-    }).catch(e => {
-        container.textContent = 'Errore caricamento specialità: ' + e.message;
+        if (activeCols.includes('passo')) {
+            let currentStep = 'Scoperta';
+            if (s.pv_traccia2_chk) currentStep = 'Responsabilità';
+            else if (s.pv_traccia1_chk) currentStep = 'Competenza';
+            rowHtml += `<td class="px-4 py-2 text-xs">${currentStep}</td>`;
+        }
+
+        if (activeCols.includes('sfide')) {
+            let activeTrack = 1;
+            if (s.pv_traccia2_chk) activeTrack = 3;
+            else if (s.pv_traccia1_chk) activeTrack = 2;
+
+            const getC = (t) => (s[`pv_sfida_${t}_${activeTrack}`] || '').split('_').pop() || '-';
+
+            rowHtml += `<td class="px-4 py-2 font-mono text-xs">I:${getC('io')} A:${getC('al')} M:${getC('mt')}</td>`;
+        }
+
+        if (activeCols.includes('specialita')) {
+            // Extract specs
+            let text = '-';
+            if (Array.isArray(s.specialita) && s.specialita.length > 0) {
+                text = s.specialita.map(sp => sp.nome + (sp.data ? ' (C)' : '')).join(', ');
+            }
+            rowHtml += `<td class="px-4 py-2 text-xs break-words max-w-[200px]">${escapeHtml(text)}</td>`;
+        }
+
+        if (activeCols.includes('dob')) {
+            const d = s.anag_dob ? toJsDate(s.anag_dob).toLocaleDateString() : '';
+            rowHtml += `<td class="px-4 py-2 whitespace-nowrap">${d}</td>`;
+        }
+
+        rowHtml += '</tr>';
+        tbody.insertAdjacentHTML('beforeend', rowHtml);
     });
 };
 

@@ -74,25 +74,18 @@
                         class="tab-btn active border-green-500 text-green-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
                         📝 Presenze Attività
                     </button>
-                    <button data-tab="pattuglie"
+                    <button data-tab="elenco"
                         class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                        ⛺ Pattuglie
-                    </button>
-                    <button data-tab="progressione"
-                        class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                        📈 Progressione (Passi)
-                    </button>
-                    <button data-tab="specialita"
-                        class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                        🏅 Specialità
+                        📋 Elenco Completo
                     </button>
                 </nav>
             </div>
 
             <!-- Content Sections -->
 
-            <!-- 1. Presenze Attività -->
+            <!-- 1. Presenze Attività (Unchanged) -->
             <div id="tab-presenze" class="tab-pane block space-y-6">
+                <!-- ... content maintained ... -->
                 <div
                     class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Lista Presenze per Attività
@@ -133,50 +126,48 @@
                 </div>
             </div>
 
-            <!-- 2. Pattuglie -->
-            <div id="tab-pattuglie" class="tab-pane hidden space-y-6">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Liste Pattuglie</h3>
+            <!-- 2. Elenco Completo -->
+            <div id="tab-elenco" class="tab-pane hidden space-y-6">
+                <!-- Control Panel -->
+                <div
+                    class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Personalizza Elenco</h3>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Colonne da
+                            mostrare:</label>
+                        <div class="flex flex-wrap gap-4">
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox"
+                                    class="col-toggle rounded text-green-600" data-col="pattuglia"> Pattuglia</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox"
+                                    class="col-toggle rounded text-green-600" data-col="passo"> Passo</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox"
+                                    class="col-toggle rounded text-green-600" data-col="sfide"> Sfide (Sigle)</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox"
+                                    class="col-toggle rounded text-green-600" data-col="specialita"> Specialità</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox"
+                                    class="col-toggle rounded text-green-600" data-col="dob"> Data di Nascita</label>
+                        </div>
+                    </div>
+
                     <div class="flex gap-2">
-                        <button id="copyPattuglieBtn" class="btn-secondary">📋 Copia Testo</button>
-                        <button id="printPattuglieBtn" class="btn-secondary">🖨️ Stampa Tutto</button>
+                        <button id="printElencoBtn" class="btn-primary">🖨️ Stampa</button>
+                        <button id="copyElencoBtn" class="btn-secondary">📋 Copia</button>
+                        <button id="csvElencoBtn" class="btn-secondary">💾 CSV</button>
                     </div>
                 </div>
-                <div id="pattuglieContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Cards Pattuglie -->
-                </div>
-            </div>
 
-            <!-- 3. Progressione -->
-            <div id="tab-progressione" class="tab-pane hidden space-y-6">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Stato Progressione Verticale</h3>
-                    <button id="printProgressioneBtn" class="btn-secondary">🖨️ Stampa</button>
-                </div>
+                <!-- Table Preview -->
                 <div
                     class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="elencoTable">
                         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                            <tr>
-                                <th scope="col" class="px-6 py-3">Esploratore</th>
-                                <th scope="col" class="px-6 py-3">Attuale</th>
-                                <th scope="col" class="px-6 py-3">Sfide Selezionate</th>
-                            </tr>
+                            <!-- Headers dynamically generated -->
                         </thead>
-                        <tbody id="progressioneTableBody">
-                            <!-- Rows -->
+                        <tbody>
+                            <!-- Rows dynamically generated -->
                         </tbody>
                     </table>
-                </div>
-            </div>
-
-            <!-- 4. Specialità -->
-            <div id="tab-specialita" class="tab-pane hidden space-y-6">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Albo Specialità</h3>
-                </div>
-                <div id="specialitaContainer" class="space-y-4">
-                    <!-- Specialita list items -->
                 </div>
             </div>
 
