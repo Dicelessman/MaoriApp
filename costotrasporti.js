@@ -67,24 +67,12 @@ UI.updateScountsCount = function () {
         return;
     }
 
-    // Calculate scouts present or 'Assente' but maybe we assume 'Presente'?
-    // Usually for cost planning we care about who comes.
-    // Let's count 'Presente' in presences. If future, maybe all active scouts?
-    // User said: "recuperare il numero degli esploratori partecipanti".
-    // If activity is in future, maybe presenze are not set yet.
-    // Fallback: If no presences marked 'Presente', maybe default to 0 and warn?
-    // checking presences
-
     const presences = this.state.presences || [];
     const activityPresences = presences.filter(p => p.attivitaId === this.selectedActivityId && p.stato === 'Presente');
 
     if (activityPresences.length > 0) {
         this.scoutsCount = activityPresences.length;
     } else {
-        // If no presences, maybe use all active scouts as default? 
-        // Or simpler: just 0 and let user know. 
-        // Given the context of "Planning", usually presences are taken BEFORE or assumed.
-        // Let's assume 0 if nothing marked.
         this.scoutsCount = 0;
         this.showToast('Nessun esploratore segnato come Presente per questa attività.', { type: 'info' });
     }
@@ -133,11 +121,8 @@ UI.renderLegs = function () {
         return;
     }
 
-    // We need current counts to calculate per-leg details for display
-    const totalPassengers = this.scoutsCount + this.staffCount;
-
     this.legs.forEach(leg => {
-        const details = this.calculateLegCost(leg, totalPassengers);
+        const details = this.calculateLegCost(leg, this.scoutsCount, this.staffCount);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -145,13 +130,13 @@ UI.renderLegs = function () {
       <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
         ${leg.convention ? '<span class="text-green-600 font-bold">✓ Si</span>' : '<span class="text-gray-400">No</span>'}
       </td>
-      <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">€ ${leg.cost.toFixed(2)}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">€ ${details.unitCost.toFixed(2)}</td>
       <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-green-600 font-medium">
-        ${details.freeTickets} <span class="text-xs text-gray-500">(Gratis)</span>
+        ${details.freeStaff} Staff <span class="text-xs text-gray-500">(Gratis)</span>
       </td>
       <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-        ${details.payingPassengers}
-        ${details.discountApplied ? '<span class="text-xs text-green-600 block">(-20%)</span>' : ''}
+        ${this.scoutsCount + details.payingStaff}
+        <span class="text-xs text-gray-500 block">(${this.scoutsCount} E + ${details.payingStaff} S)</span>
       </td>
       <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">€ ${details.totalCost.toFixed(2)}</td>
       <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
@@ -168,54 +153,63 @@ UI.renderLegs = function () {
     });
 };
 
-UI.calculateLegCost = function (leg, totalPassengers) {
-    let freeTickets = 0;
+UI.calculateLegCost = function (leg, scoutsCount, staffCount) {
+    const totalPassengers = scoutsCount + staffCount;
+    let freeStaff = 0;
     let discountApplied = false;
     let unitCost = leg.cost;
 
+    // 1. Convention Applicability (Total Passengers >= 10)
+    // "passeggeri >=10 tutti i biglietti vengono scontanti del 20%"
     if (leg.convention && totalPassengers >= 10) {
         discountApplied = true;
         unitCost = leg.cost * 0.80; // 20% discount
 
-        // Calculate free tickets: "2 gratis oltre i primi 10... a ogni soglia di 10"
-        // Logic decided: For every group of 10 AFTER the first 10, the first 2 are free.
-        // i.e., Passengers 11, 12 are free. 13-20 pay. 21, 22 free. 23-30 pay.
+        // 2. Free Staff Calculation (Based on SCOUTS count)
+        // "esploratori >=10, fino a 2 staff massimo non pagaono il biglietto"
+        // "esploratori >=20, fino a 4 staff..." -> 2 free staff for every 10 scouts
+        const maxFreeStaff = Math.floor(scoutsCount / 10) * 2;
 
-        // We iterate from 11 up to totalPassengers
-        if (totalPassengers > 10) {
-            for (let i = 11; i <= totalPassengers; i++) {
-                // Position in the block of 10 (0-9)
-                const posInTen = (i - 11) % 10;
-                if (posInTen < 2) {
-                    freeTickets++;
-                }
-            }
-        }
+        // The actual free tickets are limited by the number of staff present
+        freeStaff = Math.min(staffCount, maxFreeStaff);
     }
 
-    const payingPassengers = Math.max(0, totalPassengers - freeTickets);
-    const totalCost = payingPassengers * unitCost;
+    // "Staff... generano il costo del proprio biglietto... ma non contribuiscono"
+    // "Esploratori... pagano la loro quota e si distribuiscono quella dello staff"
+
+    // Costs
+    const payingStaff = staffCount - freeStaff;
+
+    // Scout cost: All scouts generate a cost (discounted if applicable)
+    const scoutsCost = scoutsCount * unitCost;
+
+    // Staff cost: Only non-free staff generate a cost
+    const staffCost = payingStaff * unitCost;
+
+    const totalCost = scoutsCost + staffCost;
 
     return {
-        freeTickets,
-        payingPassengers,
+        freeStaff,
+        payingStaff,
         discountApplied,
         totalCost,
-        unitCost
+        unitCost,
+        scoutsCost,
+        staffCost
     };
 };
 
 UI.recalculate = function () {
-    const totalPassengers = this.scoutsCount + this.staffCount;
     let tripTotal = 0;
 
     this.legs.forEach(leg => {
-        const details = this.calculateLegCost(leg, totalPassengers);
+        // Pass specific counts, not just total
+        const details = this.calculateLegCost(leg, this.scoutsCount, this.staffCount);
         tripTotal += details.totalCost;
     });
 
     // Cost per scout is tripTotal / scoutsCount
-    // If scoutsCount is 0, avoid division by zero
+    // "Il costo... ricade sugli esploratori"
     let perScout = 0;
     if (this.scoutsCount > 0) {
         perScout = tripTotal / this.scoutsCount;
@@ -223,7 +217,6 @@ UI.recalculate = function () {
 
     this.qs('#totalTripCost').textContent = `€ ${tripTotal.toFixed(2)}`;
 
-    // Format huge numbers if 0 scouts
     if (this.scoutsCount === 0 && tripTotal > 0) {
         this.qs('#costPerScout').textContent = "---";
     } else {
