@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Costo Trasporti - Reparto Maori</title>
+    <meta name="description" content="Calcolo costi trasporti Reparto Maori" />
+    <meta name="theme-color" content="#16a34a" />
+
+    <!-- Favicon e icone -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+        <!-- Header condiviso -->
+        <div id="shared-header"></div>
+
+        <!-- Main -->
+        <main id="main-content" class="p-6">
+            <!-- Modali condivisi -->
+            <div id="shared-modals"></div>
+
+            <!-- Contenuto Costo Trasporti -->
+            <section id="costoTrasportiTab" class="tab-content active">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-6">Calcolo Costo Trasporti</h2>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Configurazione Viaggio -->
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4">Configurazione</h3>
+                        <form id="configForm" class="space-y-4">
+
+                            <!-- Selezione Attività -->
+                            <div>
+                                <label for="selectActivity"
+                                    class="block text-sm font-medium text-gray-700 mb-1">Attività (Conta
+                                    Esploratori)</label>
+                                <select id="selectActivity"
+                                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200">
+                                    <option value="">Seleziona un'attività...</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Seleziona per caricare il numero di esploratori
+                                    presenti.</p>
+                            </div>
+
+                            <!-- Input Staff -->
+                            <div>
+                                <label for="staffCount" class="block text-sm font-medium text-gray-700 mb-1">Numero
+                                    Staff Viaggianti</label>
+                                <input type="number" id="staffCount" min="0" value="0"
+                                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                            </div>
+
+                            <!-- Riepilogo Passeggeri -->
+                            <div class="bg-white p-4 rounded border border-gray-200 mt-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm text-gray-600">Esploratori (Paganti):</span>
+                                    <span id="scoutsCountDisplay" class="font-bold text-gray-900">0</span>
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm text-gray-600">Staff (Non paganti):</span>
+                                    <span id="staffCountDisplay" class="font-bold text-gray-900">0</span>
+                                </div>
+                                <div class="border-t pt-2 flex justify-between items-center">
+                                    <span class="text-sm font-semibold text-gray-700">Totale Passeggeri:</span>
+                                    <span id="totalPassengersDisplay" class="font-bold text-green-700 text-lg">0</span>
+                                </div>
+                            </div>
+
+                        </form>
+                    </div>
+
+                    <!-- Aggiunta Tratta -->
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4">Aggiungi Tratta</h3>
+                        <form id="addLegForm" class="space-y-4">
+                            <div>
+                                <label for="legName" class="block text-sm font-medium text-gray-700 mb-1">Nome Tratta /
+                                    Mezzo</label>
+                                <input type="text" id="legName" placeholder="es. Treno Andata" required
+                                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                            </div>
+
+                            <div>
+                                <label for="legCost" class="block text-sm font-medium text-gray-700 mb-1">Costo
+                                    Biglietto Singolo (€)</label>
+                                <input type="number" id="legCost" min="0" step="0.01" placeholder="0.00" required
+                                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="legConvention"
+                                    class="rounded border-gray-300 text-green-600 shadow-sm focus:ring-green-200" />
+                                <label for="legConvention" class="text-sm text-gray-700 select-none">Applica Convenzione
+                                    Trenitalia/CNGEI</label>
+                            </div>
+                            <p class="text-xs text-gray-500 ml-6">
+                                Sconto 20% sui biglietti e gratuità ogni 10 paganti (se > 10 passeggeri).
+                            </p>
+
+                            <button type="submit" class="w-full btn-primary mt-2">Aggiungi Tratta</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Lista Tratte e Totali -->
+                <div class="mt-8">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Riepilogo Costi</h3>
+
+                    <div class="overflow-x-auto rounded-lg shadow-sm border border-gray-200">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Tratta</th>
+                                    <th
+                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Convenzione</th>
+                                    <th
+                                        class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Costo Unitario</th>
+                                    <th
+                                        class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Gratuità</th>
+                                    <th
+                                        class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Paganti Effettivi</th>
+                                    <th
+                                        class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Totale Tratta</th>
+                                    <th
+                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="legsTableBody" class="divide-y divide-gray-200">
+                                <!-- Le tratte verranno inserite qui -->
+                                <tr id="emptyLegsRow">
+                                    <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">Nessuna tratta
+                                        aggiunta</td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="bg-gray-50 font-semibold">
+                                <tr>
+                                    <td colspan="5" class="px-6 py-4 text-right text-gray-900">Totale Viaggio:</td>
+                                    <td id="totalTripCost" class="px-6 py-4 text-right text-green-700 text-lg">€ 0,00
+                                    </td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="5" class="px-6 py-4 text-right text-gray-900">Quota per Esploratore:
+                                    </td>
+                                    <td id="costPerScout" class="px-6 py-4 text-right text-blue-700 text-xl">€ 0,00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/config.js"></script>
+    <script type="module" src="shared.js"></script>
+    <script type="module" src="costotrasporti.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js")
+                .catch(err => console.error("SW registration failed:", err));
+        }
+    </script>
+</body>
+
+</html>
