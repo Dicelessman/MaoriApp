@@ -109,11 +109,12 @@ UI.initGalleyCalculator = async function () {
 
 UI.populateActivitySelect = async function (selectElement) {
     const activities = this.state.activities || [];
-    const sorted = [...activities].sort((a, b) => new Date(b.data) - new Date(a.data));
+    const sorted = [...activities].sort((a, b) => this.toJsDate(b.data) - this.toJsDate(a.data));
 
     selectElement.innerHTML = '<option value="">Seleziona un\'attività...</option>';
     sorted.forEach(act => {
-        const dateStr = new Date(act.data).toLocaleDateString('it-IT');
+        const dateObj = this.toJsDate(act.data);
+        const dateStr = isNaN(dateObj) ? '???' : dateObj.toLocaleDateString('it-IT');
         const opt = document.createElement('option');
         opt.value = act.id;
         opt.textContent = `${dateStr} - ${act.tipo} - ${act.descrizione || ''}`;
