@@ -168,4 +168,16 @@ export class FirestoreAdapter {
             });
         }
     }
+    // Budgets
+    async getBudgetByActivity(activityId) {
+        const docRef = doc(this.db, 'budgets', activityId);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+            return Object.assign({ activityId }, snap.data());
+        }
+        return null;
+    }
+    async saveBudget(budget, currentUser) {
+        await setDoc(doc(this.db, 'budgets', budget.activityId), budget, { merge: true });
+    }
 }
