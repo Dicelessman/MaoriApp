@@ -173,4 +173,11 @@ export const DATA = {
         this._invalidateCache();
         return result;
     },
+    // Budgets
+    async getBudgetByActivity(activityId) {
+        return await this.adapter.getBudgetByActivity(activityId);
+    },
+    async saveBudget(budget, currentUser) {
+        return await this.adapter.saveBudget(budget, currentUser);
+    }
 };
