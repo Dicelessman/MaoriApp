@@ -291,6 +291,12 @@ service cloud.firestore {
       allow delete: if isStaff() && resource.data.userId == request.auth.uid;
     }
     
+    // ============== COLLEZIONE: budgets ==============
+    match /budgets/{activityId} {
+      // Lettura e Scrittura: solo staff autenticato
+      allow read, write: if isStaff();
+    }
+
     // ============== Default: nega tutto il resto ==============
     match /{document=**} {
       allow read, write: if false;
