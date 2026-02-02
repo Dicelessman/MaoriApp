@@ -242,7 +242,7 @@ export const UI = {
             this.runConnectivityProbe();
             await this.loadSharedComponents();
             try {
-                const links = ['presenze.html', 'dashboard.html', 'calendario.html', 'esploratori.html', 'staff.html', 'audit-logs.html', 'costotrasporti.html', 'costostruttura.html'];
+                const links = ['presenze.html', 'dashboard.html', 'calendario.html', 'esploratori.html', 'staff.html', 'audit-logs.html', 'costotrasporti.html', 'costostruttura.html', 'costocambusa.html'];
                 links.forEach(href => {
                     const l = document.createElement('link');
                     l.rel = 'prefetch';
@@ -405,7 +405,8 @@ export const UI = {
             'statistiche.html': 'Statistiche',
             'preferenze.html': 'Preferenze',
             'costotrasporti.html': 'Costo Trasporti',
-            'costostruttura.html': 'Costo Struttura'
+            'costostruttura.html': 'Costo Struttura',
+            'costocambusa.html': 'Costo Cambusa'
         };
         navItems.forEach(item => {
             const href = item.getAttribute('href');
