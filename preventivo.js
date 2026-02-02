@@ -98,11 +98,11 @@ UI.initBudgetCalculator = async function () {
         this.renderAll();
     });
 
-    els.scoutsCount.addEventListener('change', (e) => {
+    els.scoutsCount.addEventListener('input', (e) => {
         this.budgetState.scoutsCount = parseInt(e.target.value) || 0;
         this.renderAll();
     });
-    els.staffCount.addEventListener('change', (e) => {
+    els.staffCount.addEventListener('input', (e) => {
         this.budgetState.staffCount = parseInt(e.target.value) || 0;
         this.renderAll();
     });
