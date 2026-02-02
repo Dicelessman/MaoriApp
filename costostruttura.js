@@ -193,6 +193,8 @@ UI.recalculate = function () {
     const totalPeople = d.scouts + d.staff;
 
     // --- Base Cost ---
+    // LOGIC: Staff are included in the 'totalPeople' count for generating the base cost (if per-person).
+    // They generally don't pay internally, so the total cost is divided only by d.scouts later.
     let calcBase = 0;
     if (d.baseType === 'person_night') {
         calcBase = totalPeople * d.nights * d.baseRate;
@@ -239,7 +241,7 @@ UI.recalculate = function () {
 
     // --- Per Person ---
     // User Cost Logic: Structure costs (Base + Utils + Extra) are generally divided among Scouts.
-    // Assuming staff generally don't pay for usage unless specified, similar to transport logic.
+    // Staff are NOT included in the divisor, so the cost falls on Scouts.
     let perPerson = 0;
     if (d.scouts > 0) {
         perPerson = grandTotal / d.scouts;
