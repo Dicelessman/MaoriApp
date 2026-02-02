@@ -26,7 +26,8 @@ export class LocalAdapter {
                 { esploratoreId: 's1', attivitaId: 'a1', stato: 'Presente', pagato: true, tipoPagamento: 'Contanti' },
                 { esploratoreId: 's2', attivitaId: 'a1', stato: 'Assente', pagato: false, tipoPagamento: null },
                 { esploratoreId: 's3', attivitaId: 'a1', stato: 'Presente', pagato: true, tipoPagamento: 'Bonifico' }
-            ]
+            ],
+            budgets: saved.budgets || []
         };
         // Restore dates
         this.state.activities.forEach(a => {
@@ -125,5 +126,21 @@ export class LocalAdapter {
             p.tipoPagamento = null;
         this.persist();
         console.log('LocalAdapter: updatePresence', { field, value, scoutId, activityId, currentUser: currentUser?.email });
+    }
+
+    // Budgets
+    async getBudgetByActivity(activityId) {
+        return this.state.budgets.find(b => b.activityId === activityId) || null;
+    }
+
+    async saveBudget(budget, currentUser) {
+        const index = this.state.budgets.findIndex(b => b.activityId === budget.activityId);
+        if (index >= 0) {
+            this.state.budgets[index] = budget;
+        } else {
+            this.state.budgets.push(budget);
+        }
+        this.persist();
+        console.log('LocalAdapter: saveBudget', { activityId: budget.activityId, currentUser: currentUser?.email });
     }
 }

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Preventivo Attività - Reparto Maori</title>
+    <meta name="description" content="Calcolo preventivo completo Reparto Maori" />
+    <meta name="theme-color" content="#16a34a" />
+
+    <!-- Favicon e icone -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+        <!-- Header condiviso -->
+        <div id="shared-header"></div>
+
+        <!-- Main -->
+        <main id="main-content" class="p-6">
+            <!-- Modali condivisi -->
+            <div id="shared-modals"></div>
+
+            <!-- Contenuto Preventivo -->
+            <section id="preventivoTab" class="tab-content active">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold text-gray-700">Preventivo Attività</h2>
+                    <button id="saveBudgetBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2">
+                        <span>💾</span> Salva Preventivo
+                    </button>
+                </div>
+
+                <!-- 1. Configurazione Generale -->
+                <div
+                    class="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-xl border border-blue-200 dark:border-blue-800 shadow-sm mb-6">
+                    <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-4">Configurazione Base</h3>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="selectActivity"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Attività</label>
+                                <select id="selectActivity"
+                                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-200 dark:bg-gray-800 dark:border-gray-700 dark:text-white">
+                                    <option value="">Seleziona un'attività...</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Esploratori</label>
+                                    <input type="number" id="scoutsCount" min="0"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-200 dark:bg-gray-800 dark:border-gray-700 dark:text-white font-bold"
+                                        value="0">
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Staff</label>
+                                    <input type="number" id="staffCount" min="0"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-200 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                                        value="0">
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            class="flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-100 dark:border-gray-700">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Totale Partecipanti</p>
+                                <p id="totalParticipantsDisplay"
+                                    class="text-3xl font-bold text-blue-600 dark:text-blue-400">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion Sections for Detailed Costs -->
+                <div class="space-y-4">
+
+                    <!-- 2. Trasporti -->
+                    <details
+                        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm group">
+                        <summary
+                            class="flex justify-between items-center p-4 cursor-pointer list-none bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">
+                            <span class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">🚌
+                                Trasporti (Treni/Bus)</span>
+                            <span id="transportTotalBadge" class="font-bold text-gray-600 dark:text-gray-400">€
+                                0.00</span>
+                        </summary>
+                        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                            <!-- Transport List -->
+                            <div id="transportLegsList" class="space-y-2 mb-4"></div>
+                            <!-- Add Transport Form -->
+                            <div class="grid grid-cols-12 gap-2 items-end bg-gray-50 dark:bg-gray-900/50 p-3 rounded">
+                                <div class="col-span-5">
+                                    <label class="block text-xs text-gray-500">Tratta</label>
+                                    <input type="text" id="newLegName" placeholder="Es. Milano - Roma"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div class="col-span-3">
+                                    <label class="block text-xs text-gray-500">Costo Unit/Tot</label>
+                                    <input type="number" id="newLegCost" placeholder="€" step="0.01"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div class="col-span-3 flex items-center pt-4">
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" id="newLegConvention"
+                                            class="rounded text-green-600 focus:ring-green-500">
+                                        <span class="text-xs text-gray-600">Convenzione?</span>
+                                    </label>
+                                </div>
+                                <div class="col-span-1">
+                                    <button id="addLegBtn"
+                                        class="w-full bg-green-600 params-white text-white rounded p-1 hover:bg-green-700">+</button>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">* Convenzione Trenitalia: 20% sconto se >= 10 pax.
+                                Gratuità staff (1 ogni 10 scout, max 2 o 4).</p>
+                        </div>
+                    </details>
+
+                    <!-- 3. Struttura -->
+                    <details
+                        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm group">
+                        <summary
+                            class="flex justify-between items-center p-4 cursor-pointer list-none bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">
+                            <span class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">🏠
+                                Struttura & Utenze</span>
+                            <span id="structureTotalBadge" class="font-bold text-gray-600 dark:text-gray-400">€
+                                0.00</span>
+                        </summary>
+                        <div class="p-4 border-t border-gray-200 dark:border-gray-700 grid md:grid-cols-2 gap-6">
+
+                            <!-- Base Affitto -->
+                            <div class="space-y-3">
+                                <h4 class="font-medium text-sm uppercase tracking-wide text-gray-500">Affitto</h4>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-xs text-gray-500">Notti</label>
+                                        <input type="number" id="structNights" value="0" min="0"
+                                            class="w-full rounded border-gray-300 text-sm p-1">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-500">Giorni</label>
+                                        <input type="number" id="structDays" value="0" min="0"
+                                            class="w-full rounded border-gray-300 text-sm p-1">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500">Tipo Tariffa</label>
+                                    <select id="structRateType" class="w-full rounded border-gray-300 text-sm p-1">
+                                        <option value="person_night">Per Persona a Notte</option>
+                                        <option value="person_day">Per Persona al Giorno</option>
+                                        <option value="person_flat">Forfettario a Persona</option>
+                                        <option value="group_flat">Forfettario Gruppo (Tot)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500">Costo Unitario (€)</label>
+                                    <input type="number" id="structRate" placeholder="0.00" step="0.01"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                            </div>
+
+                            <!-- Utenze -->
+                            <div class="space-y-3">
+                                <h4 class="font-medium text-sm uppercase tracking-wide text-gray-500">Utenze (Letture)
+                                </h4>
+                                <div class="grid grid-cols-3 gap-1 text-xs items-center">
+                                    <span>Luce</span>
+                                    <input type="number" id="elecDiff" placeholder="Diff kW"
+                                        class="rounded border-gray-300 p-1">
+                                    <input type="number" id="elecRate" placeholder="€/kW"
+                                        class="rounded border-gray-300 p-1">
+
+                                    <span>Gas/Risc</span>
+                                    <input type="number" id="gasDiff" placeholder="Diff mc"
+                                        class="rounded border-gray-300 p-1">
+                                    <input type="number" id="gasRate" placeholder="€/mc"
+                                        class="rounded border-gray-300 p-1">
+                                </div>
+                                <p class="text-[10px] text-gray-400 italic">Inserisci direttamente la differenza letture
+                                    o stima.</p>
+                            </div>
+                        </div>
+                    </details>
+
+                    <!-- 4. Cambusa -->
+                    <details
+                        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm group">
+                        <summary
+                            class="flex justify-between items-center p-4 cursor-pointer list-none bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">
+                            <span class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">🍏
+                                Cambusa</span>
+                            <span id="galleyTotalBadge" class="font-bold text-gray-600 dark:text-gray-400">€ 0.00</span>
+                        </summary>
+                        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                            <div class="flex gap-4 mb-4 text-sm">
+                                <label class="flex items-center gap-1 cursor-pointer">
+                                    <input type="radio" name="galleyMode" value="meal" checked class="text-green-600">
+                                    Per Pasto
+                                </label>
+                                <label class="flex items-center gap-1 cursor-pointer">
+                                    <input type="radio" name="galleyMode" value="day" class="text-green-600"> Per Giorno
+                                </label>
+                            </div>
+
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                <div>
+                                    <label id="galleyQtyLabel" class="block text-xs text-gray-500">Num. Pasti</label>
+                                    <input type="number" id="galleyQty" value="0"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div>
+                                    <label id="galleyRateLabel" class="block text-xs text-gray-500">Costo (€)</label>
+                                    <input type="number" id="galleyRate" step="0.01"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div class="col-span-2 bg-orange-50 p-2 rounded border border-orange-100">
+                                    <label
+                                        class="flex items-center gap-2 text-xs font-bold text-orange-800 cursor-pointer mb-1">
+                                        <input type="checkbox" id="compActive" class="text-orange-600"> Gara di Cucina
+                                    </label>
+                                    <input type="number" id="compBudget" placeholder="Budget Gara (€)" disabled
+                                        class="w-full rounded border-orange-200 text-sm p-1 bg-white disabled:bg-gray-100">
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <!-- 5. Varie -->
+                    <details
+                        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm group">
+                        <summary
+                            class="flex justify-between items-center p-4 cursor-pointer list-none bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">
+                            <span class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">📦
+                                Spese Varie</span>
+                            <span id="variousTotalBadge" class="font-bold text-gray-600 dark:text-gray-400">€
+                                0.00</span>
+                        </summary>
+                        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                            <!-- List -->
+                            <div id="variousItemsList" class="space-y-2 mb-4"></div>
+
+                            <!-- Add Form -->
+                            <div class="grid grid-cols-12 gap-2 items-end bg-gray-50 dark:bg-gray-900/50 p-3 rounded">
+                                <div class="col-span-3">
+                                    <label class="block text-xs text-gray-500">Categoria</label>
+                                    <select id="newVarCat" class="w-full rounded border-gray-300 text-xs p-1">
+                                        <option value="Materiale">Materiale</option>
+                                        <option value="Affitti">Affitti Extra</option>
+                                        <option value="Biglietti">Biglietti/Visite</option>
+                                        <option value="Imprevisti">Fondo Imprevisti</option>
+                                        <option value="Altro">Altro</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-5">
+                                    <label class="block text-xs text-gray-500">Descrizione</label>
+                                    <input type="text" id="newVarDesc" placeholder="Es. Carta igienica"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div class="col-span-3">
+                                    <label class="block text-xs text-gray-500">Costo (€)</label>
+                                    <input type="number" id="newVarCost" step="0.01"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div class="col-span-1">
+                                    <button id="addVarBtn"
+                                        class="w-full bg-green-600 text-white rounded p-1 hover:bg-green-700 text-sm">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- ANALISI E SIMULAZIONE -->
+                <div class="mt-8 grid lg:grid-cols-2 gap-8">
+
+                    <!-- Totali e Quota -->
+                    <div
+                        class="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-6">Riepilogo Costi</h3>
+
+                        <div class="space-y-3 mb-6">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600 dark:text-gray-400">Totale Trasporti</span>
+                                <span id="sumTransport" class="font-medium">€ 0.00</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600 dark:text-gray-400">Totale Struttura</span>
+                                <span id="sumStructure" class="font-medium">€ 0.00</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600 dark:text-gray-400">Totale Cambusa</span>
+                                <span id="sumGalley" class="font-medium">€ 0.00</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600 dark:text-gray-400">Totale Varie</span>
+                                <span id="sumVarious" class="font-medium">€ 0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-4 mb-6">
+                            <div class="flex justify-between items-end mb-2">
+                                <span class="uppercase tracking-wider text-xs font-bold text-gray-500">Costo Totale
+                                    Attività</span>
+                                <span id="finalTotalCost" class="text-2xl font-bold text-gray-900 dark:text-white">€
+                                    0.00</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                <span class="text-blue-800 dark:text-blue-200 font-semibold">Costo per
+                                    Esploratore</span>
+                                <span id="finalCostPerScout"
+                                    class="text-xl font-bold text-blue-700 dark:text-blue-300">€ 0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Proposta Quota -->
+                        <div
+                            class="bg-yellow-50 dark:bg-yellow-900/10 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                            <label class="block text-sm font-bold text-yellow-800 dark:text-yellow-200 mb-2">Proposta
+                                Quota a Testa (€)</label>
+                            <div class="flex gap-4 items-center">
+                                <input type="number" id="proposedQuota" step="0.50"
+                                    class="w-32 rounded-lg border-yellow-400 text-lg font-bold p-2 text-right"
+                                    placeholder="0.00">
+                                <div class="flex-1 text-right">
+                                    <p class="text-xs text-yellow-700 dark:text-yellow-300">Margine</p>
+                                    <p id="marginDisplay" class="font-bold text-lg text-gray-500">---</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Simulazione Copertura -->
+                    <div
+                        class="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Simulazione Assenze</h3>
+                        <p class="text-sm text-gray-500 mb-4">Analisi del bilancio in caso di defezioni. I costi
+                            variabili (cibo, biglietti) diminuiscono, ma quelli fissi (bus, affitto) rimangono.</p>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="bg-gray-50 dark:bg-gray-700">
+                                        <th class="p-2 text-left">Scenario</th>
+                                        <th class="p-2 text-right">Costi</th>
+                                        <th class="p-2 text-right">Ricavi</th>
+                                        <th class="p-2 text-right">Bilancio</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="simulationTableBody">
+                                    <!-- Dynamic rows -0, -2, -4, -6 -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-4 italic">* La simulazione assume che cibo, biglietti
+                            trasporti (unitari) e tasse p/p sieno costi variabili, mentre Bus, Affitto Forfettario, e
+                            Spese Varie siano costi fissi.</p>
+                    </div>
+
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/config.js"></script>
+    <script type="module" src="shared.js"></script>
+    <script type="module" src="preventivo.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js")
+                .catch(err => console.error("SW registration failed:", err));
+        }
+    </script>
+</body>
+
+</html>
