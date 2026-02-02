@@ -203,4 +203,22 @@ export class FirestoreAdapter {
         }
 
     }
+
+    // Budgets
+    async getBudgetByActivity(activityId: string) {
+        // Budget is stored in a subcollection or a root collection 'budgets'? 
+        // Plan didn't specify, but `budgets` root collection is simplest.
+        // ID can be the activityId itself to ensure 1:1 mapping easily.
+        const docRef = doc(this.db, 'budgets', activityId);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+            return { activityId, ...snap.data() };
+        }
+        return null;
+    }
+
+    async saveBudget(budget: any, currentUser: any) {
+        // Use activityId as doc ID
+        await setDoc(doc(this.db, 'budgets', budget.activityId), budget, { merge: true });
+    }
 }
