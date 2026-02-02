@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Costo Struttura - Reparto Maori</title>
+    <meta name="description" content="Calcolo costi struttura Reparto Maori" />
+    <meta name="theme-color" content="#16a34a" />
+
+    <!-- Favicon e icone -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+        <!-- Header condiviso -->
+        <div id="shared-header"></div>
+
+        <!-- Main -->
+        <main id="main-content" class="p-6">
+            <!-- Modali condivisi -->
+            <div id="shared-modals"></div>
+
+            <!-- Contenuto Costo Struttura -->
+            <section id="costoStrutturaTab" class="tab-content active">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-6">Calcolo Costo Struttura</h2>
+
+                <div class="grid md:grid-cols-2 gap-6">
+
+                    <!-- Colonna 1: Configurazione e Costo Base -->
+                    <div class="space-y-6">
+
+                        <!-- Configurazione -->
+                        <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-4">Configurazione</h3>
+                            <form id="configForm" class="space-y-4">
+                                <div>
+                                    <label for="selectActivity"
+                                        class="block text-sm font-medium text-gray-700 mb-1">Attività</label>
+                                    <select id="selectActivity"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200">
+                                        <option value="">Seleziona un'attività...</option>
+                                    </select>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="staffCount"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Staff</label>
+                                        <input type="number" id="staffCount" min="0" value="0"
+                                            class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                                    </div>
+                                    <div>
+                                        <!-- Placeholder for dynamic count from activity? Or manual override? Let's use logic from transport -->
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Esploratori</label>
+                                        <input type="text" id="scoutsCountDisplay" disabled
+                                            class="w-full rounded-lg bg-gray-200 border-gray-300 text-gray-600 cursor-not-allowed"
+                                            value="0">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="nightsCount"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Notti</label>
+                                        <input type="number" id="nightsCount" min="0" value="0"
+                                            class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                                    </div>
+                                    <div>
+                                        <label for="daysCount"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Giorni</label>
+                                        <input type="number" id="daysCount" min="0" value="0"
+                                            class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Costo Base -->
+                        <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-4">Affitto Struttura</h3>
+                            <form id="baseCostForm" class="space-y-4">
+                                <div>
+                                    <label for="baseCostType" class="block text-sm font-medium text-gray-700 mb-1">Tipo
+                                        Tariffa</label>
+                                    <select id="baseCostType"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200">
+                                        <option value="person_night">Per Persona a Notte</option>
+                                        <option value="person_day">Per Persona al Giorno</option>
+                                        <option value="person_flat">Forfettario a Persona</option>
+                                        <option value="group_flat">Forfettario Gruppo (Totale)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="baseCostRate" class="block text-sm font-medium text-gray-700 mb-1">Costo
+                                        Unitario (€)</label>
+                                    <input type="number" id="baseCostRate" min="0" step="0.01" placeholder="0.00"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                                </div>
+                                <div class="pt-2 border-t border-gray-200">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm font-medium text-gray-700">Subtotale Affitto:</span>
+                                        <div class="flex items-center gap-2">
+                                            <span>€</span>
+                                            <input type="number" id="baseCostTotal" step="0.01"
+                                                class="w-24 text-right font-bold text-gray-900 bg-transparent border-b border-gray-400 focus:border-green-500 focus:outline-none" />
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-500 text-right mt-1">Puoi sovrascrivere questo valore
+                                        manualmente.</p>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+
+                    <!-- Colonna 2: Utenze e Extra -->
+                    <div class="space-y-6">
+
+                        <!-- Utenze -->
+                        <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-4">Utenze (Consumo)</h3>
+
+                            <!-- Luce -->
+                            <div class="mb-6">
+                                <h4 class="font-medium text-gray-800 mb-2 flex items-center gap-2">⚡ Luce (kW)</h4>
+                                <div class="grid grid-cols-3 gap-2 text-sm">
+                                    <div class="col-span-1">
+                                        <label class="block text-xs text-gray-500">Inizio</label>
+                                        <input type="number" id="elecStart" placeholder="0"
+                                            class="w-full rounded border-gray-300 text-sm p-1">
+                                    </div>
+                                    <div class="col-span-1">
+                                        <label class="block text-xs text-gray-500">Fine</label>
+                                        <input type="number" id="elecEnd" placeholder="0"
+                                            class="w-full rounded border-gray-300 text-sm p-1">
+                                    </div>
+                                    <div class="col-span-1">
+                                        <label class="block text-xs text-gray-500">Costo/kW (€)</label>
+                                        <input type="number" id="elecRate" step="0.001" placeholder="0.000"
+                                            class="w-full rounded border-gray-300 text-sm p-1">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Gas -->
+                            <div class="mb-4">
+                                <h4 class="font-medium text-gray-800 mb-2 flex items-center gap-2">🔥 Riscaldamento
+                                    (mq/mc)</h4>
+                                <div class="grid grid-cols-3 gap-2 text-sm">
+                                    <div class="col-span-1">
+                                        <label class="block text-xs text-gray-500">Inizio</label>
+                                        <input type="number" id="gasStart" placeholder="0"
+                                            class="w-full rounded border-gray-300 text-sm p-1">
+                                    </div>
+                                    <div class="col-span-1">
+                                        <label class="block text-xs text-gray-500">Fine</label>
+                                        <input type="number" id="gasEnd" placeholder="0"
+                                            class="w-full rounded border-gray-300 text-sm p-1">
+                                    </div>
+                                    <div class="col-span-1">
+                                        <label class="block text-xs text-gray-500">Costo/Unità (€)</label>
+                                        <input type="number" id="gasRate" step="0.001" placeholder="0.000"
+                                            class="w-full rounded border-gray-300 text-sm p-1">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pt-2 border-t border-gray-200">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm font-medium text-gray-700">Subtotale Utenze:</span>
+                                    <div class="flex items-center gap-2">
+                                        <span>€</span>
+                                        <input type="number" id="utilitiesTotal" step="0.01" value="0.00"
+                                            class="w-24 text-right font-bold text-gray-900 bg-transparent border-b border-gray-400 focus:border-green-500 focus:outline-none" />
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Costi Extra -->
+                        <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-4">Costi Extra</h3>
+                            <div id="extraCostsList" class="space-y-2 mb-4">
+                                <!-- Dynamic Items -->
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="text" id="newExtraDesc" placeholder="Descrizione (es. Pulizie)"
+                                    class="flex-1 rounded border-gray-300 text-sm p-2">
+                                <input type="number" id="newExtraCost" placeholder="€" step="0.01"
+                                    class="w-20 rounded border-gray-300 text-sm p-2">
+                                <button id="addExtraBtn"
+                                    class="bg-green-600 text-white p-2 rounded hover:bg-green-700">+</button>
+                            </div>
+
+                            <div class="pt-4 border-t border-gray-200 mt-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm font-medium text-gray-700">Subtotale Extra:</span>
+                                    <div class="flex items-center gap-2">
+                                        <span>€</span>
+                                        <input type="number" id="extrasTotal" step="0.01" value="0.00"
+                                            class="w-24 text-right font-bold text-gray-900 bg-transparent border-b border-gray-400 focus:border-green-500 focus:outline-none" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Totale Finale -->
+                <div class="mt-8 bg-blue-50 p-6 rounded-xl border border-blue-200 shadow-sm">
+                    <h3 class="text-lg font-semibold text-blue-900 mb-4">Riepilogo Finale Costo Struttura</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                        <div>
+                            <p class="text-sm text-blue-700 mb-2">Il costo totale viene ripartito sugli esploratori
+                                paganti.</p>
+                            <p class="text-sm text-gray-600">Esploratori: <span id="summaryScouts"
+                                    class="font-bold">0</span></p>
+                        </div>
+                        <div class="text-right space-y-2">
+                            <div class="flex justify-between md:justify-end md:gap-8 items-end">
+                                <span class="text-gray-600 text-sm uppercase tracking-wider">Totale Complessivo</span>
+                                <span id="grandTotal" class="text-2xl font-bold text-gray-900">€ 0,00</span>
+                            </div>
+                            <div
+                                class="flex justify-between md:justify-end md:gap-8 items-end border-t border-blue-200 pt-2">
+                                <span class="text-blue-800 font-semibold">Quota per Esploratore</span>
+                                <span id="perPersonTotal" class="text-3xl font-bold text-blue-700">€ 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/config.js"></script>
+    <script type="module" src="shared.js"></script>
+    <script type="module" src="costostruttura.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js")
+                .catch(err => console.error("SW registration failed:", err));
+        }
+    </script>
+</body>
+
+</html>
