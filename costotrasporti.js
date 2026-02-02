@@ -45,14 +45,15 @@ UI.populateActivitySelect = async function (selectElement) {
     // Filter for relevant activities (e.g., Uscita, Campo, or future/recent)
     // For now, sorting by date descending
     const sorted = [...activities].sort((a, b) => {
-        const da = new Date(a.data);
-        const db = new Date(b.data);
+        const da = this.toJsDate(a.data);
+        const db = this.toJsDate(b.data);
         return db - da;
     });
 
     selectElement.innerHTML = '<option value="">Seleziona un\'attività...</option>';
     sorted.forEach(act => {
-        const dateStr = new Date(act.data).toLocaleDateString('it-IT');
+        const dateObj = this.toJsDate(act.data);
+        const dateStr = isNaN(dateObj) ? '???' : dateObj.toLocaleDateString('it-IT');
         const opt = document.createElement('option');
         opt.value = act.id;
         opt.textContent = `${dateStr} - ${act.tipo} - ${act.descrizione || ''}`;
