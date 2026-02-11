@@ -137,6 +137,13 @@ UI.initBudgetCalculator = async function () {
         this.showToast('Preventivo salvato correttamente', { type: 'success' });
     });
 
+    // Print
+    this.qs('#printBudgetBtn').addEventListener('click', () => {
+        // Expand all details for printing
+        document.querySelectorAll('details').forEach(el => el.setAttribute('open', 'true'));
+        setTimeout(() => window.print(), 100);
+    });
+
     // 2. Transport
     els.addLegBtn.addEventListener('click', () => {
         const name = this.qs('#newLegName').value;
