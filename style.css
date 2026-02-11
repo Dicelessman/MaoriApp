@@ -1517,3 +1517,132 @@ body.dragging * {
     margin: 1cm;
   }
 }
+}
+
+/* =========================================
+   COMPREHENSIVE PRINT OVERRIDES FOR BUDGET
+   ========================================= */
+@media print {
+
+  /* 1. Global Reset & Visibility */
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* 2. Hide Application Shell & Navigation */
+  #mainSidebar,
+  #shared-header,
+  #shared-modals,
+  #saveBudgetBtn,
+  #printBudgetBtn,
+  #addLegBtn,
+  #addVarBtn,
+  .no-print,
+  button,
+  .toast-container,
+  header,
+  nav,
+  .tabs-nav {
+    display: none !important;
+  }
+
+  /* 3. Force Main Content Layout */
+  #app,
+  #main-content {
+    display: block !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    transform: none !important;
+    /* Remove transforms that hide content off-screen */
+    background: white !important;
+  }
+
+  .tab-content {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  section {
+    page-break-inside: auto;
+  }
+
+  /* 4. Improve Readability & Ink Saving */
+  h2,
+  h3,
+  h4,
+  label,
+  span,
+  p {
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* 5. Clean inputs for print */
+  input,
+  select,
+  textarea {
+    border: none !important;
+    background: transparent !important;
+    color: black !important;
+    font-weight: bold;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Remove placeholders */
+  input::placeholder {
+    color: transparent !important;
+  }
+
+  /* 6. Force Details Open & Framed */
+  details {
+    display: block !important;
+    border: 1px solid #ccc !important;
+    margin-bottom: 1em;
+    padding: 10px;
+    page-break-inside: avoid;
+    background: white !important;
+  }
+
+  details[open] summary {
+    border-bottom: 1px solid #eee;
+    margin-bottom: 0.5em;
+    padding-bottom: 0.5em;
+    font-weight: bold;
+  }
+
+  summary {
+    list-style: none !important;
+  }
+
+  /* 7. Remove heavy backgrounds */
+  [class*="bg-"] {
+    background-color: transparent !important;
+    border: 1px solid #eee !important;
+    /* Retain border for structure */
+  }
+
+  /* Retain specific helpful borders/layout */
+  .grid {
+    display: grid !important;
+    grid-gap: 10px !important;
+  }
+}
