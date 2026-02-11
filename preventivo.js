@@ -258,9 +258,13 @@ UI.renderAll = function () {
     this.els.structDays.value = structure.days;
     this.els.structRateType.value = structure.rateType;
     this.els.structRate.value = structure.rate;
-    this.els.elecDiff.value = structure.elecDiff;
+
+    this.els.elecStart.value = structure.elecStart;
+    this.els.elecEnd.value = structure.elecEnd;
     this.els.elecRate.value = structure.elecRate;
-    this.els.gasDiff.value = structure.gasDiff;
+
+    this.els.gasStart.value = structure.gasStart;
+    this.els.gasEnd.value = structure.gasEnd;
     this.els.gasRate.value = structure.gasRate;
 
     this.els.galleyQty.value = galley.qty;
@@ -322,7 +326,11 @@ UI.calculateCosts = function (currentScouts) {
     // A. Transport Logic
     let totalTransport = 0;
     const transportDetails = transport.legs.map(leg => {
-        let unitCost = leg.cost;
+        const sc = parseInt(currentScouts) || 0;
+        const st = parseInt(staffCount) || 0;
+        const totalPax = sc + st;
+
+        let unitCost = parseFloat(leg.cost) || 0;
         let discountApplied = false;
         let freeStaff = 0;
 
@@ -330,24 +338,14 @@ UI.calculateCosts = function (currentScouts) {
         if (leg.convention && totalPax >= 10) {
             unitCost *= 0.8;
             discountApplied = true;
-            const maxFree = Math.floor(currentScouts / 10) * 2;
-            freeStaff = Math.min(staffCount, maxFree);
+            const maxFree = Math.floor(sc / 10) * 2;
+            freeStaff = Math.min(st, maxFree);
         }
 
-        const payingStaff = Math.max(0, staffCount - freeStaff);
-        // Important: Variable vs Fixed logic
-        // "Affitto Bus" usually fixed, "Biglietto GTT" variable.
-        // For simplicity, we treat user input "Costo" as "Unit Cost" in this tool as per precedent.
-        // If it's a "Bus", user likely divides manually or we should support Fixed Cost legs?
-        // Precedent in costotrasporti was "Unit Cost". Let's assume Unit Cost always for now (Variable).
-        // WARNING: A bus is fixed. 
-        // IMPROVEMENT: Check convention. If 'convention' is false, logic is just Cost * Pax.
-        // If user enters €500 legCost, is it per pax or total? 
-        // In costotrasporti it was treated as "Unit Cost". I will stick to that to be consistent. 
-
-        const legTotal = (currentScouts * unitCost) + (payingStaff * unitCost);
+        const payingStaff = Math.max(0, st - freeStaff);
+        const legTotal = (sc * unitCost) + (payingStaff * unitCost);
         totalTransport += legTotal;
-        return { ...leg, legTotal };
+        return { ...leg, legTotal, discountApplied, freeStaff, payingStaff };
     });
 
     // B. Structure
@@ -359,7 +357,9 @@ UI.calculateCosts = function (currentScouts) {
     if (s.rateType === 'person_flat') baseStruct = (totalPax * s.rate);
     if (s.rateType === 'group_flat') baseStruct = s.rate; // Fixed Cost
 
-    const utils = (s.elecDiff * s.elecRate) + (s.gasDiff * s.gasRate); // Fixed Cost usually
+    const elecDiff = Math.max(0, s.elecEnd - s.elecStart);
+    const gasDiff = Math.max(0, s.gasEnd - s.gasStart);
+    const utils = (elecDiff * s.elecRate) + (gasDiff * s.gasRate);
     const totalStructure = baseStruct + utils;
 
     // C. Galley
