@@ -141,7 +141,7 @@ UI.initBudgetCalculator = async function () {
     this.qs('#printBudgetBtn').addEventListener('click', () => {
         // Expand all details for printing
         document.querySelectorAll('details').forEach(el => el.setAttribute('open', 'true'));
-        setTimeout(() => window.print(), 100);
+        setTimeout(() => window.print(), 500);
     });
 
     // 2. Transport

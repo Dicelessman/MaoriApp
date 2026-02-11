@@ -21,6 +21,83 @@
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+    <style>
+        @media print {
+
+            /* Force Reset */
+            html,
+            body {
+                background: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                display: block !important;
+            }
+
+            /* Hide Shell */
+            #mainSidebar,
+            #shared-header,
+            #shared-modals,
+            #saveBudgetBtn,
+            #printBudgetBtn,
+            .no-print,
+            header,
+            nav,
+            .tabs-nav {
+                display: none !important;
+            }
+
+            /* Ensure Content Visibility */
+            #app,
+            #main-content {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                background: white !important;
+                box-shadow: none !important;
+                border: none !important;
+                max-width: none !important;
+            }
+
+            /* Elements */
+            details {
+                display: block !important;
+                break-inside: avoid;
+            }
+
+            details[open] {
+                padding-bottom: 20px;
+            }
+
+            h2,
+            h3,
+            div,
+            p,
+            span,
+            label,
+            input {
+                color: black !important;
+                visibility: visible !important;
+            }
+
+            /* Fix Grids */
+            .grid {
+                display: block !important;
+                /* Fallback to block to avoid grid cutoffs? Or keep grid? */
+            }
+
+            /* Actually allow grid but ensure it fits */
+            .grid {
+                display: grid !important;
+            }
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100 flex flex-col min-h-screen">
