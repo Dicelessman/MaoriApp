@@ -110,7 +110,7 @@
                                 </div>
                                 <div class="col-span-3">
                                     <label class="block text-xs text-gray-500">Costo Unit/Tot</label>
-                                    <input type="number" id="newLegCost" placeholder="€" step="0.01"
+                                    <input type="number" id="newLegCost" placeholder="€" step="0.50"
                                         class="w-full rounded border-gray-300 text-sm p-1">
                                 </div>
                                 <div class="col-span-3 flex items-center pt-4">
@@ -177,21 +177,25 @@
                             <div class="space-y-3">
                                 <h4 class="font-medium text-sm uppercase tracking-wide text-gray-500">Utenze (Letture)
                                 </h4>
-                                <div class="grid grid-cols-3 gap-1 text-xs items-center">
-                                    <span>Luce</span>
-                                    <input type="number" id="elecDiff" placeholder="Diff kW"
+                                <div class="grid grid-cols-4 gap-1 text-xs items-center">
+                                    <span class="col-span-1 font-bold">Luce (kW)</span>
+                                    <input type="number" id="elecStart" placeholder="Inizio"
                                         class="rounded border-gray-300 p-1">
-                                    <input type="number" id="elecRate" placeholder="€/kW"
+                                    <input type="number" id="elecEnd" placeholder="Fine"
+                                        class="rounded border-gray-300 p-1">
+                                    <input type="number" id="elecRate" placeholder="€/kW" step="0.01"
                                         class="rounded border-gray-300 p-1">
 
-                                    <span>Gas/Risc</span>
-                                    <input type="number" id="gasDiff" placeholder="Diff mc"
+                                    <span class="col-span-1 font-bold">Gas (mc)</span>
+                                    <input type="number" id="gasStart" placeholder="Inizio"
                                         class="rounded border-gray-300 p-1">
-                                    <input type="number" id="gasRate" placeholder="€/mc"
+                                    <input type="number" id="gasEnd" placeholder="Fine"
+                                        class="rounded border-gray-300 p-1">
+                                    <input type="number" id="gasRate" placeholder="€/mc" step="0.01"
                                         class="rounded border-gray-300 p-1">
                                 </div>
-                                <p class="text-[10px] text-gray-400 italic">Inserisci direttamente la differenza letture
-                                    o stima.</p>
+                                <p class="text-[10px] text-gray-400 italic">Inserisci letture inizio/fine e costo
+                                    unitario. Il totale è calcolato sulla differenza.</p>
                             </div>
                         </div>
                     </details>
@@ -224,16 +228,17 @@
                                 </div>
                                 <div>
                                     <label id="galleyRateLabel" class="block text-xs text-gray-500">Costo (€)</label>
-                                    <input type="number" id="galleyRate" step="0.01"
+                                    <input type="number" id="galleyRate" step="0.50"
                                         class="w-full rounded border-gray-300 text-sm p-1">
                                 </div>
-                                <div class="col-span-2 bg-orange-50 p-2 rounded border border-orange-100">
+                                <div
+                                    class="col-span-2 bg-orange-50 dark:bg-orange-900/20 p-2 rounded border border-orange-100 dark:border-orange-800">
                                     <label
-                                        class="flex items-center gap-2 text-xs font-bold text-orange-800 cursor-pointer mb-1">
+                                        class="flex items-center gap-2 text-xs font-bold text-orange-800 dark:text-orange-200 cursor-pointer mb-1">
                                         <input type="checkbox" id="compActive" class="text-orange-600"> Gara di Cucina
                                     </label>
                                     <input type="number" id="compBudget" placeholder="Budget Gara (€)" disabled
-                                        class="w-full rounded border-orange-200 text-sm p-1 bg-white disabled:bg-gray-100">
+                                        class="w-full rounded border-orange-200 dark:border-orange-700 text-sm p-1 bg-white dark:bg-gray-800 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-900">
                                 </div>
                             </div>
                         </div>
@@ -272,7 +277,7 @@
                                 </div>
                                 <div class="col-span-3">
                                     <label class="block text-xs text-gray-500">Costo (€)</label>
-                                    <input type="number" id="newVarCost" step="0.01"
+                                    <input type="number" id="newVarCost" step="0.50"
                                         class="w-full rounded border-gray-300 text-sm p-1">
                                 </div>
                                 <div class="col-span-1">

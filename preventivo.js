@@ -14,7 +14,11 @@ UI.initBudgetCalculator = async function () {
         staffCount: 0,
 
         transport: { legs: [] },
-        structure: { nights: 0, days: 0, rateType: 'person_night', rate: 0, elecDiff: 0, elecRate: 0, gasDiff: 0, gasRate: 0 },
+        structure: {
+            nights: 0, days: 0, rateType: 'person_night', rate: 0,
+            elecStart: 0, elecEnd: 0, elecRate: 0,
+            gasStart: 0, gasEnd: 0, gasRate: 0
+        },
         galley: { mode: 'meal', qty: 0, rate: 0, compActive: false, compBudget: 0 },
         various: [], // { id, category, desc, cost }
 
@@ -38,9 +42,13 @@ UI.initBudgetCalculator = async function () {
         structDays: this.qs('#structDays'),
         structRateType: this.qs('#structRateType'),
         structRate: this.qs('#structRate'),
-        elecDiff: this.qs('#elecDiff'),
+
+        elecStart: this.qs('#elecStart'),
+        elecEnd: this.qs('#elecEnd'),
         elecRate: this.qs('#elecRate'),
-        gasDiff: this.qs('#gasDiff'),
+
+        gasStart: this.qs('#gasStart'),
+        gasEnd: this.qs('#gasEnd'),
         gasRate: this.qs('#gasRate'),
 
         // Galley
@@ -89,6 +97,19 @@ UI.initBudgetCalculator = async function () {
         const savedBudget = await DATA.getBudgetByActivity(id);
         if (savedBudget) {
             this.budgetState = { ...this.budgetState, ...savedBudget }; // Merge
+
+            // Backwards compatibility for old 'diff' format if loading old budget
+            if (savedBudget.structure) {
+                if (savedBudget.structure.elecDiff && !savedBudget.structure.elecEnd) {
+                    this.budgetState.structure.elecStart = 0;
+                    this.budgetState.structure.elecEnd = savedBudget.structure.elecDiff;
+                }
+                if (savedBudget.structure.gasDiff && !savedBudget.structure.gasEnd) {
+                    this.budgetState.structure.gasStart = 0;
+                    this.budgetState.structure.gasEnd = savedBudget.structure.gasDiff;
+                }
+            }
+
             this.showToast('Preventivo salvato caricato');
         } else {
             // Reset crucial parts if new activity selected without budget
@@ -130,17 +151,22 @@ UI.initBudgetCalculator = async function () {
     });
 
     // 3. Structure
-    ['structNights', 'structDays', 'structRate', 'elecDiff', 'elecRate', 'gasDiff', 'gasRate'].forEach(id => {
-        els[id].addEventListener('change', (e) => {
+    ['structNights', 'structDays', 'structRate', 'elecStart', 'elecEnd', 'elecRate', 'gasStart', 'gasEnd', 'gasRate'].forEach(id => {
+        els[id].addEventListener('input', (e) => {
             this.budgetState.structure[id.replace('struct', '').toLowerCase()] = parseFloat(e.target.value) || 0; // mapping loose key names
-            // Fix manual mapping due to different key names in state vs DOM IDs
-            if (id === 'structNights') this.budgetState.structure.nights = parseFloat(e.target.value) || 0;
-            if (id === 'structDays') this.budgetState.structure.days = parseFloat(e.target.value) || 0;
-            if (id === 'structRate') this.budgetState.structure.rate = parseFloat(e.target.value) || 0;
-            if (id === 'elecDiff') this.budgetState.structure.elecDiff = parseFloat(e.target.value) || 0;
-            if (id === 'elecRate') this.budgetState.structure.elecRate = parseFloat(e.target.value) || 0;
-            if (id === 'gasDiff') this.budgetState.structure.gasDiff = parseFloat(e.target.value) || 0;
-            if (id === 'gasRate') this.budgetState.structure.gasRate = parseFloat(e.target.value) || 0;
+
+            const val = parseFloat(e.target.value) || 0;
+            if (id === 'structNights') this.budgetState.structure.nights = val;
+            if (id === 'structDays') this.budgetState.structure.days = val;
+            if (id === 'structRate') this.budgetState.structure.rate = val;
+
+            if (id === 'elecStart') this.budgetState.structure.elecStart = val;
+            if (id === 'elecEnd') this.budgetState.structure.elecEnd = val;
+            if (id === 'elecRate') this.budgetState.structure.elecRate = val;
+
+            if (id === 'gasStart') this.budgetState.structure.gasStart = val;
+            if (id === 'gasEnd') this.budgetState.structure.gasEnd = val;
+            if (id === 'gasRate') this.budgetState.structure.gasRate = val;
 
             this.renderAll();
         });
