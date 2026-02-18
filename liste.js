@@ -202,10 +202,19 @@ UI.copyPresenzeList = function () {
 
     let text = `${title}\n\n`;
     listItems.forEach(div => {
+        // Check if it's a patrol header
+        if (div.textContent.trim().startsWith('Pattuglia')) {
+            text += `\n${div.textContent.trim()}\n`;
+            return;
+        }
+
         // Extract text content cleanly (removing HTML tags but keeping structure)
-        const name = div.querySelector('span.font-medium').textContent;
-        const meta = div.querySelector('span.text-xs')?.textContent || '';
-        text += `${name} ${meta ? '(' + meta + ')' : ''}\n`;
+        const nameSpan = div.querySelector('span.font-medium');
+        if (nameSpan) {
+            const name = nameSpan.textContent;
+            const meta = div.querySelector('span.text-xs')?.textContent || '';
+            text += `${name} ${meta ? '(' + meta + ')' : ''}\n`;
+        }
     });
 
     // Robust copy with fallback
