@@ -179,5 +179,19 @@ export const DATA = {
     },
     async saveBudget(budget, currentUser) {
         return await this.adapter.saveBudget(budget, currentUser);
+    },
+    // Configuration
+    async getPatrols() {
+        const cacheKey = 'patrols';
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await this.adapter.getPatrols();
+        this.cache.set(cacheKey, data);
+        return data;
+    },
+    async savePatrols(list, currentUser) {
+        const result = await this.adapter.savePatrols(list, currentUser);
+        this.cache.invalidate('patrols');
+        return result;
     }
 };

@@ -180,4 +180,18 @@ export class FirestoreAdapter {
     async saveBudget(budget, currentUser) {
         await setDoc(doc(this.db, 'budgets', budget.activityId), budget, { merge: true });
     }
+
+    // Configuration
+    async getPatrols() {
+        const docRef = doc(this.db, 'configuration', 'pattuglie');
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+            return snap.data().list || [];
+        }
+        return ["Aironi", "Marmotte"]; // Default
+    }
+
+    async savePatrols(list, currentUser) {
+        await setDoc(doc(this.db, 'configuration', 'pattuglie'), { list }, { merge: true });
+    }
 }

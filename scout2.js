@@ -737,10 +737,15 @@ UI.collectForm = function () {
 };
 
 // ============== Gestione Pattuglie ==============
-UI.initPattugliaManagement = function () {
+UI.initPattugliaManagement = async function () {
   console.log('Inizializzazione gestione pattuglie...');
-  // Carica le pattuglie dal localStorage o usa quelle di default
-  this.pattuglie = JSON.parse(localStorage.getItem('pattuglie') || '["Aironi", "Marmotte"]');
+  try {
+    // Carica le pattuglie da Firestore (via DATA facade)
+    this.pattuglie = await DATA.getPatrols();
+  } catch (error) {
+    console.warn('Errore caricamento pattuglie, uso default:', error);
+    this.pattuglie = ["Aironi", "Marmotte"];
+  }
   this.updatePattugliaSelect();
 
   // Event listeners per il modal
@@ -852,7 +857,7 @@ UI.removePattuglia = function (index) {
   });
 };
 
-UI.savePattuglie = function () {
+UI.savePattuglie = async function () {
   // Aggiorna le pattuglie con i valori modificati
   const inputs = this.qs('#pattugliaList').querySelectorAll('input[type="text"]');
   const newPattuglie = [];
@@ -869,11 +874,24 @@ UI.savePattuglie = function () {
     return;
   }
 
-  this.pattuglie = newPattuglie;
-  localStorage.setItem('pattuglie', JSON.stringify(this.pattuglie));
-  this.updatePattugliaSelect();
-  this.closePattugliaModal();
-  this.showToast('Pattuglie salvate con successo!');
+  const btn = this.qs('#savePattugliaBtn');
+  const originalText = btn.textContent;
+  btn.textContent = 'Salvataggio...';
+  btn.disabled = true;
+
+  try {
+    this.pattuglie = newPattuglie;
+    await DATA.savePatrols(this.pattuglie, this.currentUser);
+    this.updatePattugliaSelect();
+    this.closePattugliaModal();
+    this.showToast('Pattuglie salvate con successo!');
+  } catch (error) {
+    console.error('Errore salvataggio pattuglie:', error);
+    this.showToast('Errore salvataggio: ' + error.message, { type: 'error' });
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
 };
 
 // ============== Gestione Sezioni Tracce Espandibili ==============

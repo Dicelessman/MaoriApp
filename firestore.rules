@@ -297,6 +297,15 @@ service cloud.firestore {
       allow read, write: if isStaff();
     }
 
+    // ============== COLLEZIONE: configuration ==============
+    match /configuration/{configId} {
+      // Lettura: tutti gli utenti autenticati possono leggere la configurazione
+      allow read: if isAuthenticated();
+      
+      // Scrittura: solo staff autenticato
+      allow write: if isStaff();
+    }
+
     // ============== Default: nega tutto il resto ==============
     match /{document=**} {
       allow read, write: if false;
