@@ -103,10 +103,14 @@
                                 <input type="checkbox" id="presenzeShowDob" class="rounded text-green-600">
                                 Includi Data di Nascita
                             </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                <input type="checkbox" id="presenzeSortSurname" class="rounded text-green-600" checked>
-                                Ordina per Cognome Nome
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Ordina per
                             </label>
+                            <select id="presenzeSortMode" class="input w-full text-sm py-1">
+                                <option value="surname">Cognome Nome</option>
+                                <option value="name">Nome Cognome</option>
+                                <option value="patrol">Pattuglia</option>
+                            </select>
                         </div>
                     </div>
 

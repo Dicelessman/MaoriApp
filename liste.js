@@ -74,7 +74,7 @@ UI.initPresenzeTab = function () {
         // Listeners
         select.addEventListener('change', () => this.renderPresenzePreview());
         document.getElementById('presenzeShowDob').addEventListener('change', () => this.renderPresenzePreview());
-        document.getElementById('presenzeSortSurname').addEventListener('change', () => this.renderPresenzePreview());
+        document.getElementById('presenzeSortMode').addEventListener('change', () => this.renderPresenzePreview());
 
         document.getElementById('printPresenzeBtn').addEventListener('click', () => this.printPresenzeList());
         document.getElementById('copyPresenzeBtn').addEventListener('click', () => this.copyPresenzeList());
@@ -85,7 +85,7 @@ UI.initPresenzeTab = function () {
 UI.renderPresenzePreview = async function () {
     const actId = document.getElementById('activitySelect').value;
     const showDob = document.getElementById('presenzeShowDob').checked;
-    const sortSurname = document.getElementById('presenzeSortSurname').checked;
+    const sortMode = document.getElementById('presenzeSortMode').value;
     const container = document.getElementById('presenzePreview');
     const list = document.getElementById('presenzePreviewList');
     const btnPrint = document.getElementById('printPresenzeBtn');
@@ -117,8 +117,16 @@ UI.renderPresenzePreview = async function () {
 
     // Sort
     scouts.sort((a, b) => {
-        if (sortSurname) return (a.cognome || '').localeCompare(b.cognome || '');
-        return (a.nome || '').localeCompare(b.nome || '');
+        if (sortMode === 'surname') return (a.cognome || '').localeCompare(b.cognome || '');
+        if (sortMode === 'name') return (a.nome || '').localeCompare(b.nome || '');
+        if (sortMode === 'patrol') {
+            const pA = a.pv_pattuglia || 'ZZZ'; // Put empty patrols at end
+            const pB = b.pv_pattuglia || 'ZZZ';
+            const patrolCampare = pA.localeCompare(pB);
+            if (patrolCampare !== 0) return patrolCampare;
+            return (a.cognome || '').localeCompare(b.cognome || ''); // Secondary sort by surname
+        }
+        return 0;
     });
 
     // Render
@@ -126,20 +134,44 @@ UI.renderPresenzePreview = async function () {
     document.getElementById('presenzePreviewTitle').textContent = `Presenti: ${act.tipo} del ${toJsDate(act.data).toLocaleDateString()}`;
 
     list.innerHTML = '';
+
+    // Group by patrol if selected
+    let currentPatrol = null;
+
     scouts.forEach((s, idx) => {
+        // Add patrol header if sorting by patrol and it changes
+        if (sortMode === 'patrol') {
+            const p = s.pv_pattuglia || 'Nessuna Pattuglia';
+            if (p !== currentPatrol) {
+                currentPatrol = p;
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'col-span-1 md:col-span-2 lg:col-span-3 font-bold bg-green-100 text-green-800 p-1 mt-2 rounded pl-2';
+                headerDiv.textContent = `Pattuglia ${currentPatrol}`;
+                list.appendChild(headerDiv);
+            }
+        }
+
         const div = document.createElement('div');
         div.className = 'p-2 border-b border-gray-100 flex justify-between items-center';
         div.dataset.name = `${s.nome} ${s.cognome}`; // Store for CSV
         div.dataset.dob = s.anag_dob ? toYyyyMmDd(s.anag_dob) : '';
 
-        let name = sortSurname ? `${s.cognome} ${s.nome}` : `${s.nome} ${s.cognome}`;
+        // Determine display name format
+        let name = `${s.cognome} ${s.nome}`;
+        if (sortMode === 'name') name = `${s.nome} ${s.cognome}`;
+
         let meta = '';
         if (showDob && s.anag_dob) {
             const date = new Date(s.anag_dob);
-            meta = `<span class="text-xs text-gray-500">${date.toLocaleDateString()}</span>`;
+            meta += `<span class="text-xs text-gray-500 ml-2">${date.toLocaleDateString()}</span>`;
         }
 
-        div.innerHTML = `<span class="font-medium">${idx + 1}. ${escapeHtml(name)}</span> ${meta}`;
+        // Add role if present
+        if (s.pv_vcp_cp) {
+            meta += `<span class="text-xs font-bold text-blue-600 ml-1">(${s.pv_vcp_cp})</span>`;
+        }
+
+        div.innerHTML = `<span class="font-medium">${idx + 1}. ${escapeHtml(name)}</span> <div>${meta}</div>`;
         list.appendChild(div);
     });
 };
@@ -225,15 +257,34 @@ UI.downloadPresenzeCSV = function () {
     const presences = this.state.presences.filter(p => p.attivitaId === actId && p.stato === 'Presente');
     const presentScoutIds = new Set(presences.map(p => p.esploratoreId));
     let scouts = this.state.scouts.filter(s => presentScoutIds.has(s.id));
-    const sortSurname = document.getElementById('presenzeSortSurname').checked;
+    const sortMode = document.getElementById('presenzeSortMode').value;
+
+    // Header adjustments
+    let csvContent = "data:text/csv;charset=utf-8,";
+    let header = "Nome;Cognome";
+    if (sortMode === 'patrol') header = "Pattuglia;" + header;
+    if (showDob) header += ";Data Nascita";
+    csvContent += header + "\n";
 
     scouts.sort((a, b) => {
-        if (sortSurname) return (a.cognome || '').localeCompare(b.cognome || '');
-        return (a.nome || '').localeCompare(b.nome || '');
+        if (sortMode === 'surname') return (a.cognome || '').localeCompare(b.cognome || '');
+        if (sortMode === 'name') return (a.nome || '').localeCompare(b.nome || '');
+        if (sortMode === 'patrol') {
+            const pA = a.pv_pattuglia || 'ZZZ';
+            const pB = b.pv_pattuglia || 'ZZZ';
+            const patrolCampare = pA.localeCompare(pB);
+            if (patrolCampare !== 0) return patrolCampare;
+            return (a.cognome || '').localeCompare(b.cognome || '');
+        }
+        return 0;
     });
 
     scouts.forEach(s => {
-        let row = `"${s.nome}";"${s.cognome}"`;
+        let row = "";
+        if (sortMode === 'patrol') row += `"${s.pv_pattuglia || ''}";`;
+
+        row += `"${s.nome}";"${s.cognome}"`;
+
         if (showDob) {
             const dob = s.anag_dob ? toYyyyMmDd(s.anag_dob) : '';
             row += `;"${dob}"`;
