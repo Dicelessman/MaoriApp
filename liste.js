@@ -243,21 +243,8 @@ UI.downloadPresenzeCSV = function () {
     const actId = document.getElementById('activitySelect').value;
     if (!actId) return;
 
-    // Re-fetch filtered data (or parse from DOM to respect current sort/filter)
-    // Parsing DOM is wysiwyg.
-    const listItems = document.querySelectorAll('#presenzePreviewList div');
     const showDob = document.getElementById('presenzeShowDob').checked;
-
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Nome;Cognome" + (showDob ? ";Data Nascita" : "") + "\n"; // Header
-
-    listItems.forEach(div => {
-        // We stored raw data in dataset above for cleaner access
-        // But wait, renderPresenzePreview above didn't store raw data in dataset in my previous edit.
-        // Let's rely on the state + filtering again to be safe and cleaner?
-        // Actually, let's update renderPresenzePreview to store dataset or just re-calculate here.
-        // Re-calculating is safer.
-    });
+    const sortMode = document.getElementById('presenzeSortMode').value;
 
     // Better strategy: Re-query state using same logic
     const presences = this.state.presences.filter(p => p.attivitaId === actId && p.stato === 'Presente');
