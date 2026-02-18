@@ -250,7 +250,6 @@ UI.downloadPresenzeCSV = function () {
     const presences = this.state.presences.filter(p => p.attivitaId === actId && p.stato === 'Presente');
     const presentScoutIds = new Set(presences.map(p => p.esploratoreId));
     let scouts = this.state.scouts.filter(s => presentScoutIds.has(s.id));
-    const sortMode = document.getElementById('presenzeSortMode').value;
 
     // Header adjustments
     let csvContent = "data:text/csv;charset=utf-8,";
