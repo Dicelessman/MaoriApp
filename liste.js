@@ -61,17 +61,23 @@ UI.renderTab = function (tabName) {
 /* --- 1. Presenze -n-- */
 UI.initPresenzeTab = function () {
     const select = document.getElementById('activitySelect');
-    if (select.children.length <= 1) { // Populate only if empty
-        const acts = [...this.state.activities].sort((a, b) => toJsDate(a.data) - toJsDate(b.data));
-        acts.forEach(a => {
-            const opt = document.createElement('option');
-            opt.value = a.id;
-            const dateStr = toJsDate(a.data).toLocaleDateString('it-IT');
-            opt.textContent = `${dateStr} - ${a.tipo} ${a.descrizione || ''}`;
-            select.appendChild(opt);
-        });
+    // Always clear and populate to ensure fresh data
+    select.innerHTML = '<option value="">-- Seleziona un\'attività --</option>';
 
-        // Listeners
+    const acts = [...this.state.activities].sort((a, b) => toJsDate(a.data) - toJsDate(b.data));
+    acts.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        const dateStr = toJsDate(a.data).toLocaleDateString('it-IT');
+        opt.textContent = `${dateStr} - ${a.tipo} ${a.descrizione || ''}`;
+        select.appendChild(opt);
+    });
+
+    // Listeners - Add only if not already added to avoid duplicates or use named functions
+    // For simplicity in this structure, we can check a flag or just remove old ones if we could.
+    // Given the structure, let's just make sure we don't re-bind if we already did.
+    if (!select._bound) {
+        select._bound = true;
         select.addEventListener('change', () => this.renderPresenzePreview());
         document.getElementById('presenzeShowDob').addEventListener('change', () => this.renderPresenzePreview());
         document.getElementById('presenzeSortMode').addEventListener('change', () => this.renderPresenzePreview());
