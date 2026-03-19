@@ -178,19 +178,19 @@ UI.renderAttendanceGrid = function () {
     return;
   }
 
-  let html = '<div class="overflow-x-auto"><table class="w-full text-sm text-left border-collapse min-w-max">';
+  let html = '<div class="overflow-x-auto"><table class="w-full text-xs text-left border-collapse min-w-max">';
   html += '<thead><tr class="bg-gray-100">';
-  html += '<th class="p-2 border font-semibold text-gray-700 sticky left-0 bg-gray-100 z-10 w-48 shadow-[1px_0_0_0_#e5e7eb]">Esploratore</th>';
+  html += '<th class="p-1 px-2 border font-semibold text-gray-700 sticky left-0 bg-gray-100 z-10 w-36 shadow-[1px_0_0_0_#e5e7eb]">Esploratore</th>';
 
   pastActivities.forEach(a => {
     const d = toDate(a.data);
     const ds = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
-    html += `<th class="p-2 border text-center text-xs font-normal text-gray-600 truncate max-w-[80px]" title="${a.tipo}: ${a.descrizione || ''}">${ds}</th>`;
+    html += `<th class="p-1 border text-center text-[10px] font-normal text-gray-600 truncate max-w-[60px]" title="${a.tipo}: ${a.descrizione || ''}">${ds}</th>`;
   });
   html += '</tr></thead><tbody>';
 
   scouts.forEach(s => {
-    html += `<tr><td class="p-2 border whitespace-nowrap sticky left-0 bg-white z-10 font-medium text-gray-800 shadow-[1px_0_0_0_#e5e7eb]">${s.nome} ${s.cognome}</td>`;
+    html += `<tr><td class="p-1 px-2 border whitespace-nowrap sticky left-0 bg-white z-10 font-medium text-gray-800 shadow-[1px_0_0_0_#e5e7eb]">${s.nome} ${s.cognome}</td>`;
 
     pastActivities.forEach(a => {
       const pr = presences.find(p => p.esploratoreId === s.id && p.attivitaId === a.id);
@@ -218,10 +218,8 @@ UI.renderAttendanceGrid = function () {
         }
       }
 
-      html += `<td class="p-2 border text-center">
-                 <div class="w-6 h-6 mx-auto rounded-sm flex items-center justify-center text-white text-xs font-bold ${colorClass}" title="${tooltip}">
-                   ${symbol}
-                 </div>
+      html += `<td class="p-1 border text-center">
+                 <div class="w-3.5 h-3.5 mx-auto rounded-sm ${colorClass}" title="${tooltip}"></div>
                </td>`;
     });
 
@@ -232,11 +230,11 @@ UI.renderAttendanceGrid = function () {
 
   // Aggiungi la legenda
   html += `
-    <div class="mt-4 flex flex-wrap gap-4 text-xs text-gray-600">
-      <div class="flex items-center gap-1"><div class="w-4 h-4 rounded-sm bg-green-500"></div> Presente</div>
-      <div class="flex items-center gap-1"><div class="w-4 h-4 rounded-sm bg-red-500"></div> Assente</div>
-      <div class="flex items-center gap-1"><div class="w-4 h-4 rounded-sm bg-gray-400"></div> Non tenuto (X)</div>
-      <div class="flex items-center gap-1"><div class="w-4 h-4 rounded-sm bg-white border border-gray-300"></div> Dato mancante</div>
+    <div class="mt-3 flex flex-wrap gap-4 text-[11px] text-gray-600">
+      <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-sm bg-green-500"></div> Presente</div>
+      <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-sm bg-red-500"></div> Assente</div>
+      <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-sm bg-gray-400"></div> Non tenuto (X)</div>
+      <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-sm bg-white border border-gray-300"></div> Dato mancante</div>
     </div>
   `;
 
