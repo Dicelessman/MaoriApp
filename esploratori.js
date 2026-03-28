@@ -96,6 +96,13 @@ UI.setupScoutsEventListeners = function () {
     openBtn._bound = true;
     openBtn.addEventListener('click', () => this.showModal('addScoutModal'));
   }
+
+  // Pulsante esporta CSV
+  const exportCsvBtn = this.qs('#exportCsvBtn');
+  if (exportCsvBtn && !exportCsvBtn._bound) {
+    exportCsvBtn._bound = true;
+    exportCsvBtn.addEventListener('click', () => this.exportScoutsCsv());
+  }
   // Barra alfabetica
   const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const nav = this.qs('#alphaNav');
@@ -365,6 +372,117 @@ UI.archiveScout = async function (id) {
     this.showToast('Errore durante l\'archiviazione', { type: 'error' });
   } finally {
     this.hideLoadingOverlay();
+  }
+};
+
+UI.exportScoutsCsv = async function () {
+  if (!this.currentUser) {
+    this.showToast('Devi essere loggato per esportare.', { type: 'error' });
+    return;
+  }
+  
+  try {
+    const btn = this.qs('#exportCsvBtn');
+    if (btn) btn.textContent = 'Esportazione...';
+    
+    // Assicurarsi di avere i dati aggiornati
+    this.state = await DATA.loadAll();
+    const scouts = this.state.scouts || [];
+    
+    if (scouts.length === 0) {
+      this.showToast('Nessun esploratore da esportare', { type: 'warning' });
+      return;
+    }
+    
+    // 1. Raccogli tutte le chiavi possibili
+    const allKeysSet = new Set();
+    scouts.forEach(s => {
+      Object.keys(s).forEach(k => {
+        if (k !== 'specialita' && k !== 'archived') { 
+          allKeysSet.add(k); 
+        }
+      });
+    });
+    
+    const headers = Array.from(allKeysSet).sort();
+    // Aggiungi specialità alla fine
+    headers.push('specialita_testo');
+    
+    const escapeCsv = (val) => {
+      if (val === null || val === undefined) return '';
+      // Se è data (oggetto firebase Timestamp o Date nativo)
+      if (val && typeof val.toDate === 'function') {
+        val = val.toDate();
+      }
+      if (val instanceof Date) {
+        val = val.toLocaleDateString('it-IT');
+      } else if (typeof val === 'object') {
+        // Altri oggetti generici (ev_ce1 ecc che sono {data, testo})
+        if (val.data || val.testo) {
+          let dt = val.data || '';
+          if (dt && typeof dt.toDate === 'function') dt = dt.toDate().toLocaleDateString('it-IT');
+          else if (dt instanceof Date) dt = dt.toLocaleDateString('it-IT');
+          val = `${dt} ${val.testo || ''}`.trim();
+        } else {
+          val = JSON.stringify(val);
+        }
+      }
+      
+      let str = String(val);
+      if (str.includes('"') || str.includes(',') || str.includes('\n')) {
+        str = '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    };
+    
+    // Intestazione
+    let csvContent = headers.join(',') + '\n';
+    
+    // Righe
+    scouts.forEach(s => {
+      const row = headers.map(h => {
+        if (h === 'specialita_testo') {
+          // Flatten specialità
+          if (Array.isArray(s.specialita)) {
+            const spArr = s.specialita.map(sp => {
+                let txt = sp.nome || 'Sconosciuta';
+                let stats = [];
+                if (sp.ottenuta) stats.push('ott');
+                if (sp.brevetto) stats.push('brv');
+                if (sp.distintivo) stats.push('dst');
+                if (stats.length > 0) txt += ' (' + stats.join(',') + ')';
+                return txt;
+            });
+            return escapeCsv(spArr.join(', '));
+          }
+          return '';
+        }
+        return escapeCsv(s[h]);
+      });
+      csvContent += row.join(',') + '\n';
+    });
+    
+    // Add BOM for Excel utf-8 recognition
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `esploratori_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }, 100);
+    
+    this.showToast('Esportazione completata', { type: 'success' });
+  } catch(e) {
+    console.error('Errore esportazione:', e);
+    this.showToast('Errore esportazione: ' + e.message, { type: 'error' });
+  } finally {
+    const btn = this.qs('#exportCsvBtn');
+    if (btn) btn.textContent = 'Esporta CSV';
   }
 };
 
