@@ -306,6 +306,22 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
+    // ============== COLLEZIONE: user-preferences ==============
+    match /user-preferences/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ============== COLLEZIONE: fcm-tokens ==============
+    match /fcm-tokens/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ============== COLLEZIONE: in-app-notifications ==============
+    match /in-app-notifications/{docId} {
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
     // ============== Default: nega tutto il resto ==============
     match /{document=**} {
       allow read, write: if false;
