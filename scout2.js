@@ -1389,18 +1389,37 @@ UI.printScoutSheet = async function () {
     const pa = this.qs('#printArea');
     if (pa) {
       pa.innerHTML = html;
+      pa.style.display = 'block';
+
+      // Nascondi forzatamente #app per impedire ai CSS di stampa globali di renderlo visibile
+      const appContainer = document.getElementById('app');
+      let originalAppStyle = '';
+      if (appContainer) {
+        originalAppStyle = appContainer.getAttribute('style') || '';
+        appContainer.style.setProperty('display', 'none', 'important');
+      }
 
       // Imposta il titolo del documento per il nome del file PDF
       const originalTitle = document.title;
       const pdfTitle = `Il Sentiero di ${data.nome || ''}`;
       document.title = pdfTitle;
 
-      // Ripristina il titolo originale dopo la stampa (con un piccolo delay)
+      // Esegui la stampa
       window.print();
 
-      // Ripristina il titolo dopo che la finestra di stampa si chiude
+      // Ripristina tutto dopo che la finestra di stampa si chiude
       setTimeout(() => {
         document.title = originalTitle;
+        pa.style.display = 'none';
+        pa.innerHTML = '';
+        
+        if (appContainer) {
+          if (originalAppStyle) {
+            appContainer.setAttribute('style', originalAppStyle);
+          } else {
+            appContainer.removeAttribute('style');
+          }
+        }
       }, 1000);
     } else {
       console.error('PrintArea non trovato');
