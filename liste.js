@@ -485,11 +485,18 @@ UI.renderElencoTable = function () {
                     const oldDirMap = { 'io': 'io', 'al': 're', 'mt': 'im' };
                     const codePrefixMap = { 'io': 'IO', 'al': 'AL', 'mt': 'MT' };
                     const oldDir = oldDirMap[t];
-                    for (let i = 1; i <= 4; i++) {
-                        const oldObj = s[`pv_${oldDir}_${activeTrack}${i}`];
-                        if (oldObj && oldObj.done) {
-                            code = `${activeTrack}-${codePrefixMap[t]}-${i}`;
-                            break;
+                    
+                    const intermediateCodeKey = `pv_sfida_${oldDir}_${activeTrack}`;
+                    const intermediateCode = s[intermediateCodeKey];
+                    if (intermediateCode && typeof intermediateCode === 'string') {
+                        code = intermediateCode; // La stringa qui è es. "1-RE-2", siccome viene splittata per '-' all'uscita basta che venga passato intatto
+                    } else {
+                        for (let i = 1; i <= 4; i++) {
+                            const oldObj = s[`pv_${oldDir}_${activeTrack}${i}`];
+                            if (oldObj && oldObj.done) {
+                                code = `${activeTrack}-${codePrefixMap[t]}-${i}`;
+                                break;
+                            }
                         }
                     }
                 }

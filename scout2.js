@@ -345,13 +345,24 @@ UI.loadChallengeData = function (s) {
         const oldDirMap = { 'io': 'io', 'al': 're', 'mt': 'im' };
         const codePrefixMap = { 'io': 'IO', 'al': 'AL', 'mt': 'MT' };
         const oldDir = oldDirMap[dir];
-        for (let i = 1; i <= 4; i++) {
-          const oldObj = s[`pv_${oldDir}_${passo}${i}`];
-          if (oldObj && oldObj.done) {
-            code = `${passo}-${codePrefixMap[dir]}-${i}`;
-            if (!data && oldObj.data) data = oldObj.data;
-            break; // Essendo ora a scelta singola, manteniamo la prima sfida completata
-          }
+        
+        // Controllo formato intermedio: salvato come stringa ma con vecchia sigla direzione (es. pv_sfida_re_1 = "1-RE-2")
+        const intermediateCodeKey = `pv_sfida_${oldDir}_${passo}`;
+        const intermediateCode = s[intermediateCodeKey];
+        if (intermediateCode && typeof intermediateCode === 'string') {
+            // Sostituiamo la parte interna es. "-RE-" con "-AL-"
+            code = intermediateCode.replace('-RE-', '-AL-').replace('-IM-', '-MT-');
+            if (!data) data = s[`${intermediateCodeKey}_data`];
+        } else {
+            // Controllo formato più vecchio: oggetti checkbox (es. pv_re_11 = {done: true})
+            for (let i = 1; i <= 4; i++) {
+              const oldObj = s[`pv_${oldDir}_${passo}${i}`];
+              if (oldObj && oldObj.done) {
+                code = `${passo}-${codePrefixMap[dir]}-${i}`;
+                if (!data && oldObj.data) data = oldObj.data;
+                break; // Essendo ora a scelta singola, manteniamo la prima sfida completata
+              }
+            }
         }
       }
       const select = this.qs(`#pv_sfida_${dir}_${passo}`);
