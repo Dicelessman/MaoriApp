@@ -337,8 +337,23 @@ UI.loadChallengeData = function (s) {
       const dataKey = `pv_sfida_${dir}_${passo}_data`;
       const textKey = `pv_sfida_${dir}_${passo}_text`;
 
-      const code = s[codeKey];
-      const data = s[dataKey];
+      let code = s[codeKey];
+      let data = s[dataKey];
+
+      // Fallback per vecchi dati salvati con nomenclatura antecedente a checkbox individuali (es. pv_io_14)
+      if (!code) {
+        const oldDirMap = { 'io': 'io', 'al': 're', 'mt': 'im' };
+        const codePrefixMap = { 'io': 'IO', 'al': 'AL', 'mt': 'MT' };
+        const oldDir = oldDirMap[dir];
+        for (let i = 1; i <= 4; i++) {
+          const oldObj = s[`pv_${oldDir}_${passo}${i}`];
+          if (oldObj && oldObj.done) {
+            code = `${passo}-${codePrefixMap[dir]}-${i}`;
+            if (!data && oldObj.data) data = oldObj.data;
+            break; // Essendo ora a scelta singola, manteniamo la prima sfida completata
+          }
+        }
+      }
       const select = this.qs(`#pv_sfida_${dir}_${passo}`);
       const dateInput = this.qs(`#${dataKey}`);
       const textarea = this.qs(`#${textKey}`);
