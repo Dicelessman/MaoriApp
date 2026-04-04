@@ -479,7 +479,22 @@ UI.renderElencoTable = function () {
             let activeTrack = 1;
             if (s.pv_traccia2_chk) activeTrack = 3;
             else if (s.pv_traccia1_chk) activeTrack = 2;
-            const getC = (t) => (s[`pv_sfida_${t}_${activeTrack}`] || '').split('_').pop() || '-';
+            const getC = (t) => {
+                let code = s[`pv_sfida_${t}_${activeTrack}`];
+                if (!code) {
+                    const oldDirMap = { 'io': 'io', 'al': 're', 'mt': 'im' };
+                    const codePrefixMap = { 'io': 'IO', 'al': 'AL', 'mt': 'MT' };
+                    const oldDir = oldDirMap[t];
+                    for (let i = 1; i <= 4; i++) {
+                        const oldObj = s[`pv_${oldDir}_${activeTrack}${i}`];
+                        if (oldObj && oldObj.done) {
+                            code = `${activeTrack}-${codePrefixMap[t]}-${i}`;
+                            break;
+                        }
+                    }
+                }
+                return (code || '').split('-').pop() || '-';
+            };
             rowHtml += `<td class="px-4 py-2 font-mono text-xs">I:${getC('io')} A:${getC('al')} M:${getC('mt')}</td>`;
         }
 
