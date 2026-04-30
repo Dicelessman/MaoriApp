@@ -154,6 +154,65 @@
                         </div>
                     </div>
 
+                    <!-- Filtri Avanzati -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Filtra per Pattuglia</label>
+                            <select id="elencoFilterPattuglia" class="input w-full py-1 text-sm">
+                                <option value="">-- Tutte --</option>
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Filtra per Passo</label>
+                            <select id="elencoFilterPasso" class="input w-full py-1 text-sm">
+                                <option value="">-- Tutti --</option>
+                                <option value="1">Scoperta</option>
+                                <option value="2">Competenza</option>
+                                <option value="3">Responsabilità</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end pb-1">
+                            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" id="elencoHighlightSfide" class="rounded text-green-600">
+                                Evidenzia sfide comuni
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Ordinamento Multiplo -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ordinamento 1</label>
+                            <select id="elencoSort1" class="input w-full py-1 text-sm elenco-sort-select">
+                                <option value="name">Cognome Nome</option>
+                                <option value="pattuglia">Pattuglia</option>
+                                <option value="passo">Passo</option>
+                                <option value="dob">Data Nascita</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ordinamento 2</label>
+                            <select id="elencoSort2" class="input w-full py-1 text-sm elenco-sort-select">
+                                <option value="">-- Nessuno --</option>
+                                <option value="name">Cognome Nome</option>
+                                <option value="pattuglia">Pattuglia</option>
+                                <option value="passo">Passo</option>
+                                <option value="dob">Data Nascita</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ordinamento 3</label>
+                            <select id="elencoSort3" class="input w-full py-1 text-sm elenco-sort-select">
+                                <option value="">-- Nessuno --</option>
+                                <option value="name">Cognome Nome</option>
+                                <option value="pattuglia">Pattuglia</option>
+                                <option value="passo">Passo</option>
+                                <option value="dob">Data Nascita</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="flex gap-2">
                         <button id="printElencoBtn" class="btn-primary">🖨️ Stampa</button>
                         <button id="copyElencoBtn" class="btn-secondary">📋 Copia</button>

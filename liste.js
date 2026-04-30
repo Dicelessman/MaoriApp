@@ -367,8 +367,35 @@ UI.initElencoTab = function () {
         document.body.removeChild(link);
     };
 
+    // Populate Pattuglie Filter dynamically
+    const pattuglieSet = new Set();
+    this.state.scouts.forEach(s => {
+        if (s.pv_pattuglia) pattuglieSet.add(s.pv_pattuglia);
+    });
+    const pattugliaSelect = document.getElementById('elencoFilterPattuglia');
+    // Clear and re-populate (keep the "Tutte" option)
+    pattugliaSelect.innerHTML = '<option value="">-- Tutte --</option>';
+    Array.from(pattuglieSet).sort().forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        pattugliaSelect.appendChild(opt);
+    });
+
+    // Add listeners for new UI controls
+    const filters = [
+        'elencoFilterPattuglia', 'elencoFilterPasso', 'elencoHighlightSfide',
+        'elencoSort1', 'elencoSort2', 'elencoSort3'
+    ];
+    filters.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el._boundElenco) {
+            el._boundElenco = true;
+            el.addEventListener('change', () => this.renderElencoTable());
+        }
+    });
+
     // Initial Render
-    this.elencoSort = { col: 'name', dir: 'asc' }; // Default sort
     this.renderElencoTable();
 };
 
@@ -395,30 +422,15 @@ UI.renderElencoTable = function () {
     // 1. Build Header
     let headHtml = '<tr>';
     visibleCols.forEach(col => {
-        const isSorted = this.elencoSort.col === col.id;
-        const icon = isSorted ? (this.elencoSort.dir === 'asc' ? ' 🔼' : ' 🔽') : '';
-        // Add style for pointer
-        headHtml += `<th class="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none" 
-                        data-sort="${col.id}">
-                        ${col.label}${icon}
+        headHtml += `<th class="px-4 py-2 bg-gray-100 dark:bg-gray-600 select-none">
+                        ${col.label}
                      </th>`;
     });
     headHtml += '</tr>';
     thead.innerHTML = headHtml;
 
-    // Attach sort listeners
-    thead.querySelectorAll('th').forEach(th => {
-        th.addEventListener('click', () => {
-            const col = th.dataset.sort;
-            if (this.elencoSort.col === col) {
-                this.elencoSort.dir = this.elencoSort.dir === 'asc' ? 'desc' : 'asc';
-            } else {
-                this.elencoSort.col = col;
-                this.elencoSort.dir = 'asc';
-            }
-            this.renderElencoTable();
-        });
-    });
+    // 2. Prepare Data
+    let scouts = [...this.state.scouts];
 
     // 2. Prepare Data
     let scouts = [...this.state.scouts];
@@ -435,25 +447,88 @@ UI.renderElencoTable = function () {
                 if (t1) return 2; // Competenza
                 return 1; // Scoperta
             }
-            case 'sfide': return ''; // Not really sortable easily, maybe by count? or string
-            case 'specialita': return (s.specialita?.length || 0); // Sort by count?
+            case 'sfide': return ''; 
+            case 'specialita': return (s.specialita?.length || 0); 
             case 'dob': return s.anag_dob ? new Date(s.anag_dob).getTime() : 0;
             default: return '';
         }
     };
 
-    // Sort
-    scouts.sort((a, b) => {
-        let va = getValue(a, this.elencoSort.col);
-        let vb = getValue(b, this.elencoSort.col);
+    // Filtri Avanzati
+    const filterPattuglia = document.getElementById('elencoFilterPattuglia')?.value;
+    const filterPasso = document.getElementById('elencoFilterPasso')?.value;
+    
+    if (filterPattuglia) {
+        scouts = scouts.filter(s => s.pv_pattuglia === filterPattuglia);
+    }
+    if (filterPasso) {
+        const expectedPasso = parseInt(filterPasso);
+        scouts = scouts.filter(s => getValue(s, 'passo') === expectedPasso);
+    }
 
-        // Handle strings
-        if (typeof va === 'string' && typeof vb === 'string') {
-            return this.elencoSort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    // Ordinamento Multiplo
+    const s1 = document.getElementById('elencoSort1')?.value || 'name';
+    const s2 = document.getElementById('elencoSort2')?.value;
+    const s3 = document.getElementById('elencoSort3')?.value;
+    
+    scouts.sort((a, b) => {
+        const sorts = [s1, s2, s3].filter(Boolean); // Keep only valid selected sorts
+        for (const sortCol of sorts) {
+            let va = getValue(a, sortCol);
+            let vb = getValue(b, sortCol);
+
+            let res = 0;
+            if (typeof va === 'string' && typeof vb === 'string') {
+                res = va.localeCompare(vb);
+            } else {
+                res = va - vb;
+            }
+            
+            if (res !== 0) return res; // Se c'è differenza, restituisci
+            // Altrimenti prosegui col prossimo criterio
         }
-        // Handle numbers
-        return this.elencoSort.dir === 'asc' ? va - vb : vb - va;
+        return 0; // Uguali in tutti i criteri
     });
+
+    // Calcolo frequenze sfide se evidenziate
+    const highlightSfide = document.getElementById('elencoHighlightSfide')?.checked;
+    const challengeFrequencies = {};
+
+    const getChallengeCode = (s, t, activeTrack) => {
+        let code = s[`pv_sfida_${t}_${activeTrack}`];
+        if (!code) {
+            const oldDirMap = { 'io': 'io', 'al': 're', 'mt': 'im' };
+            const codePrefixMap = { 'io': 'IO', 'al': 'AL', 'mt': 'MT' };
+            const oldDir = oldDirMap[t];
+            
+            const intermediateCodeKey = `pv_sfida_${oldDir}_${activeTrack}`;
+            const intermediateCode = s[intermediateCodeKey];
+            if (intermediateCode && typeof intermediateCode === 'string') {
+                code = intermediateCode;
+            } else {
+                for (let i = 1; i <= 4; i++) {
+                    const oldObj = s[`pv_${oldDir}_${activeTrack}${i}`];
+                    if (oldObj && oldObj.done) {
+                        code = `${activeTrack}-${codePrefixMap[t]}-${i}`;
+                        break;
+                    }
+                }
+            }
+        }
+        return code || null;
+    };
+
+    if (highlightSfide) {
+        scouts.forEach(s => {
+            const activeTrack = getValue(s, 'passo');
+            ['io', 'al', 'mt'].forEach(t => {
+                const c = getChallengeCode(s, t, activeTrack);
+                if (c) {
+                    challengeFrequencies[c] = (challengeFrequencies[c] || 0) + 1;
+                }
+            });
+        });
+    }
 
     // 3. Build Rows
     tbody.innerHTML = '';
@@ -486,30 +561,17 @@ UI.renderElencoTable = function () {
             const t1 = s.pv_traccia1_chk || (s.pv_traccia1 && s.pv_traccia1.done);
             if (t2) activeTrack = 3;
             else if (t1) activeTrack = 2;
-            const getC = (t) => {
-                let code = s[`pv_sfida_${t}_${activeTrack}`];
-                if (!code) {
-                    const oldDirMap = { 'io': 'io', 'al': 're', 'mt': 'im' };
-                    const codePrefixMap = { 'io': 'IO', 'al': 'AL', 'mt': 'MT' };
-                    const oldDir = oldDirMap[t];
-                    
-                    const intermediateCodeKey = `pv_sfida_${oldDir}_${activeTrack}`;
-                    const intermediateCode = s[intermediateCodeKey];
-                    if (intermediateCode && typeof intermediateCode === 'string') {
-                        code = intermediateCode; // La stringa qui è es. "1-RE-2", siccome viene splittata per '-' all'uscita basta che venga passato intatto
-                    } else {
-                        for (let i = 1; i <= 4; i++) {
-                            const oldObj = s[`pv_${oldDir}_${activeTrack}${i}`];
-                            if (oldObj && oldObj.done) {
-                                code = `${activeTrack}-${codePrefixMap[t]}-${i}`;
-                                break;
-                            }
-                        }
-                    }
+            
+            const formatSfida = (t) => {
+                const code = getChallengeCode(s, t, activeTrack);
+                const num = (code || '').split('-').pop() || '-';
+                if (highlightSfide && code && challengeFrequencies[code] > 1) {
+                    return `<span class="bg-yellow-200 dark:bg-yellow-700 text-yellow-900 dark:text-yellow-100 px-1 py-0.5 rounded font-bold">${num}</span>`;
                 }
-                return (code || '').split('-').pop() || '-';
+                return num;
             };
-            rowHtml += `<td class="px-4 py-2 font-mono text-xs">I:${getC('io')} A:${getC('al')} M:${getC('mt')}</td>`;
+            
+            rowHtml += `<td class="px-4 py-2 font-mono text-xs">I:${formatSfida('io')} A:${formatSfida('al')} M:${formatSfida('mt')}</td>`;
         }
 
         if (activeIds.includes('specialita')) {
