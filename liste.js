@@ -432,9 +432,6 @@ UI.renderElencoTable = function () {
     // 2. Prepare Data
     let scouts = [...this.state.scouts];
 
-    // 2. Prepare Data
-    let scouts = [...this.state.scouts];
-
     // Helper to get sort value
     const getValue = (s, colId) => {
         switch (colId) {
