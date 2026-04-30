@@ -428,10 +428,13 @@ UI.renderElencoTable = function () {
         switch (colId) {
             case 'name': return (s.cognome || '') + ' ' + (s.nome || '');
             case 'pattuglia': return s.pv_pattuglia || '';
-            case 'passo':
-                if (s.pv_traccia2_chk) return 3; // Responsabilità
-                if (s.pv_traccia1_chk) return 2; // Competenza
+            case 'passo': {
+                const t2 = s.pv_traccia2_chk || (s.pv_traccia2 && s.pv_traccia2.done);
+                const t1 = s.pv_traccia1_chk || (s.pv_traccia1 && s.pv_traccia1.done);
+                if (t2) return 3; // Responsabilità
+                if (t1) return 2; // Competenza
                 return 1; // Scoperta
+            }
             case 'sfide': return ''; // Not really sortable easily, maybe by count? or string
             case 'specialita': return (s.specialita?.length || 0); // Sort by count?
             case 'dob': return s.anag_dob ? new Date(s.anag_dob).getTime() : 0;
@@ -470,15 +473,19 @@ UI.renderElencoTable = function () {
 
         if (activeIds.includes('passo')) {
             let currentStep = 'Scoperta';
-            if (s.pv_traccia2_chk) currentStep = 'Responsabilità';
-            else if (s.pv_traccia1_chk) currentStep = 'Competenza';
+            const t2 = s.pv_traccia2_chk || (s.pv_traccia2 && s.pv_traccia2.done);
+            const t1 = s.pv_traccia1_chk || (s.pv_traccia1 && s.pv_traccia1.done);
+            if (t2) currentStep = 'Responsabilità';
+            else if (t1) currentStep = 'Competenza';
             rowHtml += `<td class="px-4 py-2 text-xs">${currentStep}</td>`;
         }
 
         if (activeIds.includes('sfide')) {
             let activeTrack = 1;
-            if (s.pv_traccia2_chk) activeTrack = 3;
-            else if (s.pv_traccia1_chk) activeTrack = 2;
+            const t2 = s.pv_traccia2_chk || (s.pv_traccia2 && s.pv_traccia2.done);
+            const t1 = s.pv_traccia1_chk || (s.pv_traccia1 && s.pv_traccia1.done);
+            if (t2) activeTrack = 3;
+            else if (t1) activeTrack = 2;
             const getC = (t) => {
                 let code = s[`pv_sfida_${t}_${activeTrack}`];
                 if (!code) {
