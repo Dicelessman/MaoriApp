@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Costo Cambusa - Reparto Maori</title>
     <meta name="description" content="Calcolo costi cambusa Reparto Maori" />
-    <meta name="theme-color" content="#16a34a" />
 
     <!-- Favicon e icone -->
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
@@ -61,8 +60,8 @@
                                             class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Esploratori</label>
-                                        <input type="text" id="scoutsCountDisplay" disabled
+                                        <label for="scoutsCountDisplay" class="block text-sm font-medium text-gray-700 mb-1">Esploratori</label>
+                                        <input type="text" id="scoutsCountDisplay" disabled title="Numero esploratori" placeholder="0"
                                             class="w-full rounded-lg bg-gray-200 border-gray-300 text-gray-600 cursor-not-allowed"
                                             value="0">
                                     </div>
@@ -108,9 +107,9 @@
 
                                 <!-- Helper for Day Mode deduction -->
                                 <div id="mealsPerDayContainer" class="hidden">
-                                    <label class="block text-xs text-gray-500 mb-1">Pasti al giorno (per calcolo
+                                    <label for="mealsPerDay" class="block text-xs text-gray-500 mb-1">Pasti al giorno (per calcolo
                                         deduzione gara)</label>
-                                    <input type="number" id="mealsPerDay" value="3" min="1"
+                                    <input type="number" id="mealsPerDay" value="3" min="1" title="Pasti al giorno"
                                         class="w-20 rounded border-gray-300 text-sm p-1">
                                 </div>
                             </div>
