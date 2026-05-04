@@ -515,15 +515,45 @@ UI.renderElencoTable = function () {
         return code || null;
     };
 
+    const challengeColors = {};
     if (highlightSfide) {
+        const trackForCode = {};
+        
         scouts.forEach(s => {
             const activeTrack = getValue(s, 'passo');
             ['io', 'al', 'mt'].forEach(t => {
                 const c = getChallengeCode(s, t, activeTrack);
                 if (c) {
                     challengeFrequencies[c] = (challengeFrequencies[c] || 0) + 1;
+                    trackForCode[c] = activeTrack;
                 }
             });
+        });
+
+        const palettes = [
+            'bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100',
+            'bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100',
+            'bg-blue-200 dark:bg-blue-800 text-blue-900 dark:text-blue-100',
+            'bg-purple-200 dark:bg-purple-800 text-purple-900 dark:text-purple-100',
+            'bg-pink-200 dark:bg-pink-800 text-pink-900 dark:text-pink-100',
+            'bg-teal-200 dark:bg-teal-800 text-teal-900 dark:text-teal-100',
+            'bg-orange-200 dark:bg-orange-800 text-orange-900 dark:text-orange-100',
+            'bg-cyan-200 dark:bg-cyan-800 text-cyan-900 dark:text-cyan-100',
+            'bg-fuchsia-200 dark:bg-fuchsia-800 text-fuchsia-900 dark:text-fuchsia-100',
+            'bg-indigo-200 dark:bg-indigo-800 text-indigo-900 dark:text-indigo-100'
+        ];
+        
+        const trackColorIdx = {};
+        
+        Object.keys(challengeFrequencies).sort().forEach(code => {
+            if (challengeFrequencies[code] > 1) {
+                const track = trackForCode[code];
+                if (trackColorIdx[track] === undefined) {
+                    trackColorIdx[track] = 0;
+                }
+                challengeColors[code] = palettes[trackColorIdx[track] % palettes.length];
+                trackColorIdx[track]++;
+            }
         });
     }
 
@@ -563,9 +593,10 @@ UI.renderElencoTable = function () {
                 const code = getChallengeCode(s, t, activeTrack);
                 const num = (code || '').split('-').pop() || '-';
                 if (highlightSfide && code && challengeFrequencies[code] > 1) {
-                    return `<span class="bg-yellow-200 dark:bg-yellow-700 text-yellow-900 dark:text-yellow-100 px-1 py-0.5 rounded font-bold">${num}</span>`;
+                    const colorClasses = challengeColors[code] || 'bg-yellow-200 dark:bg-yellow-700 text-yellow-900 dark:text-yellow-100';
+                    return `<span class="${colorClasses} px-1 py-0.5 rounded font-bold" title="Sfida condivisa: ${escapeHtml(code)}">${escapeHtml(num)}</span>`;
                 }
-                return num;
+                return escapeHtml(num);
             };
             
             rowHtml += `<td class="px-4 py-2 font-mono text-xs">I:${formatSfida('io')} A:${formatSfida('al')} M:${formatSfida('mt')}</td>`;
