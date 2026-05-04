@@ -440,9 +440,9 @@ UI.renderElencoTable = function () {
             case 'passo': {
                 const t2 = s.pv_traccia2_chk || (s.pv_traccia2 && s.pv_traccia2.done);
                 const t1 = s.pv_traccia1_chk || (s.pv_traccia1 && s.pv_traccia1.done);
-                if (t2) return 3; // Responsabilità
-                if (t1) return 2; // Competenza
-                return 1; // Scoperta
+                if (t2) return 3; // III
+                if (t1) return 2; // II
+                return 1; // I
             }
             case 'sfide': return ''; 
             case 'specialita': return (s.specialita?.length || 0); 
@@ -574,11 +574,11 @@ UI.renderElencoTable = function () {
         }
 
         if (activeIds.includes('passo')) {
-            let currentStep = 'Scoperta';
+            let currentStep = 'I';
             const t2 = s.pv_traccia2_chk || (s.pv_traccia2 && s.pv_traccia2.done);
             const t1 = s.pv_traccia1_chk || (s.pv_traccia1 && s.pv_traccia1.done);
-            if (t2) currentStep = 'Responsabilità';
-            else if (t1) currentStep = 'Competenza';
+            if (t2) currentStep = 'III';
+            else if (t1) currentStep = 'II';
             rowHtml += `<td class="px-4 py-2 text-xs">${currentStep}</td>`;
         }
 
