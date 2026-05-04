@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Liste - Scout Maori</title>
     <meta name="description" content="Liste e Stampe Reparto Scout Maori" />
-    <meta name="theme-color" content="#16a34a" />
 
     <!-- Favicon e icone -->
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
@@ -94,7 +93,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Seleziona
                                 Attività</label>
-                            <select id="activitySelect" class="input w-full">
+                            <select id="activitySelect" title="Seleziona un'attività" class="input w-full">
                                 <option value="">-- Seleziona un'attività --</option>
                             </select>
                         </div>
@@ -106,7 +105,7 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Ordina per
                             </label>
-                            <select id="presenzeSortMode" class="input w-full text-sm py-1">
+                            <select id="presenzeSortMode" title="Ordina presenze per" class="input w-full text-sm py-1">
                                 <option value="surname">Cognome Nome</option>
                                 <option value="name">Nome Cognome</option>
                                 <option value="patrol">Pattuglia</option>
@@ -158,14 +157,14 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Filtra per Pattuglia</label>
-                            <select id="elencoFilterPattuglia" class="input w-full py-1 text-sm">
+                            <select id="elencoFilterPattuglia" title="Filtra elenco per Pattuglia" class="input w-full py-1 text-sm">
                                 <option value="">-- Tutte --</option>
                                 <!-- Populated by JS -->
                             </select>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Filtra per Passo</label>
-                            <select id="elencoFilterPasso" class="input w-full py-1 text-sm">
+                            <select id="elencoFilterPasso" title="Filtra elenco per Passo" class="input w-full py-1 text-sm">
                                 <option value="">-- Tutti --</option>
                                 <option value="1">Scoperta</option>
                                 <option value="2">Competenza</option>
@@ -184,7 +183,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ordinamento 1</label>
-                            <select id="elencoSort1" class="input w-full py-1 text-sm elenco-sort-select">
+                            <select id="elencoSort1" title="Primo criterio di ordinamento" class="input w-full py-1 text-sm elenco-sort-select">
                                 <option value="name">Cognome Nome</option>
                                 <option value="pattuglia">Pattuglia</option>
                                 <option value="passo">Passo</option>
@@ -193,7 +192,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ordinamento 2</label>
-                            <select id="elencoSort2" class="input w-full py-1 text-sm elenco-sort-select">
+                            <select id="elencoSort2" title="Secondo criterio di ordinamento" class="input w-full py-1 text-sm elenco-sort-select">
                                 <option value="">-- Nessuno --</option>
                                 <option value="name">Cognome Nome</option>
                                 <option value="pattuglia">Pattuglia</option>
@@ -203,7 +202,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ordinamento 3</label>
-                            <select id="elencoSort3" class="input w-full py-1 text-sm elenco-sort-select">
+                            <select id="elencoSort3" title="Terzo criterio di ordinamento" class="input w-full py-1 text-sm elenco-sort-select">
                                 <option value="">-- Nessuno --</option>
                                 <option value="name">Cognome Nome</option>
                                 <option value="pattuglia">Pattuglia</option>
@@ -237,7 +236,7 @@
         </main>
     </div>
 
-    <div id="printArea" style="display:none"></div>
+    <div id="printArea" class="hidden print:block"></div>
 
     <!-- Scripts -->
     <script src="/config.js"></script>
