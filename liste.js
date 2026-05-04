@@ -13,6 +13,19 @@ UI.renderCurrentPage = async function () {
             this.state = await DATA.loadAll();
         }
 
+        if (!this.challengesData) {
+            try {
+                const res = await fetch('challenges.json');
+                this.challengesData = await res.json();
+            } catch(e) { console.error(e); }
+        }
+        if (!this.specialitaListData) {
+            try {
+                const res = await fetch('specialita.json');
+                this.specialitaListData = await res.json();
+            } catch(e) { console.error(e); }
+        }
+
         // Setup Tabs
         this.setupTabs();
 
@@ -55,6 +68,8 @@ UI.renderTab = function (tabName) {
     switch (tabName) {
         case 'presenze': this.initPresenzeTab(); break;
         case 'elenco': this.initElencoTab(); break;
+        case 'sfide': this.initSfideTab(); break;
+        case 'prove': this.initProveTab(); break;
     }
 };
 
@@ -618,6 +633,298 @@ UI.renderElencoTable = function () {
         rowHtml += '</tr>';
         tbody.insertAdjacentHTML('beforeend', rowHtml);
     });
+};
+
+// --- 3. Sfide PV ---
+UI.initSfideTab = function () {
+    const filterPattuglia = document.getElementById('sfideFilterPattuglia');
+    if (!filterPattuglia._bound) {
+        filterPattuglia._bound = true;
+        // Popola filtro
+        const pattuglie = new Set(this.state.scouts.map(s => s.pv_pattuglia).filter(p => p));
+        Array.from(pattuglie).sort().forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = p;
+            filterPattuglia.appendChild(opt);
+        });
+
+        filterPattuglia.addEventListener('change', () => this.renderSfideList());
+        document.getElementById('printSfideBtn').addEventListener('click', () => this.printList('Sfide PV Scelte', 'sfideContainer'));
+        document.getElementById('copySfideBtn').addEventListener('click', () => this.copyList('Sfide PV Scelte', 'sfideContainer'));
+        document.getElementById('csvSfideBtn').addEventListener('click', () => this.downloadSfideCSV());
+    }
+    this.renderSfideList();
+};
+
+UI.renderSfideList = function () {
+    const container = document.getElementById('sfideContainer');
+    const pattuglia = document.getElementById('sfideFilterPattuglia').value;
+    let scouts = this.state.scouts;
+    if (pattuglia) scouts = scouts.filter(s => s.pv_pattuglia === pattuglia);
+
+    // Mappa le sfide: codice -> { testo, scouts: [] }
+    const sfideMap = {};
+    
+    scouts.forEach(s => {
+        const passi = ['1', '2', '3'];
+        const dirs = ['io', 'al', 'mt'];
+        
+        passi.forEach(passo => {
+            dirs.forEach(dir => {
+                let code = s[`pv_sfida_${dir}_${passo}`];
+                
+                // Fallback nomenclatura
+                if (!code) {
+                    const oldDir = {'io': 'io', 'al': 're', 'mt': 'im'}[dir];
+                    const intermediateCode = s[`pv_sfida_${oldDir}_${passo}`];
+                    if (intermediateCode && typeof intermediateCode === 'string') {
+                        code = intermediateCode.replace('-RE-', '-AL-').replace('-IM-', '-MT-');
+                    } else {
+                        const codePrefixMap = {'io': 'IO', 'al': 'AL', 'mt': 'MT'};
+                        for (let i = 1; i <= 4; i++) {
+                            const oldObj = s[`pv_${oldDir}_${passo}${i}`];
+                            if (oldObj && oldObj.done) {
+                                code = `${passo}-${codePrefixMap[dir]}-${i}`;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if (code) {
+                    if (!sfideMap[code]) {
+                        // Cerca il testo nel JSON
+                        let text = '';
+                        if (this.challengesData && this.challengesData[passo] && this.challengesData[passo][dir.toUpperCase()]) {
+                            const found = this.challengesData[passo][dir.toUpperCase()].find(c => c.code === code);
+                            if (found) text = found.text;
+                        }
+                        sfideMap[code] = { text: text, scouts: [] };
+                    }
+                    sfideMap[code].scouts.push(`${s.nome} ${s.cognome}`);
+                }
+            });
+        });
+    });
+
+    // Raggruppa per Passo e Direzione
+    const byPassoAndDir = {
+        '1': { IO: [], AL: [], MT: [] },
+        '2': { IO: [], AL: [], MT: [] },
+        '3': { IO: [], AL: [], MT: [] }
+    };
+    
+    Object.keys(sfideMap).sort().forEach(code => {
+        const parts = code.split('-');
+        if (parts.length === 3) {
+            const passo = parts[0];
+            const dir = parts[1];
+            if (byPassoAndDir[passo] && byPassoAndDir[passo][dir]) {
+                byPassoAndDir[passo][dir].push({ code, text: sfideMap[code].text, scouts: sfideMap[code].scouts.sort() });
+            }
+        }
+    });
+
+    let html = '';
+    const passiRoman = { '1': 'I', '2': 'II', '3': 'III' };
+    const dirNames = { 'IO': 'IO', 'AL': 'Gli Altri', 'MT': 'La Mia Traccia' };
+
+    ['1', '2', '3'].forEach(passo => {
+        let hasDataPasso = false;
+        let htmlPasso = `<div class="mb-8"><h4 class="text-xl font-bold text-green-700 mb-4 border-b-2 border-green-200 pb-1">Passo ${passiRoman[passo]}</h4><div class="space-y-6">`;
+        
+        ['IO', 'AL', 'MT'].forEach(dir => {
+            const sfide = byPassoAndDir[passo][dir];
+            if (sfide.length > 0) {
+                hasDataPasso = true;
+                htmlPasso += `<div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg"><h5 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">${dirNames[dir]}</h5><ul class="space-y-4">`;
+                sfide.forEach(s => {
+                    htmlPasso += `
+                        <li class="pl-4 border-l-4 border-green-500">
+                            <div class="font-bold text-gray-900 dark:text-white">${s.code}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-300 italic mb-1">${escapeHtml(s.text || 'Testo non disponibile')}</div>
+                            <div class="text-sm font-medium text-blue-600 dark:text-blue-400">Esploratori: ${s.scouts.map(esc => escapeHtml(esc)).join(', ')}</div>
+                        </li>
+                    `;
+                });
+                htmlPasso += `</ul></div>`;
+            }
+        });
+        
+        htmlPasso += `</div></div>`;
+        if (hasDataPasso) html += htmlPasso;
+    });
+
+    if (!html) html = '<div class="text-gray-500">Nessuna sfida trovata per la selezione corrente.</div>';
+    container.innerHTML = html;
+};
+
+// --- 4. Prove PO ---
+UI.initProveTab = function () {
+    const filterPattuglia = document.getElementById('proveFilterPattuglia');
+    if (!filterPattuglia._bound) {
+        filterPattuglia._bound = true;
+        // Popola filtro
+        const pattuglie = new Set(this.state.scouts.map(s => s.pv_pattuglia).filter(p => p));
+        Array.from(pattuglie).sort().forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = p;
+            filterPattuglia.appendChild(opt);
+        });
+
+        filterPattuglia.addEventListener('change', () => this.renderProveList());
+        document.getElementById('printProveBtn').addEventListener('click', () => this.printList('Prove Specialità da Superare', 'proveContainer'));
+        document.getElementById('copyProveBtn').addEventListener('click', () => this.copyList('Prove Specialità da Superare', 'proveContainer'));
+        document.getElementById('csvProveBtn').addEventListener('click', () => this.downloadProveCSV());
+    }
+    this.renderProveList();
+};
+
+UI.renderProveList = function () {
+    const container = document.getElementById('proveContainer');
+    const pattuglia = document.getElementById('proveFilterPattuglia').value;
+    let scouts = this.state.scouts;
+    if (pattuglia) scouts = scouts.filter(s => s.pv_pattuglia === pattuglia);
+
+    if (!this.specialitaListData) {
+        container.innerHTML = '<div class="text-red-500">Errore nel caricamento delle specialità.</div>';
+        return;
+    }
+
+    let html = '';
+    
+    // Ordine alfabetico
+    const sortedSpecs = [...this.specialitaListData].sort((a, b) => a.nome.localeCompare(b.nome));
+    
+    sortedSpecs.forEach(spec => {
+        // Cerca esploratori che hanno questa specialità ma che non l'hanno ottenuta completamente (oppure anche se l'hanno ottenuta, vediamo le prove)
+        // Definiamo "chi deve superarla": scout con specialità in corso
+        const scoutsWithSpec = scouts.filter(s => {
+            return s.specialita && Array.isArray(s.specialita) && s.specialita.some(sp => sp.nome === spec.nome && !sp.ottenuta);
+        });
+
+        if (scoutsWithSpec.length > 0) {
+            let hasProveDaSuperare = false;
+            let htmlSpec = `<div class="mb-8 border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                <div class="bg-yellow-100 dark:bg-yellow-900 px-4 py-3 border-b border-yellow-200 dark:border-yellow-700">
+                    <h4 class="text-xl font-bold text-yellow-800 dark:text-yellow-100">${escapeHtml(spec.nome)}</h4>
+                </div>
+                <div class="p-4 space-y-4">`;
+
+            spec.prove.forEach(prova => {
+                const scoutsDaSuperare = [];
+                scoutsWithSpec.forEach(s => {
+                    const spData = s.specialita.find(sp => sp.nome === spec.nome && !sp.ottenuta);
+                    if (spData) {
+                        const provaDataKey = `${prova.id}_data`;
+                        if (!spData[provaDataKey]) {
+                            scoutsDaSuperare.push(`${s.nome} ${s.cognome}`);
+                        }
+                    }
+                });
+
+                if (scoutsDaSuperare.length > 0) {
+                    hasProveDaSuperare = true;
+                    htmlSpec += `
+                        <div class="pl-4 border-l-4 border-yellow-400">
+                            <div class="font-bold text-gray-900 dark:text-white">${escapeHtml(prova.nome)}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-300 italic mb-1">${escapeHtml(prova.text)}</div>
+                            <div class="text-sm font-medium text-red-600 dark:text-red-400">Devono superarla: ${scoutsDaSuperare.sort().map(esc => escapeHtml(esc)).join(', ')}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            htmlSpec += `</div></div>`;
+            if (hasProveDaSuperare) html += htmlSpec;
+        }
+    });
+
+    if (!html) html = '<div class="text-gray-500">Nessuna prova PO da superare per la selezione corrente.</div>';
+    container.innerHTML = html;
+};
+
+// --- Funzioni di utilità per stampa, copia, csv ---
+UI.printList = function (title, containerId) {
+    const preview = document.getElementById(containerId).innerHTML;
+    const printArea = document.getElementById('printArea');
+    printArea.innerHTML = `
+      <div class="print-header text-center mb-4">
+         <h1 class="text-xl font-bold">Reparto Maori - ${escapeHtml(title)}</h1>
+         <p>${new Date().toLocaleDateString()}</p>
+      </div>
+      ${preview}
+    `;
+    window.print();
+};
+
+UI.copyList = function (title, containerId) {
+    const container = document.getElementById(containerId);
+    const text = container.innerText;
+    navigator.clipboard.writeText(`${title}\n\n${text}`).then(() => {
+        this.showToast('Copiato negli appunti');
+    }).catch(() => {
+        this.showToast('Errore durante la copia', { type: 'error' });
+    });
+};
+
+UI.downloadSfideCSV = function () {
+    const container = document.getElementById('sfideContainer');
+    let csv = "Passo,Direzione,Codice,Testo,Esploratori\n";
+    // Parsing del DOM generato
+    const passiDivs = container.querySelectorAll('.mb-8');
+    passiDivs.forEach(passoDiv => {
+        const passoMatch = passoDiv.querySelector('h4').textContent.match(/Passo (I{1,3})/);
+        const passo = passoMatch ? passoMatch[1] : '';
+        const dirsDivs = passoDiv.querySelectorAll('.bg-gray-50');
+        dirsDivs.forEach(dirDiv => {
+            const dir = dirDiv.querySelector('h5').textContent;
+            const lis = dirDiv.querySelectorAll('li');
+            lis.forEach(li => {
+                const code = li.children[0].textContent;
+                const text = li.children[1].textContent;
+                const esploratori = li.children[2].textContent.replace('Esploratori: ', '');
+                csv += `"${passo}","${dir}","${code}","${text.replace(/"/g, '""')}","${esploratori}"\n`;
+            });
+        });
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `sfide_${toYyyyMmDd(new Date())}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+UI.downloadProveCSV = function () {
+    const container = document.getElementById('proveContainer');
+    let csv = "Specialita,Prova,Testo,Esploratori Da Superare\n";
+    // Parsing del DOM
+    const specDivs = container.querySelectorAll('.mb-8');
+    specDivs.forEach(specDiv => {
+        const specName = specDiv.querySelector('h4').textContent;
+        const proveDivs = specDiv.querySelectorAll('.border-l-4');
+        proveDivs.forEach(provaDiv => {
+            const nomeProva = provaDiv.children[0].textContent;
+            const testoProva = provaDiv.children[1].textContent;
+            const esploratori = provaDiv.children[2].textContent.replace('Devono superarla: ', '');
+            csv += `"${specName}","${nomeProva}","${testoProva.replace(/"/g, '""')}","${esploratori}"\n`;
+        });
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `prove_po_${toYyyyMmDd(new Date())}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 };
 
 // Start
