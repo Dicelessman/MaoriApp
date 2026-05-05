@@ -670,6 +670,12 @@ UI.renderSfideList = function () {
         const passi = ['1', '2', '3'];
         const dirs = ['io', 'al', 'mt'];
         
+        let currentPasso = 1;
+        const t2 = s.pv_traccia2_chk || (s.pv_traccia2 && s.pv_traccia2.done);
+        const t1 = s.pv_traccia1_chk || (s.pv_traccia1 && s.pv_traccia1.done);
+        if (t2) currentPasso = 3;
+        else if (t1) currentPasso = 2;
+        
         passi.forEach(passo => {
             dirs.forEach(dir => {
                 let code = s[`pv_sfida_${dir}_${passo}`];
@@ -702,7 +708,12 @@ UI.renderSfideList = function () {
                         }
                         sfideMap[code] = { text: text, scouts: [] };
                     }
-                    sfideMap[code].scouts.push(`${s.nome} ${s.cognome}`);
+                    
+                    let scoutName = `${s.nome} ${s.cognome}`;
+                    if (parseInt(passo) < currentPasso) {
+                        scoutName += ' (C)';
+                    }
+                    sfideMap[code].scouts.push(scoutName);
                 }
             });
         });
