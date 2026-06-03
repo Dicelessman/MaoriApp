@@ -250,6 +250,13 @@ UI.removeVarItem = function (id) {
     this.budgetState.various = this.budgetState.various.filter(i => i.id !== id);
     this.renderAll();
 };
+UI.updateVarItemCost = function (id, newCost) {
+    const item = this.budgetState.various.find(i => i.id === id);
+    if (item) {
+        item.cost = parseFloat(newCost) || 0;
+        this.renderAll();
+    }
+};
 
 // --- CORE LOGIC & RENDERING ---
 
@@ -406,13 +413,14 @@ UI.renderVariousItems = function () {
     items.forEach(i => {
         list.innerHTML += `
             <div class="flex justify-between items-center text-sm p-2 bg-gray-100 rounded border-l-4 border-gray-400">
-                <div>
+                <div class="flex-1">
                    <span class="block font-bold text-xs uppercase text-gray-500">${i.category}</span>
                    <span>${i.desc}</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="font-bold">€ ${i.cost.toFixed(2)}</span>
-                    <button class="text-red-500 font-bold px-1" onclick="UI.removeVarItem(${i.id})">×</button>
+                <div class="flex items-center gap-1">
+                    <span class="font-bold">€</span>
+                    <input type="number" step="0.01" class="w-20 p-1 border rounded text-right font-bold focus:ring-1 focus:ring-green-500 outline-none" value="${i.cost.toFixed(2)}" onchange="UI.updateVarItemCost(${i.id}, this.value)" title="Modifica costo">
+                    <button class="text-red-500 hover:text-red-700 font-bold px-2 ml-1" onclick="UI.removeVarItem(${i.id})" title="Rimuovi voce">×</button>
                 </div>
             </div>`;
     });
