@@ -44,26 +44,30 @@ UI.renderDashboardCharts = function () {
     }
   });
 
-  const scoutLabels = scouts.map(s => `${s.nome} ${s.cognome}`);
-  const scoutPerc = scouts.map(s => {
-    // Calcola il set di attività considerate: tutte le già svolte (< oggi) + la prossima in programma
-    const pastIds = sortedActivities.filter(a => {
-      const ad = (a.data && a.data.toDate) ? a.data.toDate() : new Date(a.data);
-      const aday = new Date(ad);
-      aday.setHours(0, 0, 0, 0);
-      return aday < today;
-    }).map(a => a.id);
-    const consideredIds = nextActivityId ? [...pastIds, nextActivityId] : pastIds;
+  const pastIds = sortedActivities.filter(a => {
+    const ad = (a.data && a.data.toDate) ? a.data.toDate() : new Date(a.data);
+    const aday = new Date(ad);
+    aday.setHours(0, 0, 0, 0);
+    return aday < today;
+  }).map(a => a.id);
+  const consideredIds = nextActivityId ? [...pastIds, nextActivityId] : pastIds;
 
-    // Considera solo le attività dove lo stato è "Presente" o "Assente" (esclude NR e X)
+  const scoutStats = scouts.map(s => {
     const validActIds = consideredIds.filter(aid => {
       const pr = dedup.find(p => p.esploratoreId === s.id && p.attivitaId === aid);
       return pr && (pr.stato === 'Presente' || pr.stato === 'Assente');
     });
     const totalActsConsidered = validActIds.length;
     const presentCount = dedup.filter(p => p.esploratoreId === s.id && p.stato === 'Presente' && validActIds.includes(p.attivitaId)).length;
-    return totalActsConsidered ? Math.round((presentCount / totalActsConsidered) * 100) : 0;
+    const perc = totalActsConsidered ? Math.round((presentCount / totalActsConsidered) * 100) : 0;
+    return { name: `${s.nome} ${s.cognome}`, perc, presentCount, totalActsConsidered };
   });
+
+  // Ordina per percentuale decrescente
+  scoutStats.sort((a, b) => b.perc - a.perc);
+
+  const scoutLabels = scoutStats.map(s => s.name);
+  const scoutPerc = scoutStats.map(s => s.perc);
 
   // Colori per le barre in base alla percentuale
   const scoutColors = scoutPerc.map(perc => {
@@ -107,7 +111,7 @@ UI.renderDashboardCharts = function () {
     data: {
       labels: scoutLabels,
       datasets: [{
-        label: 'Presenza %',
+        label: 'Presenze',
         data: scoutPerc,
         backgroundColor: scoutColors
       }]
@@ -118,6 +122,17 @@ UI.renderDashboardCharts = function () {
       scales: {
         x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
         y: { ticks: { autoSkip: false, maxTicksLimit: 20 } }
+      },
+      plugins: {
+        ...commonOptions.plugins,
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const stat = scoutStats[context.dataIndex];
+              return ` ${stat.presentCount} / ${stat.totalActsConsidered}`;
+            }
+          }
+        }
       }
     }
   });
@@ -178,6 +193,18 @@ UI.renderAttendanceGrid = function () {
     return;
   }
 
+  const pastIds = pastActivities.map(a => a.id);
+  const sortedScouts = [...scouts].map(s => {
+    const validActIds = pastIds.filter(aid => {
+      const pr = presences.find(p => p.esploratoreId === s.id && p.attivitaId === aid);
+      return pr && (pr.stato === 'Presente' || pr.stato === 'Assente');
+    });
+    const totalActsConsidered = validActIds.length;
+    const presentCount = presences.filter(p => p.esploratoreId === s.id && p.stato === 'Presente' && validActIds.includes(p.attivitaId)).length;
+    const perc = totalActsConsidered ? Math.round((presentCount / totalActsConsidered) * 100) : 0;
+    return { ...s, perc };
+  }).sort((a, b) => b.perc - a.perc);
+
   let html = '<div class="overflow-x-auto"><table class="w-full text-xs text-left border-collapse min-w-max">';
   html += '<thead><tr class="bg-gray-100">';
   html += '<th class="p-1 px-2 border font-semibold text-gray-700 sticky left-0 bg-gray-100 z-10 w-36 shadow-[1px_0_0_0_#e5e7eb]">Esploratore</th>';
@@ -189,7 +216,7 @@ UI.renderAttendanceGrid = function () {
   });
   html += '</tr></thead><tbody>';
 
-  scouts.forEach(s => {
+  sortedScouts.forEach(s => {
     html += `<tr><td class="p-1 px-2 border whitespace-nowrap sticky left-0 bg-white z-10 font-medium text-gray-800 shadow-[1px_0_0_0_#e5e7eb]">${s.nome} ${s.cognome}</td>`;
 
     pastActivities.forEach(a => {
