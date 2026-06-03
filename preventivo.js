@@ -372,12 +372,8 @@ UI.calculateCosts = function (currentScouts) {
     // C. Galley
     const g = galley;
     let foodBase = g.qty * g.rate * totalPax; // Variable
-    let deduction = 0;
-    if (g.compActive && totalPax > 0) {
-        if (g.mode === 'meal') deduction = g.rate * totalPax;
-        else deduction = (g.rate / 3) * totalPax; // rough estimate
-    }
-    const totalGalley = Math.max(0, foodBase - deduction) + (g.compActive ? g.compBudget : 0);
+    let compCost = g.compActive ? (parseFloat(g.compBudget) || 0) : 0;
+    const totalGalley = foodBase + compCost;
 
     // D. Various
     // Assume fixed costs (Materials, Rent) unless specified?
