@@ -21,6 +21,7 @@ interface Activity {
     id: string;
     tipo: string;
     data: Date | any; // allow any for serialization convenience
+    dataFine?: Date | any;
     descrizione?: string;
     costo?: string | number;
 }
@@ -39,6 +40,8 @@ interface LocalState {
     staff: Staff[];
     activities: Activity[];
     presences: Presence[];
+    budgets: any[];
+    patrols: string[];
 }
 
 export class LocalAdapter {
@@ -66,7 +69,9 @@ export class LocalAdapter {
                 { esploratoreId: 's1', attivitaId: 'a1', stato: 'Presente', pagato: true, tipoPagamento: 'Contanti' },
                 { esploratoreId: 's2', attivitaId: 'a1', stato: 'Assente', pagato: false, tipoPagamento: null },
                 { esploratoreId: 's3', attivitaId: 'a1', stato: 'Presente', pagato: true, tipoPagamento: 'Bonifico' }
-            ]
+            ],
+            budgets: saved.budgets || [],
+            patrols: saved.patrols || ["Aironi", "Marmotte"]
         };
         // Restore dates
         this.state.activities.forEach(a => {
@@ -83,18 +88,18 @@ export class LocalAdapter {
     }
 
     // Activities
-    async addActivity({ tipo, data, descrizione, costo }: any, currentUser: any) {
+    async addActivity({ tipo, data, dataFine, descrizione, costo }: any, currentUser: any) {
         const id = 'a' + (Math.random().toString(36).slice(2, 8));
-        this.state.activities.push({ id, tipo, data, descrizione, costo });
+        this.state.activities.push({ id, tipo, data, dataFine, descrizione, costo });
         this.persist();
-        console.log('LocalAdapter: addActivity', { tipo, data, descrizione, costo, id, currentUser: currentUser?.email });
+        console.log('LocalAdapter: addActivity', { tipo, data, dataFine, descrizione, costo, id, currentUser: currentUser?.email });
         return id;
     }
 
-    async updateActivity({ id, tipo, data, descrizione, costo }: any, currentUser: any) {
+    async updateActivity({ id, tipo, data, dataFine, descrizione, costo }: any, currentUser: any) {
         const a: any = this.state.activities.find(x => x.id === id);
-        if (a) { a.tipo = tipo; a.data = data; a.descrizione = descrizione; a.costo = costo; this.persist(); }
-        console.log('LocalAdapter: updateActivity', { id, tipo, data, descrizione, costo, currentUser: currentUser?.email });
+        if (a) { a.tipo = tipo; a.data = data; a.dataFine = dataFine; a.descrizione = descrizione; a.costo = costo; this.persist(); }
+        console.log('LocalAdapter: updateActivity', { id, tipo, data, dataFine, descrizione, costo, currentUser: currentUser?.email });
     }
 
     async deleteActivity(id: string, currentUser: any) {
@@ -113,10 +118,10 @@ export class LocalAdapter {
         return id;
     }
 
-    async updateStaff({ id, nome, cognome, email }: any, currentUser: any) {
+    async updateStaff({ id, nome, cognome, email, ruolo }: any, currentUser: any) {
         const m = this.state.staff.find(s => s.id === id);
-        if (m) { m.nome = nome; m.cognome = cognome; m.email = email; this.persist(); }
-        console.log('LocalAdapter: updateStaff', { id, nome, cognome, email, currentUser: currentUser?.email });
+        if (m) { m.nome = nome; m.cognome = cognome; m.email = email; (m as any).ruolo = ruolo; this.persist(); }
+        console.log('LocalAdapter: updateStaff', { id, nome, cognome, email, ruolo, currentUser: currentUser?.email });
     }
 
     async deleteStaff(id: string, currentUser: any) {
@@ -162,5 +167,32 @@ export class LocalAdapter {
         if (field === 'pagato' && !value) p.tipoPagamento = null;
         this.persist();
         console.log('LocalAdapter: updatePresence', { field, value, scoutId, activityId, currentUser: currentUser?.email });
+    }
+
+    // Budgets
+    async getBudgetByActivity(activityId: string) {
+        return this.state.budgets.find(b => b.activityId === activityId) || null;
+    }
+
+    async saveBudget(budget: any, currentUser: any) {
+        const index = this.state.budgets.findIndex(b => b.activityId === budget.activityId);
+        if (index >= 0) {
+            this.state.budgets[index] = budget;
+        } else {
+            this.state.budgets.push(budget);
+        }
+        this.persist();
+        console.log('LocalAdapter: saveBudget', { activityId: budget.activityId, currentUser: currentUser?.email });
+    }
+
+    // Configuration
+    async getPatrols() {
+        return this.state.patrols;
+    }
+
+    async savePatrols(list: any, currentUser: any) {
+        this.state.patrols = list;
+        this.persist();
+        console.log('LocalAdapter: savePatrols', { count: list.length, currentUser: currentUser?.email });
     }
 }

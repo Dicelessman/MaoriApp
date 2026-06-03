@@ -449,6 +449,28 @@ header a {
 }
 
 /* Connection status badge */
+#connectionStatus.online {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+#connectionStatus.online .status-dot {
+  background-color: #16a34a;
+}
+#connectionStatus.offline {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+#connectionStatus.offline .status-dot {
+  background-color: #dc2626;
+}
+[data-theme="dark"] #connectionStatus.online {
+  background-color: rgba(22, 163, 74, 0.2);
+  color: #4ade80;
+}
+[data-theme="dark"] #connectionStatus.offline {
+  background-color: rgba(220, 38, 38, 0.2);
+  color: #f87171;
+}
 [data-theme="dark"] .bg-green-800\/50 {
   background-color: rgba(6, 95, 70, 0.5) !important;
 }

@@ -27,7 +27,8 @@ export class LocalAdapter {
                 { esploratoreId: 's2', attivitaId: 'a1', stato: 'Assente', pagato: false, tipoPagamento: null },
                 { esploratoreId: 's3', attivitaId: 'a1', stato: 'Presente', pagato: true, tipoPagamento: 'Bonifico' }
             ],
-            budgets: saved.budgets || []
+            budgets: saved.budgets || [],
+            patrols: saved.patrols || ["Aironi", "Marmotte"]
         };
         // Restore dates
         this.state.activities.forEach(a => {
@@ -75,15 +76,16 @@ export class LocalAdapter {
         console.log('LocalAdapter: addStaff', { nome, cognome, email, id, currentUser: currentUser?.email });
         return id;
     }
-    async updateStaff({ id, nome, cognome, email }, currentUser) {
+    async updateStaff({ id, nome, cognome, email, ruolo }, currentUser) {
         const m = this.state.staff.find(s => s.id === id);
         if (m) {
             m.nome = nome;
             m.cognome = cognome;
             m.email = email;
+            m.ruolo = ruolo;
             this.persist();
         }
-        console.log('LocalAdapter: updateStaff', { id, nome, cognome, email, currentUser: currentUser?.email });
+        console.log('LocalAdapter: updateStaff', { id, nome, cognome, email, ruolo, currentUser: currentUser?.email });
     }
     async deleteStaff(id, currentUser) {
         this.state.staff = this.state.staff.filter(s => s.id !== id);
@@ -142,5 +144,16 @@ export class LocalAdapter {
         }
         this.persist();
         console.log('LocalAdapter: saveBudget', { activityId: budget.activityId, currentUser: currentUser?.email });
+    }
+
+    // Configuration
+    async getPatrols() {
+        return this.state.patrols;
+    }
+
+    async savePatrols(list, currentUser) {
+        this.state.patrols = list;
+        this.persist();
+        console.log('LocalAdapter: savePatrols', { count: list.length, currentUser: currentUser?.email });
     }
 }

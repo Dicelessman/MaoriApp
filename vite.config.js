@@ -6,7 +6,7 @@ export default defineConfig({
     root: './',
 
     // Public directory for static assets
-    publicDir: './',
+    publicDir: 'public',
 
     // Build configuration
     build: {

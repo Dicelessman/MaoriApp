@@ -125,34 +125,39 @@ export class FirestoreAdapter {
 
 
     // Activities
-    async addActivity({ tipo, data, descrizione, costo }: any, currentUser: any) {
+    async addActivity({ tipo, data, dataFine, descrizione, costo }: any, currentUser: any) {
         // Converti data a Timestamp se è un Date object
         const dataTimestamp = data instanceof Date ? Timestamp.fromDate(data) : data;
+        const dataFineTimestamp = dataFine instanceof Date ? Timestamp.fromDate(dataFine) : (dataFine || null);
+
         // Converti costo a numero (se è stringa o undefined/null)
         const costoNum = costo !== undefined && costo !== null && costo !== '' ? Number(costo) : 0;
 
         const ref = await addDoc(this.cols.activities, {
             tipo,
             data: dataTimestamp,
+            dataFine: dataFineTimestamp,
             descrizione,
             costo: costoNum
         });
         return ref.id;
     }
 
-    async updateActivity({ id, tipo, data, descrizione, costo }: any, currentUser: any) {
+    async updateActivity({ id, tipo, data, dataFine, descrizione, costo }: any, currentUser: any) {
         // Converti data a Timestamp se è un Date object
         const dataTimestamp = data instanceof Date ? Timestamp.fromDate(data) : data;
+        const dataFineTimestamp = dataFine instanceof Date ? Timestamp.fromDate(dataFine) : (dataFine || null);
+
         // Converti costo a numero (se è stringa o undefined/null)
         const costoNum = costo !== undefined && costo !== null && costo !== '' ? Number(costo) : 0;
 
         await setDoc(doc(this.db, 'activities', id), {
             tipo,
             data: dataTimestamp,
+            dataFine: dataFineTimestamp,
             descrizione,
             costo: costoNum
         }, { merge: true });
-
     }
 
     async deleteActivity(id: string, currentUser: any) {
@@ -165,8 +170,8 @@ export class FirestoreAdapter {
         return ref.id;
     }
 
-    async updateStaff({ id, nome, cognome, email }: any, currentUser: any) {
-        await setDoc(doc(this.db, 'staff', id), { nome, cognome, email }, { merge: true });
+    async updateStaff({ id, nome, cognome, email, ruolo }: any, currentUser: any) {
+        await setDoc(doc(this.db, 'staff', id), { nome, cognome, email, ruolo }, { merge: true });
     }
 
     async deleteStaff(id: string, currentUser: any) {
@@ -179,8 +184,8 @@ export class FirestoreAdapter {
         return ref.id;
     }
 
-    async updateScout({ id, nome, cognome, ...rest }: any, currentUser: any) {
-        await setDoc(doc(this.db, 'scouts', id), { nome, cognome, ...rest }, { merge: true });
+    async updateScout({ id, ...data }: any, currentUser: any) {
+        await setDoc(doc(this.db, 'scouts', id), data, { merge: true });
     }
 
     async deleteScout(id: string, currentUser: any) {
@@ -201,14 +206,10 @@ export class FirestoreAdapter {
                 [field]: value
             });
         }
-
     }
 
     // Budgets
     async getBudgetByActivity(activityId: string) {
-        // Budget is stored in a subcollection or a root collection 'budgets'? 
-        // Plan didn't specify, but `budgets` root collection is simplest.
-        // ID can be the activityId itself to ensure 1:1 mapping easily.
         const docRef = doc(this.db, 'budgets', activityId);
         const snap = await getDoc(docRef);
         if (snap.exists()) {
@@ -218,7 +219,20 @@ export class FirestoreAdapter {
     }
 
     async saveBudget(budget: any, currentUser: any) {
-        // Use activityId as doc ID
         await setDoc(doc(this.db, 'budgets', budget.activityId), budget, { merge: true });
+    }
+
+    // Configuration
+    async getPatrols() {
+        const docRef = doc(this.db, 'configuration', 'pattuglie');
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+            return snap.data().list || [];
+        }
+        return ["Aironi", "Marmotte"]; // Default
+    }
+
+    async savePatrols(list: any, currentUser: any) {
+        await setDoc(doc(this.db, 'configuration', 'pattuglie'), { list }, { merge: true });
     }
 }

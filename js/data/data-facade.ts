@@ -80,6 +80,10 @@ interface DataAdapter {
     updateScout(p: any, currentUser: any): Promise<void>;
     deleteScout(id: string, currentUser: any): Promise<void>;
     updatePresence(p: any, currentUser: any): Promise<void>;
+    getBudgetByActivity(activityId: string): Promise<any>;
+    saveBudget(budget: any, currentUser: any): Promise<any>;
+    getPatrols(): Promise<any>;
+    savePatrols(list: any, currentUser: any): Promise<any>;
 }
 
 export const DATA = {
@@ -119,8 +123,23 @@ export const DATA = {
 
         try { console.info('[Cache] loadAll MISS, fetching from Firestore...'); } catch { }
         const data = await this.adapter.loadAll();
+        
+        // Filter out archived scouts from the main list
+        if (data.scouts) {
+            data.allScouts = [...data.scouts]; // Keep a copy of all scouts
+            data.scouts = data.scouts.filter((s: any) => !s.archived);
+        }
+        
         this.cache.set(cacheKey, data);
         return data;
+    },
+
+    async loadArchived(): Promise<any[]> {
+        const allData = await this.loadAll();
+        if (allData.allScouts) {
+            return allData.allScouts.filter((s: any) => s.archived === true);
+        }
+        return [];
     },
 
     _invalidateCache() {
@@ -187,4 +206,27 @@ export const DATA = {
         this._invalidateCache();
         return result;
     },
+
+    async getBudgetByActivity(activityId: string) {
+        return await this.adapter.getBudgetByActivity(activityId);
+    },
+
+    async saveBudget(budget: any, currentUser: any) {
+        return await this.adapter.saveBudget(budget, currentUser);
+    },
+
+    async getPatrols() {
+        const cacheKey = 'patrols';
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await this.adapter.getPatrols();
+        this.cache.set(cacheKey, data);
+        return data;
+    },
+
+    async savePatrols(list: any, currentUser: any) {
+        const result = await this.adapter.savePatrols(list, currentUser);
+        this.cache.invalidate('patrols');
+        return result;
+    }
 };
