@@ -116,22 +116,208 @@ UI.scrollToActivityIndex = function (index) {
   container.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
 };
 
+UI.presenceFilters = UI.presenceFilters || {
+  search: '',
+  patrol: '',
+  condition: 'all',
+  activityType: 'all',
+  period: 'all'
+};
+
+UI.setupPresenceFilters = function () {
+  const searchInput = this.qs('#presenceSearchInput');
+  const patrolFilter = this.qs('#presencePatrolFilter');
+  const conditionFilter = this.qs('#presenceConditionFilter');
+  const activityTypeFilter = this.qs('#presenceActivityTypeFilter');
+  const periodFilter = this.qs('#presencePeriodFilter');
+  const resetBtn = this.qs('#presenceResetFiltersBtn');
+
+  // Popola selettore pattuglie dinamicamente
+  if (patrolFilter) {
+    const currentVal = this.presenceFilters.patrol || '';
+    const patrols = Array.from(new Set(
+      (this.state.scouts || [])
+        .map(s => (s.pv_pattuglia || '').trim())
+        .filter(p => p.length > 0)
+    )).sort((a, b) => a.localeCompare(b));
+
+    const existingValues = Array.from(patrolFilter.options).map(o => o.value);
+    const neededValues = ['', ...patrols];
+    const isDifferent = existingValues.length !== neededValues.length ||
+      !existingValues.every((v, i) => v === neededValues[i]);
+
+    if (isDifferent) {
+      patrolFilter.innerHTML = '<option value="">Tutte le pattuglie</option>' +
+        patrols.map(p => `<option value="${p}">${p}</option>`).join('');
+      patrolFilter.value = currentVal;
+    }
+  }
+
+  if (this._presenceFiltersBound) return;
+  this._presenceFiltersBound = true;
+
+  if (searchInput) {
+    let debounceTimer;
+    searchInput.addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        this.presenceFilters.search = e.target.value.trim().toLowerCase();
+        this.renderPresenceTable();
+      }, 150);
+    });
+  }
+
+  if (patrolFilter) {
+    patrolFilter.addEventListener('change', (e) => {
+      this.presenceFilters.patrol = e.target.value;
+      this.renderPresenceTable();
+    });
+  }
+
+  if (conditionFilter) {
+    conditionFilter.addEventListener('change', (e) => {
+      this.presenceFilters.condition = e.target.value;
+      this.renderPresenceTable();
+    });
+  }
+
+  if (activityTypeFilter) {
+    activityTypeFilter.addEventListener('change', (e) => {
+      this.presenceFilters.activityType = e.target.value;
+      this.renderPresenceTable();
+    });
+  }
+
+  if (periodFilter) {
+    periodFilter.addEventListener('change', (e) => {
+      this.presenceFilters.period = e.target.value;
+      this.renderPresenceTable();
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      this.presenceFilters = {
+        search: '',
+        patrol: '',
+        condition: 'all',
+        activityType: 'all',
+        period: 'all'
+      };
+      if (searchInput) searchInput.value = '';
+      if (patrolFilter) patrolFilter.value = '';
+      if (conditionFilter) conditionFilter.value = 'all';
+      if (activityTypeFilter) activityTypeFilter.value = 'all';
+      if (periodFilter) periodFilter.value = 'all';
+      this.renderPresenceTable();
+      this.showToast('Filtri azzerati', { type: 'info' });
+    });
+  }
+};
+
+UI.getFilteredActivities = function (acts) {
+  const filter = this.presenceFilters || {};
+  let list = [...acts];
+
+  if (filter.activityType && filter.activityType !== 'all') {
+    list = list.filter(a => a.tipo === filter.activityType);
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (filter.period === 'past') {
+    list = list.filter(a => {
+      const d = this.toJsDate(a.data);
+      const dd = new Date(d); dd.setHours(0, 0, 0, 0);
+      return dd < today;
+    });
+  } else if (filter.period === 'future') {
+    list = list.filter(a => {
+      const d = this.toJsDate(a.data);
+      const dd = new Date(d); dd.setHours(0, 0, 0, 0);
+      return dd >= today;
+    });
+  } else if (filter.period === 'last10') {
+    list = list.slice(-10);
+  }
+
+  return list;
+};
+
+UI.getFilteredScouts = function (scouts, nextActivityId) {
+  const filter = this.presenceFilters || {};
+  let list = [...scouts];
+
+  if (filter.search) {
+    const q = filter.search.toLowerCase();
+    list = list.filter(s => {
+      const full = `${s.nome || ''} ${s.cognome || ''}`.toLowerCase();
+      const patrol = (s.pv_pattuglia || '').toLowerCase();
+      return full.includes(q) || patrol.includes(q);
+    });
+  }
+
+  if (filter.patrol) {
+    list = list.filter(s => (s.pv_pattuglia || '').trim().toLowerCase() === filter.patrol.toLowerCase());
+  }
+
+  if (filter.condition && filter.condition !== 'all') {
+    const allPresences = this.getDedupedPresences();
+    const acts = this.getActivitiesSorted();
+
+    if (filter.condition === 'with_absences') {
+      list = list.filter(s => {
+        return allPresences.some(p => p.esploratoreId === s.id && p.stato === 'Assente');
+      });
+    } else if (filter.condition === 'with_debt') {
+      list = list.filter(s => {
+        return allPresences.some(p => {
+          if (p.esploratoreId !== s.id) return false;
+          if (p.stato !== 'Presente' || p.pagato) return false;
+          const act = acts.find(a => a.id === p.attivitaId);
+          return act && parseFloat(act.costo || '0') > 0;
+        });
+      });
+    } else if (filter.condition === 'next_present') {
+      if (!nextActivityId) {
+        list = [];
+      } else {
+        list = list.filter(s => {
+          const pr = this.getPresence(s.id, nextActivityId);
+          return pr && pr.stato === 'Presente';
+        });
+      }
+    } else if (filter.condition === 'next_absent') {
+      if (!nextActivityId) {
+        list = [];
+      } else {
+        list = list.filter(s => {
+          const pr = this.getPresence(s.id, nextActivityId);
+          return pr && pr.stato === 'Assente';
+        });
+      }
+    }
+  }
+
+  return list;
+};
+
 UI.renderPresenceTable = function () {
   const body = this.qs('#presenceTableBody');
   const thDates = this.qs('#tableHeaderDates');
   const thNames = this.qs('#tableHeaderNames');
   if (!body || !thDates || !thNames) return;
 
-  const container = this.qs('#presenceTableContainer');
-
-  // Nessun auto-scroll iniziale: lasciamo solo scroll manuale
+  // Setup filtri
+  this.setupPresenceFilters();
 
   body.innerHTML = '';
   // Checkbox "Seleziona tutti" nell'header
   const selectAllChecked = this.batchSelection?.isSelectAll ? 'checked' : '';
   thDates.innerHTML = `<th id="thScoutName" rowspan="2" class="cursor-pointer select-none sticky left-0 !bg-green-800 !text-white !p-4 !border-r !border-white/50 text-left" title="Ordina per Esploratore">
     <div class="flex items-center gap-2">
-      <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 cursor-pointer" ${selectAllChecked} title="Seleziona tutti gli esploratori">
+      <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 cursor-pointer" ${selectAllChecked} title="Seleziona tutti gli esploratori visibili">
       <span>Esploratore</span>
     </div>
   </th>`;
@@ -155,8 +341,11 @@ UI.renderPresenceTable = function () {
     });
   }
 
-  const totalScouts = (this.state.scouts || []).length;
+  const allScouts = this.state.scouts || [];
+  const totalScouts = allScouts.length;
   const acts = this.getActivitiesSorted();
+  const displayedActs = this.getFilteredActivities(acts);
+  this._lastRenderedActs = displayedActs;
 
   // Calcola la prossima attività (>= oggi)
   const today = new Date();
@@ -169,37 +358,13 @@ UI.renderPresenceTable = function () {
     if (nextActivityId === null && aday >= today) { nextActivityId = a.id; nextActivityIndex = idx; }
   });
 
-  // Popola picker mobile
-  // const picker = this.qs('#mobileActivityPicker');
-  // if (picker) {
-  // picker.innerHTML = '';
-  // acts.forEach((a, idx) => {
-  //const opt = document.createElement('option');
-  //opt.value = a.id;
-  //opt.textContent = UI.formatDisplayDate(a.data);
-  //opt.dataset.index = String(idx);
-  //picker.appendChild(opt);
-  //});
-  //picker.selectedIndex = nextActivityIndex >= 0 ? nextActivityIndex : 0;
-  //}
-
-  // Header
-  acts.forEach(a => {
+  // Header colonne per le attività visualizzate
+  displayedActs.forEach(a => {
     const allPresences = this.getDedupedPresences();
     const activityPresences = allPresences.filter(p => p.attivitaId === a.id);
 
     // Check type for stats exclusion
     const isExcludedType = ['Evento Adulti', 'Riunione Adulti', 'Eventi con esterni'].includes(a.tipo);
-
-    // Se tipo escluso, expectedCount = 0 per non contare nella % globale (o locale colonna)
-    // Ma per la singola colonna, se è escluso, cosa mostriamo? 0%?
-    // "non devono contare per le presenze degli esploratori" - probabilmente riferito al totale dell'esploratore? 
-    // Qui calcoliamo il % di presenze dell'attività (quanto successo ha avuto). 
-    // Se è "Evento Adulti", gli esploratori non ci sono. 
-    // Quindi expectedCount = 0.
-
-    // Escludi gli esploratori con stato "X" dal totale atteso.
-    // Se l'attività stessa è "da adulti", nessuno è tenuto a esserci, quindi expectedCount = 0.
     const expectedCount = isExcludedType ? 0 : activityPresences.filter(p => p.stato !== 'X').length;
 
     const presentCount = activityPresences.filter(p => p.stato === 'Presente').length;
@@ -207,21 +372,14 @@ UI.renderPresenceTable = function () {
 
     let displayDate = this.formatDisplayDate(a.data);
 
-    // Display End Date in header tooltip or text? User asked "farla apparire nel Calendario", not explicitly Presenze but good to rely on standard display. 
-    // Header space is small. Let's keep date.
-
     const isNext = a.id === nextActivityId;
 
     // Gestione date range
-    // Gestione date range
-    // displayDate già formattato sopra, lo aggiorniamo se c'è data fine
     if (a.dataFine) {
       const dStart = this.toJsDate(a.data);
       const dEnd = this.toJsDate(a.dataFine);
-      // Mostra range solo se date valide e diverse
       if (!isNaN(dStart) && !isNaN(dEnd) && dEnd.getTime() > dStart.getTime()) {
         const fmt = d => d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
-        // Es: 01/01 - 04/01
         displayDate = `${fmt(dStart)} - ${fmt(dEnd)}`;
       }
     }
@@ -229,14 +387,11 @@ UI.renderPresenceTable = function () {
     // Use enhanced colors
     const colors = UI.getActivityTypeColor ? UI.getActivityTypeColor(a.tipo) : { headerBg: 'bg-green-800', headerText: 'bg-green-900' };
     const thDateClasses = isNext ? colors.headerText : colors.headerBg;
-
-    // Let's use specific classes if possible, currently using tailwind colors. 
     const baseHeaderClass = colors.headerBg || 'bg-green-800';
     const nextHeaderClass = colors.headerText || 'bg-green-900';
-
     const finalHeaderClass = isNext ? nextHeaderClass : baseHeaderClass;
-
     const nextColClass = isNext ? ' next-col' : '';
+
     thDates.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${finalHeaderClass}${nextColClass} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${displayDate}${isNext ? ' <span class=\"text-xs\">(Prossima)</span>' : ''}</a></th>`);
     thNames.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${finalHeaderClass} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${a.tipo}</a><div class="text-xs font-normal text-white/90">${perc}% (${presentCount}/${expectedCount})</div></th>`);
   });
@@ -263,17 +418,39 @@ UI.renderPresenceTable = function () {
     });
   }
 
-  // Righe
-  let sortedScouts = [...(this.state.scouts || [])].sort((a, b) => {
-    const an = `${a.nome} ${a.cognome}`.toLowerCase();
-    const bn = `${b.nome} ${b.cognome}`.toLowerCase();
+  // Filtra e ordina gli esploratori
+  let sortedScouts = this.getFilteredScouts(allScouts, nextActivityId);
+  sortedScouts.sort((a, b) => {
+    const an = `${a.cognome || ''} ${a.nome || ''}`.toLowerCase();
+    const bn = `${b.cognome || ''} ${b.nome || ''}`.toLowerCase();
     return an.localeCompare(bn);
   });
   if (this._scoutSortDir === 'desc') sortedScouts.reverse();
+  this._lastRenderedScouts = sortedScouts;
 
+  // Aggiorna riepilogo conteggio filtri
+  const summaryEl = this.qs('#presenceFilterSummary');
+  if (summaryEl) {
+    summaryEl.textContent = `Visualizzati: ${sortedScouts.length} di ${totalScouts} esploratori, ${displayedActs.length} di ${acts.length} attività`;
+  }
+
+  // Verifica se tutti i visualizzati sono selezionati
+  if (selectAllCheckbox) {
+    const allChecked = sortedScouts.length > 0 && sortedScouts.every(s => this.batchSelection.selectedScoutIds.has(s.id));
+    selectAllCheckbox.checked = allChecked;
+    this.batchSelection.isSelectAll = allChecked;
+  }
+
+  // Caso nessun esploratore trovato con i filtri
+  if (sortedScouts.length === 0) {
+    const colSpan = Math.max(1, displayedActs.length + 1);
+    body.innerHTML = `<tr><td colspan="${colSpan}" class="p-8 text-center text-gray-500 dark:text-gray-400 font-medium bg-white dark:bg-gray-800">Nessun esploratore corrisponde ai filtri impostati.</td></tr>`;
+    return;
+  }
+
+  // Render righe per ciascun esploratore
   sortedScouts.forEach(s => {
     // Calcola il set di attività considerate: tutte le già svolte (< oggi) + la prossima in programma
-    const today = new Date(); today.setHours(0, 0, 0, 0);
     const pastIds = acts.filter(a => {
       const ad = (a.data && a.data.toDate) ? a.data.toDate() : new Date(a.data);
       const aday = new Date(ad); aday.setHours(0, 0, 0, 0);
@@ -283,32 +460,33 @@ UI.renderPresenceTable = function () {
 
     const allPresences = this.getDedupedPresences();
     const validActIds = consideredIds.filter(aid => {
-      // Find activity object to check type
       const actObject = acts.find(act => act.id === aid);
       if (!actObject) return false;
 
       const isExcludedType = ['Evento Adulti', 'Riunione Adulti', 'Eventi con esterni'].includes(actObject.tipo);
-      if (isExcludedType) return false; // Don't count these activities in the "expected total"
+      if (isExcludedType) return false;
 
       const pr = allPresences.find(p => p.esploratoreId === s.id && p.attivitaId === aid);
-      return pr && (pr.stato === 'Presente' || pr.stato === 'Assente'); // Only count if marked Present or Absent (ignore X or NR)
+      return pr && (pr.stato === 'Presente' || pr.stato === 'Assente');
     });
     const totalActsConsidered = validActIds.length;
-    // Count ONLY Present in Valid Acts
     const presentCount = allPresences.filter(p => p.esploratoreId === s.id && p.stato === 'Presente' && validActIds.includes(p.attivitaId)).length;
     const perc = totalActsConsidered ? Math.round((presentCount / totalActsConsidered) * 100) : 0;
     const isSelected = this.batchSelection?.selectedScoutIds?.has(s.id) || false;
     const checkedAttr = isSelected ? 'checked' : '';
+    const patrolBadge = s.pv_pattuglia ? `<span class="text-[10px] uppercase font-bold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded ml-1.5">${s.pv_pattuglia}</span>` : '';
+
     let row = `<tr data-scout-id="${s.id}" class="${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}">
-      <td class=\"p-4 border-r-2 border-gray-200 bg-gray-50 font-semibold text-left sticky left-0\">
+      <td class=\"p-4 border-r-2 border-gray-200 bg-gray-50 dark:bg-gray-800 font-semibold text-left sticky left-0\">
         <div class="flex items-center gap-2">
           <input type="checkbox" class="batch-checkbox w-4 h-4 cursor-pointer" data-scout-id="${s.id}" ${checkedAttr} title="Seleziona esploratore">
           <span>${s.nome} ${s.cognome}</span>
+          ${patrolBadge}
         </div>
-        <div class=\"text-xs font-normal text-gray-500 ml-6\">${presentCount} / ${totalActsConsidered} (${perc}%)</div>
+        <div class=\"text-xs font-normal text-gray-500 dark:text-gray-400 ml-6\">${presentCount} / ${totalActsConsidered} (${perc}%)</div>
       </td>`;
 
-    acts.forEach(a => {
+    displayedActs.forEach(a => {
       const presence = this.getPresence(s.id, a.id) || { stato: 'NR', pagato: false, tipoPagamento: null };
       const disabled = (this.selectedStaffId && this.currentUser) ? '' : 'disabled';
       const needsPayment = parseFloat(a.costo || '0') > 0;
@@ -854,19 +1032,20 @@ UI.updateBatchActivitySelect = function () {
       }
     }
 
-    // Aggiorna checkbox "seleziona tutti"
+    // Aggiorna checkbox "seleziona tutti" rispetto agli esploratori visualizzati
     const selectAllCheckbox = this.qs('#selectAllCheckbox');
     if (selectAllCheckbox) {
-      const totalScouts = (this.state.scouts || []).length;
-      selectAllCheckbox.checked = this.batchSelection.selectedScoutIds.size === totalScouts && totalScouts > 0;
-      this.batchSelection.isSelectAll = selectAllCheckbox.checked;
+      const displayedScouts = this._lastRenderedScouts || this.state.scouts || [];
+      const allDisplayedSelected = displayedScouts.length > 0 && displayedScouts.every(s => this.batchSelection.selectedScoutIds.has(s.id));
+      selectAllCheckbox.checked = allDisplayedSelected;
+      this.batchSelection.isSelectAll = allDisplayedSelected;
     }
 
     this.updateBatchActionBar();
   },
 
   /**
-   * Toggle selezione tutti
+   * Toggle selezione tutti (opera solo sugli esploratori visibili dai filtri)
    */
   UI.toggleSelectAll = function (checked) {
     if (!this.batchSelection) {
@@ -878,10 +1057,11 @@ UI.updateBatchActivitySelect = function () {
     }
 
     this.batchSelection.isSelectAll = checked;
+    const targetScouts = this._lastRenderedScouts || this.state.scouts || [];
 
     if (checked) {
-      // Seleziona tutti
-      (this.state.scouts || []).forEach(s => {
+      // Seleziona tutti gli esploratori visibili
+      targetScouts.forEach(s => {
         this.batchSelection.selectedScoutIds.add(s.id);
         const row = this.qs(`tr[data-scout-id="${s.id}"]`);
         if (row) {
@@ -891,12 +1071,15 @@ UI.updateBatchActivitySelect = function () {
         }
       });
     } else {
-      // Deseleziona tutti
-      this.batchSelection.selectedScoutIds.clear();
-      this.qs('#presenceTableBody')?.querySelectorAll('tr[data-scout-id]').forEach(row => {
-        row.classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
-        const checkbox = row.querySelector('.batch-checkbox');
-        if (checkbox) checkbox.checked = false;
+      // Deseleziona gli esploratori visibili
+      targetScouts.forEach(s => {
+        this.batchSelection.selectedScoutIds.delete(s.id);
+        const row = this.qs(`tr[data-scout-id="${s.id}"]`);
+        if (row) {
+          row.classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+          const checkbox = row.querySelector('.batch-checkbox');
+          if (checkbox) checkbox.checked = false;
+        }
       });
     }
 
@@ -1140,10 +1323,186 @@ UI.updateBatchActivitySelect = function () {
     const selectedScouts = (this.state.scouts || []).filter(s => scoutIds.includes(s.id));
     // Esporta CSV per gli esploratori selezionati
     this.exportSelectedScoutsToCSV(selectedScouts);
-  },
+  };
 
   /**
-   * Esporta CSV per esploratori selezionati
+   * Apre il modale di esportazione avanzata presenze
+   */
+  UI.openExportModal = function () {
+    const filteredScouts = this._lastRenderedScouts || this.state.scouts || [];
+    const totalScouts = (this.state.scouts || []).length;
+    const selectedCount = this.batchSelection?.selectedScoutIds?.size || 0;
+    const filteredActs = this._lastRenderedActs || this.getActivitiesSorted() || [];
+    const totalActs = (this.state.activities || []).length;
+
+    const flScout = this.qs('#exportScopeFilteredLabel');
+    if (flScout) flScout.textContent = `Esploratori visibili dai filtri attivi (${filteredScouts.length})`;
+    const allScout = this.qs('#exportScopeAllLabel');
+    if (allScout) allScout.textContent = `Tutti gli esploratori (${totalScouts})`;
+    const selScout = this.qs('#exportScopeSelectedLabel');
+    if (selScout) selScout.textContent = `Solo esploratori selezionati con checkbox (${selectedCount})`;
+    
+    const selRadio = this.qs('#exportScopeSelectedRadio');
+    if (selRadio) {
+      selRadio.disabled = selectedCount === 0;
+      if (selectedCount > 0) {
+        selRadio.checked = true;
+      }
+    }
+
+    const flAct = this.qs('#exportActsScopeFilteredLabel');
+    if (flAct) flAct.textContent = `Attività visibili dai filtri attivi (${filteredActs.length})`;
+    const allAct = this.qs('#exportActsScopeAllLabel');
+    if (allAct) allAct.textContent = `Tutte le attività dell'anno (${totalActs})`;
+
+    this.showModal('exportPresenzeModal');
+  };
+
+  /**
+   * Esegue l'esportazione avanzata secondo le opzioni scelte nel modale
+   */
+  UI.executeAdvancedPresenzeExport = function () {
+    const format = this.qs('input[name="exportFormat"]:checked')?.value || 'excel';
+    const scoutsScope = this.qs('input[name="exportScoutsScope"]:checked')?.value || 'filtered';
+    const actsScope = this.qs('input[name="exportActsScope"]:checked')?.value || 'filtered';
+    const includePatrol = this.qs('#exportColPatrol')?.checked ?? true;
+    const includeStats = this.qs('#exportColStats')?.checked ?? true;
+    const includePayments = this.qs('#exportColPayments')?.checked ?? false;
+    const verboseStatus = this.qs('#exportVerboseStatus')?.checked ?? false;
+
+    // Risoluzione esploratori da esportare
+    let targetScouts = [];
+    if (scoutsScope === 'selected') {
+      const selIds = this.batchSelection?.selectedScoutIds || new Set();
+      targetScouts = (this.state.scouts || []).filter(s => selIds.has(s.id));
+    } else if (scoutsScope === 'filtered') {
+      targetScouts = this._lastRenderedScouts || this.state.scouts || [];
+    } else {
+      targetScouts = this.state.scouts || [];
+    }
+
+    if (targetScouts.length === 0) {
+      this.showToast('Nessun esploratore selezionato per l\'esportazione', { type: 'error' });
+      return;
+    }
+
+    // Ordina alfabeticamente per cognome e nome
+    targetScouts = [...targetScouts].sort((a, b) => {
+      const an = `${a.cognome || ''} ${a.nome || ''}`.toLowerCase();
+      const bn = `${b.cognome || ''} ${b.nome || ''}`.toLowerCase();
+      return an.localeCompare(bn);
+    });
+
+    // Risoluzione attività da esportare
+    let targetActs = [];
+    if (actsScope === 'filtered') {
+      targetActs = this._lastRenderedActs || this.getActivitiesSorted();
+    } else {
+      targetActs = this.getActivitiesSorted();
+    }
+
+    const delimiter = format === 'excel' ? ';' : ',';
+
+    // Intestazioni
+    const headers = ['Cognome Nome'];
+    if (includePatrol) headers.push('Pattuglia');
+    if (includeStats) {
+      headers.push('Presenze Effettive', 'Assenze', '% Presenza');
+    }
+
+    targetActs.forEach(a => {
+      const d = this.toJsDate(a.data);
+      const dateStr = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      headers.push(`${a.tipo} (${dateStr})`);
+    });
+
+    const allPresences = this.getDedupedPresences();
+
+    // Costruzione righe
+    const rows = targetScouts.map(s => {
+      const row = [`${s.cognome || ''} ${s.nome || ''}`.trim()];
+      if (includePatrol) row.push(s.pv_pattuglia || '');
+
+      // Calcolo statistiche scout sulle attività considerate
+      const scoutPresences = allPresences.filter(p => p.esploratoreId === s.id);
+      let presCount = 0;
+      let absCount = 0;
+      let expectedCount = 0;
+
+      targetActs.forEach(act => {
+        const isExcludedType = ['Evento Adulti', 'Riunione Adulti', 'Eventi con esterni'].includes(act.tipo);
+        if (isExcludedType) return;
+        const p = scoutPresences.find(pr => pr.attivitaId === act.id);
+        if (!p) return;
+        if (p.stato === 'Presente') {
+          presCount++;
+          expectedCount++;
+        } else if (p.stato === 'Assente') {
+          absCount++;
+          expectedCount++;
+        }
+      });
+
+      const perc = expectedCount > 0 ? Math.round((presCount / expectedCount) * 100) : 0;
+      if (includeStats) {
+        row.push(presCount, absCount, `${perc}%`);
+      }
+
+      // Valori presenze per colonna attività
+      targetActs.forEach(act => {
+        const p = this.getPresence(s.id, act.id);
+        if (!p || p.stato === 'NR' || !p.stato) {
+          row.push('');
+        } else if (p.stato === 'X') {
+          row.push(verboseStatus ? 'Non Previsto' : 'X');
+        } else {
+          let text = p.stato === 'Presente' ? (verboseStatus ? 'Presente' : 'P') : (verboseStatus ? 'Assente' : 'A');
+          if (includePayments && parseFloat(act.costo || '0') > 0) {
+            if (p.pagato) {
+              text += ` [Pagato${p.tipoPagamento ? ' - ' + p.tipoPagamento : ''}]`;
+            } else {
+              text += ` [Da saldare € ${act.costo}]`;
+            }
+          }
+          row.push(text);
+        }
+      });
+
+      return row;
+    });
+
+    const escapeCell = cell => {
+      const str = cell == null ? '' : String(cell);
+      if (str.includes(delimiter) || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return `"${str}"`;
+    };
+
+    const csvContent = [headers, ...rows]
+      .map(r => r.map(escapeCell).join(delimiter))
+      .join('\r\n');
+
+    // Prepend BOM per Excel
+    const fileData = format === 'excel' ? '\uFEFF' + csvContent : csvContent;
+    const blob = new Blob([fileData], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    const todayStr = new Date().toISOString().split('T')[0];
+    link.setAttribute('download', `registro_presenze_${todayStr}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    this.closeModal('exportPresenzeModal');
+    this.showToast(`Registro esportato per ${targetScouts.length} esploratori e ${targetActs.length} attività!`, { type: 'success' });
+  };
+
+  /**
+   * Esporta CSV per esploratori selezionati (con formato Excel compatibile)
    */
   UI.exportSelectedScoutsToCSV = function (selectedScouts) {
     if (!selectedScouts || selectedScouts.length === 0) {
@@ -1151,25 +1510,28 @@ UI.updateBatchActivitySelect = function () {
       return;
     }
 
-    const acts = this.getActivitiesSorted();
-    const headers = ['Esploratore', ...acts.map(a => {
+    const acts = this._lastRenderedActs || this.getActivitiesSorted();
+    const headers = ['Esploratore', 'Pattuglia', ...acts.map(a => {
       const d = this.toJsDate(a.data);
-      return isNaN(d) ? a.tipo : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return isNaN(d) ? a.tipo : `${a.tipo} (${d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })})`;
     })];
 
     const rows = selectedScouts.map(s => {
-      const scoutName = `${s.nome} ${s.cognome}`;
+      const scoutName = `${s.cognome || ''} ${s.nome || ''}`.trim();
+      const patrol = s.pv_pattuglia || '';
       const presences = acts.map(a => {
         const p = this.getPresence(s.id, a.id);
         if (!p || p.stato === 'NR') return '';
         if (p.stato === 'X') return 'X';
         return p.stato === 'Presente' ? 'P' : 'A';
       });
-      return [scoutName, ...presences];
+      return [scoutName, patrol, ...presences];
     });
 
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const delimiter = ';';
+    const escapeCell = cell => `"${String(cell == null ? '' : cell).replace(/"/g, '""')}"`;
+    const csv = [headers, ...rows].map(row => row.map(escapeCell).join(delimiter)).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -1178,8 +1540,9 @@ UI.updateBatchActivitySelect = function () {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     this.showToast(`CSV esportato per ${selectedScouts.length} esploratore/i`, { type: 'success' });
-  },
+  };
 
   /**
    * Mostra progress indicator batch
@@ -1192,7 +1555,7 @@ UI.updateBatchActivitySelect = function () {
     if (indicator) indicator.classList.remove('hidden');
     if (progressBar) progressBar.style.width = `${percent}%`;
     if (progressMessage) progressMessage.textContent = message || 'Elaborazione in corso...';
-  },
+  };
 
   /**
    * Nasconde progress indicator batch
@@ -1204,11 +1567,10 @@ UI.updateBatchActivitySelect = function () {
   };
 
 /**
- * Esporta tutte le presenze in CSV (funzione esistente per compatibilità)
+ * Esporta tutte le presenze in CSV o apre il modale
  */
 UI.exportToCSV = function () {
-  const scouts = this.state.scouts || [];
-  this.exportSelectedScoutsToCSV(scouts);
+  this.openExportModal();
 };
 
 // Inizializza la pagina presenze

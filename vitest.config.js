@@ -6,7 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['**/*.test.js', '**/*.spec.js'],
-    exclude: ['node_modules', 'dist', '.git'],
+    exclude: ['**/node_modules/**', '**/pencils-and-powers/**', 'dist', '.git'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

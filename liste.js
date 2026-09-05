@@ -263,24 +263,47 @@ UI.fallbackCopyText = function (text) {
     document.body.removeChild(textArea);
 };
 
+UI.downloadCSV = function (filename, headers, rows, delimiter = ';') {
+    const escapeCell = cell => {
+        const str = cell == null ? '' : String(cell);
+        return `"${str.replace(/"/g, '""')}"`;
+    };
+    const csvContent = [headers, ...rows]
+        .map(row => row.map(escapeCell).join(delimiter))
+        .join('\r\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    this.showToast('File CSV scaricato con successo', { type: 'success' });
+};
+
 UI.downloadPresenzeCSV = function () {
     const actId = document.getElementById('activitySelect').value;
     if (!actId) return;
 
     const showDob = document.getElementById('presenzeShowDob').checked;
     const sortMode = document.getElementById('presenzeSortMode').value;
+    const act = this.state.activities.find(a => a.id === actId);
+    if (!act) return;
 
-    // Better strategy: Re-query state using same logic
-    const presences = this.state.presences.filter(p => p.attivitaId === actId && p.stato === 'Presente');
+    const presences = (this.state.presences || []).filter(p => p.attivitaId === actId && p.stato === 'Presente');
     const presentScoutIds = new Set(presences.map(p => p.esploratoreId));
-    let scouts = this.state.scouts.filter(s => presentScoutIds.has(s.id));
+    let scouts = (this.state.scouts || []).filter(s => presentScoutIds.has(s.id));
 
-    // Header adjustments
-    let csvContent = "data:text/csv;charset=utf-8,";
-    let header = "Nome;Cognome";
-    if (sortMode === 'patrol') header = "Pattuglia;" + header;
-    if (showDob) header += ";Data Nascita";
-    csvContent += header + "\n";
+    const headers = [];
+    if (sortMode === 'patrol') headers.push('Pattuglia');
+    headers.push('Cognome', 'Nome');
+    if (showDob) headers.push('Data Nascita');
+    headers.push('Stato');
+    const hasCost = parseFloat(act.costo || '0') > 0;
+    if (hasCost) headers.push('Pagamento', 'Metodo');
 
     scouts.sort((a, b) => {
         if (sortMode === 'surname') return (a.cognome || '').localeCompare(b.cognome || '');
@@ -288,34 +311,32 @@ UI.downloadPresenzeCSV = function () {
         if (sortMode === 'patrol') {
             const pA = a.pv_pattuglia || 'ZZZ';
             const pB = b.pv_pattuglia || 'ZZZ';
-            const patrolCampare = pA.localeCompare(pB);
-            if (patrolCampare !== 0) return patrolCampare;
+            const comp = pA.localeCompare(pB);
+            if (comp !== 0) return comp;
             return (a.cognome || '').localeCompare(b.cognome || '');
         }
         return 0;
     });
 
-    scouts.forEach(s => {
-        let row = "";
-        if (sortMode === 'patrol') row += `"${s.pv_pattuglia || ''}";`;
-
-        row += `"${s.nome}";"${s.cognome}"`;
-
+    const rows = scouts.map(s => {
+        const row = [];
+        if (sortMode === 'patrol') row.push(s.pv_pattuglia || '');
+        row.push(s.cognome || '', s.nome || '');
         if (showDob) {
-            const dob = s.anag_dob ? toYyyyMmDd(s.anag_dob) : '';
-            row += `;"${dob}"`;
+            const d = s.anag_dob ? toYyyyMmDd(s.anag_dob) : '';
+            row.push(d);
         }
-        csvContent += row + "\n";
+        row.push('Presente');
+        if (hasCost) {
+            const p = presences.find(pr => pr.esploratoreId === s.id);
+            row.push(p && p.pagato ? 'Saldato' : 'Da Saldare', (p && p.tipoPagamento) || '');
+        }
+        return row;
     });
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    const actName = (this.state.activities.find(a => a.id === actId)?.tipo || 'presenze').replace(/[^a-z0-9]/gi, '_');
-    link.setAttribute("download", `${actName}_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const actName = (act.tipo || 'presenze').replace(/[^a-z0-9]/gi, '_');
+    const filename = `presenze_${actName}_${new Date().toISOString().slice(0, 10)}.csv`;
+    this.downloadCSV(filename, headers, rows);
 };
 
 /* --- 2. Elenco Completo --- */
@@ -361,25 +382,24 @@ UI.initElencoTab = function () {
     document.getElementById('csvElencoBtn').onclick = () => {
         // Headers
         const activeCols = Array.from(document.querySelectorAll('.col-toggle:checked')).map(c => c.dataset.col);
-        let csv = "Cognome;Nome";
-        if (activeCols.includes('pattuglia')) csv += ";Pattuglia";
-        if (activeCols.includes('passo')) csv += ";Passo";
-        if (activeCols.includes('sfide')) csv += ";Sfide";
-        if (activeCols.includes('specialita')) csv += ";Specialita";
-        if (activeCols.includes('dob')) csv += ";Data Nascita";
-        csv += "\n";
+        const headers = ["Cognome", "Nome"];
+        if (activeCols.includes('pattuglia')) headers.push("Pattuglia");
+        if (activeCols.includes('passo')) headers.push("Passo");
+        if (activeCols.includes('sfide')) headers.push("Sfide");
+        if (activeCols.includes('specialita')) headers.push("Specialita");
+        if (activeCols.includes('dob')) headers.push("Data Nascita");
 
-        const rows = document.querySelectorAll('#elencoTable tbody tr');
-        rows.forEach(r => {
-            csv += Array.from(r.querySelectorAll('td')).map(c => `"${c.textContent.trim().replace(/"/g, '""')}"`).join(';') + "\n";
+        const rows = [];
+        const tableRows = document.querySelectorAll('#elencoTable tbody tr');
+        tableRows.forEach(r => {
+            const cells = Array.from(r.querySelectorAll('td')).map(c => c.textContent.trim());
+            if (cells.length > 0) {
+                rows.push(cells);
+            }
         });
 
-        const link = document.createElement("a");
-        link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + csv));
-        link.setAttribute("download", `elenco_maori_${new Date().toISOString().slice(0, 10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const filename = `elenco_maori_${new Date().toISOString().slice(0, 10)}.csv`;
+        this.downloadCSV(filename, headers, rows);
     };
 
     // Populate Pattuglie Filter dynamically
@@ -883,59 +903,54 @@ UI.copyList = function (title, containerId) {
 
 UI.downloadSfideCSV = function () {
     const container = document.getElementById('sfideContainer');
-    let csv = "Passo,Direzione,Codice,Testo,Esploratori\n";
-    // Parsing del DOM generato
+    const headers = ["Passo", "Direzione", "Codice", "Testo", "Esploratori"];
+    const rows = [];
+
     const passiDivs = container.querySelectorAll('.mb-8');
     passiDivs.forEach(passoDiv => {
-        const passoMatch = passoDiv.querySelector('h4').textContent.match(/Passo (I{1,3})/);
+        const h4 = passoDiv.querySelector('h4');
+        const passoMatch = h4 ? h4.textContent.match(/Passo (I{1,3})/) : null;
         const passo = passoMatch ? passoMatch[1] : '';
-        const dirsDivs = passoDiv.querySelectorAll('.bg-gray-50');
+        const dirsDivs = passoDiv.querySelectorAll('.bg-gray-50, .dark\\:bg-gray-700');
         dirsDivs.forEach(dirDiv => {
-            const dir = dirDiv.querySelector('h5').textContent;
+            const h5 = dirDiv.querySelector('h5');
+            const dir = h5 ? h5.textContent.trim() : '';
             const lis = dirDiv.querySelectorAll('li');
             lis.forEach(li => {
-                const code = li.children[0].textContent;
-                const text = li.children[1].textContent;
-                const esploratori = li.children[2].textContent.replace('Esploratori: ', '');
-                csv += `"${passo}","${dir}","${code}","${text.replace(/"/g, '""')}","${esploratori}"\n`;
+                const code = li.children[0]?.textContent?.trim() || '';
+                const text = li.children[1]?.textContent?.trim() || '';
+                const esploratori = (li.children[2]?.textContent || '').replace(/^Esploratori:\s*/, '').trim();
+                rows.push([passo, dir, code, text, esploratori]);
             });
         });
     });
-    
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `sfide_${toYyyyMmDd(new Date())}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    const pattuglia = document.getElementById('sfideFilterPattuglia')?.value || 'tutte';
+    const filename = `sfide_pv_${pattuglia.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
+    this.downloadCSV(filename, headers, rows);
 };
 
 UI.downloadProveCSV = function () {
     const container = document.getElementById('proveContainer');
-    let csv = "Specialita,Prova,Testo,Esploratori Da Superare\n";
-    // Parsing del DOM
+    const headers = ["Specialita", "Prova", "Testo", "Esploratori Da Superare"];
+    const rows = [];
+
     const specDivs = container.querySelectorAll('.mb-8');
     specDivs.forEach(specDiv => {
-        const specName = specDiv.querySelector('h4').textContent;
+        const h4 = specDiv.querySelector('h4');
+        const specName = h4 ? h4.textContent.trim() : '';
         const proveDivs = specDiv.querySelectorAll('.border-l-4');
         proveDivs.forEach(provaDiv => {
-            const nomeProva = provaDiv.children[0].textContent;
-            const testoProva = provaDiv.children[1].textContent;
-            const esploratori = provaDiv.children[2].textContent.replace('Devono superarla: ', '');
-            csv += `"${specName}","${nomeProva}","${testoProva.replace(/"/g, '""')}","${esploratori}"\n`;
+            const nomeProva = provaDiv.children[0]?.textContent?.trim() || '';
+            const testoProva = provaDiv.children[1]?.textContent?.trim() || '';
+            const esploratori = (provaDiv.children[2]?.textContent || '').replace(/^Devono superarla:\s*/, '').trim();
+            rows.push([specName, nomeProva, testoProva, esploratori]);
         });
     });
-    
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `prove_po_${toYyyyMmDd(new Date())}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    const pattuglia = document.getElementById('proveFilterPattuglia')?.value || 'tutte';
+    const filename = `prove_po_${pattuglia.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
+    this.downloadCSV(filename, headers, rows);
 };
 
 // Start

@@ -38,10 +38,87 @@
 
       <!-- Contenuto specifico Presenze -->
       <section id="presencesTab" class="tab-content active">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-2xl font-semibold text-gray-700">Registro Presenze</h2>
+        <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+          <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">Registro Presenze</h2>
           <div class="flex gap-2 items-center">
-            <button onclick="UI.exportToCSV()" class="btn-primary px-4 py-2 text-sm">📊 Esporta CSV</button>
+            <button id="openExportModalBtn" onclick="UI.openExportModal()" class="btn-primary px-4 py-2 text-sm flex items-center gap-1.5 shadow-sm" title="Opzioni di esportazione CSV ed Excel">
+              <span>📊</span>
+              <span>Esporta CSV / Excel</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Barra Filtri Avanzati -->
+        <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3.5 mb-4 shadow-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-2.5">
+            <!-- Cerca esploratore -->
+            <div class="relative">
+              <label for="presenceSearchInput" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Cerca</label>
+              <div class="relative">
+                <input type="text" id="presenceSearchInput" placeholder="Nome o cognome..."
+                  class="w-full pl-8 pr-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                <span class="absolute left-2.5 top-1.5 text-gray-400 text-xs">🔍</span>
+              </div>
+            </div>
+
+            <!-- Filtro Pattuglia -->
+            <div>
+              <label for="presencePatrolFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Pattuglia</label>
+              <select id="presencePatrolFilter"
+                class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                <option value="">Tutte le pattuglie</option>
+              </select>
+            </div>
+
+            <!-- Filtro Condizione / Presenze -->
+            <div>
+              <label for="presenceConditionFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Condizione</label>
+              <select id="presenceConditionFilter"
+                class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                <option value="all">Tutti gli esploratori</option>
+                <option value="with_absences">Con almeno 1 assenza</option>
+                <option value="with_debt">Con quote da saldare</option>
+                <option value="next_present">Presenti alla prossima</option>
+                <option value="next_absent">Assenti alla prossima</option>
+              </select>
+            </div>
+
+            <!-- Filtro Tipo Attività -->
+            <div>
+              <label for="presenceActivityTypeFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Tipo Attività</label>
+              <select id="presenceActivityTypeFilter"
+                class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                <option value="all">Tutti i tipi</option>
+                <option value="Riunione">Riunioni</option>
+                <option value="Attività lunga">Attività lunghe</option>
+                <option value="Uscita">Uscite</option>
+                <option value="Campo">Campi</option>
+              </select>
+            </div>
+
+            <!-- Filtro Periodo -->
+            <div>
+              <label for="presencePeriodFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Periodo</label>
+              <select id="presencePeriodFilter"
+                class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                <option value="all">Tutte le date</option>
+                <option value="past">Solo svolte (passate)</option>
+                <option value="future">Solo in programma (future)</option>
+                <option value="last10">Ultime 10 attività</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Barra di riepilogo filtri e reset -->
+          <div class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700 text-xs">
+            <div id="presenceFilterSummary" class="text-gray-600 dark:text-gray-300 font-medium">
+              Caricamento filtri...
+            </div>
+            <button id="presenceResetFiltersBtn" type="button"
+              class="text-green-700 hover:text-green-800 dark:text-green-400 font-medium hover:underline flex items-center gap-1">
+              <span>✕</span>
+              <span>Azzera filtri</span>
+            </button>
           </div>
         </div>
 
@@ -115,6 +192,105 @@
           </table>
         </div>
       </section>
+
+      <!-- Modale Esportazione Avanzata Presenze -->
+      <div id="exportPresenzeModal" class="modal" role="dialog" aria-labelledby="exportPresenzeModalTitle" aria-modal="true">
+        <div class="modal-content max-w-lg mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
+          <div class="flex justify-between items-center mb-4 border-b pb-3 border-gray-200 dark:border-gray-700">
+            <h3 id="exportPresenzeModalTitle" class="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              <span>📊</span> Esporta Registro Presenze
+            </h3>
+            <button type="button" onclick="UI.closeModal('exportPresenzeModal')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl font-bold leading-none">&times;</button>
+          </div>
+
+          <div class="space-y-4 text-sm text-gray-700 dark:text-gray-300">
+            <!-- Formato -->
+            <div>
+              <label class="block font-semibold mb-1 text-gray-800 dark:text-gray-200">Formato File</label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="flex items-center gap-2 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <input type="radio" name="exportFormat" value="excel" checked class="text-green-600" />
+                  <div>
+                    <div class="font-medium text-xs text-gray-900 dark:text-white">Excel (Consigliato)</div>
+                    <div class="text-[11px] text-gray-500">Separatore ';' + UTF-8 BOM</div>
+                  </div>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <input type="radio" name="exportFormat" value="standard" class="text-green-600" />
+                  <div>
+                    <div class="font-medium text-xs text-gray-900 dark:text-white">CSV Standard</div>
+                    <div class="text-[11px] text-gray-500">Separatore ',' (RFC4180)</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Ambito Esploratori -->
+            <div>
+              <label class="block font-semibold mb-1 text-gray-800 dark:text-gray-200">Esploratori da Includere</label>
+              <div class="space-y-1.5">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="exportScoutsScope" value="filtered" checked class="text-green-600" />
+                  <span id="exportScopeFilteredLabel">Esploratori visibili dai filtri attivi</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="exportScoutsScope" value="all" class="text-green-600" />
+                  <span id="exportScopeAllLabel">Tutti gli esploratori</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="exportScoutsScope" value="selected" id="exportScopeSelectedRadio" class="text-green-600" />
+                  <span id="exportScopeSelectedLabel">Solo esploratori selezionati con checkbox (0)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Ambito Attività -->
+            <div>
+              <label class="block font-semibold mb-1 text-gray-800 dark:text-gray-200">Attività da Includere</label>
+              <div class="space-y-1.5">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="exportActsScope" value="filtered" checked class="text-green-600" />
+                  <span id="exportActsScopeFilteredLabel">Attività visibili dai filtri attivi</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="exportActsScope" value="all" class="text-green-600" />
+                  <span id="exportActsScopeAllLabel">Tutte le attività dell'anno</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Opzioni Colonne e Dati -->
+            <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <label class="block font-semibold mb-2 text-gray-800 dark:text-gray-200">Colonne Aggiuntive e Dati</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="exportColPatrol" checked class="rounded text-green-600" />
+                  <span>Colonna Pattuglia</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="exportColStats" checked class="rounded text-green-600" />
+                  <span>Riepilogo Presenze (Tot, Ass, %)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="exportColPayments" class="rounded text-green-600" />
+                  <span>Dettagli Pagamento quote</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="exportVerboseStatus" class="rounded text-green-600" />
+                  <span>Testo esteso (Presente / Assente)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" onclick="UI.closeModal('exportPresenzeModal')" class="btn-secondary px-4 py-2 text-xs font-semibold">Annulla</button>
+            <button type="button" onclick="UI.executeAdvancedPresenzeExport()" class="btn-primary px-4 py-2 text-xs font-semibold flex items-center gap-1.5">
+              <span>💾</span> Scarica File
+            </button>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 
