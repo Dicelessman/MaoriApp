@@ -66,10 +66,10 @@
           </div>
         </div>
         
-        <!-- Totali -->
+        <!-- Tabella M/F per Pattuglia -->
         <div class="bg-gray-50 p-6 rounded-lg shadow-inner mt-4">
-          <h4 class="text-lg font-semibold text-gray-700 mb-4">Totali</h4>
-          <div id="totaliStats" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+          <h4 class="text-lg font-semibold text-gray-700 mb-4">Composizione per Pattuglia (M/F)</h4>
+          <div id="totaliStats"></div>
         </div>
         
         <!-- Tabella Esploratori per Pattuglia -->
@@ -116,9 +116,9 @@
           </div>
         </div>
         
-        <!-- Tempi medi -->
+        <!-- Progressi Anno Scout -->
         <div class="bg-gray-50 p-6 rounded-lg shadow-inner mt-4">
-          <h4 class="text-lg font-semibold text-gray-700 mb-4">Tempi Medi</h4>
+          <h4 class="text-lg font-semibold text-gray-700 mb-4">Progressi Anno Scout Corrente</h4>
           <div id="tempiPassiStats" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
       </section>
@@ -223,26 +223,9 @@
           </div>
         </div>
         
-        <!-- Distribuzione per colori -->
-        <div class="grid md:grid-cols-2 gap-6 mb-4">
-          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
-            <h4 class="text-lg font-semibold text-gray-700 mb-4">Distribuzione per Colore Sfondo</h4>
-            <div class="w-full" style="height: 300px;">
-              <canvas id="specialitaColoreSfondoChart"></canvas>
-            </div>
-          </div>
-          
-          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
-            <h4 class="text-lg font-semibold text-gray-700 mb-4">Distribuzione per Colore Bordo</h4>
-            <div class="w-full" style="height: 300px;">
-              <canvas id="specialitaColoreBordoChart"></canvas>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Tempi medi specialità -->
+        <!-- Top 5 specialità + senza specialità -->
         <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
-          <h4 class="text-lg font-semibold text-gray-700 mb-4">Tempi Medi</h4>
+          <h4 class="text-lg font-semibold text-gray-700 mb-4">Riepilogo Specialità</h4>
           <div id="tempiSpecialitaStats" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
       </section>

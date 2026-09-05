@@ -105,117 +105,121 @@ UI.renderStatistiche = async function() {
 UI.renderKPICards = function(scouts) {
   const kpiContainer = document.getElementById('kpiCards');
   if (!kpiContainer) return;
-  
+
   const activities = this.state.activities || [];
   const presences = this.getDedupedPresences();
-  
-  // Calcola totale esploratori
-  const totalScouts = scouts.length;
-  
-  // Calcola presenza media (ultimi 3 mesi)
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const threeMonthsAgo = new Date(today);
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-  
-  const recentActivities = activities.filter(a => {
+
+  // Anno scout corrente: dal 1 settembre dell'anno passato (o corrente)
+  const anniScoutStart = new Date(today);
+  if (today.getMonth() < 8) { // prima di settembre → anno scout iniziato l'anno precedente
+    anniScoutStart.setFullYear(today.getFullYear() - 1);
+  }
+  anniScoutStart.setMonth(8); // settembre
+  anniScoutStart.setDate(1);
+  anniScoutStart.setHours(0, 0, 0, 0);
+
+  // Attività svolte nell'anno scout corrente (passate)
+  const anniScoutActivities = activities.filter(a => {
     const activityDate = this.toJsDate(a.data);
     if (!activityDate) return false;
-    return activityDate >= threeMonthsAgo && activityDate <= today;
+    return activityDate >= anniScoutStart && activityDate <= today;
   });
-  
-  let totalPresences = 0;
-  let totalPossiblePresences = 0;
-  
+
+  // KPI 1: Totale esploratori con breakown M/F
+  const totalScouts = scouts.length;
+  const maschi = scouts.filter(s => s.anag_sesso?.toLowerCase() === 'maschio').length;
+  const femmine = scouts.filter(s => s.anag_sesso?.toLowerCase() === 'femmina').length;
+
+  // KPI 2: % presenza media anno scout (solo attività svolte con presenze registrate)
+  let totalPresentiAnno = 0;
+  let totalPossibiliAnno = 0;
   scouts.forEach(scout => {
-    recentActivities.forEach(activity => {
-      const presence = presences.find(p => 
+    anniScoutActivities.forEach(activity => {
+      const presence = presences.find(p =>
         p.esploratoreId === scout.id && p.attivitaId === activity.id
       );
-      totalPossiblePresences++;
-      if (presence && presence.stato === 'Presente') {
-        totalPresences++;
+      if (presence && (presence.stato === 'Presente' || presence.stato === 'Assente')) {
+        totalPossibiliAnno++;
+        if (presence.stato === 'Presente') totalPresentiAnno++;
       }
     });
   });
-  
-  const avgPresence = totalPossiblePresences > 0 
-    ? Math.round((totalPresences / totalPossiblePresences) * 100) 
-    : 0;
-  
-  // Calcola totale attività
-  const totalActivities = activities.length;
-  const pastActivities = activities.filter(a => {
-    const activityDate = this.toJsDate(a.data);
-    if (!activityDate) return false;
-    return activityDate < today;
-  }).length;
-  const upcomingActivities = totalActivities - pastActivities;
-  
-  // Calcola esploratori attivi (presenti almeno una volta negli ultimi 3 mesi)
-  const activeScoutsSet = new Set();
-  scouts.forEach(scout => {
-    const hasPresence = recentActivities.some(activity => {
-      const presence = presences.find(p => 
-        p.esploratoreId === scout.id && p.attivitaId === activity.id && p.stato === 'Presente'
+  const avgPresenzaAnno = totalPossibiliAnno > 0
+    ? Math.round((totalPresentiAnno / totalPossibiliAnno) * 100)
+    : null;
+
+  // KPI 3: Esploratori con >= 3 assenze nell'anno scout
+  const scoutsConAssenze = scouts.filter(scout => {
+    let assenze = 0;
+    anniScoutActivities.forEach(activity => {
+      const presence = presences.find(p =>
+        p.esploratoreId === scout.id && p.attivitaId === activity.id
       );
-      return !!presence;
+      if (presence && presence.stato === 'Assente') assenze++;
     });
-    if (hasPresence) {
-      activeScoutsSet.add(scout.id);
-    }
-  });
-  const activeScouts = activeScoutsSet.size;
-  
-  // Calcola pattuglie attive
-  const activePattuglieSet = new Set();
+    return assenze >= 3;
+  }).length;
+
+  // KPI 4: Specialità ottenute nell'anno scout corrente
+  let specialitaAnno = 0;
   scouts.forEach(scout => {
-    if (activeScoutsSet.has(scout.id) && scout.pv_pattuglia) {
-      activePattuglieSet.add(scout.pv_pattuglia);
+    if (scout.specialita && Array.isArray(scout.specialita)) {
+      scout.specialita.forEach(sp => {
+        if (sp.ottenuta && sp.data) {
+          const dataOttenuta = this.toJsDate(sp.data);
+          if (dataOttenuta && dataOttenuta >= anniScoutStart && dataOttenuta <= today) {
+            specialitaAnno++;
+          }
+        }
+      });
     }
   });
-  const activePattuglie = activePattuglieSet.size;
-  
-  // Renderizza KPI cards
+
+  const annoScoutLabel = `${anniScoutStart.getFullYear()}/${String(anniScoutStart.getFullYear() + 1).slice(-2)}`;
+
   kpiContainer.innerHTML = `
     <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
       <div class="flex items-center justify-between">
         <div>
           <p class="text-blue-100 text-sm font-medium mb-1">Totale Esploratori</p>
           <p class="text-3xl font-bold">${totalScouts}</p>
+          <p class="text-blue-100 text-xs mt-1">M: ${maschi} · F: ${femmine}</p>
         </div>
         <div class="text-4xl opacity-80">👥</div>
       </div>
     </div>
-    
+
     <div class="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg">
       <div class="flex items-center justify-between">
         <div>
           <p class="text-green-100 text-sm font-medium mb-1">Presenza Media</p>
-          <p class="text-3xl font-bold">${avgPresence}%</p>
-          <p class="text-green-100 text-xs mt-1">Ultimi 3 mesi</p>
+          <p class="text-3xl font-bold">${avgPresenzaAnno !== null ? avgPresenzaAnno + '%' : '—'}</p>
+          <p class="text-green-100 text-xs mt-1">Anno scout ${annoScoutLabel}</p>
         </div>
         <div class="text-4xl opacity-80">📊</div>
       </div>
     </div>
-    
+
+    <div class="bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-lg shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-red-100 text-sm font-medium mb-1">Esp. con ≥3 Assenze</p>
+          <p class="text-3xl font-bold">${scoutsConAssenze}</p>
+          <p class="text-red-100 text-xs mt-1">Anno scout ${annoScoutLabel}</p>
+        </div>
+        <div class="text-4xl opacity-80">⚠️</div>
+      </div>
+    </div>
+
     <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-purple-100 text-sm font-medium mb-1">Attività Totali</p>
-          <p class="text-3xl font-bold">${totalActivities}</p>
-          <p class="text-purple-100 text-xs mt-1">${upcomingActivities} prossime</p>
-        </div>
-        <div class="text-4xl opacity-80">📅</div>
-      </div>
-    </div>
-    
-    <div class="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-6 rounded-lg shadow-lg">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-orange-100 text-sm font-medium mb-1">Esploratori Attivi</p>
-          <p class="text-3xl font-bold">${activeScouts}</p>
-          <p class="text-orange-100 text-xs mt-1">${activePattuglie} pattuglie</p>
+          <p class="text-purple-100 text-sm font-medium mb-1">Specialità Ottenute</p>
+          <p class="text-3xl font-bold">${specialitaAnno}</p>
+          <p class="text-purple-100 text-xs mt-1">Anno scout ${annoScoutLabel}</p>
         </div>
         <div class="text-4xl opacity-80">⭐</div>
       </div>
@@ -354,31 +358,50 @@ UI.renderComposizioneStats = function(scouts) {
     `;
   }
   
-  // Totali
+  // Tabella M/F per pattuglia
   const totaliEl = document.getElementById('totaliStats');
   if (totaliEl) {
-    const pattuglie = {};
+    const pattugliaMF = {};
     scouts.forEach(scout => {
       const patt = scout.pv_pattuglia || 'Non assegnata';
-      pattuglie[patt] = (pattuglie[patt] || 0) + 1;
+      if (!pattugliaMF[patt]) pattugliaMF[patt] = { m: 0, f: 0, altro: 0, tot: 0 };
+      const sesso = scout.anag_sesso?.toLowerCase();
+      pattugliaMF[patt].tot++;
+      if (sesso === 'maschio') pattugliaMF[patt].m++;
+      else if (sesso === 'femmina') pattugliaMF[patt].f++;
+      else pattugliaMF[patt].altro++;
     });
-    
+
+    const pattuglieOrd = Object.keys(pattugliaMF).sort((a, b) => {
+      if (a === 'Non assegnata') return 1;
+      if (b === 'Non assegnata') return -1;
+      return a.localeCompare(b);
+    });
+
+    const rows = pattuglieOrd.map(p => {
+      const d = pattugliaMF[p];
+      const altroCell = d.altro > 0 ? ` <span class="text-gray-400 text-xs">(+${d.altro})</span>` : '';
+      return `<tr class="border-b">
+        <td class="p-2 font-semibold">${p}</td>
+        <td class="p-2 text-center">${d.tot}</td>
+        <td class="p-2 text-center text-blue-600">${d.m}</td>
+        <td class="p-2 text-center text-pink-500">${d.f}${altroCell}</td>
+      </tr>`;
+    }).join('');
+
     totaliEl.innerHTML = `
-      <div class="bg-white p-4 rounded border">
-        <div class="text-2xl font-bold text-gray-700">${scouts.length}</div>
-        <div class="text-sm text-gray-600">Totale Esploratori</div>
-      </div>
-      <div class="bg-white p-4 rounded border">
-        <div class="text-2xl font-bold text-gray-700">${Object.keys(pattuglie).length}</div>
-        <div class="text-sm text-gray-600">Pattuglie</div>
-      </div>
-      <div class="bg-white p-4 rounded border">
-        <div class="text-2xl font-bold text-gray-700">${sessoStats.maschio + sessoStats.femmina + sessoStats['non binario']}</div>
-        <div class="text-sm text-gray-600">Con sesso identificato</div>
-      </div>
-      <div class="bg-white p-4 rounded border">
-        <div class="text-2xl font-bold text-gray-700">${scouts.filter(s => s.anag_dob).length}</div>
-        <div class="text-sm text-gray-600">Con data nascita</div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="border-b bg-gray-100">
+              <th class="text-left p-2">Pattuglia</th>
+              <th class="text-center p-2">Tot</th>
+              <th class="text-center p-2 text-blue-600">M</th>
+              <th class="text-center p-2 text-pink-500">F</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
       </div>
     `;
   }
@@ -503,101 +526,75 @@ UI.renderPassiStats = function(scouts) {
     `;
   }
   
-  // Tempi medi
-  const tempiPassi = [];
-  
-  // Tempo medio per raggiungere il Passo successivo
-  scouts.forEach(scout => {
-    const traccia1 = scout.pv_traccia1?.data;
-    const traccia2 = scout.pv_traccia2?.data;
-    const traccia3 = scout.pv_traccia3?.data;
-    
-    if (traccia1 && traccia2) {
-      const giorni = this.daysBetween(traccia1, traccia2);
-      if (giorni !== null) tempiPassi.push({ tipo: 'Passo 1 → 2', giorni });
-    }
-    if (traccia2 && traccia3) {
-      const giorni = this.daysBetween(traccia2, traccia3);
-      if (giorni !== null) tempiPassi.push({ tipo: 'Passo 2 → 3', giorni });
-    }
-  });
-  
-  // Tempo medio per superare una sfida (stesso passo)
-  const tempiSfide = [];
+  // Progressi anno scout corrente
+  const today2 = new Date();
+  today2.setHours(0, 0, 0, 0);
+  const annoScoutStartPassi = new Date(today2);
+  if (today2.getMonth() < 8) annoScoutStartPassi.setFullYear(today2.getFullYear() - 1);
+  annoScoutStartPassi.setMonth(8);
+  annoScoutStartPassi.setDate(1);
+  annoScoutStartPassi.setHours(0, 0, 0, 0);
+
+  const annoScoutLabelPassi = `${annoScoutStartPassi.getFullYear()}/${String(annoScoutStartPassi.getFullYear() + 1).slice(-2)}`;
+
+  // Esploratori che hanno superato un passo quest'anno
+  let passaggioAnno = { 1: 0, 2: 0, 3: 0 };
   scouts.forEach(scout => {
     [1, 2, 3].forEach(passo => {
-      const sfide = [];
-      direzioni.forEach(dir => {
-        const dataKey = `pv_sfida_${dir}_${passo}_data`;
-        if (scout[dataKey]) {
-          sfide.push({ data: scout[dataKey], dir, passo });
-        }
-      });
-      // Ordina per data
-      sfide.sort((a, b) => {
-        const d1 = this.toJsDate(a.data);
-        const d2 = this.toJsDate(b.data);
-        if (!d1 || !d2) return 0;
-        return d1 - d2;
-      });
-      // Calcola differenze tra sfide consecutive
-      for (let i = 1; i < sfide.length; i++) {
-        const giorni = this.daysBetween(sfide[i-1].data, sfide[i].data);
-        if (giorni !== null) {
-          tempiSfide.push({ tipo: `Passo ${passo}`, giorni });
+      const traccia = scout[`pv_traccia${passo}`];
+      if (traccia?.done && traccia?.data) {
+        const dataTraccia = this.toJsDate(traccia.data);
+        if (dataTraccia && dataTraccia >= annoScoutStartPassi && dataTraccia <= today2) {
+          passaggioAnno[passo]++;
         }
       }
     });
   });
-  
-  // Calcola medie
-  const avgPasso12 = tempiPassi.filter(t => t.tipo === 'Passo 1 → 2').length > 0
-    ? Math.round(tempiPassi.filter(t => t.tipo === 'Passo 1 → 2').reduce((sum, t) => sum + t.giorni, 0) / tempiPassi.filter(t => t.tipo === 'Passo 1 → 2').length)
-    : null;
-  const avgPasso23 = tempiPassi.filter(t => t.tipo === 'Passo 2 → 3').length > 0
-    ? Math.round(tempiPassi.filter(t => t.tipo === 'Passo 2 → 3').reduce((sum, t) => sum + t.giorni, 0) / tempiPassi.filter(t => t.tipo === 'Passo 2 → 3').length)
-    : null;
-  
-  const avgSfideByPasso = {};
-  [1, 2, 3].forEach(passo => {
-    const sfidePasso = tempiSfide.filter(t => t.tipo === `Passo ${passo}`);
-    if (sfidePasso.length > 0) {
-      avgSfideByPasso[passo] = Math.round(sfidePasso.reduce((sum, t) => sum + t.giorni, 0) / sfidePasso.length);
-    }
+
+  // Sfide completate quest'anno per passo
+  const sfideAnnoByPasso = { 1: 0, 2: 0, 3: 0 };
+  const direzAnno = ['io', 'al', 'mt'];
+  scouts.forEach(scout => {
+    [1, 2, 3].forEach(passo => {
+      direzAnno.forEach(dir => {
+        const dataKey = `pv_sfida_${dir}_${passo}_data`;
+        if (scout[dataKey]) {
+          const dataSfida = this.toJsDate(scout[dataKey]);
+          if (dataSfida && dataSfida >= annoScoutStartPassi && dataSfida <= today2) {
+            sfideAnnoByPasso[passo]++;
+          }
+        }
+      });
+    });
   });
-  
-  // Renderizza tempi medi
+
+  const totSfideAnno = sfideAnnoByPasso[1] + sfideAnnoByPasso[2] + sfideAnnoByPasso[3];
+
   const tempiPassiStatsEl = document.getElementById('tempiPassiStats');
   if (tempiPassiStatsEl) {
-    let html = '';
-    if (avgPasso12 !== null) {
-      html += `
-        <div class="bg-white p-4 rounded border">
-          <div class="text-lg font-semibold text-gray-700">Passo 1 → 2</div>
-          <div class="text-2xl font-bold text-blue-600">${avgPasso12} giorni</div>
-          <div class="text-sm text-gray-600">${tempiPassi.filter(t => t.tipo === 'Passo 1 → 2').length} transizioni</div>
+    const totPassaggi = passaggioAnno[1] + passaggioAnno[2] + passaggioAnno[3];
+    tempiPassiStatsEl.innerHTML = `
+      <div class="bg-white p-4 rounded border">
+        <div class="text-sm text-gray-500 mb-1">Passi superati</div>
+        <div class="text-2xl font-bold text-blue-600">${totPassaggi}</div>
+        <div class="text-xs text-gray-400 mt-1">Anno scout ${annoScoutLabelPassi}</div>
+        <div class="text-xs text-gray-500 mt-2">
+          Passo 1: ${passaggioAnno[1]} &nbsp;|&nbsp;
+          Passo 2: ${passaggioAnno[2]} &nbsp;|&nbsp;
+          Passo 3: ${passaggioAnno[3]}
         </div>
-      `;
-    }
-    if (avgPasso23 !== null) {
-      html += `
-        <div class="bg-white p-4 rounded border">
-          <div class="text-lg font-semibold text-gray-700">Passo 2 → 3</div>
-          <div class="text-2xl font-bold text-green-600">${avgPasso23} giorni</div>
-          <div class="text-sm text-gray-600">${tempiPassi.filter(t => t.tipo === 'Passo 2 → 3').length} transizioni</div>
+      </div>
+      <div class="bg-white p-4 rounded border">
+        <div class="text-sm text-gray-500 mb-1">Sfide completate</div>
+        <div class="text-2xl font-bold text-green-600">${totSfideAnno}</div>
+        <div class="text-xs text-gray-400 mt-1">Anno scout ${annoScoutLabelPassi}</div>
+        <div class="text-xs text-gray-500 mt-2">
+          Passo 1: ${sfideAnnoByPasso[1]} &nbsp;|&nbsp;
+          Passo 2: ${sfideAnnoByPasso[2]} &nbsp;|&nbsp;
+          Passo 3: ${sfideAnnoByPasso[3]}
         </div>
-      `;
-    }
-    Object.keys(avgSfideByPasso).forEach(passo => {
-      html += `
-        <div class="bg-white p-4 rounded border">
-          <div class="text-lg font-semibold text-gray-700">Tempo medio sfide Passo ${passo}</div>
-          <div class="text-2xl font-bold text-yellow-600">${avgSfideByPasso[passo]} giorni</div>
-          <div class="text-sm text-gray-600">${tempiSfide.filter(t => t.tipo === `Passo ${passo}`).length} intervalli</div>
-        </div>
-      `;
-    });
-    tempiPassiStatsEl.innerHTML = html || '<div class="text-gray-500">Dati insufficienti per calcolare i tempi medi</div>';
+      </div>
+    `;
   }
 };
 
@@ -639,181 +636,50 @@ UI.renderSpecialitaStats = async function(scouts) {
     `).join('');
   }
   
-  // Distribuzione per colori
-  const coloriSfondo = {};
-  const coloriBordo = {};
-  
+  // Top 5 specialità più ottenute
+  const specialitaCount = {};
   scouts.forEach(scout => {
     if (scout.specialita && Array.isArray(scout.specialita)) {
       scout.specialita.forEach(sp => {
         if (sp.ottenuta && sp.nome) {
-          const spec = specialitaList.find(s => s.nome === sp.nome);
-          if (spec) {
-            const sfondo = spec.sfondo_colore || 'unknown';
-            const bordo = spec.bordo_colore || 'unknown';
-            coloriSfondo[sfondo] = (coloriSfondo[sfondo] || 0) + 1;
-            coloriBordo[bordo] = (coloriBordo[bordo] || 0) + 1;
-          }
+          specialitaCount[sp.nome] = (specialitaCount[sp.nome] || 0) + 1;
         }
       });
     }
   });
-  
-  // Grafico colori sfondo
-  const ctxColoreSfondo = document.getElementById('specialitaColoreSfondoChart');
-  if (ctxColoreSfondo) {
-    this._destroyChart('specialitaColoreSfondoChart');
-    const labels = Object.keys(coloriSfondo);
-    const data = Object.values(coloriSfondo);
-    const colors = labels.map(c => {
-      const colorMap = { blue: '#3b82f6', green: '#16a34a', yellow: '#eab308', red: '#dc2626', unknown: '#9ca3af' };
-      return colorMap[c] || '#9ca3af';
-    });
-    
-    const chart = new Chart(ctxColoreSfondo, {
-      type: 'bar',
-      data: {
-        labels: labels.map(c => c.charAt(0).toUpperCase() + c.slice(1)),
-        datasets: [{
-          label: 'Specialità',
-          data: data,
-          backgroundColor: colors
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          datalabels: {
-            color: '#fff',
-            anchor: 'end',
-            align: 'end'
-          }
-        },
-        scales: {
-          y: { beginAtZero: true, ticks: { stepSize: 1 } }
-        }
-      },
-      plugins: [window.ChartDataLabels]
-    });
-    this._charts = this._charts || {};
-    this._charts.specialitaColoreSfondoChart = chart;
-  }
-  
-  // Grafico colori bordo
-  const ctxColoreBordo = document.getElementById('specialitaColoreBordoChart');
-  if (ctxColoreBordo) {
-    this._destroyChart('specialitaColoreBordoChart');
-    const labels = Object.keys(coloriBordo);
-    const data = Object.values(coloriBordo);
-    const colors = labels.map(c => {
-      const colorMap = { blue: '#3b82f6', green: '#16a34a', yellow: '#eab308', red: '#dc2626', unknown: '#9ca3af' };
-      return colorMap[c] || '#9ca3af';
-    });
-    
-    const chart = new Chart(ctxColoreBordo, {
-      type: 'bar',
-      data: {
-        labels: labels.map(c => c.charAt(0).toUpperCase() + c.slice(1)),
-        datasets: [{
-          label: 'Specialità',
-          data: data,
-          backgroundColor: colors
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          datalabels: {
-            color: '#fff',
-            anchor: 'end',
-            align: 'end'
-          }
-        },
-        scales: {
-          y: { beginAtZero: true, ticks: { stepSize: 1 } }
-        }
-      },
-      plugins: [window.ChartDataLabels]
-    });
-    this._charts = this._charts || {};
-    this._charts.specialitaColoreBordoChart = chart;
-  }
-  
-  // Tempi medi specialità
-  const tempiProve = [];
-  const tempiSpecialita = [];
-  
-  scouts.forEach(scout => {
-    if (scout.specialita && Array.isArray(scout.specialita)) {
-      scout.specialita.forEach(sp => {
-        if (sp.ottenuta && sp.data) {
-          // Tempo per superare una prova (differenza tra prove consecutive)
-          const prove = [
-            { data: sp.p1_data, nome: 'Prova 1' },
-            { data: sp.p2_data, nome: 'Prova 2' },
-            { data: sp.p3_data, nome: 'Prova 3' }
-          ].filter(p => p.data);
-          
-          prove.sort((a, b) => {
-            const d1 = this.toJsDate(a.data);
-            const d2 = this.toJsDate(b.data);
-            if (!d1 || !d2) return 0;
-            return d1 - d2;
-          });
-          
-          for (let i = 1; i < prove.length; i++) {
-            const giorni = this.daysBetween(prove[i-1].data, prove[i].data);
-            if (giorni !== null) {
-              tempiProve.push(giorni);
-            }
-          }
-          
-          // Tempo per ottenere una specialità (dalla prima prova alla data ottenuta)
-          if (prove.length > 0 && sp.data) {
-            const giorni = this.daysBetween(prove[0].data, sp.data);
-            if (giorni !== null) {
-              tempiSpecialita.push(giorni);
-            }
-          }
-        }
-      });
-    }
+  const top5 = Object.entries(specialitaCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  // Esploratori senza specialità
+  const senzaSpecialita = scouts.filter(scout => {
+    if (!scout.specialita || !Array.isArray(scout.specialita)) return true;
+    return scout.specialita.filter(sp => sp.ottenuta).length === 0;
   });
-  
-  const avgTempoProve = tempiProve.length > 0
-    ? Math.round(tempiProve.reduce((sum, t) => sum + t, 0) / tempiProve.length)
-    : null;
-  const avgTempoSpecialita = tempiSpecialita.length > 0
-    ? Math.round(tempiSpecialita.reduce((sum, t) => sum + t, 0) / tempiSpecialita.length)
-    : null;
-  
-  // Renderizza tempi medi specialità
+
   const tempiSpecialitaStatsEl = document.getElementById('tempiSpecialitaStats');
   if (tempiSpecialitaStatsEl) {
-    let html = '';
-    if (avgTempoProve !== null) {
-      html += `
-        <div class="bg-white p-4 rounded border">
-          <div class="text-lg font-semibold text-gray-700">Tempo medio per superare una prova</div>
-          <div class="text-2xl font-bold text-blue-600">${avgTempoProve} giorni</div>
-          <div class="text-sm text-gray-600">${tempiProve.length} intervalli calcolati</div>
-        </div>
-      `;
-    }
-    if (avgTempoSpecialita !== null) {
-      html += `
-        <div class="bg-white p-4 rounded border">
-          <div class="text-lg font-semibold text-gray-700">Tempo medio per ottenere una specialità</div>
-          <div class="text-2xl font-bold text-green-600">${avgTempoSpecialita} giorni</div>
-          <div class="text-sm text-gray-600">${tempiSpecialita.length} specialità calcolate</div>
-        </div>
-      `;
-    }
-    tempiSpecialitaStatsEl.innerHTML = html || '<div class="text-gray-500">Dati insufficienti per calcolare i tempi medi</div>';
+    const top5Html = top5.length > 0
+      ? `<div class="bg-white p-4 rounded border">
+          <div class="text-sm font-semibold text-gray-700 mb-2">🏅 Top 5 Specialità</div>
+          <ol class="space-y-1">
+            ${top5.map(([nome, n], i) => `
+              <li class="flex justify-between text-sm">
+                <span>${i + 1}. ${nome}</span>
+                <span class="font-bold text-purple-600">${n}</span>
+              </li>`).join('')}
+          </ol>
+        </div>`
+      : '';
+
+    const senzaHtml = `<div class="bg-white p-4 rounded border">
+      <div class="text-sm font-semibold text-gray-700 mb-2">Senza specialità <span class="font-bold text-red-500">${senzaSpecialita.length}</span></div>
+      ${senzaSpecialita.length > 0
+        ? `<ul class="text-xs text-gray-500 space-y-0.5 max-h-40 overflow-y-auto">${senzaSpecialita.map(s => `<li>${s.nome || ''} ${s.cognome || ''}</li>`).join('')}</ul>`
+        : '<div class="text-xs text-green-600">Tutti hanno almeno una specialità! 🎉</div>'}
+    </div>`;
+
+    tempiSpecialitaStatsEl.innerHTML = top5Html + senzaHtml;
   }
 };
 
