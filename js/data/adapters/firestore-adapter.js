@@ -168,6 +168,9 @@ export class FirestoreAdapter {
             });
         }
     }
+    async deletePresence(presenceKey, currentUser) {
+        await deleteDoc(doc(this.db, 'presences', presenceKey));
+    }
     // Budgets
     async getBudgetByActivity(activityId) {
         const docRef = doc(this.db, 'budgets', activityId);

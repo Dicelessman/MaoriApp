@@ -233,3 +233,27 @@ export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
  */
 export type RequiredBy<T, K extends keyof T> = T & Required<Pick<T, K>>;
 
+// ============== Data Integrity & Error Types ==============
+
+export interface DataIntegrityReport {
+  isValid: boolean;
+  summary: {
+    totalIssues: number;
+    totalOrphanPresences: number;
+    orphanPresencesNoScout: Presence[];
+    orphanPresencesNoActivity: Presence[];
+    duplicateScouts: Array<{ key: string; count: number; scouts: Partial<Scout>[] }>;
+    duplicateStaffEmails: Array<{ email: string; count: number; staff: Partial<Staff>[] }>;
+    invalidDateActivities: Array<{ id: string; descrizione: string; tipo: string; data: unknown }>;
+  };
+}
+
+export interface AppErrorLog {
+  timestamp: string;
+  message: string;
+  stack?: string | null;
+  context?: Record<string, unknown>;
+  url?: string;
+  userAgent?: string;
+}
+

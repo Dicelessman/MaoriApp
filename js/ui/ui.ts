@@ -13,7 +13,7 @@ import {
 } from '../core/firebase.js';
 import { APP_VERSION, THEME } from '../utils/constants.js';
 import { escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit } from '../utils/utils.js';
-import { setupFormValidation, validateForm, validateFieldValue } from '../utils/validation.js';
+import { setupFormValidation, validateForm, validateFieldValue, checkDataIntegrity } from '../utils/validation.js';
 
 export const UI = {
     appVersion: APP_VERSION,
@@ -1183,15 +1183,128 @@ export const UI = {
     },
 
     logNetworkInfo() { },
-    runConnectivityProbe() { window.addEventListener('online', () => this.updateConnectionStatus(true)); window.addEventListener('offline', () => this.updateConnectionStatus(false)); },
-    updateConnectionStatus(online) { const s = this.qs('#connectionStatus'); if (s) { s.textContent = online ? 'Online' : 'Offline'; s.className = online ? 'online' : 'offline'; } },
+    runConnectivityProbe() {
+        window.addEventListener('online', () => this.updateConnectionStatus(true));
+        window.addEventListener('offline', () => this.updateConnectionStatus(false));
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            this.updateConnectionStatus(false);
+        }
+    },
+    updateConnectionStatus(online: boolean) {
+        const s = this.qs('#connectionStatus');
+        if (s) {
+            s.textContent = online ? 'Online' : 'Offline';
+            s.className = online ? 'online' : 'offline';
+        }
+        const banner = this.qs('#offlineBanner');
+        if (banner) {
+            if (online) {
+                banner.classList.add('hidden');
+            } else {
+                banner.classList.remove('hidden');
+            }
+        }
+        if (!online) {
+            this.showToast('Sei offline: modifiche non disponibili fino alla riconnessione.', { type: 'warning', duration: 4000 });
+        } else if (this._wasOffline) {
+            this.showToast('Connessione internet ripristinata!', { type: 'success', duration: 3000 });
+            if (typeof this.renderCurrentPage === 'function') {
+                this.renderCurrentPage();
+            }
+        }
+        this._wasOffline = !online;
+    },
+
+    reportError(error: any, context: Record<string, any> = {}) {
+        const errorInfo = {
+            timestamp: new Date().toISOString(),
+            message: error?.message || String(error),
+            stack: error?.stack || null,
+            context: context || {},
+            url: typeof window !== 'undefined' ? window.location.href : '',
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : ''
+        };
+        console.error('[AppError]', errorInfo);
+        try {
+            const raw = localStorage.getItem('app-recent-errors');
+            const errors = raw ? JSON.parse(raw) : [];
+            errors.unshift(errorInfo);
+            if (errors.length > 10) errors.length = 10;
+            localStorage.setItem('app-recent-errors', JSON.stringify(errors));
+        } catch (e) {
+            console.warn('Could not save error to localStorage', e);
+        }
+        const userMsg = context.userMessage || 'Si è verificato un errore.';
+        this.showToast(userMsg, { type: 'error', duration: 4000 });
+        return errorInfo;
+    },
+
+    getRecentErrors() {
+        try {
+            const raw = localStorage.getItem('app-recent-errors');
+            return raw ? JSON.parse(raw) : [];
+        } catch {
+            return [];
+        }
+    },
+
+    clearRecentErrors() {
+        try {
+            localStorage.removeItem('app-recent-errors');
+        } catch {}
+    },
+
+    checkDataIntegrity() {
+        return checkDataIntegrity(this.state);
+    },
+
+    async cleanOrphanPresences() {
+        if (!this.currentUser) {
+            this.showToast('Devi essere autenticato per pulire i dati orfani.', { type: 'error' });
+            return { success: false, deletedCount: 0 };
+        }
+        const report = this.checkDataIntegrity();
+        const { orphanPresencesNoScout, orphanPresencesNoActivity } = report.summary;
+        const orphans = [...orphanPresencesNoScout, ...orphanPresencesNoActivity];
+        if (orphans.length === 0) {
+            this.showToast('Nessuna presenza orfana trovata.', { type: 'info' });
+            return { success: true, deletedCount: 0 };
+        }
+        const orphanIds = new Set(orphans.map((p: any) => p.id || `${p.esploratoreId}_${p.attivitaId}`));
+        const initialCount = orphanIds.size;
+        this.showLoadingOverlay('Pulizia presenze orfane in corso...');
+        try {
+            for (const p of orphans) {
+                const docKey = p.id || `${p.esploratoreId}_${p.attivitaId}`;
+                try {
+                    await DATA.deletePresence(docKey, this.currentUser);
+                } catch (err) {
+                    console.warn('Delete presence warning:', docKey, err);
+                }
+            }
+            this.state.presences = (this.state.presences || []).filter((p: any) => {
+                const key = p.id || `${p.esploratoreId}_${p.attivitaId}`;
+                return !orphanIds.has(key);
+            });
+            if (typeof this.rebuildPresenceIndex === 'function') {
+                this.rebuildPresenceIndex();
+            }
+            this.showToast(`Pulizia completata: ${initialCount} presenze orfane eliminate con successo.`, { type: 'success' });
+            return { success: true, deletedCount: initialCount };
+        } catch (err) {
+            this.reportError(err, { userMessage: 'Errore durante la rimozione delle presenze orfane.' });
+            return { success: false, deletedCount: 0, error: err };
+        } finally {
+            this.hideLoadingOverlay();
+        }
+    },
 
     renderCurrentPage() { },
     renderStaffSelectionList() {
         const c = this.qs('#staffListForSelection');
         if (c) c.innerHTML = (this.state.staff || []).map(s => `<button class="p-2 w-full text-left hover:bg-gray-100" onclick="UI.selectStaff('${s.id}')">${s.nome} ${s.cognome}</button>`).join('');
     },
-    selectStaff(id) {
+    selectStaff(id: string) {
         this.selectedStaffId = id;
         const m = this.state.staff.find(s => s.id === id);
         if (this.qs('#selectedStaffName')) this.qs('#selectedStaffName').textContent = m ? `${m.nome} ${m.cognome}` : 'Nessuno';
@@ -1199,6 +1312,6 @@ export const UI = {
         this.renderCurrentPage();
     },
 
-    checkRateLimit(key) { return true; },
-    debounceWithRateLimit(key, fn, ms) { setTimeout(fn, ms); }
+    checkRateLimit(key: string) { return true; },
+    debounceWithRateLimit(key: string, fn: Function, ms: number) { setTimeout(fn, ms); }
 };

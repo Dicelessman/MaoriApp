@@ -207,6 +207,12 @@ export const DATA = {
         return result;
     },
 
+    async deletePresence(id: string, currentUser?: any) {
+        const result = await (this.adapter as any).deletePresence(id, currentUser);
+        this._invalidateCache();
+        return result;
+    },
+
     async getBudgetByActivity(activityId: string) {
         return await this.adapter.getBudgetByActivity(activityId);
     },

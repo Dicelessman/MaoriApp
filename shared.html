@@ -59,6 +59,15 @@
   </div>
 </header>
 
+<!-- Banner Stato Offline -->
+<div id="offlineBanner" class="hidden bg-amber-500 text-amber-950 px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between shadow-sm border-b border-amber-600 transition-all" role="status" aria-live="polite">
+  <div class="flex items-center gap-2">
+    <span class="text-base">⚠️</span>
+    <span><strong>Sei offline:</strong> Modalità sola lettura. Le modifiche verranno sincronizzate non appena tornerà la connessione.</span>
+  </div>
+  <button type="button" onclick="window.location.reload()" class="underline hover:text-white ml-2 text-xs font-semibold focus:outline-none">Riprova</button>
+</div>
+
 <!-- Sidebar Overlay (Mobile) -->
 <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
 

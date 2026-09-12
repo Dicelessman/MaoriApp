@@ -129,6 +129,11 @@ export class LocalAdapter {
         this.persist();
         console.log('LocalAdapter: updatePresence', { field, value, scoutId, activityId, currentUser: currentUser?.email });
     }
+    async deletePresence(presenceKey, currentUser) {
+        this.state.presences = this.state.presences.filter(p => (p.id !== presenceKey && `${p.esploratoreId}_${p.attivitaId}` !== presenceKey));
+        this.persist();
+        console.log('LocalAdapter: deletePresence', { presenceKey, currentUser: currentUser?.email });
+    }
 
     // Budgets
     async getBudgetByActivity(activityId) {

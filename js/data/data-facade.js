@@ -173,6 +173,11 @@ export const DATA = {
         this._invalidateCache();
         return result;
     },
+    async deletePresence(id, currentUser) {
+        const result = await this.adapter.deletePresence(id, currentUser);
+        this._invalidateCache();
+        return result;
+    },
     // Budgets
     async getBudgetByActivity(activityId) {
         return await this.adapter.getBudgetByActivity(activityId);

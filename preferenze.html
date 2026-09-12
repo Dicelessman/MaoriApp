@@ -351,8 +351,51 @@
             </div>
           </div>
         </div>
-  </div>
-  </div>
+        <!-- Integrità Dati e Manutenzione (Fase 4) -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">🔍 Integrità Dati & Manutenzione</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Verifica incongruenze, presenze orfane, duplicati o date anomale nel database.</p>
+            </div>
+            <button id="runIntegrityCheckBtn" type="button" class="self-start sm:self-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition-colors shadow-sm flex items-center gap-1.5">
+              <span>🔍</span> Verifica Integrità
+            </button>
+          </div>
+
+          <!-- Contenitore Risultati Verifica -->
+          <div id="integrityReportContainer" class="hidden mt-4 space-y-3">
+            <div id="integritySummaryCard" class="p-4 rounded-lg border text-sm font-medium"></div>
+
+            <div id="integrityIssuesList" class="space-y-2 text-xs font-mono max-h-56 overflow-y-auto p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"></div>
+
+            <div id="cleanOrphansAction" class="hidden pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+              <span class="text-xs text-amber-800 dark:text-amber-300 font-medium">Rilevate presenze orfane non più associate ad attività o esploratori attivi.</span>
+              <button id="cleanOrphansBtn" type="button" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-xs font-semibold transition-colors">
+                🧹 Ripulisci Presenze Orfane
+              </button>
+            </div>
+          </div>
+
+          <!-- Registro Errori Recenti -->
+          <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">📋 Registro Errori Recenti</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Tracciamento degli ultimi errori applicativi registrati localmente.</p>
+              </div>
+              <div class="flex gap-2">
+                <button id="viewErrorsBtn" type="button" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded text-xs transition-colors">
+                  Mostra Log
+                </button>
+                <button id="clearErrorsBtn" type="button" class="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/40 dark:text-red-300 rounded text-xs transition-colors">
+                  Svuota
+                </button>
+              </div>
+            </div>
+            <div id="recentErrorsContainer" class="hidden mt-3 p-3 bg-gray-900 text-green-400 font-mono text-xs rounded-lg max-h-48 overflow-y-auto whitespace-pre-wrap"></div>
+          </div>
+        </div>
 
   <!-- Dati e Sincronizzazione -->
   <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">

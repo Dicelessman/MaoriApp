@@ -412,6 +412,9 @@ UI.renderPreferencesPage = function () {
   // Setup Export/Import
   this.setupExportImport();
 
+  // Setup Integrità Dati e Manutenzione (Fase 4)
+  this.setupDataIntegrityUI();
+
   // Setup reset shortcuts
   if (resetShortcutsBtn) {
     resetShortcutsBtn.addEventListener('click', async () => {
@@ -1038,5 +1041,113 @@ UI.parseCSV = function (str) {
     arr[row][col] += cc;
   }
   return arr;
+};
+
+/**
+ * Gestione interfaccia Integrità Dati & Manutenzione (Fase 4)
+ */
+UI.setupDataIntegrityUI = function () {
+  const checkBtn = document.getElementById('runIntegrityCheckBtn');
+  const reportContainer = document.getElementById('integrityReportContainer');
+  const summaryCard = document.getElementById('integritySummaryCard');
+  const issuesList = document.getElementById('integrityIssuesList');
+  const cleanOrphansAction = document.getElementById('cleanOrphansAction');
+  const cleanOrphansBtn = document.getElementById('cleanOrphansBtn');
+  const viewErrorsBtn = document.getElementById('viewErrorsBtn');
+  const clearErrorsBtn = document.getElementById('clearErrorsBtn');
+  const errorsContainer = document.getElementById('recentErrorsContainer');
+
+  if (checkBtn && !checkBtn._bound) {
+    checkBtn._bound = true;
+    checkBtn.addEventListener('click', () => {
+      const report = this.checkDataIntegrity();
+      if (!reportContainer || !summaryCard || !issuesList) return;
+
+      reportContainer.classList.remove('hidden');
+      issuesList.innerHTML = '';
+
+      if (report.isValid) {
+        summaryCard.className = 'p-4 rounded-lg border text-sm font-medium bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800';
+        summaryCard.innerHTML = '✅ <strong>Integrità verificata al 100%:</strong> Nessun problema o incongruenza rilevata tra esploratori, attività, presenze e staff.';
+        if (cleanOrphansAction) cleanOrphansAction.classList.add('hidden');
+      } else {
+        summaryCard.className = 'p-4 rounded-lg border text-sm font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+        summaryCard.innerHTML = `⚠️ <strong>Rilevati ${report.summary.totalIssues} potenziali problemi di integrità:</strong>`;
+
+        const items = [];
+        if (report.summary.totalOrphanPresences > 0) {
+          items.push(`<li>• <strong>${report.summary.totalOrphanPresences}</strong> Presenze orfane (senza esploratore o attività corrispondente).</li>`);
+        }
+        if (report.summary.duplicateScouts.length > 0) {
+          const names = report.summary.duplicateScouts.map(d => d.scouts.map(s => `${s.nome} ${s.cognome}`).join(', ')).join('; ');
+          items.push(`<li>• <strong>${report.summary.duplicateScouts.length}</strong> Gruppi di esploratori omonimi (${names}).</li>`);
+        }
+        if (report.summary.duplicateStaffEmails.length > 0) {
+          const emails = report.summary.duplicateStaffEmails.map(d => d.email).join(', ');
+          items.push(`<li>• <strong>${report.summary.duplicateStaffEmails.length}</strong> Staff con email duplicate (${emails}).</li>`);
+        }
+        if (report.summary.invalidDateActivities.length > 0) {
+          items.push(`<li>• <strong>${report.summary.invalidDateActivities.length}</strong> Attività con date non valide o mancanti.</li>`);
+        }
+        issuesList.innerHTML = `<ul class="space-y-1.5">${items.join('')}</ul>`;
+
+        if (cleanOrphansAction) {
+          if (report.summary.totalOrphanPresences > 0) {
+            cleanOrphansAction.classList.remove('hidden');
+          } else {
+            cleanOrphansAction.classList.add('hidden');
+          }
+        }
+      }
+    });
+  }
+
+  if (cleanOrphansBtn && !cleanOrphansBtn._bound) {
+    cleanOrphansBtn._bound = true;
+    cleanOrphansBtn.addEventListener('click', () => {
+      this.showConfirmModal({
+        title: 'Pulizia Presenze Orfane',
+        message: 'Sei sicuro di voler eliminare tutte le presenze orfane non più collegate ad attività o esploratori esistenti?',
+        confirmText: 'Sì, Elimina Orfani',
+        cancelText: 'Annulla',
+        onConfirm: async () => {
+          await this.cleanOrphanPresences();
+          if (checkBtn) checkBtn.click();
+        }
+      });
+    });
+  }
+
+  if (viewErrorsBtn && !viewErrorsBtn._bound) {
+    viewErrorsBtn._bound = true;
+    viewErrorsBtn.addEventListener('click', () => {
+      if (!errorsContainer) return;
+      const isHidden = errorsContainer.classList.contains('hidden');
+      if (isHidden) {
+        const errors = this.getRecentErrors();
+        if (!errors.length) {
+          errorsContainer.textContent = 'Nessun errore applicativo registrato di recente.';
+        } else {
+          errorsContainer.textContent = JSON.stringify(errors, null, 2);
+        }
+        errorsContainer.classList.remove('hidden');
+        viewErrorsBtn.textContent = 'Nascondi Log';
+      } else {
+        errorsContainer.classList.add('hidden');
+        viewErrorsBtn.textContent = 'Mostra Log';
+      }
+    });
+  }
+
+  if (clearErrorsBtn && !clearErrorsBtn._bound) {
+    clearErrorsBtn._bound = true;
+    clearErrorsBtn.addEventListener('click', () => {
+      this.clearRecentErrors();
+      if (errorsContainer) {
+        errorsContainer.textContent = 'Registro errori svuotato.';
+      }
+      this.showToast('Registro errori svuotato', { type: 'info' });
+    });
+  }
 };
 

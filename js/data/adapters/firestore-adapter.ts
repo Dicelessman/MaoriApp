@@ -208,6 +208,10 @@ export class FirestoreAdapter {
         }
     }
 
+    async deletePresence(presenceKey: string, currentUser?: any) {
+        await deleteDoc(doc(this.db, 'presences', presenceKey));
+    }
+
     // Budgets
     async getBudgetByActivity(activityId: string) {
         const docRef = doc(this.db, 'budgets', activityId);

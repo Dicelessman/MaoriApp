@@ -148,3 +148,132 @@ export function setupFormValidation(form, rules) {
             setTimeout(validateField, 100);
     });
 }
+
+/**
+ * Checks data integrity across scouts, activities, presences, and staff
+ * @param {Object} state - Application state
+ * @returns {Object} Integrity report with status and issues summary
+ */
+export function checkDataIntegrity(state) {
+    if (!state) {
+        return {
+            isValid: true,
+            summary: {
+                totalIssues: 0,
+                totalOrphanPresences: 0,
+                orphanPresencesNoScout: [],
+                orphanPresencesNoActivity: [],
+                duplicateScouts: [],
+                duplicateStaffEmails: [],
+                invalidDateActivities: []
+            }
+        };
+    }
+
+    const scouts = state.scouts || [];
+    const activities = state.activities || [];
+    const presences = state.presences || [];
+    const staff = state.staff || [];
+
+    const scoutIdSet = new Set(scouts.map(s => String(s.id)));
+    const activityIdSet = new Set(activities.map(a => String(a.id)));
+
+    // 1. Orphan Presences
+    const orphanPresencesNoScout = [];
+    const orphanPresencesNoActivity = [];
+
+    presences.forEach(p => {
+        const hasScout = scoutIdSet.has(String(p.esploratoreId));
+        const hasActivity = activityIdSet.has(String(p.attivitaId));
+
+        if (!hasScout) {
+            orphanPresencesNoScout.push(p);
+        }
+        if (!hasActivity) {
+            orphanPresencesNoActivity.push(p);
+        }
+    });
+
+    // 2. Duplicate Scouts (same nome + cognome lowercase)
+    const duplicateScouts = [];
+    const scoutMap = new Map();
+    scouts.forEach(s => {
+        const key = `${(s.nome || '').trim().toLowerCase()}_${(s.cognome || '').trim().toLowerCase()}`;
+        if (key !== '_') {
+            if (!scoutMap.has(key)) {
+                scoutMap.set(key, [s]);
+            } else {
+                scoutMap.get(key).push(s);
+            }
+        }
+    });
+    for (const [key, group] of scoutMap.entries()) {
+        if (group.length > 1) {
+            duplicateScouts.push({
+                key,
+                count: group.length,
+                scouts: group.map(s => ({ id: s.id, nome: s.nome, cognome: s.cognome, pv_pattuglia: s.pv_pattuglia }))
+            });
+        }
+    }
+
+    // 3. Duplicate Staff Emails
+    const duplicateStaffEmails = [];
+    const staffMap = new Map();
+    staff.forEach(m => {
+        const email = (m.email || '').trim().toLowerCase();
+        if (email) {
+            if (!staffMap.has(email)) {
+                staffMap.set(email, [m]);
+            } else {
+                staffMap.get(email).push(m);
+            }
+        }
+    });
+    for (const [email, group] of staffMap.entries()) {
+        if (group.length > 1) {
+            duplicateStaffEmails.push({
+                email,
+                count: group.length,
+                staff: group.map(m => ({ id: m.id, nome: m.nome, cognome: m.cognome, email: m.email }))
+            });
+        }
+    }
+
+    // 4. Invalid Date Activities
+    const invalidDateActivities = [];
+    activities.forEach(a => {
+        const d = a.data && typeof a.data.toDate === 'function' ? a.data.toDate() : (a.data ? new Date(a.data) : null);
+        if (!d || isNaN(d.getTime())) {
+            invalidDateActivities.push({
+                id: a.id,
+                descrizione: a.descrizione || 'Senza descrizione',
+                tipo: a.tipo || 'Attività',
+                data: a.data
+            });
+        }
+    });
+
+    const uniqueOrphanPresenceIds = new Set([
+        ...orphanPresencesNoScout.map(p => p.id || `${p.esploratoreId}_${p.attivitaId}`),
+        ...orphanPresencesNoActivity.map(p => p.id || `${p.esploratoreId}_${p.attivitaId}`)
+    ]);
+
+    const totalIssues = uniqueOrphanPresenceIds.size +
+        duplicateScouts.length +
+        duplicateStaffEmails.length +
+        invalidDateActivities.length;
+
+    return {
+        isValid: totalIssues === 0,
+        summary: {
+            totalIssues,
+            totalOrphanPresences: uniqueOrphanPresenceIds.size,
+            orphanPresencesNoScout,
+            orphanPresencesNoActivity,
+            duplicateScouts,
+            duplicateStaffEmails,
+            invalidDateActivities
+        }
+    };
+}

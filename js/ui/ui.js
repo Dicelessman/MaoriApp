@@ -7,7 +7,7 @@ import { DATA } from '../data/data-facade.js';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, getToken, onMessage, collection, doc, getDocs, addDoc, setDoc, updateDoc, getDoc, query, limit, orderBy, where, Timestamp } from '../core/firebase.js';
 import { APP_VERSION, THEME } from '../utils/constants.js';
 import { escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit } from '../utils/utils.js';
-import { setupFormValidation, validateForm, validateFieldValue } from '../utils/validation.js';
+import { setupFormValidation, validateForm, validateFieldValue, checkDataIntegrity } from '../utils/validation.js';
 export const UI = {
     appVersion: APP_VERSION,
     selectedStaffId: null,
@@ -1333,11 +1333,114 @@ export const UI = {
         }, { passive: true });
     },
     logNetworkInfo() { },
-    runConnectivityProbe() { window.addEventListener('online', () => this.updateConnectionStatus(true)); window.addEventListener('offline', () => this.updateConnectionStatus(false)); },
+    runConnectivityProbe() {
+        window.addEventListener('online', () => this.updateConnectionStatus(true));
+        window.addEventListener('offline', () => this.updateConnectionStatus(false));
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            this.updateConnectionStatus(false);
+        }
+    },
     updateConnectionStatus(online) {
-        const s = this.qs('#connectionStatus'); if (s) {
+        const s = this.qs('#connectionStatus');
+        if (s) {
             s.textContent = online ? 'Online' : 'Offline';
             s.className = online ? 'online' : 'offline';
+        }
+        const banner = this.qs('#offlineBanner');
+        if (banner) {
+            if (online) {
+                banner.classList.add('hidden');
+            } else {
+                banner.classList.remove('hidden');
+            }
+        }
+        if (!online) {
+            this.showToast('Sei offline: modifiche non disponibili fino alla riconnessione.', { type: 'warning', duration: 4000 });
+        } else if (this._wasOffline) {
+            this.showToast('Connessione internet ripristinata!', { type: 'success', duration: 3000 });
+            if (typeof this.renderCurrentPage === 'function') {
+                this.renderCurrentPage();
+            }
+        }
+        this._wasOffline = !online;
+    },
+    reportError(error, context = {}) {
+        const errorInfo = {
+            timestamp: new Date().toISOString(),
+            message: error?.message || String(error),
+            stack: error?.stack || null,
+            context: context || {},
+            url: typeof window !== 'undefined' ? window.location.href : '',
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : ''
+        };
+        console.error('[AppError]', errorInfo);
+        try {
+            const raw = localStorage.getItem('app-recent-errors');
+            const errors = raw ? JSON.parse(raw) : [];
+            errors.unshift(errorInfo);
+            if (errors.length > 10) errors.length = 10;
+            localStorage.setItem('app-recent-errors', JSON.stringify(errors));
+        } catch (e) {
+            console.warn('Could not save error to localStorage', e);
+        }
+        const userMsg = context.userMessage || 'Si è verificato un errore.';
+        this.showToast(userMsg, { type: 'error', duration: 4000 });
+        return errorInfo;
+    },
+    getRecentErrors() {
+        try {
+            const raw = localStorage.getItem('app-recent-errors');
+            return raw ? JSON.parse(raw) : [];
+        } catch {
+            return [];
+        }
+    },
+    clearRecentErrors() {
+        try {
+            localStorage.removeItem('app-recent-errors');
+        } catch {}
+    },
+    checkDataIntegrity() {
+        return checkDataIntegrity(this.state);
+    },
+    async cleanOrphanPresences() {
+        if (!this.currentUser) {
+            this.showToast('Devi essere autenticato per pulire i dati orfani.', { type: 'error' });
+            return { success: false, deletedCount: 0 };
+        }
+        const report = this.checkDataIntegrity();
+        const { orphanPresencesNoScout, orphanPresencesNoActivity } = report.summary;
+        const orphans = [...orphanPresencesNoScout, ...orphanPresencesNoActivity];
+        if (orphans.length === 0) {
+            this.showToast('Nessuna presenza orfana trovata.', { type: 'info' });
+            return { success: true, deletedCount: 0 };
+        }
+        const orphanIds = new Set(orphans.map(p => p.id || `${p.esploratoreId}_${p.attivitaId}`));
+        const initialCount = orphanIds.size;
+        this.showLoadingOverlay('Pulizia presenze orfane in corso...');
+        try {
+            for (const p of orphans) {
+                const docKey = p.id || `${p.esploratoreId}_${p.attivitaId}`;
+                try {
+                    await DATA.deletePresence(docKey, this.currentUser);
+                } catch (err) {
+                    console.warn('Delete presence warning:', docKey, err);
+                }
+            }
+            this.state.presences = (this.state.presences || []).filter(p => {
+                const key = p.id || `${p.esploratoreId}_${p.attivitaId}`;
+                return !orphanIds.has(key);
+            });
+            if (typeof this.rebuildPresenceIndex === 'function') {
+                this.rebuildPresenceIndex();
+            }
+            this.showToast(`Pulizia completata: ${initialCount} presenze orfane eliminate con successo.`, { type: 'success' });
+            return { success: true, deletedCount: initialCount };
+        } catch (err) {
+            this.reportError(err, { userMessage: 'Errore durante la rimozione delle presenze orfane.' });
+            return { success: false, deletedCount: 0, error: err };
+        } finally {
+            this.hideLoadingOverlay();
         }
     },
     renderCurrentPage() { },
