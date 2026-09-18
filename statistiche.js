@@ -99,12 +99,165 @@ UI.renderStatistiche = async function() {
   
   // Renderizza tabella pattuglie
   this.renderPattuglieTable(scouts);
+
+  // Renderizza grafici trend anno scout
+  this.renderMonthlyTrendChart(scouts);
+  this.renderScoutRankingChart(scouts);
   
   // Setup report presenze avanzati
   this.renderPresenceReport();
 };
 
+
+// ============== Trend Mensile Anno Scout ==============
+UI.renderMonthlyTrendChart = function(scouts) {
+  const ctx = document.getElementById('monthlyPresenceTrendChart');
+  if (!ctx) return;
+
+  const selectedYear = this.selectedStatsScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
+  const isAll = selectedYear === 'all';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  const activities = (this.state.activities || []).filter(a => {
+    if (isAll) return true;
+    return this.isActivityInScoutYear ? this.isActivityInScoutYear(a, selectedYear) : true;
+  }).filter(a => {
+    const d = this.toJsDate(a.data);
+    return d && d <= today;
+  });
+
+  const presences = this.getDedupedPresences ? this.getDedupedPresences() : (this.state.presences || []);
+
+  // Aggrega per mese
+  const monthlyMap = {};
+  activities.forEach(act => {
+    const d = this.toJsDate(act.data);
+    if (!d) return;
+    const key = d.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' });
+    const order = d.getFullYear() * 100 + d.getMonth();
+    if (!monthlyMap[key]) monthlyMap[key] = { presenti: 0, assenti: 0, order };
+    const actPresences = presences.filter(p => p.attivitaId === act.id);
+    monthlyMap[key].presenti += actPresences.filter(p => p.stato === 'Presente').length;
+    monthlyMap[key].assenti += actPresences.filter(p => p.stato === 'Assente').length;
+  });
+
+  const sorted = Object.entries(monthlyMap).sort((a, b) => a[1].order - b[1].order);
+  const labels = sorted.map(e => e[0]);
+  const presenti = sorted.map(e => e[1].presenti);
+  const assenti = sorted.map(e => e[1].assenti);
+  const percentuali = sorted.map(e => {
+    const tot = e[1].presenti + e[1].assenti;
+    return tot > 0 ? Math.round((e[1].presenti / tot) * 100) : 0;
+  });
+
+  this._destroyChart('monthlyPresenceTrendChart');
+  const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Presenti', data: presenti, backgroundColor: 'rgba(22,163,74,0.75)', borderRadius: 5, order: 2 },
+        { label: 'Assenti', data: assenti, backgroundColor: 'rgba(220,38,38,0.5)', borderRadius: 5, order: 2 },
+        {
+          label: '% Presenza', data: percentuali, type: 'line',
+          borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)',
+          tension: 0.4, yAxisID: 'y1', pointRadius: 4, pointBackgroundColor: '#2563eb', order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 }, title: { display: true, text: 'N° persone' } },
+        y1: {
+          beginAtZero: true, max: 100, position: 'right', grid: { drawOnChartArea: false },
+          ticks: { callback: v => v + '%' }, title: { display: true, text: '% presenza' }
+        }
+      }
+    }
+  });
+  this._charts = this._charts || {};
+  this._charts.monthlyPresenceTrendChart = chart;
+};
+
+// ============== Ranking Presenze Esploratori ==============
+UI.renderScoutRankingChart = function(scouts) {
+  const ctx = document.getElementById('scoutRankingChart');
+  if (!ctx) return;
+
+  const selectedYear = this.selectedStatsScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
+  const isAll = selectedYear === 'all';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  const activities = (this.state.activities || []).filter(a => {
+    if (isAll) return true;
+    return this.isActivityInScoutYear ? this.isActivityInScoutYear(a, selectedYear) : true;
+  }).filter(a => {
+    const d = this.toJsDate(a.data);
+    return d && d <= today;
+  });
+
+  const presences = this.getDedupedPresences ? this.getDedupedPresences() : (this.state.presences || []);
+
+  // Calcola % per esploratore
+  const scoutStats = scouts.map(s => {
+    let presenti = 0, totale = 0;
+    activities.forEach(act => {
+      const p = presences.find(x => x.esploratoreId === s.id && x.attivitaId === act.id);
+      if (p && (p.stato === 'Presente' || p.stato === 'Assente')) {
+        totale++;
+        if (p.stato === 'Presente') presenti++;
+      }
+    });
+    const perc = totale > 0 ? Math.round((presenti / totale) * 100) : 0;
+    const nome = `${s.anag_nome || ''} ${s.anag_cognome || ''}`.trim() || s.id;
+    return { nome, perc, presenti, totale };
+  }).filter(s => s.totale > 0).sort((a, b) => b.perc - a.perc);
+
+  if (scoutStats.length === 0) return;
+
+  const labels = scoutStats.map(s => s.nome);
+  const data = scoutStats.map(s => s.perc);
+  const colors = data.map(v => v >= 75 ? 'rgba(22,163,74,0.75)' : v >= 60 ? 'rgba(234,179,8,0.75)' : 'rgba(220,38,38,0.65)');
+
+  this._destroyChart('scoutRankingChart');
+  const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '% Presenza',
+        data,
+        backgroundColor: colors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const s = scoutStats[ctx.dataIndex];
+              return ` ${s.perc}% (${s.presenti}/${s.totale} attività)`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }
+      }
+    }
+  });
+  this._charts = this._charts || {};
+  this._charts.scoutRankingChart = chart;
+};
+
 UI.setupStatsScoutYearSelector = function() {
+
   const select = document.getElementById('statsScoutYearSelect');
   if (!select) return;
 
@@ -1200,7 +1353,57 @@ UI.renderPresenceReportResults = function(stats, startDate, endDate) {
     `;
   }
   
-  // Tabella dettaglio
+  // Grafico mensile trend (presenze per mese)
+  const monthlyMap = {};
+  stats.trend.forEach(t => {
+    if (!t.date) return;
+    const d = t.date instanceof Date ? t.date : new Date(t.date);
+    if (isNaN(d)) return;
+    const key = d.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' });
+    if (!monthlyMap[key]) monthlyMap[key] = { presenti: 0, assenti: 0, order: d.getTime() };
+    monthlyMap[key].presenti += t.presenti;
+    monthlyMap[key].assenti += t.assenti;
+  });
+  const monthlyLabels = Object.entries(monthlyMap).sort((a, b) => a[1].order - b[1].order).map(e => e[0]);
+  const monthlyPresenti = monthlyLabels.map(k => monthlyMap[k].presenti);
+  const monthlyAssenti = monthlyLabels.map(k => monthlyMap[k].assenti);
+
+  // Inietta canvas trend mensile se non esiste
+  let monthlyContainer = document.getElementById('presenceMonthlyTrendContainer');
+  if (!monthlyContainer) {
+    const resultsDiv = document.getElementById('presenceReportResults');
+    if (resultsDiv) {
+      const div = document.createElement('div');
+      div.id = 'presenceMonthlyTrendContainer';
+      div.className = 'bg-gray-50 p-6 rounded-lg shadow-inner mb-4';
+      div.innerHTML = '<h4 class="text-lg font-semibold text-gray-700 mb-4">📈 Trend Mensile Presenze</h4><div style="height:280px"><canvas id="presenceMonthlyChart"></canvas></div>';
+      resultsDiv.insertBefore(div, resultsDiv.firstChild.nextSibling);
+      monthlyContainer = div;
+    }
+  }
+  const ctxMonthly = document.getElementById('presenceMonthlyChart');
+  if (ctxMonthly && monthlyLabels.length > 0) {
+    this._destroyChart('presenceMonthlyChart');
+    const mChart = new Chart(ctxMonthly, {
+      type: 'bar',
+      data: {
+        labels: monthlyLabels,
+        datasets: [
+          { label: 'Presenti', data: monthlyPresenti, backgroundColor: 'rgba(22,163,74,0.75)', borderRadius: 6 },
+          { label: 'Assenti', data: monthlyAssenti, backgroundColor: 'rgba(220,38,38,0.55)', borderRadius: 6 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+        scales: { x: { stacked: false }, y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+    this._charts = this._charts || {};
+    this._charts.presenceMonthlyChart = mChart;
+  }
+
+  // Tabella dettaglio con fix nomi campi
   const tableBody = document.getElementById('presenceReportTableBody');
   if (tableBody) {
     const scoutStats = Object.values(stats.byScout)
@@ -1209,19 +1412,30 @@ UI.renderPresenceReportResults = function(stats, startDate, endDate) {
         percentuale: s.totale > 0 ? Math.round((s.presenti / s.totale) * 100) : 0
       }))
       .sort((a, b) => b.percentuale - a.percentuale);
-    
-    tableBody.innerHTML = scoutStats.map(s => `
-      <tr class="border-b hover:bg-gray-50">
-        <td class="p-2">${s.scout.nome} ${s.scout.cognome}</td>
-        <td class="p-2">${s.scout.pv_pattuglia || 'N/A'}</td>
-        <td class="p-2 text-right">${s.presenti}</td>
-        <td class="p-2 text-right">${s.assenti}</td>
-        <td class="p-2 text-right">${s.totale}</td>
-        <td class="p-2 text-right font-semibold ${s.percentuale >= 75 ? 'text-green-600' : s.percentuale >= 60 ? 'text-yellow-600' : 'text-red-600'}">
-          ${s.percentuale}%
-        </td>
-      </tr>
-    `).join('');
+
+    tableBody.innerHTML = scoutStats.map(s => {
+      const nome = s.scout.anag_nome || s.scout.nome || '';
+      const cognome = s.scout.anag_cognome || s.scout.cognome || '';
+      const pattuglia = s.scout.anag_pattuglia || s.scout.pv_pattuglia || 'N/A';
+      const colorClass = s.percentuale >= 75 ? 'text-green-600' : s.percentuale >= 60 ? 'text-yellow-600' : 'text-red-600';
+      const badge = s.percentuale < 50 ? '<span class="ml-1 text-xs bg-red-100 text-red-700 rounded px-1 font-bold">⚠️ Bassa</span>' :
+                    s.percentuale >= 90 ? '<span class="ml-1 text-xs bg-green-100 text-green-700 rounded px-1 font-bold">⭐</span>' : '';
+      // Mini barra progresso
+      const bar = `<div class="flex items-center gap-2 justify-end">
+        <div class="flex-1 max-w-16 bg-gray-200 rounded-full h-1.5" style="max-width:60px">
+          <div class="h-1.5 rounded-full ${s.percentuale >= 75 ? 'bg-green-500' : s.percentuale >= 60 ? 'bg-yellow-500' : 'bg-red-500'}" style="width:${s.percentuale}%"></div>
+        </div>
+        <span class="font-semibold ${colorClass}">${s.percentuale}%${badge}</span>
+      </div>`;
+      return `<tr class="border-b hover:bg-gray-50 transition-colors">
+        <td class="p-2 font-medium">${nome} ${cognome}</td>
+        <td class="p-2 text-gray-600">${pattuglia}</td>
+        <td class="p-2 text-right text-green-700 font-medium">${s.presenti}</td>
+        <td class="p-2 text-right text-red-600">${s.assenti}</td>
+        <td class="p-2 text-right text-gray-600">${s.totale}</td>
+        <td class="p-2 text-right">${bar}</td>
+      </tr>`;
+    }).join('');
   }
 };
 
@@ -1238,9 +1452,12 @@ UI.exportPresenceReportCSV = function() {
   const rows = Object.values(stats.byScout)
     .map(s => {
       const perc = s.totale > 0 ? Math.round((s.presenti / s.totale) * 100) : 0;
+      const nome = s.scout.anag_nome || s.scout.nome || '';
+      const cognome = s.scout.anag_cognome || s.scout.cognome || '';
+      const pattuglia = s.scout.anag_pattuglia || s.scout.pv_pattuglia || 'N/A';
       return [
-        `${s.scout.nome} ${s.scout.cognome}`,
-        s.scout.pv_pattuglia || 'N/A',
+        `${nome} ${cognome}`,
+        pattuglia,
         s.presenti,
         s.assenti,
         s.totale,
