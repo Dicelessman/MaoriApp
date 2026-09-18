@@ -529,16 +529,21 @@ export const UI = {
         const m = document.getElementById(id);
         if (m) {
             m.classList.add('show');
+            m.classList.remove('hidden');
             m.setAttribute('aria-hidden', 'false');
             const input = m.querySelector('input, button');
             if (input)
                 input.focus();
         }
     },
+    openModal(id) {
+        this.showModal(id);
+    },
     closeModal(id) {
         const m = document.getElementById(id);
         if (m) {
             m.classList.remove('show');
+            m.classList.add('hidden');
             m.setAttribute('aria-hidden', 'true');
         }
     },

@@ -519,6 +519,7 @@ UI.renderPreferencesPage = function () {
 };
 
 UI.setupScoutYearManagement = function () {
+  const self = this || window.UI || {};
   const prefSelect = document.getElementById('prefActiveScoutYear');
   const summaryText = document.getElementById('scoutYearSummaryText');
   const openModalBtn = document.getElementById('openArchiveYearModalBtn');
@@ -528,9 +529,35 @@ UI.setupScoutYearManagement = function () {
 
   if (!prefSelect) return;
 
-  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
-  const allYears = this.getAllScoutYears ? this.getAllScoutYears(this.state.activities) : [currentScoutYear];
-  const activeYear = this.getSelectedScoutYear ? this.getSelectedScoutYear() : currentScoutYear;
+  const currentScoutYear = self.getCurrentScoutYear ? self.getCurrentScoutYear() : '2025/2026';
+  const allYears = self.getAllScoutYears ? self.getAllScoutYears(self.state?.activities || []) : [currentScoutYear];
+  const activeYear = self.getSelectedScoutYear ? self.getSelectedScoutYear() : currentScoutYear;
+
+  const openArchiveModal = () => {
+    const modalEl = document.getElementById('archiveYearModal');
+    if (typeof self.openModal === 'function') {
+      self.openModal('archiveYearModal');
+    } else if (typeof self.showModal === 'function') {
+      self.showModal('archiveYearModal');
+    } else if (window.UI && typeof window.UI.showModal === 'function') {
+      window.UI.showModal('archiveYearModal');
+    } else if (modalEl) {
+      modalEl.classList.add('show');
+      modalEl.classList.remove('hidden');
+    }
+  };
+
+  const closeArchiveModal = () => {
+    const modalEl = document.getElementById('archiveYearModal');
+    if (typeof self.closeModal === 'function') {
+      self.closeModal('archiveYearModal');
+    } else if (window.UI && typeof window.UI.closeModal === 'function') {
+      window.UI.closeModal('archiveYearModal');
+    } else if (modalEl) {
+      modalEl.classList.remove('show');
+      modalEl.classList.add('hidden');
+    }
+  };
 
   // Popola select con tutti gli anni scout
   prefSelect.innerHTML = '';
@@ -547,10 +574,10 @@ UI.setupScoutYearManagement = function () {
   // Aggiorna riepilogo attività e presenze dell'anno selezionato
   const updateSummary = (year) => {
     if (!summaryText) return;
-    const activities = (this.state.activities || []).filter(a =>
-      this.isActivityInScoutYear ? this.isActivityInScoutYear(a, year) : true
+    const activities = (self.state?.activities || []).filter(a =>
+      self.isActivityInScoutYear ? self.isActivityInScoutYear(a, year) : true
     );
-    const presences = (this.state.presences || []).filter(p =>
+    const presences = (self.state?.presences || []).filter(p =>
       activities.some(a => a.id === p.attivitaId)
     );
     const presenti = presences.filter(p => p.stato === 'Presente').length;
@@ -566,10 +593,12 @@ UI.setupScoutYearManagement = function () {
   if (!prefSelect._bound) {
     prefSelect._bound = true;
     prefSelect.addEventListener('change', async (e) => {
-      if (this.setSelectedScoutYear) {
-        await this.setSelectedScoutYear(e.target.value);
+      if (self.setSelectedScoutYear) {
+        await self.setSelectedScoutYear(e.target.value);
         updateSummary(e.target.value);
-        this.showToast(`Anno Scout attivo impostato a ${e.target.value}`, { type: 'success' });
+        if (self.showToast) {
+          self.showToast(`Anno Scout attivo impostato a ${e.target.value}`, { type: 'success' });
+        }
       }
     });
   }
@@ -589,7 +618,7 @@ UI.setupScoutYearManagement = function () {
       }
 
       if (newYearInput) newYearInput.value = nextYear;
-      this.openModal('archiveYearModal');
+      openArchiveModal();
     });
   }
 
@@ -601,10 +630,10 @@ UI.setupScoutYearManagement = function () {
         app: 'MaoriApp',
         exportDate: new Date().toISOString(),
         scoutYearArchived: activeYear,
-        scouts: this.state.scouts || [],
-        activities: (this.state.activities || []).filter(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, activeYear) : true),
-        presences: this.state.presences || [],
-        staff: this.state.staff || []
+        scouts: self.state?.scouts || [],
+        activities: (self.state?.activities || []).filter(a => self.isActivityInScoutYear ? self.isActivityInScoutYear(a, activeYear) : true),
+        presences: self.state?.presences || [],
+        staff: self.state?.staff || []
       };
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -615,7 +644,9 @@ UI.setupScoutYearManagement = function () {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      this.showToast('Backup scaricato con successo', { type: 'success' });
+      if (self.showToast) {
+        self.showToast('Backup scaricato con successo', { type: 'success' });
+      }
     });
   }
 
@@ -625,21 +656,28 @@ UI.setupScoutYearManagement = function () {
     confirmBtn.addEventListener('click', async () => {
       const newYear = (newYearInput?.value || '').trim();
       if (!newYear || !newYear.includes('/')) {
-        this.showToast('Inserisci un formato valido per l\'anno scout (es. 2025/2026)', { type: 'error' });
+        if (self.showToast) {
+          self.showToast('Inserisci un formato valido per l\'anno scout (es. 2025/2026)', { type: 'error' });
+        }
         return;
       }
 
-      const prefs = this.loadUserPreferences();
+      const prefs = self.loadUserPreferences ? self.loadUserPreferences() : {};
       prefs.selectedScoutYear = newYear;
       if (!prefs.archivedScoutYears) prefs.archivedScoutYears = [];
       if (!prefs.archivedScoutYears.includes(activeYear)) {
         prefs.archivedScoutYears.push(activeYear);
       }
-      await this.saveUserPreferences(prefs);
+      if (self.saveUserPreferences) {
+        await self.saveUserPreferences(prefs);
+      }
 
-      this.closeModal('archiveYearModal');
-      this.showToast(`🎉 Anno ${activeYear} archiviato! Attivato nuovo Anno Scout ${newYear}`, { type: 'success', duration: 4000 });
-      this.setupScoutYearManagement();
+      closeArchiveModal();
+
+      if (self.showToast) {
+        self.showToast(`🎉 Anno ${activeYear} archiviato! Attivato nuovo Anno Scout ${newYear}`, { type: 'success', duration: 4000 });
+      }
+      self.setupScoutYearManagement();
     });
   }
 };
