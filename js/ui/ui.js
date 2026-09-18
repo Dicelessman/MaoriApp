@@ -1236,15 +1236,256 @@ export const UI = {
     },
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
+            // Chiudi modali con Escape
             if (e.key === 'Escape') {
+                // Prima chiudi la command palette se aperta
+                const cp = document.getElementById('commandPalette');
+                if (cp && !cp.classList.contains('hidden')) {
+                    this.closeCommandPalette();
+                    return;
+                }
                 const modals = document.querySelectorAll('.modal.show');
                 modals.forEach(m => this.closeModal(m.id));
             }
+            // Ctrl+K / Cmd+K – apri Command Palette
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const cp = document.getElementById('commandPalette');
+                if (cp && cp.classList.contains('hidden')) {
+                    this.openCommandPalette();
+                } else {
+                    this.closeCommandPalette();
+                }
+            }
+            // Ctrl+S / Cmd+S
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
-                // Save action if applicable
             }
         });
+    },
+
+    // ── Command Palette ──────────────────────────────────────────────────────
+
+    /** Apre la command palette e mette il focus sull'input */
+    openCommandPalette() {
+        const cp = document.getElementById('commandPalette');
+        const input = document.getElementById('commandPaletteInput');
+        if (!cp) return;
+        cp.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        if (input) {
+            input.value = '';
+            setTimeout(() => input.focus(), 50);
+        }
+        // Mostra suggerimenti iniziali, nasconde risultati
+        const suggestions = document.getElementById('commandPaletteSuggestions');
+        const results = document.getElementById('commandPaletteSearchResults');
+        const empty = document.getElementById('commandPaletteEmpty');
+        if (suggestions) suggestions.classList.remove('hidden');
+        if (results) results.classList.add('hidden');
+        if (empty) empty.classList.add('hidden');
+        // Listener: chiudi cliccando overlay
+        cp._overlayHandler = (e) => {
+            if (e.target === cp) this.closeCommandPalette();
+        };
+        cp.addEventListener('click', cp._overlayHandler);
+        // Listener: input ricerca
+        if (input && !input._cpBound) {
+            input._cpBound = true;
+            input.addEventListener('input', () => this.searchCommandPalette(input.value));
+            input.addEventListener('keydown', (e) => this.commandPaletteKeyNav(e));
+        }
+    },
+
+    /** Chiude la command palette e ripristina lo scroll */
+    closeCommandPalette() {
+        const cp = document.getElementById('commandPalette');
+        if (!cp) return;
+        cp.classList.add('hidden');
+        document.body.style.overflow = '';
+        if (cp._overlayHandler) {
+            cp.removeEventListener('click', cp._overlayHandler);
+            cp._overlayHandler = null;
+        }
+        // Reset active item
+        this._cpActiveIndex = -1;
+    },
+
+    /** Indice dell'elemento attivo nella keyboard navigation */
+    _cpActiveIndex: -1,
+
+    /**
+     * Esegue la ricerca su esploratori, attività e staff.
+     * @param {string} query - Testo inserito dall'utente
+     */
+    searchCommandPalette(query) {
+        const suggestions = document.getElementById('commandPaletteSuggestions');
+        const resultsContainer = document.getElementById('commandPaletteSearchResults');
+        const empty = document.getElementById('commandPaletteEmpty');
+        const queryEl = document.getElementById('commandPaletteQuery');
+        this._cpActiveIndex = -1;
+
+        const q = (query || '').trim().toLowerCase();
+
+        if (!q) {
+            // Nessuna query: mostra suggerimenti iniziali
+            if (suggestions) suggestions.classList.remove('hidden');
+            if (resultsContainer) resultsContainer.classList.add('hidden');
+            if (empty) empty.classList.add('hidden');
+            return;
+        }
+
+        if (suggestions) suggestions.classList.add('hidden');
+
+        const scouts = (this.state?.scouts || []).filter(s => !s.archived);
+        const activities = this.state?.activities || [];
+        const staff = this.state?.staff || [];
+
+        // Ricerca esploratori
+        const scoutResults = scouts
+            .filter(s => {
+                const full = `${s.anag_nome || ''} ${s.anag_cognome || ''} ${s.anag_pattuglia || ''}`.toLowerCase();
+                return full.includes(q);
+            })
+            .slice(0, 5)
+            .map(s => ({
+                icon: '👤',
+                text: `${s.anag_nome || ''} ${s.anag_cognome || ''}`.trim(),
+                meta: s.anag_pattuglia || 'Esploratore',
+                href: `esploratori.html`,
+                category: 'Esploratori'
+            }));
+
+        // Ricerca attività
+        const activityResults = activities
+            .filter(a => {
+                const text = `${a.descrizione || ''} ${a.tipo || ''}`.toLowerCase();
+                return text.includes(q);
+            })
+            .slice(0, 5)
+            .map(a => {
+                const dateStr = a.data ? (a.data.toDate ? a.data.toDate() : new Date(a.data)).toLocaleDateString('it-IT') : '';
+                return {
+                    icon: '📅',
+                    text: a.descrizione || 'Attività',
+                    meta: dateStr || a.tipo || 'Attività',
+                    href: 'calendario.html',
+                    category: 'Attività'
+                };
+            });
+
+        // Ricerca staff
+        const staffResults = staff
+            .filter(s => {
+                const full = `${s.nome || ''} ${s.cognome || ''} ${s.email || ''}`.toLowerCase();
+                return full.includes(q);
+            })
+            .slice(0, 3)
+            .map(s => ({
+                icon: '👔',
+                text: `${s.nome || ''} ${s.cognome || ''}`.trim(),
+                meta: s.ruolo || 'Staff',
+                href: 'staff.html',
+                category: 'Staff'
+            }));
+
+        const allResults = [...scoutResults, ...activityResults, ...staffResults];
+
+        if (allResults.length === 0) {
+            if (resultsContainer) resultsContainer.classList.add('hidden');
+            if (empty) {
+                empty.classList.remove('hidden');
+                if (queryEl) queryEl.textContent = query;
+            }
+            return;
+        }
+
+        if (empty) empty.classList.add('hidden');
+        if (resultsContainer) {
+            resultsContainer.classList.remove('hidden');
+            resultsContainer.innerHTML = this.renderCommandPaletteResults(allResults, q);
+        }
+    },
+
+    /**
+     * Genera l'HTML dei risultati raggruppati per categoria.
+     * @param {Array} results
+     * @param {string} query
+     * @returns {string}
+     */
+    renderCommandPaletteResults(results, query) {
+        const byCategory = {};
+        results.forEach(r => {
+            if (!byCategory[r.category]) byCategory[r.category] = [];
+            byCategory[r.category].push(r);
+        });
+        let html = '';
+        Object.entries(byCategory).forEach(([cat, items]) => {
+            html += `<div class="command-palette-section-label">${cat}</div>`;
+            items.forEach(item => {
+                const highlightedText = this.cpHighlightMatch(item.text, query);
+                html += `
+                  <a class="command-palette-item" href="${item.href}" role="option">
+                    <span class="cp-item-icon">${item.icon}</span>
+                    <span class="cp-item-text">${highlightedText}</span>
+                    <span class="cp-item-meta">${item.meta}</span>
+                  </a>`;
+            });
+        });
+        return html;
+    },
+
+    /**
+     * Evidenzia la query nel testo con la classe .cp-highlight.
+     * @param {string} text
+     * @param {string} query
+     * @returns {string}
+     */
+    cpHighlightMatch(text, query) {
+        if (!query || !text) return text || '';
+        const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(`(${escaped})`, 'gi');
+        return text.replace(re, '<mark class="cp-highlight">$1</mark>');
+    },
+
+    /**
+     * Gestisce la navigazione da tastiera dentro la command palette.
+     * @param {KeyboardEvent} e
+     */
+    commandPaletteKeyNav(e) {
+        const resultsEl = document.getElementById('commandPaletteSearchResults');
+        const suggestionsEl = document.getElementById('commandPaletteSuggestions');
+        const activeContainer = (resultsEl && !resultsEl.classList.contains('hidden'))
+            ? resultsEl
+            : (suggestionsEl && !suggestionsEl.classList.contains('hidden') ? suggestionsEl : null);
+        if (!activeContainer) return;
+
+        const items = Array.from(activeContainer.querySelectorAll('.command-palette-item'));
+        if (!items.length) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            this._cpActiveIndex = Math.min(this._cpActiveIndex + 1, items.length - 1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            this._cpActiveIndex = Math.max(this._cpActiveIndex - 1, 0);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (this._cpActiveIndex >= 0 && items[this._cpActiveIndex]) {
+                this.closeCommandPalette();
+                window.location.href = items[this._cpActiveIndex].href;
+            }
+            return;
+        } else {
+            return;
+        }
+
+        items.forEach((item, i) => {
+            item.setAttribute('data-active', i === this._cpActiveIndex ? 'true' : 'false');
+        });
+        if (items[this._cpActiveIndex]) {
+            items[this._cpActiveIndex].scrollIntoView({ block: 'nearest' });
+        }
     },
     // Export/Import Methods
     exportAllData() {

@@ -226,3 +226,80 @@
     </div>
   </div>
 </div>
+
+<!-- ── Command Palette (Ctrl+K) ─────────────────────────────────────────── -->
+<div id="commandPalette" class="command-palette-overlay hidden" role="dialog" aria-modal="true" aria-label="Ricerca globale" tabindex="-1">
+  <div class="command-palette-container" id="commandPaletteContainer">
+
+    <!-- Search input row -->
+    <div class="command-palette-search-row">
+      <span class="command-palette-search-icon" aria-hidden="true">🔍</span>
+      <input
+        id="commandPaletteInput"
+        type="text"
+        class="command-palette-input"
+        placeholder="Cerca esploratori, attività, staff…"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Ricerca globale"
+        aria-controls="commandPaletteResults"
+        aria-autocomplete="list"
+      />
+      <kbd class="command-palette-esc-hint">ESC</kbd>
+    </div>
+
+    <!-- Results list -->
+    <div id="commandPaletteResults" class="command-palette-results" role="listbox" aria-label="Risultati ricerca">
+      <!-- Stato iniziale: suggerimenti rapidi -->
+      <div id="commandPaletteSuggestions" class="command-palette-suggestions">
+        <div class="command-palette-section-label">Navigazione rapida</div>
+        <a class="command-palette-item" href="presenze.html" data-palette-action="nav" role="option">
+          <span class="cp-item-icon">✅</span>
+          <span class="cp-item-text">Presenze</span>
+          <span class="cp-item-meta">Calendario</span>
+        </a>
+        <a class="command-palette-item" href="calendario.html" data-palette-action="nav" role="option">
+          <span class="cp-item-icon">📅</span>
+          <span class="cp-item-text">Calendario Attività</span>
+          <span class="cp-item-meta">Calendario</span>
+        </a>
+        <a class="command-palette-item" href="esploratori.html" data-palette-action="nav" role="option">
+          <span class="cp-item-icon">👥</span>
+          <span class="cp-item-text">Esploratori</span>
+          <span class="cp-item-meta">Persone</span>
+        </a>
+        <a class="command-palette-item" href="scadenze.html" data-palette-action="nav" role="option">
+          <span class="cp-item-icon">⏰</span>
+          <span class="cp-item-text">Scadenze</span>
+          <span class="cp-item-meta">Utilità</span>
+        </a>
+        <a class="command-palette-item" href="statistiche.html" data-palette-action="nav" role="option">
+          <span class="cp-item-icon">📈</span>
+          <span class="cp-item-text">Statistiche</span>
+          <span class="cp-item-meta">Dati</span>
+        </a>
+        <a class="command-palette-item" href="preferenze.html" data-palette-action="nav" role="option">
+          <span class="cp-item-icon">⚙️</span>
+          <span class="cp-item-text">Preferenze</span>
+          <span class="cp-item-meta">Impostazioni</span>
+        </a>
+      </div>
+
+      <!-- Risultati ricerca (nascosti inizialmente) -->
+      <div id="commandPaletteSearchResults" class="hidden"></div>
+
+      <!-- Stato vuoto -->
+      <div id="commandPaletteEmpty" class="command-palette-empty hidden">
+        <span class="cp-empty-icon">🔍</span>
+        <p>Nessun risultato per "<span id="commandPaletteQuery"></span>"</p>
+      </div>
+    </div>
+
+    <!-- Footer hint -->
+    <div class="command-palette-footer">
+      <span><kbd>↑</kbd><kbd>↓</kbd> Naviga</span>
+      <span><kbd>↵</kbd> Apri</span>
+      <span><kbd>ESC</kbd> Chiudi</span>
+    </div>
+  </div>
+</div>
