@@ -344,6 +344,7 @@ export const UI = {
             });
             this.setupInstallPrompt();
             this.setupKeyboardShortcuts();
+            this.setupOfflineDetection();
         }
         catch (error) {
             console.error('UI.init error:', error);
@@ -1625,5 +1626,74 @@ export const UI = {
         this.renderCurrentPage();
     },
     checkRateLimit(key) { return true; },
-    debounceWithRateLimit(key, fn, ms) { setTimeout(fn, ms); }
+    debounceWithRateLimit(key, fn, ms) { setTimeout(fn, ms); },
+
+    // ── Offline Detection & PWA ──────────────────────────────────────────────
+
+    /**
+     * Inizializza il rilevamento dello stato di connessione.
+     * Mostra/nasconde il banner offline e aggiorna l'indicatore nell'header.
+     * Da chiamare una volta all'avvio di ogni pagina.
+     */
+    setupOfflineDetection() {
+        this.updateConnectionIndicator(navigator.onLine);
+        if (!navigator.onLine) this._showOfflineBanner();
+
+        window.addEventListener('online', () => {
+            this._hideOfflineBanner();
+            this.updateConnectionIndicator(true);
+            this.showToast('✅ Connessione ripristinata. Dati aggiornati.', { type: 'success', duration: 3000 });
+        });
+
+        window.addEventListener('offline', () => {
+            this._showOfflineBanner();
+            this.updateConnectionIndicator(false);
+            this.showToast('⚠️ Sei offline. Le modifiche verranno sincronizzate alla riconnessione.', { type: 'warning', duration: 4000 });
+        });
+    },
+
+    /** Mostra il banner offline */
+    _showOfflineBanner() {
+        const banner = document.getElementById('offlineBanner');
+        if (banner) {
+            banner.classList.remove('hidden');
+            banner.classList.add('flex');
+        }
+    },
+
+    /** Nasconde il banner offline */
+    _hideOfflineBanner() {
+        const banner = document.getElementById('offlineBanner');
+        if (banner) {
+            banner.classList.add('hidden');
+            banner.classList.remove('flex');
+        }
+    },
+
+    /**
+     * Aggiorna l'indicatore visivo di connessione nell'header.
+     * @param {boolean} isOnline - true se online, false se offline
+     */
+    updateConnectionIndicator(isOnline) {
+        const indicator = document.getElementById('connectionStatus');
+        if (!indicator) return;
+        const dot = indicator.querySelector('.status-dot');
+        const label = indicator.querySelector('.status-text');
+
+        indicator.classList.remove('hidden');
+        indicator.classList.add('flex');
+
+        if (isOnline) {
+            indicator.style.backgroundColor = 'rgba(22, 163, 74, 0.25)';
+            indicator.style.color = '#dcfce7';
+            if (dot) { dot.style.backgroundColor = '#4ade80'; dot.style.animation = ''; }
+            if (label) label.textContent = 'Online';
+        } else {
+            indicator.style.backgroundColor = 'rgba(220, 38, 38, 0.3)';
+            indicator.style.color = '#fee2e2';
+            if (dot) { dot.style.backgroundColor = '#f87171'; dot.style.animation = 'pulse 1.5s infinite'; }
+            if (label) label.textContent = 'Offline';
+        }
+    },
 };
+
