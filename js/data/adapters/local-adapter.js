@@ -28,7 +28,8 @@ export class LocalAdapter {
                 { esploratoreId: 's3', attivitaId: 'a1', stato: 'Presente', pagato: true, tipoPagamento: 'Bonifico' }
             ],
             budgets: saved.budgets || [],
-            patrols: saved.patrols || ["Aironi", "Marmotte"]
+            patrols: saved.patrols || ["Aironi", "Marmotte"],
+            scadenze: saved.scadenze || []
         };
         // Restore dates
         this.state.activities.forEach(a => {
@@ -160,5 +161,47 @@ export class LocalAdapter {
         this.state.patrols = list;
         this.persist();
         console.log('LocalAdapter: savePatrols', { count: list.length, currentUser: currentUser?.email });
+    }
+
+    // Deadlines / Scadenze
+    async getCustomDeadlines() {
+        return this.state.scadenze || [];
+    }
+
+    async addCustomDeadline(deadline, currentUser) {
+        const id = 'd_' + Math.random().toString(36).slice(2, 10);
+        const item = {
+            id,
+            ...deadline,
+            completata: Boolean(deadline.completata),
+            createdAt: new Date().toISOString(),
+            createdBy: currentUser?.email || 'user'
+        };
+        if (!this.state.scadenze) this.state.scadenze = [];
+        this.state.scadenze.push(item);
+        this.persist();
+        console.log('LocalAdapter: addCustomDeadline', { id, currentUser: currentUser?.email });
+        return id;
+    }
+
+    async updateCustomDeadline(id, deadline, currentUser) {
+        if (!this.state.scadenze) this.state.scadenze = [];
+        const index = this.state.scadenze.findIndex(d => d.id === id);
+        if (index >= 0) {
+            this.state.scadenze[index] = {
+                ...this.state.scadenze[index],
+                ...deadline,
+                updatedAt: new Date().toISOString()
+            };
+            this.persist();
+            console.log('LocalAdapter: updateCustomDeadline', { id, currentUser: currentUser?.email });
+        }
+    }
+
+    async deleteCustomDeadline(id, currentUser) {
+        if (!this.state.scadenze) return;
+        this.state.scadenze = this.state.scadenze.filter(d => d.id !== id);
+        this.persist();
+        console.log('LocalAdapter: deleteCustomDeadline', { id, currentUser: currentUser?.email });
     }
 }

@@ -234,5 +234,33 @@ export const DATA = {
         const result = await this.adapter.savePatrols(list, currentUser);
         this.cache.invalidate('patrols');
         return result;
+    },
+
+    // Custom Deadlines / Scadenze
+    async getCustomDeadlines() {
+        const cacheKey = 'customDeadlines';
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await (this.adapter as any).getCustomDeadlines();
+        this.cache.set(cacheKey, data, 2 * 60 * 1000);
+        return data;
+    },
+
+    async addCustomDeadline(deadline: any, currentUser: any) {
+        const result = await (this.adapter as any).addCustomDeadline(deadline, currentUser);
+        this.cache.invalidate('customDeadlines');
+        return result;
+    },
+
+    async updateCustomDeadline(id: string, deadline: any, currentUser: any) {
+        const result = await (this.adapter as any).updateCustomDeadline(id, deadline, currentUser);
+        this.cache.invalidate('customDeadlines');
+        return result;
+    },
+
+    async deleteCustomDeadline(id: string, currentUser: any) {
+        const result = await (this.adapter as any).deleteCustomDeadline(id, currentUser);
+        this.cache.invalidate('customDeadlines');
+        return result;
     }
 };

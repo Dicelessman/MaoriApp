@@ -239,4 +239,43 @@ export class FirestoreAdapter {
     async savePatrols(list: any, currentUser: any) {
         await setDoc(doc(this.db, 'configuration', 'pattuglie'), { list }, { merge: true });
     }
+
+    // Deadlines / Scadenze
+    async getCustomDeadlines() {
+        try {
+            const snap = await getDocs(collection(this.db, 'scadenze'));
+            return snap.docs.map((d: any) => ({
+                id: d.id,
+                ...d.data(),
+                createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : d.data().createdAt,
+                updatedAt: d.data().updatedAt?.toDate ? d.data().updatedAt.toDate() : d.data().updatedAt
+            }));
+        } catch (error) {
+            console.error('Error fetching custom deadlines from Firestore:', error);
+            return [];
+        }
+    }
+
+    async addCustomDeadline(deadline: any, currentUser: any) {
+        const payload = {
+            ...deadline,
+            completata: Boolean(deadline.completata),
+            createdAt: Timestamp.now(),
+            createdBy: currentUser?.email || currentUser?.uid || 'user'
+        };
+        const ref = await addDoc(collection(this.db, 'scadenze'), payload);
+        return ref.id;
+    }
+
+    async updateCustomDeadline(id: string, deadline: any, currentUser: any) {
+        const payload = {
+            ...deadline,
+            updatedAt: Timestamp.now()
+        };
+        await setDoc(doc(this.db, 'scadenze', id), payload, { merge: true });
+    }
+
+    async deleteCustomDeadline(id: string, currentUser: any) {
+        await deleteDoc(doc(this.db, 'scadenze', id));
+    }
 }

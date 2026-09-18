@@ -525,3 +525,183 @@ export function getUpcomingBirthdays(scouts = [], daysAhead = 3, refDate = new D
     return results.sort((a, b) => a.daysUntil - b.daysUntil);
 }
 
+/**
+ * Extracts and aggregates all deadlines for a given scout year:
+ * - Activities in the scout year
+ * - Unpaid dues on activities with costo > 0
+ * - Scout birthdays in the scout year
+ * - Custom deadlines created by users
+ */
+export function getAllScoutYearDeadlines(options) {
+    const {
+        scoutYear,
+        activities = [],
+        presences = [],
+        scouts = [],
+        customDeadlines = [],
+        refDate = new Date()
+    } = options || {};
+
+    const base = toJsDate(refDate) || new Date();
+    const today = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, 0, 0, 0);
+    const range = getScoutYearDateRange(scoutYear) || {
+        start: new Date(today.getFullYear(), 9, 1),
+        end: new Date(today.getFullYear() + 1, 8, 30, 23, 59, 59, 999)
+    };
+
+    const deadlines = [];
+
+    const getDaysDiff = (targetDate) => {
+        if (!targetDate || isNaN(targetDate.getTime())) return 0;
+        const target = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0);
+        return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    };
+
+    const getStatus = (days, completed) => {
+        if (completed) return 'completata';
+        if (days < 0) return 'scaduta';
+        if (days === 0) return 'oggi';
+        if (days <= 7) return 'imminente';
+        return 'futura';
+    };
+
+    // 1. Attività nell'anno scout
+    activities.forEach(act => {
+        if (!act || !isActivityInScoutYear(act, scoutYear)) return;
+        const d = toJsDate(act.data);
+        if (!d || isNaN(d.getTime())) return;
+        const dateStr = d.toISOString().split('T')[0];
+        const days = getDaysDiff(d);
+        const isPast = days < 0;
+
+        deadlines.push({
+            id: `act_${act.id}`,
+            originalId: String(act.id),
+            type: 'activity',
+            titolo: `${act.tipo || 'Attività'}${act.descrizione ? ' - ' + act.descrizione : ''}`,
+            dataScadenza: dateStr,
+            dueDate: d,
+            daysUntil: days,
+            categoria: 'Attività',
+            descrizione: act.descrizione || (act.tipo || 'Attività'),
+            status: getStatus(days, isPast),
+            isCustom: false,
+            completata: isPast,
+            costo: parseFloat(act.costo || '0'),
+            luogo: act.luogo || '',
+            url: 'calendario.html'
+        });
+    });
+
+    // 2. Quote da saldare per attività con costo > 0
+    activities.forEach(act => {
+        if (!act || !isActivityInScoutYear(act, scoutYear)) return;
+        const cost = parseFloat(act.costo || '0');
+        if (isNaN(cost) || cost <= 0) return;
+
+        const d = toJsDate(act.data);
+        if (!d || isNaN(d.getTime())) return;
+        const dateStr = d.toISOString().split('T')[0];
+        const days = getDaysDiff(d);
+
+        const pending = presences.filter(p =>
+            p &&
+            String(p.attivitaId) === String(act.id) &&
+            p.stato === 'Presente' &&
+            !p.pagato
+        );
+
+        if (pending.length > 0) {
+            const tot = Math.round(pending.length * cost * 100) / 100;
+            deadlines.push({
+                id: `pay_${act.id}`,
+                originalId: String(act.id),
+                type: 'payment',
+                titolo: `Saldo quote: ${act.tipo || 'Attività'}${act.descrizione ? ' (' + act.descrizione + ')' : ''}`,
+                dataScadenza: dateStr,
+                dueDate: d,
+                daysUntil: days,
+                categoria: 'Quote & Pagamenti',
+                descrizione: `${pending.length} ${pending.length === 1 ? 'esploratore presente non ha' : 'esploratori presenti non hanno'} ancora saldato la quota (€${tot} in sospeso).`,
+                status: getStatus(days, false),
+                isCustom: false,
+                completata: false,
+                pendingCount: pending.length,
+                totalAmount: tot,
+                costo: cost,
+                url: 'pagamenti.html'
+            });
+        }
+    });
+
+    // 3. Compleanni degli esploratori nell'anno scout
+    scouts.forEach(scout => {
+        if (!scout || scout.archived || !scout.anag_dob) return;
+        const dob = toJsDate(scout.anag_dob);
+        if (!dob || isNaN(dob.getTime())) return;
+
+        const bdayYear = dob.getMonth() >= 9 ? range.start.getFullYear() : range.end.getFullYear();
+        const bdayDate = new Date(bdayYear, dob.getMonth(), dob.getDate(), 0, 0, 0, 0);
+        const dateStr = bdayDate.toISOString().split('T')[0];
+        const days = getDaysDiff(bdayDate);
+        const turningAge = bdayYear - dob.getFullYear();
+        const isPast = days < 0;
+
+        deadlines.push({
+            id: `bday_${scout.id}_${bdayYear}`,
+            originalId: String(scout.id),
+            type: 'birthday',
+            titolo: `🎂 Compleanno di ${scout.nome || ''} ${scout.cognome || ''}`.trim(),
+            dataScadenza: dateStr,
+            dueDate: bdayDate,
+            daysUntil: days,
+            categoria: 'Compleanni',
+            descrizione: `Compie ${turningAge} anni${scout.pv_pattuglia ? ' (Pattuglia ' + scout.pv_pattuglia + ')' : ''}`,
+            status: getStatus(days, isPast),
+            isCustom: false,
+            completata: isPast,
+            turningAge: turningAge > 0 ? turningAge : undefined,
+            url: 'esploratori.html'
+        });
+    });
+
+    // 4. Scadenze Personalizzate
+    customDeadlines.forEach(cd => {
+        if (!cd) return;
+        const cdDate = toJsDate(cd.dataScadenza);
+        if (cd.annoScout) {
+            if (cd.annoScout !== scoutYear) return;
+        } else if (cdDate) {
+            if (cdDate < range.start || cdDate > range.end) return;
+        }
+
+        const dateStr = cdDate ? cdDate.toISOString().split('T')[0] : (cd.dataScadenza || '');
+        const days = getDaysDiff(cdDate);
+        const isCompleted = Boolean(cd.completata);
+
+        deadlines.push({
+            id: String(cd.id),
+            originalId: String(cd.id),
+            type: 'custom',
+            titolo: cd.titolo || 'Scadenza senza titolo',
+            dataScadenza: dateStr,
+            dueDate: cdDate,
+            daysUntil: days,
+            categoria: cd.categoria || 'Altro',
+            descrizione: cd.note || '',
+            status: getStatus(days, isCompleted),
+            isCustom: true,
+            completata: isCompleted,
+            priorita: cd.priorita || 'Media',
+            customData: cd
+        });
+    });
+
+    // Ordina per dataScadenza crescente
+    return deadlines.sort((a, b) => {
+        if (a.dataScadenza < b.dataScadenza) return -1;
+        if (a.dataScadenza > b.dataScadenza) return 1;
+        return a.titolo.localeCompare(b.titolo);
+    });
+}
+
