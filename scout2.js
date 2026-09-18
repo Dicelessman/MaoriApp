@@ -1133,55 +1133,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 500);
 });
 
-UI.printScoutSheet = async function () {
-  try {
-    // Ottieni l'ID dell'esploratore corrente
-    const scoutId = this.qs('#scoutId')?.value;
-    if (!scoutId) {
-      alert('ID esploratore non trovato');
-      return;
-    }
-
-    // Carica i dati aggiornati da Firestore invece di usare solo il form
-    // Questo garantisce che abbiamo i dati più recenti salvati
-    if (!this.state.scouts || this.state.scouts.length === 0) {
-      this.state = await DATA.loadAll();
-    }
-
-    const scoutFromDb = (this.state.scouts || []).find(s => s.id === scoutId);
-    if (!scoutFromDb) {
-      this.showToast('Esploratore non trovato nel database', { type: 'error' });
-      return;
-    }
-
-    // Usa i dati dal database, ma integra con i dati del form per i campi che potrebbero essere stati modificati
-    const formData = this.collectForm();
-    const data = {
-      ...scoutFromDb,
-      // Mantieni i dati delle specialità dal database (più affidabili)
-      specialita: scoutFromDb.specialita || [],
-      // Ma usa i dati del form per altri campi se necessario
-      nome: formData.nome || scoutFromDb.nome,
-      cognome: formData.cognome || scoutFromDb.cognome
-    };
-
-    // Debug: verifica i dati raccolti
-    console.log('🔍 Debug printScoutSheet - Dati specialità da DB:', JSON.stringify(data.specialita, null, 2));
-
-    const challenges = await this.loadChallenges();
-    const specialitaList = await this.loadSpecialitaList();
-
-    // Funzioni helper per formattare i dati
+// ============================================================
+// generateScoutSentieroHtml — funzione pura e testabile
+// Riceve i dati dell'esploratore, challenges.json e specialita.json
+// e restituisce l'HTML pronto per la stampa di una singola scheda.
+// ============================================================
+UI.generateScoutSentieroHtml = function (data, challenges, specialitaList) {
+    // Helper interni
     const fmtDate = (d) => {
       if (!d) return '';
-      const date = this.toJsDate(d);
+      let date;
+      if (d && typeof d.toDate === 'function') date = d.toDate();
+      else if (d instanceof Date) date = d;
+      else { date = new Date(d); }
       return isNaN(date) ? '' : date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
     const fmtCheck = (val) => val ? '☑' : '☐';
-    const fmtValue = (val) => val || '';
 
-    // Ottieni il testo completo delle sfide
     const getSfidaText = (passo, dir, code) => {
       if (!code || !challenges) return '';
       const dirUpper = dir.toUpperCase();
@@ -1198,7 +1167,7 @@ UI.printScoutSheet = async function () {
 
     if (data.pv_traccia3?.done) {
       passoRaggiunto = 3;
-      prossimoPasso = null; // Ha completato tutto
+      prossimoPasso = null;
     } else if (data.pv_traccia2?.done) {
       passoRaggiunto = 2;
       prossimoPasso = 3;
@@ -1324,7 +1293,6 @@ UI.printScoutSheet = async function () {
         `;
 
         specialitaDaOttenere.forEach((sp, idx) => {
-          // Trova la specialità nella lista per ottenere le prove
           const specInfo = specialitaList.find(s => s.nome === sp.nome);
           const prove = specInfo?.prove || [
             { nome: 'Prova 1', id: 'p1' },
@@ -1337,26 +1305,9 @@ UI.printScoutSheet = async function () {
               <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">${sp.nome}</div>
           `;
 
-          // Mostra tutte le prove
-          prove.forEach((prova, pIdx) => {
-            // Accedi ai dati della prova usando la chiave corretta
-            // prova.id è "p1", "p2", "p3", quindi cerchiamo "p1_data", "p2_data", "p3_data"
+          prove.forEach((prova) => {
             const provaDataKey = `${prova.id}_data`;
             const provaData = sp[provaDataKey];
-
-            // Debug per ogni prova
-            console.log(`🔍 Debug prova ${prova.nome} (${prova.id}):`, {
-              key: provaDataKey,
-              value: provaData,
-              type: typeof provaData,
-              isNull: provaData === null,
-              isUndefined: provaData === undefined,
-              isEmpty: provaData === '',
-              fullSp: sp
-            });
-
-            // Se c'è una data valorizzata, segna la checkbox come completata
-            // Controlla che non sia null/undefined e che non sia stringa vuota
             const isCompletata = provaData !== null && provaData !== undefined && provaData !== '';
             html += `
               <div style="margin-bottom: 5px; padding: 4px; background: #f9f9f9; border-radius: 2px;">
@@ -1372,7 +1323,6 @@ UI.printScoutSheet = async function () {
             `;
           });
 
-          // Prova CR
           if (sp.cr_text || sp.cr_data) {
             html += `
               <div style="margin-bottom: 5px; padding: 4px; background: #f9f9f9; border-radius: 2px;">
@@ -1388,7 +1338,6 @@ UI.printScoutSheet = async function () {
             `;
           }
 
-          // Note
           if (sp.note) {
             html += `
               <div style="margin-top: 6px; padding: 6px; background: #fff; border-left: 2px solid #16a34a; border-radius: 2px;">
@@ -1411,48 +1360,163 @@ UI.printScoutSheet = async function () {
       `;
     }
 
-    // Inserisci nel printArea e stampa
+    return html;
+};
+
+// ============================================================
+// _printHtmlInArea — utility interna per stampa tramite #printArea
+// ============================================================
+UI._printHtmlInArea = function (html, pdfTitle) {
     const pa = this.qs('#printArea');
-    if (pa) {
-      pa.innerHTML = html;
-      pa.style.display = 'block';
+    if (!pa) { console.error('PrintArea non trovato'); return; }
 
-      // Nascondi forzatamente #app per impedire ai CSS di stampa globali di renderlo visibile
-      const appContainer = document.getElementById('app');
-      let originalAppStyle = '';
-      if (appContainer) {
-        originalAppStyle = appContainer.getAttribute('style') || '';
-        appContainer.style.setProperty('display', 'none', 'important');
-      }
+    pa.innerHTML = html;
+    pa.style.display = 'block';
 
-      // Imposta il titolo del documento per il nome del file PDF
-      const originalTitle = document.title;
-      const pdfTitle = `Il Sentiero di ${data.nome || ''}`;
-      document.title = pdfTitle;
-
-      // Esegui la stampa
-      window.print();
-
-      // Ripristina tutto dopo che la finestra di stampa si chiude
-      setTimeout(() => {
-        document.title = originalTitle;
-        pa.style.display = 'none';
-        pa.innerHTML = '';
-        
-        if (appContainer) {
-          if (originalAppStyle) {
-            appContainer.setAttribute('style', originalAppStyle);
-          } else {
-            appContainer.removeAttribute('style');
-          }
-        }
-      }, 1000);
-    } else {
-      console.error('PrintArea non trovato');
+    const appContainer = document.getElementById('app');
+    let originalAppStyle = '';
+    if (appContainer) {
+      originalAppStyle = appContainer.getAttribute('style') || '';
+      appContainer.style.setProperty('display', 'none', 'important');
     }
+
+    const originalTitle = document.title;
+    document.title = pdfTitle || originalTitle;
+
+    window.print();
+
+    setTimeout(() => {
+      document.title = originalTitle;
+      pa.style.display = 'none';
+      pa.innerHTML = '';
+      if (appContainer) {
+        if (originalAppStyle) {
+          appContainer.setAttribute('style', originalAppStyle);
+        } else {
+          appContainer.removeAttribute('style');
+        }
+      }
+    }, 1000);
+};
+
+// ============================================================
+// printScoutSheet — stampa scheda dell'esploratore corrente (scout2.html)
+// ============================================================
+UI.printScoutSheet = async function () {
+  try {
+    const scoutId = this.qs('#scoutId')?.value;
+    if (!scoutId) {
+      alert('ID esploratore non trovato');
+      return;
+    }
+
+    if (!this.state.scouts || this.state.scouts.length === 0) {
+      this.state = await DATA.loadAll();
+    }
+
+    const scoutFromDb = (this.state.scouts || []).find(s => s.id === scoutId);
+    if (!scoutFromDb) {
+      this.showToast('Esploratore non trovato nel database', { type: 'error' });
+      return;
+    }
+
+    const formData = this.collectForm();
+    const data = {
+      ...scoutFromDb,
+      specialita: scoutFromDb.specialita || [],
+      nome: formData.nome || scoutFromDb.nome,
+      cognome: formData.cognome || scoutFromDb.cognome
+    };
+
+    const challenges = await this.loadChallenges();
+    const specialitaList = await this.loadSpecialitaList();
+
+    const html = this.generateScoutSentieroHtml(data, challenges, specialitaList);
+    this._printHtmlInArea(html, `Il Sentiero di ${data.nome || ''}`);
   } catch (e) {
     console.error('Errore generazione stampa:', e);
     this.showToast('Errore durante la generazione della stampa: ' + e.message, { type: 'error', duration: 4000 });
+  }
+};
+
+// ============================================================
+// printSentieroSingle — stampa scheda sentiero per un esploratore
+// dato il suo ID (usabile da qualsiasi pagina)
+// ============================================================
+UI.printSentieroSingle = async function (scoutId) {
+  try {
+    if (!scoutId) { this.showToast('ID esploratore mancante', { type: 'error' }); return; }
+
+    this.showLoadingOverlay('Preparazione stampa...');
+
+    if (!this.state.scouts || this.state.scouts.length === 0) {
+      this.state = await DATA.loadAll();
+    }
+
+    const scout = (this.state.allScouts || this.state.scouts || []).find(s => s.id === scoutId);
+    if (!scout) { this.showToast('Esploratore non trovato', { type: 'error' }); return; }
+
+    // Carica JSON (usa cache se disponibile)
+    if (!this.challengesData) await this.loadChallenges();
+    if (!this.specialitaListData) await this.loadSpecialitaList();
+
+    const html = this.generateScoutSentieroHtml(scout, this.challengesData, this.specialitaListData);
+    this.hideLoadingOverlay();
+    this._printHtmlInArea(html, `Il Sentiero di ${scout.nome || ''}`);
+  } catch (e) {
+    this.hideLoadingOverlay();
+    console.error('Errore stampa singola:', e);
+    this.showToast('Errore stampa: ' + e.message, { type: 'error', duration: 4000 });
+  }
+};
+
+// ============================================================
+// printSentieroBatch — stampa schede sentiero per più esploratori
+// scoutIds: array di ID. title: titolo documento stampa.
+// Le schede sono separate da page-break-after.
+// ============================================================
+UI.printSentieroBatch = async function (scoutIds, title) {
+  try {
+    if (!scoutIds || scoutIds.length === 0) {
+      this.showToast('Nessun esploratore selezionato', { type: 'warning' });
+      return;
+    }
+
+    this.showLoadingOverlay(`Preparazione ${scoutIds.length} schede...`);
+
+    if (!this.state.scouts || this.state.scouts.length === 0) {
+      this.state = await DATA.loadAll();
+    }
+
+    if (!this.challengesData) await this.loadChallenges();
+    if (!this.specialitaListData) await this.loadSpecialitaList();
+
+    const allScouts = this.state.allScouts || this.state.scouts || [];
+    const htmlParts = [];
+
+    scoutIds.forEach((scoutId, i) => {
+      const scout = allScouts.find(s => s.id === scoutId);
+      if (!scout) return;
+      let cardHtml = this.generateScoutSentieroHtml(scout, this.challengesData, this.specialitaListData);
+      // Aggiungi separatore di pagina tra una scheda e l'altra (non all'ultima)
+      if (i < scoutIds.length - 1) {
+        cardHtml += `<div style="page-break-after: always;"></div>`;
+      }
+      htmlParts.push(cardHtml);
+    });
+
+    if (htmlParts.length === 0) {
+      this.showToast('Nessun esploratore trovato', { type: 'warning' });
+      this.hideLoadingOverlay();
+      return;
+    }
+
+    this.hideLoadingOverlay();
+    this._printHtmlInArea(htmlParts.join('\n'), title || 'Schede Sentiero Reparto');
+  } catch (e) {
+    this.hideLoadingOverlay();
+    console.error('Errore stampa batch:', e);
+    this.showToast('Errore stampa: ' + e.message, { type: 'error', duration: 4000 });
   }
 };
 

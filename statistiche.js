@@ -1213,4 +1213,180 @@ UI.exportPresenceReportCSV = function() {
   this.showToast('Report esportato con successo', { type: 'success' });
 };
 
+// ============================================================
+// printRepartoReport — stampa report completo di reparto (A4)
+// ============================================================
+UI.printRepartoReport = function () {
+  const scouts = this.state.scouts || [];
+  const activities = this.state.activities || [];
+  const presences = this.getDedupedPresences ? this.getDedupedPresences() : (this.state.presences || []);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Anno scout corrente
+  const annoStart = new Date(today);
+  if (today.getMonth() < 8) annoStart.setFullYear(today.getFullYear() - 1);
+  annoStart.setMonth(8); annoStart.setDate(1); annoStart.setHours(0, 0, 0, 0);
+  const annoLabel = `${annoStart.getFullYear()}/${String(annoStart.getFullYear() + 1).slice(-2)}`;
+
+  // Attività anno scout passate
+  const annoActivities = activities.filter(a => {
+    const d = this.toJsDate(a.data);
+    return d && d >= annoStart && d <= today;
+  });
+
+  // KPI base
+  const maschi = scouts.filter(s => s.anag_sesso?.toLowerCase() === 'maschio').length;
+  const femmine = scouts.filter(s => s.anag_sesso?.toLowerCase() === 'femmina').length;
+
+  let totPresenti = 0, totPossibili = 0;
+  scouts.forEach(scout => {
+    annoActivities.forEach(act => {
+      const p = presences.find(x => x.esploratoreId === scout.id && x.attivitaId === act.id);
+      if (p && (p.stato === 'Presente' || p.stato === 'Assente')) {
+        totPossibili++;
+        if (p.stato === 'Presente') totPresenti++;
+      }
+    });
+  });
+  const avgPresenza = totPossibili > 0 ? Math.round((totPresenti / totPossibili) * 100) : null;
+
+  // Conteggio passi
+  const contaPasso = (n) => scouts.filter(s => {
+    if (n === 0) return !s.pv_traccia1?.done && !s.pv_traccia2?.done && !s.pv_traccia3?.done;
+    if (n === 1) return s.pv_traccia1?.done && !s.pv_traccia2?.done;
+    if (n === 2) return s.pv_traccia2?.done && !s.pv_traccia3?.done;
+    if (n === 3) return s.pv_traccia3?.done;
+    return false;
+  }).length;
+
+  // Pattuglie
+  const pattuglie = {};
+  scouts.forEach(s => {
+    const p = s.pv_pattuglia || 'Senza pattuglia';
+    if (!pattuglie[p]) pattuglie[p] = { m: 0, f: 0, tot: 0 };
+    if (s.anag_sesso?.toLowerCase() === 'maschio') pattuglie[p].m++;
+    else if (s.anag_sesso?.toLowerCase() === 'femmina') pattuglie[p].f++;
+    pattuglie[p].tot++;
+  });
+
+  // Specialità ottenute nell'anno scout
+  const specAnno = scouts.reduce((acc, s) => {
+    (s.specialita || []).forEach(sp => {
+      if (sp.ottenuta && sp.nome) {
+        const d = this.toJsDate(sp.data);
+        if (d && d >= annoStart && d <= today) {
+          acc[sp.nome] = (acc[sp.nome] || 0) + 1;
+        }
+      }
+    });
+    return acc;
+  }, {});
+  const topSpec = Object.entries(specAnno).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  const dateStr = today.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  let html = `
+    <div style="font-family: Arial, sans-serif; font-size: 12px; color: #111; max-width: 700px; margin: 0 auto; padding: 20px;">
+
+      <div style="text-align: center; border-bottom: 2px solid #16a34a; padding-bottom: 12px; margin-bottom: 20px;">
+        <div style="font-size: 20px; font-weight: 700; color: #16a34a;">🏕️ Report Reparto Scout Maori</div>
+        <div style="font-size: 13px; color: #555; margin-top: 4px;">Anno Scout ${annoLabel} — Stampato il ${dateStr}</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; text-align: center;">
+          <div style="font-size: 22px; font-weight: 700; color: #16a34a;">${scouts.length}</div>
+          <div style="font-size: 11px; color: #555;">Esploratori</div>
+          <div style="font-size: 10px; color: #777;">M: ${maschi} · F: ${femmine}</div>
+        </div>
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 12px; text-align: center;">
+          <div style="font-size: 22px; font-weight: 700; color: #2563eb;">${avgPresenza !== null ? avgPresenza + '%' : '—'}</div>
+          <div style="font-size: 11px; color: #555;">Presenza Media</div>
+          <div style="font-size: 10px; color: #777;">Anno ${annoLabel}</div>
+        </div>
+        <div style="background: #fefce8; border: 1px solid #fde68a; border-radius: 6px; padding: 12px; text-align: center;">
+          <div style="font-size: 22px; font-weight: 700; color: #d97706;">${annoActivities.length}</div>
+          <div style="font-size: 11px; color: #555;">Attività Anno</div>
+          <div style="font-size: 10px; color: #777;">Anno ${annoLabel}</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <div style="font-size: 14px; font-weight: 700; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px;">Composizione per Pattuglia</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+          <thead>
+            <tr style="background: #f3f4f6;">
+              <th style="text-align: left; padding: 5px 8px; border: 1px solid #e5e7eb;">Pattuglia</th>
+              <th style="text-align: center; padding: 5px 8px; border: 1px solid #e5e7eb;">M</th>
+              <th style="text-align: center; padding: 5px 8px; border: 1px solid #e5e7eb;">F</th>
+              <th style="text-align: center; padding: 5px 8px; border: 1px solid #e5e7eb;">Tot</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(pattuglie).sort().map(([p, v]) => `
+              <tr>
+                <td style="padding: 4px 8px; border: 1px solid #e5e7eb;">${p}</td>
+                <td style="text-align: center; padding: 4px 8px; border: 1px solid #e5e7eb;">${v.m}</td>
+                <td style="text-align: center; padding: 4px 8px; border: 1px solid #e5e7eb;">${v.f}</td>
+                <td style="text-align: center; padding: 4px 8px; border: 1px solid #e5e7eb; font-weight: 600;">${v.tot}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <div style="font-size: 14px; font-weight: 700; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px;">Avanzamento Passi</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; font-size: 11px; text-align: center;">
+          ${[['Ante Promessa', 0], ['Passo 1', 1], ['Passo 2', 2], ['Passo 3', 3]].map(([lbl, n]) => `
+            <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 5px; padding: 8px;">
+              <div style="font-size: 18px; font-weight: 700;">${contaPasso(n)}</div>
+              <div style="color: #555;">${lbl}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      ${topSpec.length > 0 ? `
+      <div style="margin-bottom: 20px;">
+        <div style="font-size: 14px; font-weight: 700; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px;">Top Specialità Anno ${annoLabel}</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+          <thead>
+            <tr style="background: #f3f4f6;">
+              <th style="text-align: left; padding: 5px 8px; border: 1px solid #e5e7eb;">Specialità</th>
+              <th style="text-align: center; padding: 5px 8px; border: 1px solid #e5e7eb;">Esploratori</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${topSpec.map(([nome, cnt]) => `
+              <tr>
+                <td style="padding: 4px 8px; border: 1px solid #e5e7eb;">${nome}</td>
+                <td style="text-align: center; padding: 4px 8px; border: 1px solid #e5e7eb;">${cnt}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      ` : ''}
+
+    </div>
+  `;
+
+  this._printHtmlInArea(html, `Report Reparto Scout Maori — Anno ${annoLabel}`);
+};
+
+// Listener pulsante Stampa Report in statistiche.html
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('printRepartoBtn');
+  if (btn && !btn._bound) {
+    btn._bound = true;
+    btn.addEventListener('click', () => {
+      if (typeof UI !== 'undefined' && UI.printRepartoReport) {
+        UI.printRepartoReport();
+      }
+    });
+  }
+});
 

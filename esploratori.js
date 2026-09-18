@@ -103,6 +103,20 @@ UI.setupScoutsEventListeners = function () {
     exportCsvBtn._bound = true;
     exportCsvBtn.addEventListener('click', () => this.exportScoutsCsv());
   }
+
+  // Pulsante stampa schede
+  const printSchedeBtn = this.qs('#printSchedeBtn');
+  if (printSchedeBtn && !printSchedeBtn._bound) {
+    printSchedeBtn._bound = true;
+    printSchedeBtn.addEventListener('click', () => this.openPrintSchedeModal());
+  }
+
+  // Conferma stampa schede
+  const confirmPrintSchede = this.qs('#confirmPrintSchede');
+  if (confirmPrintSchede && !confirmPrintSchede._bound) {
+    confirmPrintSchede._bound = true;
+    confirmPrintSchede.addEventListener('click', () => this.executePrintSchede());
+  }
   // Barra alfabetica
   const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const nav = this.qs('#alphaNav');
@@ -291,6 +305,13 @@ UI.renderScouts = function (filterLetter = null) {
             </div>
           </div>
           <div class="flex gap-2">
+            <button
+              onclick="UI.printSentieroSingle('${scout.id}')"
+              class="p-2 text-gray-500 hover:text-blue-600 rounded-full"
+              title="Stampa scheda sentiero"
+            >
+              📄
+            </button>
             <a 
               href="scout2.html?id=${scout.id}"
               class="p-2 text-gray-500 hover:text-green-600 rounded-full"
@@ -490,3 +511,42 @@ UI.exportScoutsCsv = async function () {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Pagina Esploratori caricata');
 });
+
+// Apre il modale di stampa schede sentiero e popola il select pattuglie
+UI.openPrintSchedeModal = function () {
+  const select = this.qs('#printPattugliaSelect');
+  if (!select) return;
+
+  // Ricostruisce le opzioni
+  select.innerHTML = '<option value="">Tutto il Reparto</option>';
+  const scouts = this.state.scouts || [];
+  const pattuglie = [...new Set(scouts.map(s => s.pv_pattuglia).filter(Boolean))].sort();
+  pattuglie.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = p;
+    select.appendChild(opt);
+  });
+
+  this.showModal('printSchedeModal');
+};
+
+// Esegue la stampa batch in base alla pattuglia selezionata
+UI.executePrintSchede = async function () {
+  const select = this.qs('#printPattugliaSelect');
+  const pattuglia = select?.value || '';
+  const scouts = this.state.scouts || [];
+
+  let targets = scouts;
+  if (pattuglia) {
+    targets = scouts.filter(s => s.pv_pattuglia === pattuglia);
+  }
+
+  const scoutIds = targets.map(s => s.id);
+  const title = pattuglia
+    ? `Schede Sentiero — Pattuglia ${pattuglia}`
+    : 'Schede Sentiero — Tutto il Reparto';
+
+  this.closeModal('printSchedeModal');
+  await this.printSentieroBatch(scoutIds, title);
+};

@@ -34,7 +34,10 @@
       <!-- Modali condivisi -->
       <div id="shared-modals"></div>
       
-      <h2 class="text-2xl font-semibold text-gray-700 mb-6">Statistiche Reparto</h2>
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-semibold text-gray-700">Statistiche Reparto</h2>
+        <button id="printRepartoBtn" type="button" class="btn-secondary" title="Stampa report reparto">🖨️ Stampa Report</button>
+      </div>
       
       <!-- Sezione: KPI Cards -->
       <section class="mb-8">
@@ -233,11 +236,15 @@
     </main>
   </div>
   
+  <!-- PrintArea: usato per la stampa del report reparto -->
+  <div id="printArea" style="display:none;"></div>
+
   <!-- Scripts -->
   <!-- Configurazione Firebase (generata durante il build) -->
   <script src="/config.js"></script>
   <script type="module" src="shared.js"></script>
   <script type="module" src="statistiche.js"></script>
 </body>
+
 </html>
 
