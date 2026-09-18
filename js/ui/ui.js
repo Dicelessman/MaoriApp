@@ -6,7 +6,7 @@
 import { DATA } from '../data/data-facade.js';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, getToken, onMessage, collection, doc, getDocs, addDoc, setDoc, updateDoc, getDoc, query, limit, orderBy, where, Timestamp } from '../core/firebase.js';
 import { APP_VERSION, THEME } from '../utils/constants.js';
-import { escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit } from '../utils/utils.js';
+import { escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit, getScoutYear, getScoutYearDateRange, getCurrentScoutYear, getAllScoutYears, isActivityInScoutYear } from '../utils/utils.js';
 import { setupFormValidation, validateForm, validateFieldValue, checkDataIntegrity } from '../utils/validation.js';
 export const UI = {
     appVersion: APP_VERSION,
@@ -16,6 +16,20 @@ export const UI = {
     activityToDeleteId: null,
     state: { scouts: [], staff: [], activities: [], presences: [] },
     currentUser: null,
+    getScoutYear,
+    getScoutYearDateRange,
+    getCurrentScoutYear,
+    getAllScoutYears,
+    isActivityInScoutYear,
+    getSelectedScoutYear() {
+        const prefs = this.loadUserPreferences();
+        return prefs.selectedScoutYear || this.getCurrentScoutYear();
+    },
+    async setSelectedScoutYear(year) {
+        const prefs = this.loadUserPreferences();
+        prefs.selectedScoutYear = year;
+        await this.saveUserPreferences(prefs);
+    },
     qs(selector) { return document.querySelector(selector); },
     qsa(selector) { return document.querySelectorAll(selector); },
     // Notifiche non bloccanti

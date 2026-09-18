@@ -344,3 +344,89 @@ export function generateScoutSentieroHtml(scout, challenges = {}, specialitaList
 
     return html;
 }
+
+/**
+ * Returns the Scout Year string for a given date (e.g. "2024/2025")
+ * Scout year runs from September 1st (month index 8) to August 31st (month index 7)
+ */
+export function getScoutYear(date) {
+    if (!date) return null;
+    try {
+        const d = toJsDate(date);
+        if (!d || isNaN(d.getTime())) return null;
+        const year = d.getFullYear();
+        const month = d.getMonth();
+        if (month >= 8) {
+            return `${year}/${year + 1}`;
+        } else {
+            return `${year - 1}/${year}`;
+        }
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Returns the start and end Date range for a scout year string (e.g. "2024/2025")
+ */
+export function getScoutYearDateRange(scoutYearStr) {
+    if (!scoutYearStr || typeof scoutYearStr !== 'string' || !scoutYearStr.includes('/')) return null;
+    const parts = scoutYearStr.trim().split('/');
+    const startYear = parseInt(parts[0], 10);
+    const endYear = parseInt(parts[1], 10);
+    if (isNaN(startYear) || isNaN(endYear)) return null;
+
+    const start = new Date(startYear, 8, 1, 0, 0, 0, 0); // 1 Sept
+    const end = new Date(endYear, 7, 31, 23, 59, 59, 999); // 31 Aug
+    return { start, end };
+}
+
+/**
+ * Returns current scout year based on reference date or today
+ */
+export function getCurrentScoutYear(refDate = new Date()) {
+    return getScoutYear(refDate) || '2025/2026';
+}
+
+/**
+ * Extracts and returns all unique scout years from activities, sorted descending
+ */
+export function getAllScoutYears(activities = []) {
+    const yearsSet = new Set();
+    const currentYear = getCurrentScoutYear();
+    yearsSet.add(currentYear);
+
+    if (Array.isArray(activities)) {
+        activities.forEach(act => {
+            if (!act) return;
+            if (act.annoScout && typeof act.annoScout === 'string' && act.annoScout.includes('/')) {
+                yearsSet.add(act.annoScout.trim());
+            } else if (act.data) {
+                const sy = getScoutYear(act.data);
+                if (sy) yearsSet.add(sy);
+            }
+        });
+    }
+
+    return Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
+}
+
+/**
+ * Checks if an activity belongs to a specific scout year
+ */
+export function isActivityInScoutYear(activity, scoutYearStr) {
+    if (!activity || !scoutYearStr) return false;
+    if (scoutYearStr === 'all') return true;
+
+    if (activity.annoScout && activity.annoScout.trim() === scoutYearStr.trim()) {
+        return true;
+    }
+
+    const range = getScoutYearDateRange(scoutYearStr);
+    if (!range) return false;
+
+    const d = toJsDate(activity.data);
+    if (!d || isNaN(d.getTime())) return false;
+
+    return d >= range.start && d <= range.end;
+}

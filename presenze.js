@@ -121,16 +121,47 @@ UI.presenceFilters = UI.presenceFilters || {
   patrol: '',
   condition: 'all',
   activityType: 'all',
-  period: 'all'
+  period: 'all',
+  scoutYear: ''
 };
 
 UI.setupPresenceFilters = function () {
   const searchInput = this.qs('#presenceSearchInput');
+  const scoutYearFilter = this.qs('#presenceScoutYearFilter');
   const patrolFilter = this.qs('#presencePatrolFilter');
   const conditionFilter = this.qs('#presenceConditionFilter');
   const activityTypeFilter = this.qs('#presenceActivityTypeFilter');
   const periodFilter = this.qs('#presencePeriodFilter');
   const resetBtn = this.qs('#presenceResetFiltersBtn');
+
+  // Popola selettore anno scout dinamicamente
+  if (scoutYearFilter) {
+    const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+    const allYears = this.getAllScoutYears ? this.getAllScoutYears(this.state.activities) : [currentScoutYear];
+
+    if (!this.presenceFilters.scoutYear) {
+      this.presenceFilters.scoutYear = this.getSelectedScoutYear ? this.getSelectedScoutYear() : currentScoutYear;
+    }
+
+    scoutYearFilter.innerHTML = '';
+    allYears.forEach(year => {
+      const isCurrent = year === currentScoutYear;
+      const label = isCurrent ? `${year} (In corso)` : `${year} (Archiviato)`;
+      const opt = document.createElement('option');
+      opt.value = year;
+      opt.textContent = label;
+      if (year === this.presenceFilters.scoutYear) opt.selected = true;
+      scoutYearFilter.appendChild(opt);
+    });
+
+    const allOpt = document.createElement('option');
+    allOpt.value = 'all';
+    allOpt.textContent = 'Tutti gli anni (Storico)';
+    if (this.presenceFilters.scoutYear === 'all') allOpt.selected = true;
+    scoutYearFilter.appendChild(allOpt);
+
+    scoutYearFilter.value = this.presenceFilters.scoutYear;
+  }
 
   // Popola selettore pattuglie dinamicamente
   if (patrolFilter) {
@@ -155,6 +186,16 @@ UI.setupPresenceFilters = function () {
 
   if (this._presenceFiltersBound) return;
   this._presenceFiltersBound = true;
+
+  if (scoutYearFilter) {
+    scoutYearFilter.addEventListener('change', async (e) => {
+      this.presenceFilters.scoutYear = e.target.value;
+      if (this.setSelectedScoutYear && e.target.value !== 'all') {
+        await this.setSelectedScoutYear(e.target.value);
+      }
+      this.renderPresenceTable();
+    });
+  }
 
   if (searchInput) {
     let debounceTimer;
@@ -197,13 +238,16 @@ UI.setupPresenceFilters = function () {
 
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
+      const currentYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
       this.presenceFilters = {
         search: '',
         patrol: '',
         condition: 'all',
         activityType: 'all',
-        period: 'all'
+        period: 'all',
+        scoutYear: currentYear
       };
+      if (scoutYearFilter) scoutYearFilter.value = currentYear;
       if (searchInput) searchInput.value = '';
       if (patrolFilter) patrolFilter.value = '';
       if (conditionFilter) conditionFilter.value = 'all';
@@ -218,6 +262,10 @@ UI.setupPresenceFilters = function () {
 UI.getFilteredActivities = function (acts) {
   const filter = this.presenceFilters || {};
   let list = [...acts];
+
+  if (filter.scoutYear && filter.scoutYear !== 'all') {
+    list = list.filter(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, filter.scoutYear) : true);
+  }
 
   if (filter.activityType && filter.activityType !== 'all') {
     list = list.filter(a => a.tipo === filter.activityType);

@@ -82,6 +82,9 @@ UI.renderStatistiche = async function() {
   
   const scouts = this.state.scouts || [];
   
+  // Setup selettore anno scout
+  this.setupStatsScoutYearSelector();
+
   // Renderizza KPI cards
   this.renderKPICards(scouts);
   
@@ -101,6 +104,52 @@ UI.renderStatistiche = async function() {
   this.renderPresenceReport();
 };
 
+UI.setupStatsScoutYearSelector = function() {
+  const select = document.getElementById('statsScoutYearSelect');
+  if (!select) return;
+
+  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const allYears = this.getAllScoutYears ? this.getAllScoutYears(this.state.activities) : [currentScoutYear];
+
+  if (!this.selectedStatsScoutYear) {
+    this.selectedStatsScoutYear = this.getSelectedScoutYear ? this.getSelectedScoutYear() : currentScoutYear;
+  }
+
+  select.innerHTML = '';
+  allYears.forEach(year => {
+    const isCurrent = year === currentScoutYear;
+    const label = isCurrent ? `${year} (In corso)` : `${year} (Archiviato)`;
+    const opt = document.createElement('option');
+    opt.value = year;
+    opt.textContent = label;
+    if (year === this.selectedStatsScoutYear) opt.selected = true;
+    select.appendChild(opt);
+  });
+
+  const allOpt = document.createElement('option');
+  allOpt.value = 'all';
+  allOpt.textContent = 'Tutti gli anni (Globale)';
+  if (this.selectedStatsScoutYear === 'all') allOpt.selected = true;
+  select.appendChild(allOpt);
+
+  const archiveBadge = document.getElementById('statsArchiveBadge');
+  if (archiveBadge) {
+    const isArchive = this.selectedStatsScoutYear !== 'all' && this.selectedStatsScoutYear !== currentScoutYear;
+    archiveBadge.classList.toggle('hidden', !isArchive);
+  }
+
+  if (!select._bound) {
+    select._bound = true;
+    select.addEventListener('change', async (e) => {
+      this.selectedStatsScoutYear = e.target.value;
+      if (this.setSelectedScoutYear && e.target.value !== 'all') {
+        await this.setSelectedScoutYear(e.target.value);
+      }
+      this.renderStatistiche();
+    });
+  }
+};
+
 // ============== KPI Cards ==============
 UI.renderKPICards = function(scouts) {
   const kpiContainer = document.getElementById('kpiCards');
@@ -112,20 +161,21 @@ UI.renderKPICards = function(scouts) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Anno scout corrente: dal 1 settembre dell'anno passato (o corrente)
-  const anniScoutStart = new Date(today);
-  if (today.getMonth() < 8) { // prima di settembre → anno scout iniziato l'anno precedente
-    anniScoutStart.setFullYear(today.getFullYear() - 1);
-  }
-  anniScoutStart.setMonth(8); // settembre
-  anniScoutStart.setDate(1);
-  anniScoutStart.setHours(0, 0, 0, 0);
+  const selectedYear = this.selectedStatsScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
+  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const isAll = selectedYear === 'all';
+  const range = this.getScoutYearDateRange ? this.getScoutYearDateRange(selectedYear) : null;
 
-  // Attività svolte nell'anno scout corrente (passate)
+  // Attività svolte nell'anno scout selezionato
   const anniScoutActivities = activities.filter(a => {
-    const activityDate = this.toJsDate(a.data);
-    if (!activityDate) return false;
-    return activityDate >= anniScoutStart && activityDate <= today;
+    if (isAll) return true;
+    return this.isActivityInScoutYear ? this.isActivityInScoutYear(a, selectedYear) : true;
+  }).filter(a => {
+    if (selectedYear === currentScoutYear) {
+      const activityDate = this.toJsDate(a.data);
+      return activityDate && activityDate <= today;
+    }
+    return true;
   });
 
   // KPI 1: Totale esploratori con breakown M/F
@@ -163,22 +213,26 @@ UI.renderKPICards = function(scouts) {
     return assenze >= 3;
   }).length;
 
-  // KPI 4: Specialità ottenute nell'anno scout corrente
+  // KPI 4: Specialità ottenute nell'anno scout selezionato
   let specialitaAnno = 0;
   scouts.forEach(scout => {
     if (scout.specialita && Array.isArray(scout.specialita)) {
       scout.specialita.forEach(sp => {
         if (sp.ottenuta && sp.data) {
           const dataOttenuta = this.toJsDate(sp.data);
-          if (dataOttenuta && dataOttenuta >= anniScoutStart && dataOttenuta <= today) {
-            specialitaAnno++;
+          if (dataOttenuta) {
+            if (isAll) {
+              specialitaAnno++;
+            } else if (range && dataOttenuta >= range.start && dataOttenuta <= range.end) {
+              specialitaAnno++;
+            }
           }
         }
       });
     }
   });
 
-  const annoScoutLabel = `${anniScoutStart.getFullYear()}/${String(anniScoutStart.getFullYear() + 1).slice(-2)}`;
+  const annoScoutLabel = isAll ? 'Tutti gli anni' : `Anno scout ${selectedYear}`;
 
   kpiContainer.innerHTML = `
     <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
@@ -1224,16 +1278,22 @@ UI.printRepartoReport = function () {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Anno scout corrente
-  const annoStart = new Date(today);
-  if (today.getMonth() < 8) annoStart.setFullYear(today.getFullYear() - 1);
-  annoStart.setMonth(8); annoStart.setDate(1); annoStart.setHours(0, 0, 0, 0);
-  const annoLabel = `${annoStart.getFullYear()}/${String(annoStart.getFullYear() + 1).slice(-2)}`;
+  const selectedYear = this.selectedStatsScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
+  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const isAll = selectedYear === 'all';
+  const range = this.getScoutYearDateRange ? this.getScoutYearDateRange(selectedYear) : null;
+  const annoLabel = isAll ? 'Tutti gli Anni' : selectedYear;
 
-  // Attività anno scout passate
+  // Attività anno scout
   const annoActivities = activities.filter(a => {
-    const d = this.toJsDate(a.data);
-    return d && d >= annoStart && d <= today;
+    if (isAll) return true;
+    return this.isActivityInScoutYear ? this.isActivityInScoutYear(a, selectedYear) : true;
+  }).filter(a => {
+    if (selectedYear === currentScoutYear) {
+      const d = this.toJsDate(a.data);
+      return d && d <= today;
+    }
+    return true;
   });
 
   // KPI base
@@ -1276,8 +1336,10 @@ UI.printRepartoReport = function () {
     (s.specialita || []).forEach(sp => {
       if (sp.ottenuta && sp.nome) {
         const d = this.toJsDate(sp.data);
-        if (d && d >= annoStart && d <= today) {
-          acc[sp.nome] = (acc[sp.nome] || 0) + 1;
+        if (d) {
+          if (isAll || (range && d >= range.start && d <= range.end)) {
+            acc[sp.nome] = (acc[sp.nome] || 0) + 1;
+          }
         }
       }
     });

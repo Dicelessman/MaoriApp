@@ -296,6 +296,36 @@
           </div>
         </div>
 
+        <!-- Gestione Anno Scout & Archiviazione -->
+        <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20 p-6 rounded-lg shadow-sm border-2 border-green-300 dark:border-green-800">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-green-900 dark:text-green-200 flex items-center gap-2">
+                <span>📅</span> Anno Scout & Archiviazione Calendario
+              </h3>
+              <p class="text-sm text-green-700 dark:text-green-300 mt-1">
+                Configura l'Anno Scout attivo corrente e gestisci l'archiviazione del calendario passato per iniziare un nuovo anno pulito senza cancellare lo storico.
+              </p>
+            </div>
+            <button id="openArchiveYearModalBtn" type="button" class="self-start sm:self-auto px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm flex items-center gap-2">
+              <span>📦</span> Archivia e Avvia Nuovo Anno
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-green-200 dark:border-green-800/60 text-sm">
+            <div>
+              <label for="prefActiveScoutYear" class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">Anno Scout Attivo:</label>
+              <select id="prefActiveScoutYear" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-semibold focus:ring-2 focus:ring-green-500">
+              </select>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">L'anno impostato qui sarà quello predefinito in Calendario, Presenze e Statistiche.</p>
+            </div>
+            <div id="scoutYearSummaryBox" class="bg-white/80 dark:bg-gray-800/80 p-3 rounded-lg border border-green-200 dark:border-green-800 flex flex-col justify-center">
+              <span class="text-xs font-bold uppercase tracking-wider text-green-800 dark:text-green-400 mb-1">Riepilogo Attività & Presenze</span>
+              <div id="scoutYearSummaryText" class="text-xs text-gray-600 dark:text-gray-300">Caricamento statistiche anno...</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Export/Import Dati -->
         <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">📊 Export/Import Dati</h3>
@@ -424,6 +454,42 @@
   </div>
   </section>
   </main>
+  </div>
+
+  <!-- Modale Archiviazione Anno Scout -->
+  <div id="archiveYearModal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 overflow-hidden border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 bg-green-700 text-white flex justify-between items-center">
+        <h3 class="text-lg font-bold flex items-center gap-2"><span>📦</span> Archiviazione Anno Scout</h3>
+        <button onclick="UI.closeModal('archiveYearModal')" class="text-white hover:text-green-200 text-xl font-bold">✕</button>
+      </div>
+      <div class="p-6 space-y-4 text-sm text-gray-700 dark:text-gray-300">
+        <p>
+          Stai per archiviare il calendario dell'anno uscente e impostare il <strong>nuovo Anno Scout</strong>.
+        </p>
+        <div class="p-4 bg-green-50 dark:bg-green-950/40 rounded-lg border border-green-200 dark:border-green-800">
+          <div class="font-bold text-green-800 dark:text-green-300 mb-1">Cosa succede:</div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-gray-600 dark:text-gray-300">
+            <li><strong>Nessun dato viene cancellato:</strong> tutte le attività e le presenze passate rimangono memorizzate nel database.</li>
+            <li>Il nuovo anno scout avrà un calendario pulito, pronto per inserire le nuove attività.</li>
+            <li>Potrai consultare le statistiche e il calendario dell'anno archiviato in qualsiasi momento tramite il selettore Anno Scout.</li>
+          </ul>
+        </div>
+        <div>
+          <label for="newScoutYearInput" class="block font-semibold mb-1">Nuovo Anno Scout da avviare:</label>
+          <input type="text" id="newScoutYearInput" placeholder="es. 2025/2026" class="input w-full font-bold text-base text-green-800 dark:text-green-300" />
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <button id="downloadBackupBeforeArchiveBtn" type="button" class="btn-secondary text-xs flex items-center justify-center gap-1.5 py-2">
+            <span>📥</span> Scarica Backup JSON
+          </button>
+          <div class="flex gap-2 justify-end">
+            <button type="button" onclick="UI.closeModal('archiveYearModal')" class="btn-secondary text-xs">Annulla</button>
+            <button id="confirmArchiveYearBtn" type="button" class="btn-primary bg-green-700 hover:bg-green-800 text-xs font-semibold">✅ Conferma e Avvia</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Scripts -->

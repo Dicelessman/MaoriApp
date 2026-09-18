@@ -513,6 +513,135 @@ UI.renderPreferencesPage = function () {
       }
     });
   }
+
+  // Gestione Anno Scout & Archiviazione
+  this.setupScoutYearManagement();
+};
+
+UI.setupScoutYearManagement = function () {
+  const prefSelect = document.getElementById('prefActiveScoutYear');
+  const summaryText = document.getElementById('scoutYearSummaryText');
+  const openModalBtn = document.getElementById('openArchiveYearModalBtn');
+  const confirmBtn = document.getElementById('confirmArchiveYearBtn');
+  const backupBtn = document.getElementById('downloadBackupBeforeArchiveBtn');
+  const newYearInput = document.getElementById('newScoutYearInput');
+
+  if (!prefSelect) return;
+
+  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const allYears = this.getAllScoutYears ? this.getAllScoutYears(this.state.activities) : [currentScoutYear];
+  const activeYear = this.getSelectedScoutYear ? this.getSelectedScoutYear() : currentScoutYear;
+
+  // Popola select con tutti gli anni scout
+  prefSelect.innerHTML = '';
+  allYears.forEach(year => {
+    const isCurrent = year === currentScoutYear;
+    const label = isCurrent ? `${year} (In corso)` : `${year} (Archiviato)`;
+    const opt = document.createElement('option');
+    opt.value = year;
+    opt.textContent = label;
+    if (year === activeYear) opt.selected = true;
+    prefSelect.appendChild(opt);
+  });
+
+  // Aggiorna riepilogo attività e presenze dell'anno selezionato
+  const updateSummary = (year) => {
+    if (!summaryText) return;
+    const activities = (this.state.activities || []).filter(a =>
+      this.isActivityInScoutYear ? this.isActivityInScoutYear(a, year) : true
+    );
+    const presences = (this.state.presences || []).filter(p =>
+      activities.some(a => a.id === p.attivitaId)
+    );
+    const presenti = presences.filter(p => p.stato === 'Presente').length;
+    const rate = presences.length > 0 ? Math.round((presenti / presences.length) * 100) : 0;
+
+    summaryText.innerHTML = `
+      <strong>Anno ${year}:</strong> ${activities.length} attività registrate · ${presences.length} presenze (${rate}% presenze positive)
+    `;
+  };
+
+  updateSummary(activeYear);
+
+  if (!prefSelect._bound) {
+    prefSelect._bound = true;
+    prefSelect.addEventListener('change', async (e) => {
+      if (this.setSelectedScoutYear) {
+        await this.setSelectedScoutYear(e.target.value);
+        updateSummary(e.target.value);
+        this.showToast(`Anno Scout attivo impostato a ${e.target.value}`, { type: 'success' });
+      }
+    });
+  }
+
+  // Apertura modale archiviazione con anno suggerito
+  if (openModalBtn && !openModalBtn._bound) {
+    openModalBtn._bound = true;
+    openModalBtn.addEventListener('click', () => {
+      const parts = activeYear.split('/');
+      let nextYear = '';
+      if (parts.length === 2 && !isNaN(parseInt(parts[0], 10)) && !isNaN(parseInt(parts[1], 10))) {
+        const nextStart = parseInt(parts[0], 10) + 1;
+        const nextEnd = parseInt(parts[1], 10) + 1;
+        nextYear = `${nextStart}/${nextEnd}`;
+      } else {
+        nextYear = '2026/2027';
+      }
+
+      if (newYearInput) newYearInput.value = nextYear;
+      this.openModal('archiveYearModal');
+    });
+  }
+
+  // Download backup di sicurezza prima di archiviare
+  if (backupBtn && !backupBtn._bound) {
+    backupBtn._bound = true;
+    backupBtn.addEventListener('click', () => {
+      const exportData = {
+        app: 'MaoriApp',
+        exportDate: new Date().toISOString(),
+        scoutYearArchived: activeYear,
+        scouts: this.state.scouts || [],
+        activities: (this.state.activities || []).filter(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, activeYear) : true),
+        presences: this.state.presences || [],
+        staff: this.state.staff || []
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-anno-scout-${activeYear.replace('/', '-')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast('Backup scaricato con successo', { type: 'success' });
+    });
+  }
+
+  // Conferma archiviazione e passaggio al nuovo anno
+  if (confirmBtn && !confirmBtn._bound) {
+    confirmBtn._bound = true;
+    confirmBtn.addEventListener('click', async () => {
+      const newYear = (newYearInput?.value || '').trim();
+      if (!newYear || !newYear.includes('/')) {
+        this.showToast('Inserisci un formato valido per l\'anno scout (es. 2025/2026)', { type: 'error' });
+        return;
+      }
+
+      const prefs = this.loadUserPreferences();
+      prefs.selectedScoutYear = newYear;
+      if (!prefs.archivedScoutYears) prefs.archivedScoutYears = [];
+      if (!prefs.archivedScoutYears.includes(activeYear)) {
+        prefs.archivedScoutYears.push(activeYear);
+      }
+      await this.saveUserPreferences(prefs);
+
+      this.closeModal('archiveYearModal');
+      this.showToast(`🎉 Anno ${activeYear} archiviato! Attivato nuovo Anno Scout ${newYear}`, { type: 'success', duration: 4000 });
+      this.setupScoutYearManagement();
+    });
+  }
 };
 // Helper per shortcuts
 UI.getShortcutsConfig = function () {

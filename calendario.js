@@ -1,10 +1,53 @@
 // calendario.js - Logica specifica per la pagina Calendario
 
 UI.renderCurrentPage = function () {
+  this.setupScoutYearSelector();
   this.renderCalendarList();
   this.setupCalendarEvents();
   // removed setupCalendarViewToggle
   this.setupCalendarExport();
+};
+
+UI.setupScoutYearSelector = function () {
+  const select = this.qs('#scoutYearSelect');
+  if (!select) return;
+
+  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const allYears = this.getAllScoutYears ? this.getAllScoutYears(this.state.activities) : [currentScoutYear];
+
+  if (!this.selectedCalendarScoutYear) {
+    this.selectedCalendarScoutYear = this.getSelectedScoutYear ? this.getSelectedScoutYear() : currentScoutYear;
+  }
+
+  // Popola le opzioni degli anni scout
+  select.innerHTML = '';
+  allYears.forEach(year => {
+    const isCurrent = year === currentScoutYear;
+    const label = isCurrent ? `${year} (In corso)` : `${year} (Archiviato)`;
+    const opt = document.createElement('option');
+    opt.value = year;
+    opt.textContent = label;
+    if (year === this.selectedCalendarScoutYear) opt.selected = true;
+    select.appendChild(opt);
+  });
+
+  // Opzione "Tutti gli anni"
+  const allOpt = document.createElement('option');
+  allOpt.value = 'all';
+  allOpt.textContent = 'Tutti gli anni (Archivio)';
+  if (this.selectedCalendarScoutYear === 'all') allOpt.selected = true;
+  select.appendChild(allOpt);
+
+  if (!select._bound) {
+    select._bound = true;
+    select.addEventListener('change', async (e) => {
+      this.selectedCalendarScoutYear = e.target.value;
+      if (this.setSelectedScoutYear && e.target.value !== 'all') {
+        await this.setSelectedScoutYear(e.target.value);
+      }
+      this.renderCalendarList();
+    });
+  }
 };
 
 UI.getActivityTypeColor = function (type) {
@@ -168,9 +211,11 @@ UI.setupCalendarEvents = function () {
       const originalText = submitBtn?.textContent;
       this.setButtonLoading(submitBtn, true, originalText);
       try {
-        await DATA.addActivity({ tipo, data, dataFine, descrizione, costo }, this.currentUser);
+        const annoScout = (this.getScoutYear ? this.getScoutYear(data) : null) || '2025/2026';
+        await DATA.addActivity({ tipo, data, dataFine, descrizione, costo, annoScout }, this.currentUser);
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();
+        this.setupScoutYearSelector();
         this.renderCalendarList();
         form.reset();
         // Reset manuale data fine se necessario
@@ -307,9 +352,43 @@ UI.renderCalendarList = function () {
   if (!list) return;
   list.innerHTML = '';
 
-  const activities = (this.state.activities || []).slice().sort((a, b) => this.toJsDate(a.data) - this.toJsDate(b.data));
+  const selectedYear = this.selectedCalendarScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
+  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const isArchive = selectedYear !== 'all' && selectedYear !== currentScoutYear;
+
+  // Aggiorna indicatori archivio
+  const archiveBadge = this.qs('#calendarArchiveBadge');
+  const archiveNotice = this.qs('#calendarArchiveNotice');
+  const listTitle = this.qs('#calendarListTitle');
+
+  if (archiveBadge) archiveBadge.classList.toggle('hidden', !isArchive);
+  if (archiveNotice) archiveNotice.classList.toggle('hidden', !isArchive);
+  if (listTitle) {
+    if (selectedYear === 'all') listTitle.textContent = 'Tutte le Attività (Storico)';
+    else listTitle.textContent = `Attività Anno Scout ${selectedYear}`;
+  }
+
+  let activities = (this.state.activities || []).slice().sort((a, b) => this.toJsDate(a.data) - this.toJsDate(b.data));
+  if (selectedYear !== 'all') {
+    activities = activities.filter(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, selectedYear) : true);
+  }
+
   if (!activities.length) {
-    list.innerHTML = '<p class="text-gray-500">Nessuna attività pianificata.</p>';
+    if (isArchive) {
+      list.innerHTML = `
+        <div class="p-6 text-center text-gray-500">
+          <p class="font-medium">Nessuna attività registrata nell'archivio dell'Anno Scout ${selectedYear}.</p>
+        </div>
+      `;
+    } else {
+      list.innerHTML = `
+        <div class="text-center py-8 px-4 bg-white dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+          <span class="text-3xl block mb-2">🎉</span>
+          <p class="text-gray-700 dark:text-gray-300 font-semibold mb-1">Nessuna attività ancora pianificata per l'Anno Scout ${selectedYear}</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Il calendario per il nuovo anno è pulito. Inserisci la prima attività con il form a sinistra!</p>
+        </div>
+      `;
+    }
     return;
   }
 
