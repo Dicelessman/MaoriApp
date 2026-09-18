@@ -137,79 +137,99 @@ UI.renderPreferencesPage = function () {
         }
       };
 
-      // Abilita/disabilita checkbox figli
-      [notificationActivityReminders, notificationPaymentReminders,
-        notificationImportantChanges, notificationBirthdayReminders].forEach(cb => {
-          if (cb) cb.disabled = !enabled;
-        });
-
       await this.saveUserPreferences(updatedPrefs);
       updateNotificationPermissionStatus();
-      this.showToast(enabled ? 'Notifiche abilitate' : 'Notifiche disabilitate', { type: 'success' });
+      this.showToast(enabled ? 'Notifiche push abilitate' : 'Notifiche push disabilitate', { type: 'success' });
     });
-
-    // Inizializza stato checkbox figli
-    const notificationsEnabledState = prefs.notifications?.enabled || false;
-    [notificationActivityReminders, notificationPaymentReminders,
-      notificationImportantChanges, notificationBirthdayReminders].forEach(cb => {
-        if (cb) cb.disabled = !notificationsEnabledState;
-      });
   }
 
-  // Checkbox singole notifiche
+  // Checkbox singole notifiche in-app (sempre configurabili)
   if (notificationActivityReminders) {
     notificationActivityReminders.checked = prefs.notifications?.activityReminders ?? true;
     notificationActivityReminders.addEventListener('change', async (e) => {
+      const current = this.loadUserPreferences();
       const updatedPrefs = {
-        ...prefs,
+        ...current,
         notifications: {
-          ...prefs.notifications,
+          ...current.notifications,
           activityReminders: e.target.checked
         }
       };
       await this.saveUserPreferences(updatedPrefs);
+      this.showToast(`Promemoria attività ${e.target.checked ? 'attivati' : 'disattivati'}`, { type: 'success', duration: 1500 });
     });
   }
 
   if (notificationPaymentReminders) {
     notificationPaymentReminders.checked = prefs.notifications?.paymentReminders ?? true;
     notificationPaymentReminders.addEventListener('change', async (e) => {
+      const current = this.loadUserPreferences();
       const updatedPrefs = {
-        ...prefs,
+        ...current,
         notifications: {
-          ...prefs.notifications,
+          ...current.notifications,
           paymentReminders: e.target.checked
         }
       };
       await this.saveUserPreferences(updatedPrefs);
-    });
-  }
-
-  if (notificationImportantChanges) {
-    notificationImportantChanges.checked = prefs.notifications?.importantChanges ?? true;
-    notificationImportantChanges.addEventListener('change', async (e) => {
-      const updatedPrefs = {
-        ...prefs,
-        notifications: {
-          ...prefs.notifications,
-          importantChanges: e.target.checked
-        }
-      };
-      await this.saveUserPreferences(updatedPrefs);
+      this.showToast(`Promemoria pagamenti ${e.target.checked ? 'attivati' : 'disattivati'}`, { type: 'success', duration: 1500 });
     });
   }
 
   if (notificationBirthdayReminders) {
     notificationBirthdayReminders.checked = prefs.notifications?.birthdayReminders ?? true;
     notificationBirthdayReminders.addEventListener('change', async (e) => {
+      const current = this.loadUserPreferences();
       const updatedPrefs = {
-        ...prefs,
+        ...current,
         notifications: {
-          ...prefs.notifications,
+          ...current.notifications,
           birthdayReminders: e.target.checked
         }
       };
       await this.saveUserPreferences(updatedPrefs);
+      this.showToast(`Promemoria compleanni ${e.target.checked ? 'attivati' : 'disattivati'}`, { type: 'success', duration: 1500 });
+    });
+  }
+
+  if (notificationImportantChanges) {
+    notificationImportantChanges.checked = prefs.notifications?.importantChanges ?? true;
+    notificationImportantChanges.addEventListener('change', async (e) => {
+      const current = this.loadUserPreferences();
+      const updatedPrefs = {
+        ...current,
+        notifications: {
+          ...current.notifications,
+          importantChanges: e.target.checked
+        }
+      };
+      await this.saveUserPreferences(updatedPrefs);
+      this.showToast(`Avvisi modifiche ${e.target.checked ? 'attivati' : 'disattivati'}`, { type: 'success', duration: 1500 });
+    });
+  }
+
+  // Pulsante per forzare la verifica e generazione dei promemoria adesso
+  const runRemindersBtn = document.getElementById('runRemindersNowBtn');
+  if (runRemindersBtn && !runRemindersBtn._bound) {
+    runRemindersBtn._bound = true;
+    runRemindersBtn.addEventListener('click', async () => {
+      runRemindersBtn.disabled = true;
+      runRemindersBtn.innerHTML = '<span>⏳</span> Controllo...';
+      try {
+        const self = window.UI || this;
+        const res = self.runAllRemindersCheck ? await self.runAllRemindersCheck(true) : { total: 0 };
+        if (res.total > 0) {
+          self.showToast(`Generat${res.total === 1 ? 'o' : 'i'} ${res.total} promemoria (${res.activities} attività, ${res.payments} quote, ${res.birthdays} compleanni)!`, { type: 'success' });
+        } else {
+          self.showToast('Nessun nuovo promemoria da generare per oggi.', { type: 'info' });
+        }
+      } catch (err) {
+        console.error(err);
+        this.showToast('Errore durante la verifica dei promemoria', { type: 'error' });
+      } finally {
+        runRemindersBtn.disabled = false;
+        runRemindersBtn.innerHTML = '<span>🔄</span> Controlla Ora';
+      }
     });
   }
 

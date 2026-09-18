@@ -430,3 +430,98 @@ export function isActivityInScoutYear(activity, scoutYearStr) {
 
     return d >= range.start && d <= range.end;
 }
+
+/**
+ * Returns activities taking place within the next `daysAhead` days (from start of refDate).
+ */
+export function getUpcomingActivities(activities = [], daysAhead = 3, refDate = new Date()) {
+    if (!Array.isArray(activities)) return [];
+    const base = toJsDate(refDate);
+    if (!base || isNaN(base.getTime())) return [];
+
+    const start = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + daysAhead);
+    end.setHours(23, 59, 59, 999);
+
+    return activities
+        .filter(act => {
+            if (!act || !act.data) return false;
+            const d = toJsDate(act.data);
+            return d && !isNaN(d.getTime()) && d >= start && d <= end;
+        })
+        .sort((a, b) => toJsDate(a.data).getTime() - toJsDate(b.data).getTime());
+}
+
+/**
+ * Finds activities with a cost > 0 that have present scouts who have not yet paid.
+ */
+export function getPendingPaymentsByActivity(activities = [], presences = []) {
+    if (!Array.isArray(activities) || !Array.isArray(presences)) return [];
+
+    const results = [];
+
+    activities.forEach(act => {
+        if (!act) return;
+        const cost = parseFloat(act.costo || '0');
+        if (isNaN(cost) || cost <= 0) return;
+
+        const pending = presences.filter(p =>
+            p &&
+            String(p.attivitaId) === String(act.id) &&
+            p.stato === 'Presente' &&
+            !p.pagato
+        );
+
+        if (pending.length > 0) {
+            results.push({
+                activity: act,
+                pendingPresences: pending,
+                pendingCount: pending.length,
+                totalAmount: Math.round(pending.length * cost * 100) / 100
+            });
+        }
+    });
+
+    return results;
+}
+
+/**
+ * Finds scouts whose birthday falls within the next `daysAhead` days.
+ */
+export function getUpcomingBirthdays(scouts = [], daysAhead = 3, refDate = new Date()) {
+    if (!Array.isArray(scouts)) return [];
+    const base = toJsDate(refDate);
+    if (!base || isNaN(base.getTime())) return [];
+
+    const currentYear = base.getFullYear();
+    const today = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, 0, 0, 0);
+
+    const results = [];
+
+    scouts.forEach(scout => {
+        if (!scout || scout.archived || !scout.anag_dob) return;
+        const dob = toJsDate(scout.anag_dob);
+        if (!dob || isNaN(dob.getTime())) return;
+
+        for (const yr of [currentYear, currentYear + 1]) {
+            const bdayThisYear = new Date(yr, dob.getMonth(), dob.getDate(), 0, 0, 0, 0);
+            const diffTime = bdayThisYear.getTime() - today.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays >= 0 && diffDays <= daysAhead) {
+                const turningAge = yr - dob.getFullYear();
+                results.push({
+                    scout,
+                    daysUntil: diffDays,
+                    birthdayDate: bdayThisYear,
+                    turningAge: turningAge > 0 ? turningAge : undefined
+                });
+                break;
+            }
+        }
+    });
+
+    return results.sort((a, b) => a.daysUntil - b.daysUntil);
+}
+

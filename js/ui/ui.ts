@@ -12,7 +12,11 @@ import {
     onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp
 } from '../core/firebase.js';
 import { APP_VERSION, THEME } from '../utils/constants.js';
-import { escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit, getScoutYear, getScoutYearDateRange, getCurrentScoutYear, getAllScoutYears, isActivityInScoutYear } from '../utils/utils.js';
+import {
+    escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit,
+    getScoutYear, getScoutYearDateRange, getCurrentScoutYear, getAllScoutYears, isActivityInScoutYear,
+    getUpcomingActivities, getPendingPaymentsByActivity, getUpcomingBirthdays
+} from '../utils/utils.js';
 import { setupFormValidation, validateForm, validateFieldValue, checkDataIntegrity } from '../utils/validation.js';
 
 export const UI = {
@@ -28,6 +32,9 @@ export const UI = {
     getCurrentScoutYear,
     getAllScoutYears,
     isActivityInScoutYear,
+    getUpcomingActivities,
+    getPendingPaymentsByActivity,
+    getUpcomingBirthdays,
 
     getSelectedScoutYear() {
         const prefs = this.loadUserPreferences();
@@ -895,31 +902,151 @@ export const UI = {
         this.showToast(`${title}: ${body}`, { type: 'info' });
     },
 
-    async checkActivityReminders() {
-        // Simplified logic for brevity but functional
-        if (!this.currentUser) return;
+    async checkActivityReminders(force = false) {
+        if (!this.currentUser) return 0;
         const prefs = this.loadUserPreferences();
-        if (!prefs.notifications.activityReminders) return;
-        // Logic to find upcoming activities...
+        if (!force && prefs.notifications?.activityReminders === false) return 0;
+
+        const upcoming = getUpcomingActivities(this.state?.activities || [], 3);
+        let createdCount = 0;
+
+        for (const act of upcoming) {
+            const dateStr = this.formatDisplayDate ? this.formatDisplayDate(act.data) : (act.data?.toDate ? act.data.toDate().toLocaleDateString('it-IT') : new Date(act.data).toLocaleDateString('it-IT'));
+            const todayStr = new Date().toISOString().split('T')[0];
+            const reminderKey = `activity_${act.id}_${todayStr}`;
+
+            const costNum = parseFloat(act.costo || '0');
+            const costText = costNum > 0 ? ` (Costo: €${costNum})` : '';
+            const title = `📅 Attività imminente: ${act.descrizione || act.tipo || 'Attività'}`;
+            const body = `${act.tipo || 'Attività'} in programma il ${dateStr}${costText}.`;
+
+            const res = await this.saveInAppNotification({
+                type: 'activity_reminder',
+                title,
+                body,
+                url: 'calendario.html',
+                notificationType: 'reminder',
+                reminderKey
+            });
+            if (res) createdCount++;
+        }
+        return createdCount;
     },
-    async checkBirthdayReminders() { }, // Placeholder for brevity, similar structure
-    async checkPaymentReminders() { },
+
+    async checkPaymentReminders(force = false) {
+        if (!this.currentUser) return 0;
+        const prefs = this.loadUserPreferences();
+        if (!force && prefs.notifications?.paymentReminders === false) return 0;
+
+        const pendingList = getPendingPaymentsByActivity(this.state?.activities || [], this.state?.presences || []);
+        let createdCount = 0;
+
+        for (const item of pendingList) {
+            const act = item.activity;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const reminderKey = `payment_${act.id}_${todayStr}`;
+
+            const title = `💶 Quote da saldare: ${act.descrizione || act.tipo || 'Attività'}`;
+            const body = `${item.pendingCount} esplorator${item.pendingCount === 1 ? 'e presente non ha' : 'i presenti non hanno'} ancora saldato la quota (€${item.totalAmount} in sospeso).`;
+
+            const res = await this.saveInAppNotification({
+                type: 'payment_reminder',
+                title,
+                body,
+                url: 'presenze.html',
+                notificationType: 'warning',
+                reminderKey
+            });
+            if (res) createdCount++;
+        }
+        return createdCount;
+    },
+
+    async checkBirthdayReminders(force = false) {
+        if (!this.currentUser) return 0;
+        const prefs = this.loadUserPreferences();
+        if (!force && prefs.notifications?.birthdayReminders === false) return 0;
+
+        const bdays = getUpcomingBirthdays(this.state?.scouts || [], 3);
+        let createdCount = 0;
+
+        for (const item of bdays) {
+            const scout = item.scout;
+            const currentYear = new Date().getFullYear();
+            const reminderKey = `birthday_${scout.id}_${currentYear}`;
+
+            let when = 'oggi!';
+            if (item.daysUntil === 1) when = 'domani!';
+            else if (item.daysUntil > 1) when = `tra ${item.daysUntil} giorni!`;
+
+            const ageText = item.turningAge ? ` Compie ${item.turningAge} anni.` : '';
+            const title = `🎂 Compleanno di ${scout.nome || ''} ${scout.cognome || ''}`;
+            const body = `${scout.nome || 'L\'esploratore'} festeggia il compleanno ${when}${ageText}`;
+
+            const res = await this.saveInAppNotification({
+                type: 'birthday_reminder',
+                title,
+                body,
+                url: 'esploratori.html',
+                notificationType: 'info',
+                reminderKey
+            });
+            if (res) createdCount++;
+        }
+        return createdCount;
+    },
+
+    async runAllRemindersCheck(force = false) {
+        const a = await this.checkActivityReminders(force);
+        const p = await this.checkPaymentReminders(force);
+        const b = await this.checkBirthdayReminders(force);
+        this.updateNotificationsBadge();
+        return { activities: a, payments: p, birthdays: b, total: a + p + b };
+    },
 
     notifyImportantChange({ type, title, body, url }) {
         this.saveInAppNotification({ type, title, body, url, notificationType: 'important' });
     },
+
     async saveInAppNotification(n) {
         if (this.currentUser?.uid) {
-            await addDoc(collection(DATA.adapter.db, 'in-app-notifications'), { ...n, userId: this.currentUser.uid, read: false, createdAt: Timestamp.now() });
+            if (n.reminderKey) {
+                const todayKey = new Date().toISOString().split('T')[0];
+                const storageKey = `sent_reminders_${this.currentUser.uid}_${todayKey}`;
+                let sentKeys: string[] = [];
+                try {
+                    sentKeys = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                } catch { }
+
+                if (sentKeys.includes(n.reminderKey)) {
+                    return null;
+                }
+
+                sentKeys.push(n.reminderKey);
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(sentKeys));
+                } catch { }
+            }
+
+            const docRef = await addDoc(collection(DATA.adapter.db, 'in-app-notifications'), {
+                ...n,
+                userId: this.currentUser.uid,
+                read: false,
+                createdAt: Timestamp.now()
+            });
             this.updateNotificationsBadge();
+            return docRef;
         }
+        return null;
     },
+
     async loadInAppNotifications(limitCount = 50) {
         if (!this.currentUser?.uid) return [];
         const q = query(collection(DATA.adapter.db, 'in-app-notifications'), where('userId', '==', this.currentUser.uid), orderBy('createdAt', 'desc'), limit(limitCount));
         const s = await getDocs(q);
         return s.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() }));
     },
+
     async markAllNotificationsAsRead() {
         if (!this.currentUser) return;
         const unread = (await this.loadInAppNotifications(100)).filter(n => !n.read);
@@ -927,6 +1054,7 @@ export const UI = {
         this.updateNotificationsBadge();
         this.renderNotificationsList();
     },
+
     async updateNotificationsBadge() {
         if (!this.currentUser) return;
         const unread = (await this.loadInAppNotifications(100)).filter(n => !n.read).length;
@@ -936,17 +1064,49 @@ export const UI = {
             badge.style.display = unread > 0 ? 'flex' : 'none';
         }
     },
+
+    async handleNotificationClick(id: string, url?: string) {
+        await this.markNotificationAsRead(id);
+        if (url && url !== '#' && !window.location.pathname.endsWith(url)) {
+            window.location.href = url;
+        }
+    },
+
     async renderNotificationsList() {
         const container = this.qs('#notificationsList');
+        const emptyEl = this.qs('#notificationsEmpty');
         if (!container) return;
         const notes = await this.loadInAppNotifications(20);
-        if (!notes.length) { container.innerHTML = '<p class="p-4 text-center">Nessuna notifica</p>'; return; }
+        if (!notes.length) {
+            container.innerHTML = '';
+            if (emptyEl) emptyEl.style.display = 'block';
+            return;
+        }
+        if (emptyEl) emptyEl.style.display = 'none';
+
+        const getIcon = (type: string) => {
+            if (type === 'activity_reminder') return '📅';
+            if (type === 'payment_reminder') return '💶';
+            if (type === 'birthday_reminder') return '🎂';
+            if (type === 'important') return '⚠️';
+            return '🔔';
+        };
+
         container.innerHTML = notes.map(n => `
-        <div class="p-3 border-b ${!n.read ? 'bg-blue-50' : ''}" onclick="UI.markNotificationAsRead('${n.id}')">
-            <b>${this.escapeHtml(n.title)}</b><br><span class="text-sm">${this.escapeHtml(n.body)}</span>
+        <div class="p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${!n.read ? 'bg-blue-50/70 dark:bg-blue-900/20 font-medium' : ''}" onclick="UI.handleNotificationClick('${n.id}', '${n.url || ''}')">
+            <div class="flex items-start gap-2">
+                <span class="text-base flex-shrink-0">${getIcon(n.type)}</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs text-gray-800 dark:text-gray-200 leading-snug">${this.escapeHtml(n.title)}</p>
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">${this.escapeHtml(n.body)}</p>
+                    <span class="text-[9px] text-gray-400 mt-1 block">${this.formatTimeAgo ? this.formatTimeAgo(n.createdAt) : ''}</span>
+                </div>
+                ${!n.read ? '<span class="w-2 h-2 rounded-full bg-blue-600 mt-1 flex-shrink-0"></span>' : ''}
+            </div>
         </div>
     `).join('');
     },
+
     async markNotificationAsRead(id) {
         if (this.currentUser) {
             await updateDoc(doc(DATA.adapter.db, 'in-app-notifications', id), { read: true });
@@ -954,13 +1114,20 @@ export const UI = {
             this.renderNotificationsList();
         }
     },
+
     setupInAppNotifications() {
         if (!this.currentUser) return;
         const bell = this.qs('#notificationsBell');
         const drop = this.qs('#notificationsDropdown');
         if (bell && drop) {
-            bell.addEventListener('click', e => { e.stopPropagation(); drop.style.display = drop.style.display === 'none' ? 'block' : 'none'; if (drop.style.display === 'block') this.renderNotificationsList(); });
-            document.addEventListener('click', e => { if (!bell.contains(e.target) && !drop.contains(e.target)) drop.style.display = 'none'; });
+            bell.addEventListener('click', e => {
+                e.stopPropagation();
+                drop.style.display = drop.style.display === 'none' ? 'block' : 'none';
+                if (drop.style.display === 'block') this.renderNotificationsList();
+            });
+            document.addEventListener('click', e => {
+                if (!bell.contains(e.target) && !drop.contains(e.target)) drop.style.display = 'none';
+            });
         }
         this.updateNotificationsBadge();
     },

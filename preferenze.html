@@ -157,13 +157,21 @@
 
         <!-- Notifiche -->
         <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🔔 Notifiche</h3>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">🔔 Notifiche & Promemoria Automatici</h3>
+            <button id="runRemindersNowBtn" type="button" class="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3">
+              <span>🔄</span> Controlla Ora
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            I promemoria compaiono nella campanella 🔔 in alto a destra e ti aiutano a tenere traccia di scadenze, quote e compleanni.
+          </p>
           <div class="space-y-4">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notifiche Abilitate</label>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Abilita notifiche push del browser</p>
-                <span id="notificationPermissionStatus" class="text-xs text-gray-400 dark:text-gray-500 mt-1"></span>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notifiche Push Browser (FCM)</label>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Ricevi notifiche anche a schermo bloccato o app chiusa</p>
+                <span id="notificationPermissionStatus" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 block"></span>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="notificationsEnabled" class="sr-only peer">
@@ -173,59 +181,55 @@
               </label>
             </div>
 
-            <div class="ml-4 space-y-3 border-l-2 border-gray-300 dark:border-gray-600 pl-4">
+            <div class="space-y-3 pt-1">
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria
-                    Attività</label>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Notifica 3 giorni prima di un'attività</p>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria Attività Imminenti</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Avviso 3 giorni prima delle attività in calendario</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="notificationActivityReminders" class="sr-only peer" disabled>
+                  <input type="checkbox" id="notificationActivityReminders" class="sr-only peer">
                   <div
-                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
                   </div>
                 </label>
               </div>
 
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria
-                    Pagamenti</label>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per pagamenti mancanti</p>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria Quote & Pagamenti</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Avviso se ci sono esploratori presenti con quota non saldata</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="notificationPaymentReminders" class="sr-only peer" disabled>
+                  <input type="checkbox" id="notificationPaymentReminders" class="sr-only peer">
                   <div
-                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
                   </div>
                 </label>
               </div>
 
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Modifiche
-                    Importanti</label>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per cambiamenti significativi</p>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Compleanni Esploratori</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Avviso il giorno del compleanno e nei 3 giorni precedenti</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="notificationImportantChanges" class="sr-only peer" disabled>
+                  <input type="checkbox" id="notificationBirthdayReminders" class="sr-only peer">
                   <div
-                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
                   </div>
                 </label>
               </div>
 
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Compleanni
-                    Esploratori</label>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Notifica per compleanni degli esploratori</p>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Modifiche Importanti</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Avviso quando vengono cancellate attività o dati critici</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="notificationBirthdayReminders" class="sr-only peer" disabled>
+                  <input type="checkbox" id="notificationImportantChanges" class="sr-only peer">
                   <div
-                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50">
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
                   </div>
                 </label>
               </div>
