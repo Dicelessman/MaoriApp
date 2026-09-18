@@ -4,7 +4,7 @@ UI.renderCurrentPage = function () {
   this.setupScoutYearSelector();
   this.renderCalendarList();
   this.setupCalendarEvents();
-  // removed setupCalendarViewToggle
+  this.setupCalendarViewToggle();
   this.setupCalendarExport();
 };
 
@@ -46,8 +46,233 @@ UI.setupScoutYearSelector = function () {
         await this.setSelectedScoutYear(e.target.value);
       }
       this.renderCalendarList();
+      if (this.currentCalendarView === 'month') {
+        this.renderMonthlyCalendar();
+      }
     });
   }
+};
+
+UI.getActivityColorHex = function (type) {
+  switch (type) {
+    case 'Riunione':
+      return '#16a34a';
+    case 'Uscita':
+      return '#2563eb';
+    case 'Campo':
+      return '#dc2626';
+    case 'Evento Adulti':
+      return '#7c3aed';
+    case 'Riunione Adulti':
+      return '#475569';
+    case 'Eventi con esterni':
+      return '#d97706';
+    default:
+      return '#16a34a';
+  }
+};
+
+UI.setupCalendarViewToggle = function () {
+  const listBtn = this.qs('#calViewListBtn');
+  const monthBtn = this.qs('#calViewMonthBtn');
+  const prevBtn = this.qs('#calPrevMonth');
+  const nextBtn = this.qs('#calNextMonth');
+
+  if (!this.currentCalendarMonthDate) {
+    this.currentCalendarMonthDate = new Date();
+  }
+
+  let savedView = 'list';
+  try {
+    savedView = localStorage.getItem('maori_cal_view') || 'list';
+  } catch (e) {}
+
+  if (listBtn && !listBtn._bound) {
+    listBtn._bound = true;
+    listBtn.addEventListener('click', () => {
+      this.setCalendarView('list');
+    });
+  }
+
+  if (monthBtn && !monthBtn._bound) {
+    monthBtn._bound = true;
+    monthBtn.addEventListener('click', () => {
+      this.setCalendarView('month');
+    });
+  }
+
+  if (prevBtn && !prevBtn._bound) {
+    prevBtn._bound = true;
+    prevBtn.addEventListener('click', () => {
+      const d = this.currentCalendarMonthDate || new Date();
+      this.currentCalendarMonthDate = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+      this.renderMonthlyCalendar();
+    });
+  }
+
+  if (nextBtn && !nextBtn._bound) {
+    nextBtn._bound = true;
+    nextBtn.addEventListener('click', () => {
+      const d = this.currentCalendarMonthDate || new Date();
+      this.currentCalendarMonthDate = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      this.renderMonthlyCalendar();
+    });
+  }
+
+  this.setCalendarView(savedView);
+};
+
+UI.setCalendarView = function (view) {
+  this.currentCalendarView = view;
+  try {
+    localStorage.setItem('maori_cal_view', view);
+  } catch (e) {}
+
+  const listBtn = this.qs('#calViewListBtn');
+  const monthBtn = this.qs('#calViewMonthBtn');
+  const listView = this.qs('#listCalendarView');
+  const monthView = this.qs('#monthlyCalendarView');
+
+  if (view === 'month') {
+    if (listBtn) {
+      listBtn.classList.remove('active');
+      listBtn.setAttribute('aria-pressed', 'false');
+    }
+    if (monthBtn) {
+      monthBtn.classList.add('active');
+      monthBtn.setAttribute('aria-pressed', 'true');
+    }
+    if (listView) listView.classList.add('hidden');
+    if (monthView) monthView.classList.remove('hidden');
+    this.renderMonthlyCalendar();
+  } else {
+    if (monthBtn) {
+      monthBtn.classList.remove('active');
+      monthBtn.setAttribute('aria-pressed', 'false');
+    }
+    if (listBtn) {
+      listBtn.classList.add('active');
+      listBtn.setAttribute('aria-pressed', 'true');
+    }
+    if (monthView) monthView.classList.add('hidden');
+    if (listView) listView.classList.remove('hidden');
+  }
+};
+
+UI.renderMonthlyCalendar = function () {
+  const grid = this.qs('#calMonthGrid');
+  const labelEl = this.qs('#calMonthLabel');
+  if (!grid) return;
+
+  const date = this.currentCalendarMonthDate || new Date();
+  const year = date.getFullYear();
+  const month = date.getMonth();
+
+  const monthNames = [
+    'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+  ];
+  if (labelEl) {
+    labelEl.textContent = `${monthNames[month]} ${year}`;
+  }
+
+  // Filtra attività in base all'anno scout selezionato
+  const selectedYear = this.selectedCalendarScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
+  let activities = (this.state.activities || []).slice();
+  if (selectedYear !== 'all') {
+    activities = activities.filter(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, selectedYear) : true);
+  }
+
+  // Mappa data -> attività (YYYY-MM-DD)
+  const actByDay = {};
+  activities.forEach(a => {
+    if (!a.data) return;
+    const startD = this.toJsDate(a.data);
+    if (!startD || isNaN(startD.getTime())) return;
+    const endD = a.dataFine ? this.toJsDate(a.dataFine) : startD;
+    const validEnd = (!endD || isNaN(endD.getTime()) || endD < startD) ? startD : endD;
+
+    const cur = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate());
+    const limit = new Date(validEnd.getFullYear(), validEnd.getMonth(), validEnd.getDate());
+    let safety = 0;
+    while (cur <= limit && safety < 31) {
+      const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+      if (!actByDay[key]) actByDay[key] = [];
+      actByDay[key].push(a);
+      cur.setDate(cur.getDate() + 1);
+      safety++;
+    }
+  });
+
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const firstDay = new Date(year, month, 1);
+  const startDay = (firstDay.getDay() + 6) % 7; // Lunedì = 0
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+  let cellsHtml = '';
+
+  // Giorni mese precedente
+  for (let i = startDay - 1; i >= 0; i--) {
+    const dNum = daysInPrevMonth - i;
+    const prevDate = new Date(year, month - 1, dNum);
+    const dayKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(dNum).padStart(2, '0')}`;
+    cellsHtml += this._buildCalendarDayCell(dNum, dayKey, actByDay[dayKey] || [], true, false);
+  }
+
+  // Giorni mese corrente
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isToday = dayKey === todayKey;
+    cellsHtml += this._buildCalendarDayCell(d, dayKey, actByDay[dayKey] || [], false, isToday);
+  }
+
+  // Giorni mese successivo per completare la griglia (multiplo di 7, min 35 celle)
+  const totalRendered = startDay + daysInMonth;
+  const targetCells = totalRendered > 35 ? 42 : 35;
+  const nextMonthDays = targetCells - totalRendered;
+  for (let d = 1; d <= nextMonthDays; d++) {
+    const nextDate = new Date(year, month + 1, d);
+    const dayKey = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    cellsHtml += this._buildCalendarDayCell(d, dayKey, actByDay[dayKey] || [], true, false);
+  }
+
+  grid.innerHTML = cellsHtml;
+};
+
+UI._buildCalendarDayCell = function (dayNum, dayKey, items, isOtherMonth, isToday) {
+  let classes = 'cal-day-cell';
+  if (isOtherMonth) classes += ' cal-other-month';
+  if (isToday) classes += ' cal-today';
+
+  let eventsHtml = '';
+  const maxEvents = 3;
+  const displayItems = items.slice(0, maxEvents);
+  const overflow = items.length - maxEvents;
+
+  displayItems.forEach(a => {
+    const colorHex = this.getActivityColorHex(a.tipo);
+    const escapedDesc = (a.descrizione || '').replace(/"/g, '&quot;');
+    const escapedTipo = (a.tipo || '').replace(/"/g, '&quot;');
+    eventsHtml += `
+      <a href="attivita.html?id=${a.id}" class="cal-event-pill" style="background:${colorHex};" title="${escapedTipo}: ${escapedDesc}">
+        ${escapedTipo}
+      </a>
+    `;
+  });
+
+  if (overflow > 0) {
+    eventsHtml += `<span class="cal-more-badge" title="${overflow} altre attività">+${overflow} altri</span>`;
+  }
+
+  return `
+    <div class="${classes}" data-date="${dayKey}">
+      <div class="cal-day-num">${dayNum}</div>
+      <div class="cal-day-events">${eventsHtml}</div>
+    </div>
+  `;
 };
 
 UI.getActivityTypeColor = function (type) {
@@ -348,6 +573,9 @@ UI.setupCalendarEvents = function () {
 };
 
 UI.renderCalendarList = function () {
+  if (this.currentCalendarView === 'month') {
+    this.renderMonthlyCalendar();
+  }
   const list = this.qs('#calendarList');
   if (!list) return;
   list.innerHTML = '';

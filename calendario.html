@@ -45,7 +45,20 @@
               </select>
             </div>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 items-center">
+            <!-- Toggle Vista Lista / Griglia Mese -->
+            <div class="flex rounded-lg border border-gray-200 overflow-hidden shadow-sm" role="group" aria-label="Modalità visualizzazione">
+              <button id="calViewListBtn" type="button"
+                class="cal-view-btn active px-3 py-1.5 text-sm font-medium flex items-center gap-1.5"
+                aria-pressed="true" title="Vista lista">
+                <span>☰</span><span class="hidden sm:inline">Lista</span>
+              </button>
+              <button id="calViewMonthBtn" type="button"
+                class="cal-view-btn px-3 py-1.5 text-sm font-medium flex items-center gap-1.5"
+                aria-pressed="false" title="Vista mensile">
+                <span>📆</span><span class="hidden sm:inline">Mese</span>
+              </button>
+            </div>
             <div class="relative inline-block">
               <button id="exportCalendarBtn" class="btn-secondary text-sm px-4 py-2 flex items-center gap-2"
                 title="Esporta calendario">
@@ -70,7 +83,31 @@
           </div>
         </div>
 
-
+        <!-- Vista Griglia Mensile -->
+        <div id="monthlyCalendarView" class="hidden">
+          <!-- Nav mese -->
+          <div class="flex items-center justify-between mb-4">
+            <button id="calPrevMonth" type="button" class="btn-secondary px-3 py-1.5 text-sm" aria-label="Mese precedente">&#8592; Prec</button>
+            <h3 id="calMonthLabel" class="text-lg font-semibold text-gray-700"></h3>
+            <button id="calNextMonth" type="button" class="btn-secondary px-3 py-1.5 text-sm" aria-label="Mese successivo">Succ &#8594;</button>
+          </div>
+          <!-- Intestazioni giorni -->
+          <div class="cal-month-grid cal-month-header">
+            <div>Lun</div><div>Mar</div><div>Mer</div><div>Gio</div>
+            <div>Ven</div><div>Sab</div><div>Dom</div>
+          </div>
+          <!-- Celle giorni -->
+          <div id="calMonthGrid" class="cal-month-grid" aria-label="Griglia mensile attività"></div>
+          <!-- Legenda tipi attività -->
+          <div class="cal-month-legend mt-4">
+            <span class="cal-dot" style="background:#16a34a"></span><span>Riunione</span>
+            <span class="cal-dot" style="background:#2563eb"></span><span>Uscita</span>
+            <span class="cal-dot" style="background:#dc2626"></span><span>Campo</span>
+            <span class="cal-dot" style="background:#7c3aed"></span><span>Evento Adulti</span>
+            <span class="cal-dot" style="background:#475569"></span><span>Riunione Adulti</span>
+            <span class="cal-dot" style="background:#d97706"></span><span>Con Esterni</span>
+          </div>
+        </div>
 
         <!-- Vista Lista (default) -->
         <div id="listCalendarView">
