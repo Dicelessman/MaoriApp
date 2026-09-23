@@ -1,0 +1,40 @@
+{
+  "name": "Scout Maori - Presenziario",
+  "short_name": "Presenziario",
+  "description": "Registro presenze e gestione Reparto Scout Maori",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a",
+  "scope": "/",
+  "shortcuts": [
+    { "name": "Presenze", "short_name": "Presenze", "url": "/presenze.html", "description": "Segna le presenze alle attività" },
+    { "name": "Calendario", "short_name": "Calendario", "url": "/calendario.html", "description": "Visualizza il calendario delle attività" },
+    { "name": "Esploratori", "short_name": "Esploratori", "url": "/esploratori.html", "description": "Gestione esploratori" },
+    { "name": "Scadenze", "short_name": "Scadenze", "url": "/scadenze.html", "description": "Prossime scadenze e promemoria" },
+    { "name": "Statistiche", "short_name": "Statistiche", "url": "/statistiche.html", "description": "Report e statistiche anno scout" }
+  ],
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "16x16 32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
+
+  

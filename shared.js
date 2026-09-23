@@ -5,6 +5,7 @@
 
 import { DATA } from './js/data/data-facade.js';
 import { UI } from './js/ui/ui.js';
+import './date-picker.js';
 
 // Re-export globally for legacy HTML files
 window.DATA = DATA;

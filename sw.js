@@ -1,4 +1,4 @@
-const CACHE_NAME = "presenziario-cache-v5"; // bump cache v5
+const CACHE_NAME = "presenziario-cache-v6"; // bump cache v6
 const RUNTIME_CACHE = "presenziario-runtime-v2";
 const URLS_TO_CACHE = [
   "/",
@@ -28,6 +28,7 @@ const URLS_TO_CACHE = [
   "/config.js",
   // JS pagine
   "/shared.js",
+  "/date-picker.js",
   "/presenze.js",
   "/dashboard.js",
   "/calendario.js",

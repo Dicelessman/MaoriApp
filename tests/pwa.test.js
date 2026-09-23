@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -24,11 +24,11 @@ function extractCachedUrls(sw) {
   return urls;
 }
 
-describe("Service Worker v5", () => {
+describe("Service Worker v6", () => {
   let sw, urls;
   beforeEach(() => { sw = readSwFile(); urls = extractCachedUrls(sw); });
 
-  it("versione cache v5", () => expect(sw).toContain("presenziario-cache-v5"));
+  it("versione cache v6", () => expect(sw).toContain("presenziario-cache-v6"));
   it("runtime cache v2", () => expect(sw).toContain("presenziario-runtime-v2"));
   it("skipWaiting presente", () => expect(sw).toContain("skipWaiting"));
   it("clients.claim presente", () => expect(sw).toContain("clients.claim"));

@@ -322,6 +322,30 @@ service cloud.firestore {
       allow read, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
+    // ============== COLLEZIONE: scadenze ==============
+    match /scadenze/{deadlineId} {
+      // Lettura: tutti gli utenti autenticati possono leggere
+      allow read: if isAuthenticated();
+
+      // Creazione: solo staff autenticato
+      allow create: if isStaff()
+        && request.resource.data.titolo is string
+        && request.resource.data.titolo.size() > 0
+        && request.resource.data.titolo.size() <= 200
+        && request.resource.data.createdAt is timestamp;
+
+      // Aggiornamento: solo staff autenticato
+      allow update: if isStaff()
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdAt', 'createdBy']))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['titolo']) ||
+            (request.resource.data.titolo is string &&
+             request.resource.data.titolo.size() > 0 &&
+             request.resource.data.titolo.size() <= 200));
+
+      // Eliminazione: solo staff autenticato
+      allow delete: if isStaff();
+    }
+
     // ============== Default: nega tutto il resto ==============
     match /{document=**} {
       allow read, write: if false;
