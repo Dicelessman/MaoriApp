@@ -211,7 +211,7 @@ UI.renderScoutRankingChart = function(scouts) {
       }
     });
     const perc = totale > 0 ? Math.round((presenti / totale) * 100) : 0;
-    const nome = `${s.anag_nome || ''} ${s.anag_cognome || ''}`.trim() || s.id;
+    const nome = (s.nome ? `${s.nome} ${s.cognome || ''}` : (s.anag_nome ? `${s.anag_nome} ${s.anag_cognome || ''}` : s.id)).trim();
     return { nome, perc, presenti, totale };
   }).filter(s => s.totale > 0).sort((a, b) => b.perc - a.perc);
 
@@ -1126,6 +1126,22 @@ UI.generatePresenceReport = function() {
   
   // Calcola date in base al periodo
   switch (period) {
+    case 'scout-year-current': {
+      const curYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+      const r = this.getScoutYearDateRange ? this.getScoutYearDateRange(curYear) : null;
+      if (r) { startDate = r.start; endDate = r.end; }
+      else { startDate = new Date(today.getFullYear(), 8, 1); endDate = new Date(today.getFullYear() + 1, 7, 31); }
+      break;
+    }
+    case 'scout-year-prev': {
+      const curYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+      const parts = curYear.split('/').map(Number);
+      const prevYearStr = `${parts[0] - 1}/${parts[1] - 1}`;
+      const r = this.getScoutYearDateRange ? this.getScoutYearDateRange(prevYearStr) : null;
+      if (r) { startDate = r.start; endDate = r.end; }
+      else { startDate = new Date(today.getFullYear() - 1, 8, 1); endDate = new Date(today.getFullYear(), 7, 31); }
+      break;
+    }
     case 'current-month':
       startDate = new Date(today.getFullYear(), today.getMonth(), 1);
       endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);

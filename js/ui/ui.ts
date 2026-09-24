@@ -281,7 +281,7 @@ export const UI = {
 
             await this.loadSharedComponents();
             try {
-                const links = ['presenze.html', 'dashboard.html', 'calendario.html', 'esploratori.html', 'staff.html', 'audit-logs.html', 'preventivo.html', 'scadenze.html'];
+                const links = ['presenze.html', 'storico-presenze.html', 'dashboard.html', 'calendario.html', 'esploratori.html', 'staff.html', 'audit-logs.html', 'preventivo.html', 'scadenze.html'];
                 links.forEach(href => {
                     const l = document.createElement('link');
                     l.rel = 'prefetch';
@@ -413,6 +413,7 @@ export const UI = {
 
         const labels: { [key: string]: string } = {
             'presenze.html': 'Presenze',
+            'storico-presenze.html': 'Storico Presenze',
             'esploratori.html': 'Esploratori',
             'calendario.html': 'Calendario',
             'staff.html': 'Staff',

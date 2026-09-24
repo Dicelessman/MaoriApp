@@ -39,13 +39,29 @@
       <!-- Contenuto specifico Presenze -->
       <section id="presencesTab" class="tab-content active">
         <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-          <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">Registro Presenze</h2>
-          <div class="flex gap-2 items-center">
+          <div>
+            <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">Registro Presenze</h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Anno scout in corso <span id="currentYearBadge" class="font-bold text-green-700 dark:text-green-400"></span></p>
+          </div>
+          <div class="flex gap-2 items-center flex-wrap">
+            <a href="storico-presenze.html" class="px-3.5 py-2 text-sm rounded-lg border border-green-600/40 text-green-800 dark:text-green-300 bg-green-50 dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-900/40 font-medium flex items-center gap-1.5 transition-colors shadow-sm" title="Consulta lo storico presenze degli anni precedenti">
+              <span>📚</span>
+              <span>Storico Anni Precedenti</span>
+            </a>
             <button id="openExportModalBtn" onclick="UI.openExportModal()" class="btn-primary px-4 py-2 text-sm flex items-center gap-1.5 shadow-sm" title="Opzioni di esportazione CSV ed Excel">
               <span>📊</span>
               <span>Esporta CSV / Excel</span>
             </button>
           </div>
+        </div>
+
+        <!-- Avviso Archivio Anno Precedente -->
+        <div id="presenceArchiveNotice" class="hidden bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 px-4 py-2.5 rounded-lg mb-3 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-base">📦</span>
+            <span>Stai consultando l'archivio presenze dell'anno scout <strong id="archiveNoticeYear"></strong>.</span>
+          </div>
+          <button type="button" id="resetToCurrentYearBtn" class="underline font-bold hover:text-amber-700 dark:hover:text-amber-100 cursor-pointer">Torna all'anno in corso</button>
         </div>
 
         <!-- Barra Filtri Avanzati -->

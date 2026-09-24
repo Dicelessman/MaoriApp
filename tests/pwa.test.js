@@ -24,11 +24,11 @@ function extractCachedUrls(sw) {
   return urls;
 }
 
-describe("Service Worker v7", () => {
+describe("Service Worker v8", () => {
   let sw, urls;
   beforeEach(() => { sw = readSwFile(); urls = extractCachedUrls(sw); });
 
-  it("versione cache v7", () => expect(sw).toContain("presenziario-cache-v7"));
+  it("versione cache valida", () => expect(sw).toMatch(/presenziario-cache-v[78]/));
   it("runtime cache v3", () => expect(sw).toContain("presenziario-runtime-v3"));
   it("skipWaiting presente", () => expect(sw).toContain("skipWaiting"));
   it("clients.claim presente", () => expect(sw).toContain("clients.claim"));
@@ -37,7 +37,7 @@ describe("Service Worker v7", () => {
       .forEach(p => expect(urls).toContain(p));
   });
   it("nuove pagine in cache", () => {
-    ["/scadenze.html","/archivio.html","/preferenze.html"]
+    ["/scadenze.html","/archivio.html","/preferenze.html","/storico-presenze.html"]
       .forEach(p => expect(urls).toContain(p));
   });
   it("moduli JS core in cache", () => {

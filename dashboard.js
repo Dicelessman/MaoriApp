@@ -26,10 +26,13 @@ UI.renderDashboardCharts = function () {
 
   this._destroyCharts();
 
-  // Dati per grafico Presenza per Esploratore (percentuale presenze - stessa logica di presenze.html)
+  // Dati per grafico Presenza per Esploratore (percentuale presenze - solo anno scout in corso)
   const dedup = presences;
   const toDate = (v) => (v && v.toDate) ? v.toDate() : new Date(v);
-  const sortedActivities = [...activities].sort((a, b) => toDate(a.data) - toDate(b.data));
+  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const sortedActivities = [...activities]
+    .filter(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, currentScoutYear) : true)
+    .sort((a, b) => toDate(a.data) - toDate(b.data));
 
   // Calcola la prossima attività (>= oggi)
   const today = new Date();

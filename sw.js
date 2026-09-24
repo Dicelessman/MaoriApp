@@ -1,10 +1,11 @@
-const CACHE_NAME = "presenziario-cache-v7"; // bump cache v7
+const CACHE_NAME = "presenziario-cache-v8"; // bump cache v8
 const RUNTIME_CACHE = "presenziario-runtime-v3";
 const URLS_TO_CACHE = [
   "/",
   "/index.html",
   // Pagine principali
   "/presenze.html",
+  "/storico-presenze.html",
   "/dashboard.html",
   "/calendario.html",
   "/esploratori.html",

@@ -274,8 +274,10 @@ UI.renderScouts = function (filterLetter = null) {
       // CP/VCP - solo il valore
       if (scout.pv_vcp_cp) fields.push(`<span class="text-green-700 font-medium">${scout.pv_vcp_cp}</span>`);
 
-      // Calcolo percentuale presenze
-      const acts = this.state.activities || [];
+      // Calcolo percentuale presenze (solo anno scout in corso)
+      const currentScoutYear = UI.getCurrentScoutYear ? UI.getCurrentScoutYear() : '2025/2026';
+      const allActs = this.state.activities || [];
+      const acts = allActs.filter(a => UI.isActivityInScoutYear ? UI.isActivityInScoutYear(a, currentScoutYear) : true);
       const pres = UI.getDedupedPresences ? UI.getDedupedPresences() : (this.state.presences || []);
       const today = new Date(); today.setHours(0, 0, 0, 0);
       let nextActivityId = null;

@@ -218,26 +218,21 @@ UI.setupPresenceFilters = function () {
     const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
     const allYears = this.getAllScoutYears ? this.getAllScoutYears(this.state.activities) : [currentScoutYear];
 
-    if (!this.presenceFilters.scoutYear) {
-      this.presenceFilters.scoutYear = this.getSelectedScoutYear ? this.getSelectedScoutYear() : currentScoutYear;
+    // Il registro presenze deve mostrare di default l'anno scout in corso
+    if (!this.presenceFilters.scoutYear || this.presenceFilters.scoutYear === 'all') {
+      this.presenceFilters.scoutYear = currentScoutYear;
     }
 
     scoutYearFilter.innerHTML = '';
     allYears.forEach(year => {
       const isCurrent = year === currentScoutYear;
-      const label = isCurrent ? `${year} (In corso)` : `${year} (Archiviato)`;
+      const label = isCurrent ? `${year} (In corso)` : `${year} (Archivio)`;
       const opt = document.createElement('option');
       opt.value = year;
       opt.textContent = label;
       if (year === this.presenceFilters.scoutYear) opt.selected = true;
       scoutYearFilter.appendChild(opt);
     });
-
-    const allOpt = document.createElement('option');
-    allOpt.value = 'all';
-    allOpt.textContent = 'Tutti gli anni (Storico)';
-    if (this.presenceFilters.scoutYear === 'all') allOpt.selected = true;
-    scoutYearFilter.appendChild(allOpt);
 
     scoutYearFilter.value = this.presenceFilters.scoutYear;
   }
@@ -452,9 +447,41 @@ UI.renderPresenceTable = function () {
 
   const allScouts = this.state.scouts || [];
   const totalScouts = allScouts.length;
-  const acts = this.getActivitiesSorted();
+  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const activeYear = this.presenceFilters?.scoutYear || currentScoutYear;
+
+  // L'elenco delle attività nel registro presenze è limitato all'anno scout selezionato (di default l'anno scout in corso)
+  const allSortedActs = this.getActivitiesSorted();
+  const acts = allSortedActs.filter(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, activeYear) : true);
   const displayedActs = this.getFilteredActivities(acts);
   this._lastRenderedActs = displayedActs;
+
+  // Badge anno scout in corso
+  const currentYearBadge = this.qs('#currentYearBadge');
+  if (currentYearBadge) currentYearBadge.textContent = `(${currentScoutYear})`;
+
+  // Avviso archivio se si visualizza un anno precedente
+  const archiveNotice = this.qs('#presenceArchiveNotice');
+  const archiveNoticeYear = this.qs('#archiveNoticeYear');
+  if (archiveNotice) {
+    if (activeYear !== currentScoutYear) {
+      archiveNotice.classList.remove('hidden');
+      if (archiveNoticeYear) archiveNoticeYear.textContent = activeYear;
+    } else {
+      archiveNotice.classList.add('hidden');
+    }
+  }
+
+  const resetToCurrentYearBtn = this.qs('#resetToCurrentYearBtn');
+  if (resetToCurrentYearBtn && !resetToCurrentYearBtn._bound) {
+    resetToCurrentYearBtn._bound = true;
+    resetToCurrentYearBtn.addEventListener('click', () => {
+      this.presenceFilters.scoutYear = currentScoutYear;
+      const scoutYearFilter = this.qs('#presenceScoutYearFilter');
+      if (scoutYearFilter) scoutYearFilter.value = currentScoutYear;
+      this.renderPresenceTable();
+    });
+  }
 
   // Calcola la prossima attività (>= oggi)
   const today = new Date();
@@ -649,7 +676,9 @@ UI.renderPresenceTable = function () {
   // Aggiorna riepilogo conteggio filtri
   const summaryEl = this.qs('#presenceFilterSummary');
   if (summaryEl) {
-    summaryEl.textContent = `Visualizzati: ${sortedScouts.length} di ${totalScouts} esploratori, ${displayedActs.length} di ${acts.length} attività`;
+    const isCurrentYear = activeYear === currentScoutYear;
+    const yearLabel = isCurrentYear ? `Anno Scout ${activeYear}` : `Archivio ${activeYear}`;
+    summaryEl.textContent = `Visualizzati: ${sortedScouts.length} di ${totalScouts} esploratori, ${displayedActs.length} di ${acts.length} attività (${yearLabel})`;
   }
 
   // Verifica se tutti i visualizzati sono selezionati
