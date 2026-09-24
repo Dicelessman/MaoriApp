@@ -58,11 +58,48 @@ export class LocalAdapter {
         const next1 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
         const next2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14);
 
+        const dateValido = new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()).toISOString().split('T')[0];
+        const dateInScadenza = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 15).toISOString().split('T')[0];
+        const dateScaduto = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 20).toISOString().split('T')[0];
+
         this.state = {
             scouts: saved.scouts || [
-                { id: 's1', nome: 'Mario', cognome: 'Rossi', pv_pattuglia: 'Aironi' },
-                { id: 's2', nome: 'Luisa', cognome: 'Bianchi', pv_pattuglia: 'Marmotte' },
-                { id: 's3', nome: 'Andrea', cognome: 'Verdi', pv_pattuglia: 'Aironi' }
+                {
+                    id: 's1',
+                    nome: 'Mario',
+                    cognome: 'Rossi',
+                    pv_pattuglia: 'Aironi',
+                    anag_telefono: '3331234567',
+                    ct_g1_nome: 'Giuseppe Rossi',
+                    ct_g1_tel: '3331234567',
+                    san_cert_scadenza: dateValido,
+                    doc_priv: true,
+                    doc_san: true
+                },
+                {
+                    id: 's2',
+                    nome: 'Luisa',
+                    cognome: 'Bianchi',
+                    pv_pattuglia: 'Marmotte',
+                    anag_telefono: '3339876543',
+                    ct_g1_nome: 'Elena Bianchi',
+                    ct_g1_tel: '3339876543',
+                    san_cert_scadenza: dateInScadenza,
+                    doc_priv: true,
+                    doc_san: true
+                },
+                {
+                    id: 's3',
+                    nome: 'Andrea',
+                    cognome: 'Verdi',
+                    pv_pattuglia: 'Aironi',
+                    anag_telefono: '3334567890',
+                    ct_g1_nome: 'Paolo Verdi',
+                    ct_g1_tel: '3334567890',
+                    san_cert_scadenza: dateScaduto,
+                    doc_priv: false,
+                    doc_san: false
+                }
             ],
             staff: saved.staff || [
                 { id: 'st1', nome: 'Giulia', cognome: 'Esposito' },

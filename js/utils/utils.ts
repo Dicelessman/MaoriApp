@@ -524,12 +524,29 @@ export function getUpcomingBirthdays(scouts: any[] = [], daysAhead: number = 3, 
 }
 
 /**
+ * Medical & Health document status
+ */
+export interface ScoutMedicalStatus {
+    certStatus: 'valid' | 'expiring' | 'expired' | 'missing';
+    statusLabel: string;
+    color: 'green' | 'yellow' | 'red';
+    daysRemaining: number | null;
+    rawDate: string;
+    formattedDate: string;
+    docPriv: boolean;
+    docSan: boolean;
+    isCompliant: boolean;
+    missingDocuments: string[];
+    badgeClass: string;
+}
+
+/**
  * Item in the unified deadlines list
  */
 export interface ScoutDeadline {
     id: string;
     originalId: string;
-    type: 'activity' | 'payment' | 'birthday' | 'custom';
+    type: 'activity' | 'payment' | 'birthday' | 'custom' | 'medical';
     titolo: string;
     dataScadenza: string;
     dueDate: Date | null;
@@ -547,6 +564,9 @@ export interface ScoutDeadline {
     totalAmount?: number;
     turningAge?: number;
     customData?: any;
+    scoutId?: string;
+    scout?: any;
+    medStatus?: ScoutMedicalStatus;
 }
 
 /**
@@ -728,6 +748,43 @@ export function getAllScoutYearDeadlines(options: {
         });
     });
 
+    // 5. Certificati Medici & Documenti Sanitari
+    scouts.forEach(scout => {
+        if (!scout || scout.archived) return;
+        if (!scout.san_cert_scadenza) return;
+
+        const med = getScoutMedicalStatus(scout, base);
+        const certDate = toJsDate(scout.san_cert_scadenza);
+        if (!certDate || isNaN(certDate.getTime())) return;
+
+        const inYear = certDate >= range.start && certDate <= range.end;
+        const needsAttention = med.certStatus === 'expired' || med.certStatus === 'expiring';
+
+        if (inYear || needsAttention) {
+            const dateStr = certDate.toISOString().split('T')[0];
+            const days = getDaysDiff(certDate);
+
+            deadlines.push({
+                id: `med_${scout.id}`,
+                originalId: String(scout.id),
+                scoutId: String(scout.id),
+                type: 'medical',
+                titolo: `🩺 Certificato Medico: ${scout.nome || ''} ${scout.cognome || ''}`.trim(),
+                dataScadenza: dateStr,
+                dueDate: certDate,
+                daysUntil: days,
+                categoria: 'Certificati & Documenti',
+                descrizione: `Certificato medico ${med.statusLabel.toLowerCase()}${!med.docPriv ? ' • Manca Privacy' : ''}${!med.docSan ? ' • Manca Scheda Sanitaria' : ''}`,
+                status: med.certStatus === 'expired' ? 'scaduta' : (med.certStatus === 'expiring' ? 'imminente' : (days === 0 ? 'oggi' : 'futura')),
+                isCustom: false,
+                completata: false,
+                scout: scout,
+                medStatus: med,
+                url: `scout2.html?id=${scout.id}`
+            });
+        }
+    });
+
     // Ordina per dataScadenza crescente
     return deadlines.sort((a, b) => {
         if (a.dataScadenza < b.dataScadenza) return -1;
@@ -735,4 +792,146 @@ export function getAllScoutYearDeadlines(options: {
         return a.titolo.localeCompare(b.titolo);
     });
 }
+
+/**
+ * Calculates health & medical documents status for a scout:
+ * - Medical certificate expiration (valid > 30d, expiring <= 30d, expired < 0d, or missing)
+ * - Privacy consent (doc_priv)
+ * - Medical information form (doc_san)
+ */
+export function getScoutMedicalStatus(scout: any, refDate: any = new Date()): ScoutMedicalStatus {
+    if (!scout) {
+        return {
+            certStatus: 'missing',
+            statusLabel: 'Mancante',
+            color: 'red',
+            daysRemaining: null,
+            rawDate: '',
+            formattedDate: '',
+            docPriv: false,
+            docSan: false,
+            isCompliant: false,
+            missingDocuments: ['Certificato Medico', 'Consenso Privacy', 'Scheda Sanitaria'],
+            badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900/40 dark:text-rose-300'
+        };
+    }
+
+    const todayDate = toJsDate(refDate) || new Date();
+    const today = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), 0, 0, 0, 0);
+
+    const certDate = scout.san_cert_scadenza ? toJsDate(scout.san_cert_scadenza) : null;
+    let daysRemaining: number | null = null;
+    let rawDate = '';
+    let formattedDate = '';
+    let certStatus: 'valid' | 'expiring' | 'expired' | 'missing' = 'missing';
+    let statusLabel = 'Mancante';
+    let color: 'green' | 'yellow' | 'red' = 'red';
+    let badgeClass = 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900/40 dark:text-rose-300';
+
+    if (certDate && !isNaN(certDate.getTime())) {
+        const certTarget = new Date(certDate.getFullYear(), certDate.getMonth(), certDate.getDate(), 0, 0, 0, 0);
+        daysRemaining = Math.round((certTarget.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        rawDate = certTarget.toISOString().split('T')[0];
+        formattedDate = certTarget.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+        if (daysRemaining < 0) {
+            certStatus = 'expired';
+            statusLabel = `Scaduto (${Math.abs(daysRemaining)} gg fa)`;
+            color = 'red';
+            badgeClass = 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900/40 dark:text-rose-300';
+        } else if (daysRemaining <= 30) {
+            certStatus = 'expiring';
+            statusLabel = `In scadenza (${daysRemaining === 0 ? 'Oggi' : daysRemaining === 1 ? 'Domani' : 'tra ' + daysRemaining + ' gg'})`;
+            color = 'yellow';
+            badgeClass = 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300';
+        } else {
+            certStatus = 'valid';
+            statusLabel = `Valido (fino al ${formattedDate})`;
+            color = 'green';
+            badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300';
+        }
+    }
+
+    const docPriv = Boolean(scout.doc_priv);
+    const docSan = Boolean(scout.doc_san);
+    const missingDocuments: string[] = [];
+
+    if (certStatus !== 'valid') {
+        missingDocuments.push(certStatus === 'expired' ? 'Rinnovo Certificato Medico' : 'Certificato Medico');
+    }
+    if (!docPriv) missingDocuments.push('Consenso Privacy');
+    if (!docSan) missingDocuments.push('Scheda Sanitaria');
+
+    const isCompliant = certStatus === 'valid' && docPriv && docSan;
+
+    return {
+        certStatus,
+        statusLabel,
+        color,
+        daysRemaining,
+        rawDate,
+        formattedDate,
+        docPriv,
+        docSan,
+        isCompliant,
+        missingDocuments,
+        badgeClass
+    };
+}
+
+/**
+ * Generates direct WhatsApp click-to-chat URL with prefilled message
+ */
+export function generateWhatsAppReminderUrl(options: {
+    scoutNome?: string;
+    scadenzaStr?: string;
+    telGenitore?: string;
+    certStatus?: string;
+    missingDocs?: string[];
+} = {}): { url: string; message: string; phone: string } {
+    const {
+        scoutNome = '',
+        scadenzaStr = '',
+        telGenitore = '',
+        certStatus = 'expiring',
+        missingDocs = []
+    } = options;
+
+    let cleanPhone = String(telGenitore || '').replace(/[^\d+]/g, '');
+    if (cleanPhone.startsWith('+')) {
+        cleanPhone = cleanPhone.substring(1);
+    } else if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) {
+        cleanPhone = '39' + cleanPhone;
+    }
+
+    let message = '';
+    const nome = scoutNome.trim() || 'tuo figlio/a';
+
+    if (certStatus === 'expired') {
+        message = `Ciao! Ti scriviamo dai capi del Reparto Scout Maori. Ti ricordiamo che il certificato medico di ${nome} è scaduto${scadenzaStr ? ' il ' + scadenzaStr : ''}. Per poter partecipare regolarmente alle prossime uscite e attività di Reparto è necessario rinnovarlo al più presto.`;
+    } else if (certStatus === 'expiring') {
+        message = `Ciao! Ti scriviamo dai capi del Reparto Scout Maori. Ti ricordiamo che il certificato medico di ${nome} scadrà a breve${scadenzaStr ? ' (il ' + scadenzaStr + ')' : ''}. Ti invitiamo a prenotare la visita per il rinnovo in modo da non avere interruzioni nelle attività scout.`;
+    } else if (certStatus === 'missing') {
+        message = `Ciao! Ti scriviamo dai capi del Reparto Scout Maori. Ti segnaliamo che siamo ancora in attesa della consegna del certificato medico di ${nome} per l'anno scout in corso.`;
+    } else {
+        message = `Ciao! Ti scriviamo dai capi del Reparto Scout Maori riguardo la documentazione di ${nome}.`;
+    }
+
+    const otherDocs = missingDocs.filter(d => !d.toLowerCase().includes('certificato'));
+    if (otherDocs.length > 0) {
+        message += ` Vi ricordiamo inoltre di consegnare: ${otherDocs.join(', ')}.`;
+    }
+
+    message += ` Grazie mille per la collaborazione e Buona Caccia! ⚜️`;
+
+    const encoded = encodeURIComponent(message);
+    const url = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+
+    return {
+        url,
+        message,
+        phone: cleanPhone
+    };
+}
+
 

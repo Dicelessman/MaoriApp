@@ -1,1 +1,25 @@
+# ROADMAP IMPLEMENTAZIONE MAORI APP
 
+[x] FASE 1: Documenti & Scadenze Medico-Sanitarie
+    [x] Modello dati: scadenzaCertificatoMedico, consensoPrivacy, schedaSanitariaConsegnata, contatti genitori
+    [x] Badge di allarme visivo in Esploratori e Scadenze (Verde, Giallo, Rosso)
+    [x] Filtro rapido "Solo non in regola"
+    [x] Generatore messaggi e link WhatsApp precompilati per i genitori
+
+[ ] FASE 2: Collegamento Scorte -> Preventivo Uscita/Campo
+    [ ] Pulsante "Importa da Scorte" in preventivo.html
+    [ ] Selezione lista scorte tematica (es. Campo Estivo)
+    [ ] Calcolo e importazione automatica costi materiali nella quota per ragazzo
+
+[ ] FASE 3: Gara di Reparto & Scheda Sanitaria Personale
+    [ ] Gara di Reparto: categorie di punteggio personalizzabili anno per anno
+    [ ] Tabellone classifica squadriglie in tempo reale con storico punti per attività
+    [ ] Scheda sanitaria personale stampabile in PDF/formato compatto per la cartellina del campo
+
+[ ] FASE 4: Widget "Prossima Attività" in Dashboard
+    [ ] Card riepilogativa dell'attività imminente (countdown, presenti confermati, quote saldate)
+    [ ] Alert di sicurezza su certificati scaduti tra i presenti
+
+[ ] FASE 5: PWA Offline-First Avanzata & Ricerca Universale
+    [ ] Sincronizzazione a due vie garantita al ritorno online da uscite/campo
+    [ ] Command Palette universale (Ctrl+K) su esploratori, attività, materiali e scadenze

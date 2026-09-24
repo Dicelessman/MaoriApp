@@ -139,6 +139,20 @@
             <div class="md:col-span-2"><label class="block text-sm">Allergie</label><textarea id="san_allergie" class="textarea w-full"></textarea></div>
             <div class="md:col-span-2"><label class="block text-sm">Farmaci</label><textarea id="san_farmaci" class="textarea w-full"></textarea></div>
             <div class="md:col-span-2"><label class="block text-sm">Vaccinazioni</label><textarea id="san_vaccinazioni" class="textarea w-full"></textarea></div>
+            <div class="md:col-span-2 bg-white/70 p-4 rounded-lg border border-amber-200/80 shadow-sm space-y-3">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <label class="block text-sm font-bold text-gray-800">Scadenza Certificato Medico</label>
+                <div id="san_cert_status_badge" class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
+                  Non specificato
+                </div>
+              </div>
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <input id="san_cert_scadenza" type="date" class="input flex-1" />
+                <button type="button" id="sendWhatsAppReminderBtn" class="btn-secondary inline-flex items-center justify-center gap-1.5 text-xs text-green-700 border-green-300 hover:bg-green-50 py-2">
+                  <span>💬</span> <span>Invia Promemoria WhatsApp Genitore</span>
+                </button>
+              </div>
+            </div>
             <div class="md:col-span-2"><label class="block text-sm">Certificazioni</label><textarea id="san_cert" class="textarea w-full"></textarea></div>
             <div class="md:col-span-2"><label class="block text-sm">Altro</label><textarea id="san_altro" class="textarea w-full"></textarea></div>
           </div>

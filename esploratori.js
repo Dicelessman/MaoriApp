@@ -52,6 +52,10 @@ UI.setupScoutsEventListeners = function () {
 
       const nome = this.qs('#scoutNome').value.trim();
       const cognome = this.qs('#scoutCognome').value.trim();
+      const tel = this.qs('#scoutTelefono')?.value.trim() || '';
+      const certScadenza = this.qs('#scoutCertScadenza')?.value || null;
+      const docPriv = this.qs('#scoutDocPriv')?.checked ? true : null;
+      const docSan = this.qs('#scoutDocSan')?.checked ? true : null;
 
       // Check duplicati scout
       if (this.checkDuplicateScout(nome, cognome)) {
@@ -64,7 +68,15 @@ UI.setupScoutsEventListeners = function () {
       const originalText = submitBtn?.textContent;
       this.setButtonLoading(submitBtn, true, originalText);
       try {
-        await DATA.addScout({ nome, cognome }, this.currentUser);
+        await DATA.addScout({
+          nome,
+          cognome,
+          anag_telefono: tel,
+          ct_g1_tel: tel,
+          san_cert_scadenza: certScadenza,
+          doc_priv: docPriv,
+          doc_san: docSan
+        }, this.currentUser);
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();
         this.renderScouts();
@@ -117,6 +129,30 @@ UI.setupScoutsEventListeners = function () {
     confirmPrintSchede._bound = true;
     confirmPrintSchede.addEventListener('click', () => this.executePrintSchede());
   }
+  // Filtri Documenti e Sanità
+  const filterBtns = [
+    { id: 'filterAllScouts', mode: 'all' },
+    { id: 'filterNonInRegola', mode: 'nonInRegola' },
+    { id: 'filterCertScaduti', mode: 'certScaduti' }
+  ];
+
+  filterBtns.forEach(({ id, mode }) => {
+    const btn = this.qs(`#${id}`);
+    if (btn && !btn._bound) {
+      btn._bound = true;
+      btn.addEventListener('click', () => {
+        this.currentMedicalFilter = mode;
+        document.querySelectorAll('.scout-filter-btn').forEach(b => {
+          b.classList.remove('bg-green-600', 'text-white', 'shadow-sm');
+          b.classList.add('text-gray-600');
+        });
+        btn.classList.remove('text-gray-600');
+        btn.classList.add('bg-green-600', 'text-white', 'shadow-sm');
+        this.renderScouts(this._currentAlphaLetter || null);
+      });
+    }
+  });
+
   // Barra alfabetica
   const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const nav = this.qs('#alphaNav');
@@ -136,15 +172,55 @@ UI.setupScoutsEventListeners = function () {
 };
 
 UI.renderScouts = function (filterLetter = null) {
+  this._currentAlphaLetter = filterLetter;
   const list = this.qs('#scoutsList');
   if (!list) return;
 
-  let sortedScouts = [...this.state.scouts].sort((a, b) =>
+  const allScouts = this.state.scouts || [];
+  let nonInRegolaCount = 0;
+  let certScadutiCount = 0;
+  let validCount = 0;
+
+  allScouts.forEach(s => {
+    const st = this.getScoutMedicalStatus ? this.getScoutMedicalStatus(s) : { certStatus: 'missing', isCompliant: false };
+    if (!st.isCompliant) nonInRegolaCount++;
+    if (st.certStatus === 'expired' || st.certStatus === 'expiring') certScadutiCount++;
+    if (st.isCompliant) validCount++;
+  });
+
+  const countAllEl = this.qs('#countAllScouts');
+  const countNonInRegolaEl = this.qs('#countNonInRegola');
+  const countCertScadutiEl = this.qs('#countCertScaduti');
+  const medSummaryEl = this.qs('#medicalOverviewSummary');
+
+  if (countAllEl) countAllEl.textContent = allScouts.length;
+  if (countNonInRegolaEl) countNonInRegolaEl.textContent = nonInRegolaCount;
+  if (countCertScadutiEl) countCertScadutiEl.textContent = certScadutiCount;
+  if (medSummaryEl) {
+    medSummaryEl.innerHTML = `🟢 <b>${validCount}</b> in regola • 🚨 <b>${nonInRegolaCount}</b> da regolarizzare`;
+  }
+
+  let sortedScouts = [...allScouts].sort((a, b) =>
     a.nome.localeCompare(b.nome) || a.cognome.localeCompare(b.cognome)
   );
+
+  // Filtro Alfabetico
   if (filterLetter) {
     const fl = filterLetter.toUpperCase();
     sortedScouts = sortedScouts.filter(s => ((s.nome || '') + '').toUpperCase().startsWith(fl));
+  }
+
+  // Filtro Documentale
+  if (this.currentMedicalFilter === 'nonInRegola') {
+    sortedScouts = sortedScouts.filter(s => {
+      const st = this.getScoutMedicalStatus ? this.getScoutMedicalStatus(s) : { isCompliant: false };
+      return !st.isCompliant;
+    });
+  } else if (this.currentMedicalFilter === 'certScaduti') {
+    sortedScouts = sortedScouts.filter(s => {
+      const st = this.getScoutMedicalStatus ? this.getScoutMedicalStatus(s) : { certStatus: 'missing' };
+      return st.certStatus === 'expired' || st.certStatus === 'expiring';
+    });
   }
 
   this.renderInBatches({
@@ -298,15 +374,43 @@ UI.renderScouts = function (filterLetter = null) {
 
       if (perc > 0) fields.push(label('Pr', String(perc), 'emerald-700'));
 
+      // Stato Medico e Documentale
+      const med = this.getScoutMedicalStatus ? this.getScoutMedicalStatus(scout) : null;
+      let medBadge = '';
+      if (med) {
+        medBadge = `
+          <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${med.badgeClass}" title="Certificato Medico">
+              🩺 ${med.statusLabel}
+            </span>
+            ${!med.docPriv ? '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200">Manca Privacy</span>' : ''}
+            ${!med.docSan ? '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">Manca Scheda Sanitaria</span>' : ''}
+          </div>
+        `;
+      }
+
       return `
-        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center swipeable-item" data-id="${scout.id}" data-item-id="${scout.id}">
-          <div class="flex-1">
-            <h4 class="font-medium text-gray-900"><a href="scout2.html?id=${scout.id}" class="hover:underline">${scout.nome} ${scout.cognome}</a></h4>
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center swipeable-item hover:shadow transition" data-id="${scout.id}" data-item-id="${scout.id}">
+          <div class="flex-1 min-w-0 pr-3">
+            <div class="flex items-baseline gap-2">
+              <h4 class="font-medium text-gray-900 truncate">
+                <a href="scout2.html?id=${scout.id}" class="hover:underline">${scout.nome} ${scout.cognome}</a>
+              </h4>
+            </div>
             <div class="text-sm flex flex-wrap gap-x-4 gap-y-1 mt-1">
               ${fields.join('')}
             </div>
+            ${medBadge}
           </div>
-          <div class="flex gap-2">
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onclick="UI.sendMedicalWhatsAppReminder('${scout.id}')"
+              class="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-full transition"
+              title="Invia promemoria WhatsApp al genitore per i documenti"
+            >
+              💬
+            </button>
             <button
               onclick="UI.printSentieroSingle('${scout.id}')"
               class="p-2 text-gray-500 hover:text-blue-600 rounded-full"
@@ -321,7 +425,6 @@ UI.renderScouts = function (filterLetter = null) {
             >
               ✏️
             </a>
-            </button>
             <button 
               onclick="UI.confirmArchiveScout('${scout.id}')" 
               class="p-2 text-gray-500 hover:text-orange-600 rounded-full"
@@ -335,6 +438,29 @@ UI.renderScouts = function (filterLetter = null) {
       `;
     }
   });
+};
+
+UI.sendMedicalWhatsAppReminder = function (scoutId) {
+  const scout = (this.state.scouts || []).find(s => s.id === scoutId);
+  if (!scout) {
+    this.showToast('Esploratore non trovato', { type: 'error' });
+    return;
+  }
+
+  const med = this.getScoutMedicalStatus ? this.getScoutMedicalStatus(scout) : null;
+  const tel = scout.ct_g1_tel || scout.anag_telefono || scout.ct_g2_tel || '';
+
+  const wa = this.generateWhatsAppReminderUrl ? this.generateWhatsAppReminderUrl({
+    scoutNome: `${scout.nome || ''} ${scout.cognome || ''}`.trim(),
+    scadenzaStr: med?.formattedDate || scout.san_cert_scadenza || '',
+    telGenitore: tel,
+    certStatus: med?.certStatus || 'expiring',
+    missingDocs: med?.missingDocuments || []
+  }) : null;
+
+  if (wa && wa.url) {
+    window.open(wa.url, '_blank');
+  }
 };
 
 UI.openEditScoutModal = function (id) {

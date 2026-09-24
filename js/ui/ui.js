@@ -9,7 +9,8 @@ import { APP_VERSION, THEME } from '../utils/constants.js';
 import {
     escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit,
     getScoutYear, getScoutYearDateRange, getCurrentScoutYear, getAllScoutYears, isActivityInScoutYear,
-    getUpcomingActivities, getPendingPaymentsByActivity, getUpcomingBirthdays
+    getUpcomingActivities, getPendingPaymentsByActivity, getUpcomingBirthdays,
+    getScoutMedicalStatus, generateWhatsAppReminderUrl
 } from '../utils/utils.js';
 import { setupFormValidation, validateForm, validateFieldValue, checkDataIntegrity } from '../utils/validation.js';
 export const UI = {
@@ -28,6 +29,27 @@ export const UI = {
     getUpcomingActivities,
     getPendingPaymentsByActivity,
     getUpcomingBirthdays,
+    getScoutMedicalStatus,
+    generateWhatsAppReminderUrl,
+    sendMedicalWhatsAppReminder(scoutId) {
+        const scout = (this.state.scouts || []).find(s => s.id === scoutId);
+        if (!scout) {
+            this.showToast('Esploratore non trovato', { type: 'error' });
+            return;
+        }
+        const med = this.getScoutMedicalStatus ? this.getScoutMedicalStatus(scout) : null;
+        const tel = scout.ct_g1_tel || scout.anag_telefono || scout.ct_g2_tel || '';
+        const wa = this.generateWhatsAppReminderUrl ? this.generateWhatsAppReminderUrl({
+            scoutNome: `${scout.nome || ''} ${scout.cognome || ''}`.trim(),
+            scadenzaStr: med?.formattedDate || scout.san_cert_scadenza || '',
+            telGenitore: tel,
+            certStatus: med?.certStatus || 'expiring',
+            missingDocs: med?.missingDocuments || []
+        }) : null;
+        if (wa && wa.url) {
+            window.open(wa.url, '_blank');
+        }
+    },
     getSelectedScoutYear() {
         const prefs = this.loadUserPreferences();
         return prefs.selectedScoutYear || this.getCurrentScoutYear();

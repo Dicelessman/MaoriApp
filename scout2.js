@@ -145,6 +145,7 @@ UI.renderScoutPage = async function () {
     setVal('#san_farmaci', s.san_farmaci);
     setVal('#san_vaccinazioni', s.san_vaccinazioni);
     setVal('#san_cert', s.san_cert);
+    setVal('#san_cert_scadenza', this.toYyyyMmDd(s.san_cert_scadenza));
     setVal('#san_altro', s.san_altro);
 
     setVal('#pv_promessa', this.toYyyyMmDd(s.pv_promessa));
@@ -226,6 +227,49 @@ UI.renderScoutPage = async function () {
     setChk('#doc_liberatoria', s.doc_liberatoria);
 
     setVal('#doc_note', s.doc_note);
+
+    this.currentScout = s;
+    this.updateMedicalStatusBadge(s);
+
+    const certInput = this.qs('#san_cert_scadenza');
+    if (certInput && !certInput._bound) {
+      certInput._bound = true;
+      const updateBadge = () => this.updateMedicalStatusBadge(this.currentScout);
+      certInput.addEventListener('input', updateBadge);
+      certInput.addEventListener('change', updateBadge);
+      this.qs('#doc_priv')?.addEventListener('change', updateBadge);
+      this.qs('#doc_san')?.addEventListener('change', updateBadge);
+    }
+
+    const waBtn = this.qs('#sendWhatsAppReminderBtn');
+    if (waBtn && !waBtn._bound) {
+      waBtn._bound = true;
+      waBtn.addEventListener('click', () => {
+        const scout = this.currentScout || {};
+        const certVal = this.qs('#san_cert_scadenza')?.value || '';
+        const med = this.getScoutMedicalStatus ? this.getScoutMedicalStatus({
+          ...scout,
+          san_cert_scadenza: certVal,
+          doc_priv: this.qs('#doc_priv')?.checked,
+          doc_san: this.qs('#doc_san')?.checked
+        }) : null;
+
+        const tel = this.qs('#ct_g1_tel')?.value || this.qs('#anag_telefono')?.value || scout.ct_g1_tel || scout.anag_telefono || '';
+        const nome = `${this.qs('#anag_nome')?.value || scout.nome || ''} ${this.qs('#anag_cognome')?.value || scout.cognome || ''}`.trim();
+
+        const wa = this.generateWhatsAppReminderUrl ? this.generateWhatsAppReminderUrl({
+          scoutNome: nome,
+          scadenzaStr: med?.formattedDate || certVal,
+          telGenitore: tel,
+          certStatus: med?.certStatus || 'expiring',
+          missingDocs: med?.missingDocuments || []
+        }) : null;
+
+        if (wa && wa.url) {
+          window.open(wa.url, '_blank');
+        }
+      });
+    }
 
     const form = this.qs('#scoutForm');
     if (form && !form._bound) {
@@ -703,6 +747,7 @@ UI.collectForm = function () {
     san_farmaci: get('#san_farmaci'),
     san_vaccinazioni: get('#san_vaccinazioni'),
     san_cert: get('#san_cert'),
+    san_cert_scadenza: get('#san_cert_scadenza') || null,
     san_altro: get('#san_altro'),
     pv_promessa: get('#pv_promessa') || null,
     pv_vcp_cp: this.qs('input[name="pv_vcp_cp"]:checked')?.value || '',
@@ -1519,4 +1564,27 @@ UI.printSentieroBatch = async function (scoutIds, title) {
     this.showToast('Errore stampa: ' + e.message, { type: 'error', duration: 4000 });
   }
 };
+
+UI.updateMedicalStatusBadge = function (scout) {
+  const badge = this.qs('#san_cert_status_badge');
+  if (!badge) return;
+
+  const certVal = this.qs('#san_cert_scadenza')?.value || (scout ? scout.san_cert_scadenza : null);
+  const docPriv = this.qs('#doc_priv') ? this.qs('#doc_priv').checked : (scout ? scout.doc_priv : false);
+  const docSan = this.qs('#doc_san') ? this.qs('#doc_san').checked : (scout ? scout.doc_san : false);
+
+  const mockScout = {
+    ...(scout || {}),
+    san_cert_scadenza: certVal,
+    doc_priv: docPriv,
+    doc_san: docSan
+  };
+
+  const status = this.getScoutMedicalStatus ? this.getScoutMedicalStatus(mockScout) : null;
+  if (!status) return;
+
+  badge.className = `inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${status.badgeClass}`;
+  badge.textContent = `🩺 ${status.statusLabel}`;
+};
+
 

@@ -9,7 +9,8 @@ import {
     getAllScoutYearDeadlines,
     getCurrentScoutYear,
     getAllScoutYears,
-    toJsDate
+    toJsDate,
+    generateWhatsAppReminderUrl
 } from './js/utils/utils.js';
 
 class ScadenzeController {
@@ -34,9 +35,17 @@ class ScadenzeController {
             this.selectedYear = getCurrentScoutYear();
         }
 
+        // Collega a UI.renderCurrentPage per caricamento dopo login/demo
+        UI.renderCurrentPage = () => {
+            this.loadData();
+        };
+
         this.setupDOM();
         this.setupEvents();
-        await this.loadData();
+
+        if (UI.currentUser) {
+            await this.loadData();
+        }
     }
 
     setupDOM() {
@@ -150,12 +159,26 @@ class ScadenzeController {
 
         try {
             // Carica o riusa i dati generali
-            const state = (UI.state && UI.state.activities && UI.state.activities.length > 0)
+            let state = (UI.state && UI.state.activities && UI.state.activities.length > 0)
                 ? UI.state
-                : await DATA.loadAll();
+                : null;
 
-            // Carica scadenze personalizzate
-            this.customDeadlines = await DATA.getCustomDeadlines();
+            if (!state) {
+                try {
+                    state = await DATA.loadAll();
+                } catch (loadErr) {
+                    console.warn('DATA.loadAll fallback to UI.state:', loadErr);
+                    state = UI.state || { activities: [], presences: [], scouts: [] };
+                }
+            }
+
+            // Carica scadenze personalizzate con graceful fallback
+            try {
+                this.customDeadlines = await DATA.getCustomDeadlines();
+            } catch (cdErr) {
+                console.warn('DATA.getCustomDeadlines fallback to empty:', cdErr);
+                this.customDeadlines = [];
+            }
 
             // Calcola tutte le scadenze aggregate per l'anno scout
             this.allDeadlines = getAllScoutYearDeadlines({
@@ -219,14 +242,25 @@ class ScadenzeController {
             metricCustomCompletedEl.textContent = completedCustoms.length > 0 ? `(${completedCustoms.length} completate)` : '';
         }
 
+        // 5. Certificati e Documenti Sanitari
+        const medAlerts = this.allDeadlines.filter(d => d.type === 'medical' && (d.status === 'scaduta' || d.status === 'imminente'));
+        const metricMedicalAlertsEl = document.getElementById('metricMedicalAlerts');
+        if (metricMedicalAlertsEl) {
+            metricMedicalAlertsEl.textContent = medAlerts.length > 0
+                ? `🩺 ${medAlerts.length} ${medAlerts.length === 1 ? 'certificato da rinnovare' : 'certificati da rinnovare'}`
+                : '🩺 Certificati in regola';
+        }
+
         // Conteggi per i tab
         const countAllEl = document.getElementById('countTabAll');
+        const countMedicalEl = document.getElementById('countTabMedical');
         const countActivityEl = document.getElementById('countTabActivity');
         const countPaymentEl = document.getElementById('countTabPayment');
         const countBirthdayEl = document.getElementById('countTabBirthday');
         const countCustomEl = document.getElementById('countTabCustom');
 
         if (countAllEl) countAllEl.textContent = this.allDeadlines.length;
+        if (countMedicalEl) countMedicalEl.textContent = this.allDeadlines.filter(d => d.type === 'medical').length;
         if (countActivityEl) countActivityEl.textContent = this.allDeadlines.filter(d => d.type === 'activity').length;
         if (countPaymentEl) countPaymentEl.textContent = this.allDeadlines.filter(d => d.type === 'payment').length;
         if (countBirthdayEl) countBirthdayEl.textContent = this.allDeadlines.filter(d => d.type === 'birthday').length;
@@ -320,6 +354,10 @@ class ScadenzeController {
             borderClass = 'border-l-4 border-emerald-500';
             bgClass = 'bg-emerald-50/10 dark:bg-emerald-950/10';
             typeIcon = '📝';
+        } else if (item.type === 'medical') {
+            borderClass = item.status === 'scaduta' ? 'border-l-4 border-rose-500' : 'border-l-4 border-amber-500';
+            bgClass = item.status === 'scaduta' ? 'bg-rose-50/15 dark:bg-rose-950/20' : 'bg-amber-50/15 dark:bg-amber-950/20';
+            typeIcon = '🩺';
         }
 
         // Data formattata in italiano
@@ -372,6 +410,25 @@ class ScadenzeController {
                     <button data-action="delete-custom" data-id="${item.id}" class="p-1.5 text-gray-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition" title="Elimina scadenza">
                         🗑️
                     </button>
+                </div>
+            `;
+        } else if (item.type === 'medical') {
+            const wa = generateWhatsAppReminderUrl({
+                scoutNome: item.scout ? `${item.scout.nome || ''} ${item.scout.cognome || ''}`.trim() : item.titolo,
+                scadenzaStr: item.medStatus?.formattedDate || item.dataScadenza,
+                telGenitore: item.scout?.ct_g1_tel || item.scout?.anag_telefono || '',
+                certStatus: item.medStatus?.certStatus || (item.daysUntil < 0 ? 'expired' : 'expiring'),
+                missingDocs: item.medStatus?.missingDocuments || []
+            });
+
+            actionsHtml = `
+                <div class="flex items-center gap-2">
+                    <a href="${wa.url}" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg transition inline-flex items-center gap-1 shadow-sm" title="Invia promemoria WhatsApp al genitore">
+                        <span>💬</span> <span>WhatsApp</span>
+                    </a>
+                    <a href="${item.url || 'scout2.html?id=' + item.scoutId}" class="text-xs font-semibold px-2.5 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg transition inline-flex items-center gap-1">
+                        <span>Scheda</span> <span>&rarr;</span>
+                    </a>
                 </div>
             `;
         } else {

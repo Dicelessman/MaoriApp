@@ -49,8 +49,26 @@
             </div>
           </div>
 
-          <!-- Barra di navigazione alfabetica -->
-          <div id="alphaNav" class="bg-gray-50 p-4 rounded-lg shadow-inner flex flex-wrap gap-2"></div>
+          <!-- Barra di navigazione alfabetica e Filtri -->
+          <div id="alphaNav" class="bg-gray-50 p-4 rounded-lg shadow-inner flex flex-wrap gap-2 items-center justify-between"></div>
+
+          <!-- Filtri e Statistiche Sanitarie -->
+          <div class="bg-gray-50 p-4 rounded-lg shadow-inner flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Filtro Documenti:</span>
+              <button id="filterAllScouts" type="button" class="scout-filter-btn px-3 py-1.5 text-xs font-bold rounded-lg bg-green-600 text-white shadow-sm transition">
+                Tutti (<span id="countAllScouts">0</span>)
+              </button>
+              <button id="filterNonInRegola" type="button" class="scout-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg text-gray-600 hover:bg-gray-200 transition">
+                🚨 Non in Regola (<span id="countNonInRegola">0</span>)
+              </button>
+              <button id="filterCertScaduti" type="button" class="scout-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg text-gray-600 hover:bg-gray-200 transition">
+                🩺 Certificato Scaduto/In Scadenza (<span id="countCertScaduti">0</span>)
+              </button>
+            </div>
+            <div id="medicalOverviewSummary" class="text-xs font-semibold text-gray-600"></div>
+          </div>
+
           <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
             <h3 class="text-xl font-semibold text-gray-700 mb-4">Lista Esploratori</h3>
             <div id="scoutsList" class="space-y-2"></div>
@@ -62,22 +80,49 @@
 
   <!-- Modale Aggiungi Esploratore -->
   <div id="addScoutModal" class="modal">
-    <div class="modal-content max-w-sm mx-auto">
+    <div class="modal-content max-w-md mx-auto">
       <h4 class="text-xl font-semibold text-gray-700">Aggiungi Esploratore</h4>
       <form id="addScoutForm" class="space-y-4 mt-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="scoutNome" class="block text-sm font-medium text-gray-700">Nome *</label>
+            <input id="scoutNome" required
+              class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+          </div>
+          <div>
+            <label for="scoutCognome" class="block text-sm font-medium text-gray-700">Cognome *</label>
+            <input id="scoutCognome" required
+              class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+          </div>
+        </div>
+
         <div>
-          <label for="scoutNome" class="block text-sm font-medium text-gray-700">Nome</label>
-          <input id="scoutNome" required
+          <label for="scoutTelefono" class="block text-sm font-medium text-gray-700">Cellulare Genitore (per WhatsApp)</label>
+          <input id="scoutTelefono" type="tel" placeholder="Es. 340 1234567"
             class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
         </div>
+
         <div>
-          <label for="scoutCognome" class="block text-sm font-medium text-gray-700">Cognome</label>
-          <input id="scoutCognome" required
+          <label for="scoutCertScadenza" class="block text-sm font-medium text-gray-700">Scadenza Certificato Medico</label>
+          <input id="scoutCertScadenza" type="date"
             class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
         </div>
-        <div class="flex gap-2 justify-end">
+
+        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-2">
+          <span class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Documenti Consegnati:</span>
+          <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+            <input type="checkbox" id="scoutDocPriv" class="w-4 h-4 rounded text-green-600 focus:ring-green-500 border-gray-300" />
+            <span>Consenso Privacy firmato</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+            <input type="checkbox" id="scoutDocSan" class="w-4 h-4 rounded text-green-600 focus:ring-green-500 border-gray-300" />
+            <span>Scheda Sanitaria consegnata</span>
+          </label>
+        </div>
+
+        <div class="flex gap-2 justify-end pt-2">
           <button type="button" onclick="window.UI.closeModal('addScoutModal')" class="btn-secondary">Annulla</button>
-          <button class="btn-primary">Aggiungi</button>
+          <button type="submit" class="btn-primary">Aggiungi</button>
         </div>
       </form>
     </div>

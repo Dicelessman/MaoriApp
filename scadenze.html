@@ -78,6 +78,7 @@
                         <span id="metricImminentCount" class="text-2xl sm:text-3xl font-extrabold text-rose-700 dark:text-rose-300">0</span>
                         <span id="metricOverdueCount" class="text-xs font-medium text-rose-600/80 dark:text-rose-400/80"></span>
                     </div>
+                    <div id="metricMedicalAlerts" class="text-[11px] font-semibold text-rose-700 dark:text-rose-300 mt-1"></div>
                 </div>
 
                 <!-- Attività in programma -->
@@ -146,6 +147,9 @@
                 <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-200 dark:border-gray-700/60" id="categoryTabs">
                     <button data-cat="all" class="cat-tab px-3 py-1.5 text-xs font-bold rounded-lg transition-all bg-green-600 text-white shadow-sm">
                         🌐 Tutte (<span id="countTabAll">0</span>)
+                    </button>
+                    <button data-cat="medical" class="cat-tab px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
+                        🩺 Certificati & Documenti (<span id="countTabMedical">0</span>)
                     </button>
                     <button data-cat="activity" class="cat-tab px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
                         📅 Attività (<span id="countTabActivity">0</span>)

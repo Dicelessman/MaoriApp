@@ -27,15 +27,18 @@ UI.renderDocumentiMatrix = function() {
   });
   
   // Colonne della matrice: Quote (anno), Iscrizione (checkbox), Privacy (checkbox), Dati medici (checkbox), Liberatoria immagini (checkbox)
+  // Colonne della matrice: Quote (anno), Certificato Medico (data + stato), Iscrizione, Privacy, Dati medici, Liberatoria immagini, Promemoria
   const columns = [
     { key: 'doc_quota1', label: 'Quota anno', type: 'year' },
     { key: 'doc_quota2', label: 'Quota anno', type: 'year' },
     { key: 'doc_quota3', label: 'Quota anno', type: 'year' },
     { key: 'doc_quota4', label: 'Quota anno', type: 'year' },
+    { key: 'san_cert_scadenza', label: 'Certificato Medico', type: 'cert_date' },
     { key: 'doc_iscr', label: 'Iscrizione', type: 'checkbox' },
     { key: 'doc_priv', label: 'Privacy', type: 'checkbox' },
     { key: 'doc_san', label: 'Dati medici', type: 'checkbox' },
-    { key: 'doc_liberatoria', label: 'Liberatoria immagini', type: 'checkbox' }
+    { key: 'doc_liberatoria', label: 'Liberatoria immagini', type: 'checkbox' },
+    { key: 'reminder_actions', label: 'Promemoria', type: 'actions' }
   ];
   
   // Verifica se l'utente può modificare
@@ -67,7 +70,50 @@ UI.renderDocumentiMatrix = function() {
     columns.forEach(col => {
       const value = scout[col.key];
       
-      if (col.type === 'checkbox') {
+      if (col.type === 'actions') {
+        html += `
+          <td class="border border-gray-300 p-1.5 text-center">
+            <button
+              type="button"
+              onclick="UI.sendMedicalWhatsAppReminder('${scout.id}')"
+              class="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white font-medium rounded shadow-sm inline-flex items-center gap-1 transition"
+              title="Invia promemoria WhatsApp al genitore"
+            >
+              <span>💬</span> <span>WhatsApp</span>
+            </button>
+          </td>
+        `;
+      } else if (col.type === 'cert_date') {
+        const med = this.getScoutMedicalStatus ? this.getScoutMedicalStatus(scout) : null;
+        const dateStr = toYyyyMmDd(value);
+        let badgeHtml = '';
+        if (med) {
+          badgeHtml = `<span class="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full ${med.badgeClass}">${med.statusLabel}</span>`;
+        }
+
+        if (canEdit) {
+          html += `
+            <td class="border border-gray-300 p-1.5 text-center min-w-[150px]">
+              <input 
+                type="date" 
+                class="text-xs border border-gray-300 rounded px-1.5 py-0.5 w-full text-center"
+                value="${dateStr}"
+                data-scout-id="${scout.id}"
+                data-field="${col.key}"
+                onchange="UI.updateDocumentoDate({scoutId:'${scout.id}', field:'${col.key}', value:this.value})"
+              />
+              <div class="mt-1">${badgeHtml}</div>
+            </td>
+          `;
+        } else {
+          html += `
+            <td class="border border-gray-300 p-2 text-center">
+              <div>${med?.formattedDate || '<span class="text-gray-400">-</span>'}</div>
+              ${badgeHtml ? `<div class="mt-0.5">${badgeHtml}</div>` : ''}
+            </td>
+          `;
+        }
+      } else if (col.type === 'checkbox') {
         // Gestione checkbox
         const isChecked = !!value;
         if (canEdit) {
@@ -112,7 +158,7 @@ UI.renderDocumentiMatrix = function() {
                 type="number" 
                 min="2022" 
                 max="2100" 
-                step="1"
+                step="1" 
                 class="w-full text-xs border border-gray-300 rounded px-1 py-0.5 text-center" 
                 value="${yearValue}"
                 data-scout-id="${scout.id}"
@@ -138,7 +184,6 @@ UI.renderDocumentiMatrix = function() {
       </tbody>
     </table>
   `;
-  
   container.innerHTML = html;
 };
 
