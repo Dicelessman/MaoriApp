@@ -18,7 +18,7 @@
   <link rel="manifest" href="manifest.json" />
 
   <!-- CSS -->
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=20260924_2" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
@@ -192,7 +192,27 @@
           <table class="presence-table bg-white">
             <thead>
               <tr id="tableHeaderDates">
-                <th rowspan="2" class="sticky left-0 !bg-green-700 !text-white !p-4 text-left">Esploratore</th>
+                <th id="thScoutName" rowspan="2" class="select-none sticky left-0 !bg-green-800 !text-white !p-3 !border-r !border-white/50 text-left z-20 min-w-[220px]" title="Colonna Esploratore">
+                  <div class="flex flex-col gap-1.5">
+                    <div class="flex items-center gap-2">
+                      <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 cursor-pointer rounded" title="Seleziona tutti gli esploratori visibili">
+                      <span class="font-bold text-sm">Esploratore</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <label for="scoutSortSelect" class="text-[11px] text-green-200 font-medium whitespace-nowrap">Ordina:</label>
+                      <select id="scoutSortSelect" class="w-full text-xs bg-green-950/80 hover:bg-green-950 text-white font-medium border border-green-500/50 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-white cursor-pointer shadow-sm transition-colors" title="Ordina la colonna Esploratore">
+                        <option value="nome_asc">Nome (A → Z)</option>
+                        <option value="nome_desc">Nome (Z → A)</option>
+                        <option value="cognome_asc" selected>Cognome (A → Z)</option>
+                        <option value="cognome_desc">Cognome (Z → A)</option>
+                        <option value="stato_asc">Presenza (P → A → NR)</option>
+                        <option value="stato_desc">Presenza (NR → A → P)</option>
+                        <option value="pattuglia_asc">Pattuglia (A → Z)</option>
+                        <option value="pattuglia_desc">Pattuglia (Z → A)</option>
+                      </select>
+                    </div>
+                  </div>
+                </th>
               </tr>
               <tr id="tableHeaderNames"></tr>
             </thead>
@@ -305,12 +325,15 @@
   <!-- Scripts -->
   <!-- Configurazione Firebase (generata durante il build) -->
   <script src="/config.js"></script>
-  <script type="module" src="shared.js"></script>
-  <script type="module" src="presenze.js"></script>
+  <script type="module" src="shared.js?v=20260924_fix3"></script>
+  <script type="module" src="presenze.js?v=20260924_fix3"></script>
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js")
-        .then(reg => console.log("Service Worker registrato:", reg.scope))
+        .then(reg => {
+          console.log("Service Worker registrato:", reg.scope);
+          reg.update();
+        })
         .catch(err => console.error("SW registration failed:", err));
     }
   </script>

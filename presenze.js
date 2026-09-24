@@ -1,21 +1,17 @@
 // presenze.js - Logica specifica per la pagina Presenze
+import { DATA } from './js/data/data-facade.js';
+import { UI } from './js/ui/ui.js';
 
-// Aspetta che UI sia disponibile (caricato da shared.js)
-(function () {
-  const init = () => {
-    const ui = typeof window !== 'undefined' ? window.UI : (typeof UI !== 'undefined' ? UI : null);
-    if (ui) {
-      // Sovrascrive la funzione renderCurrentPage
-      ui.renderCurrentPage = function () {
-        this.renderPresenceTable();
-      };
-    } else {
-      // Aspetta ancora che shared.js finisca di caricare
-      setTimeout(init, 10);
-    }
-  };
-  init();
-})();
+// Assicura la disponibilità globale per inline event handlers
+if (typeof window !== 'undefined') {
+  window.DATA = DATA;
+  window.UI = UI;
+}
+
+// Sovrascrive la funzione renderCurrentPage per la pagina Presenze
+UI.renderCurrentPage = function () {
+  this.renderPresenceTable();
+};
 
 // UI.setupPresenceEventListeners = function() {
 // Event listeners specifici per le presenze (mobile nav)
@@ -102,8 +98,91 @@ UI.formatDisplayDate = function (value) {
   return `${giorno} ${data}`;
 };
 
+UI._scoutSortField = UI._scoutSortField || 'cognome';
 UI._scoutSortDir = UI._scoutSortDir || 'asc';
+UI._scoutSortActivityId = UI._scoutSortActivityId || null;
 UI._presenceTableScrollLeft = UI._presenceTableScrollLeft || 0;
+
+UI.sortScouts = function (scouts, targetActId) {
+  const field = this._scoutSortField || 'cognome';
+  const dir = this._scoutSortDir || 'asc';
+  const isDesc = dir === 'desc';
+
+  const sorted = [...(scouts || [])];
+
+  if (field === 'nome') {
+    sorted.sort((a, b) => {
+      const an = (a.nome || '').trim();
+      const bn = (b.nome || '').trim();
+      const cmp = an.localeCompare(bn, 'it', { sensitivity: 'base' });
+      if (cmp !== 0) return isDesc ? -cmp : cmp;
+      const ac = (a.cognome || '').trim();
+      const bc = (b.cognome || '').trim();
+      const cmpC = ac.localeCompare(bc, 'it', { sensitivity: 'base' });
+      return isDesc ? -cmpC : cmpC;
+    });
+  } else if (field === 'cognome') {
+    sorted.sort((a, b) => {
+      const ac = (a.cognome || '').trim();
+      const bc = (b.cognome || '').trim();
+      const cmp = ac.localeCompare(bc, 'it', { sensitivity: 'base' });
+      if (cmp !== 0) return isDesc ? -cmp : cmp;
+      const an = (a.nome || '').trim();
+      const bn = (b.nome || '').trim();
+      const cmpN = an.localeCompare(bn, 'it', { sensitivity: 'base' });
+      return isDesc ? -cmpN : cmpN;
+    });
+  } else if (field === 'pattuglia') {
+    sorted.sort((a, b) => {
+      const pA = (a.pv_pattuglia || '').trim();
+      const pB = (b.pv_pattuglia || '').trim();
+      // Le pattuglie non assegnate vanno in fondo
+      if (!pA && pB) return 1;
+      if (pA && !pB) return -1;
+      if (!pA && !pB) {
+        const cA = (a.cognome || '').trim().localeCompare((b.cognome || '').trim(), 'it', { sensitivity: 'base' });
+        if (cA !== 0) return cA;
+        return (a.nome || '').trim().localeCompare((b.nome || '').trim(), 'it', { sensitivity: 'base' });
+      }
+      const cmp = pA.localeCompare(pB, 'it', { sensitivity: 'base' });
+      if (cmp !== 0) return isDesc ? -cmp : cmp;
+      // In caso di stessa pattuglia: cognome, poi nome
+      const cA = (a.cognome || '').trim().localeCompare((b.cognome || '').trim(), 'it', { sensitivity: 'base' });
+      if (cA !== 0) return cA;
+      return (a.nome || '').trim().localeCompare((b.nome || '').trim(), 'it', { sensitivity: 'base' });
+    });
+  } else if (field === 'stato') {
+    // 1: Presente, 2: Assente, 3: NR, 4: X
+    const getRank = (scoutId) => {
+      if (!targetActId) return 3;
+      const pr = this.getPresence(scoutId, targetActId);
+      const st = pr ? pr.stato : 'NR';
+      if (st === 'Presente') return 1;
+      if (st === 'Assente') return 2;
+      if (st === 'NR' || !st) return 3;
+      if (st === 'X') return 4;
+      return 3;
+    };
+
+    sorted.sort((a, b) => {
+      const rankA = getRank(a.id);
+      const rankB = getRank(b.id);
+      if (rankA !== rankB) {
+        return isDesc ? (rankB - rankA) : (rankA - rankB);
+      }
+      // Requisito specifico: "(prima nome e poi stato)", raggruppa per stato e all'interno ordina per Nome
+      const an = (a.nome || '').trim();
+      const bn = (b.nome || '').trim();
+      const cmpN = an.localeCompare(bn, 'it', { sensitivity: 'base' });
+      if (cmpN !== 0) return cmpN;
+      const ac = (a.cognome || '').trim();
+      const bc = (b.cognome || '').trim();
+      return ac.localeCompare(bc, 'it', { sensitivity: 'base' });
+    });
+  }
+
+  return sorted;
+};
 
 UI.scrollToActivityIndex = function (index) {
   const container = this.qs('#presenceTableContainer');
@@ -361,15 +440,6 @@ UI.renderPresenceTable = function () {
   this.setupPresenceFilters();
 
   body.innerHTML = '';
-  // Checkbox "Seleziona tutti" nell'header
-  const selectAllChecked = this.batchSelection?.isSelectAll ? 'checked' : '';
-  thDates.innerHTML = `<th id="thScoutName" rowspan="2" class="cursor-pointer select-none sticky left-0 !bg-green-800 !text-white !p-4 !border-r !border-white/50 text-left" title="Ordina per Esploratore">
-    <div class="flex items-center gap-2">
-      <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 cursor-pointer" ${selectAllChecked} title="Seleziona tutti gli esploratori visibili">
-      <span>Esploratore</span>
-    </div>
-  </th>`;
-  thNames.innerHTML = '';
 
   // Inizializza selezione batch se non esiste
   if (!this.batchSelection) {
@@ -378,15 +448,6 @@ UI.renderPresenceTable = function () {
       selectedActivityId: null,
       isSelectAll: false
     };
-  }
-
-  // Setup checkbox "Seleziona tutti"
-  const selectAllCheckbox = this.qs('#selectAllCheckbox');
-  if (selectAllCheckbox && !selectAllCheckbox._bound) {
-    selectAllCheckbox._bound = true;
-    selectAllCheckbox.addEventListener('change', (e) => {
-      this.toggleSelectAll(e.target.checked);
-    });
   }
 
   const allScouts = this.state.scouts || [];
@@ -405,6 +466,88 @@ UI.renderPresenceTable = function () {
     const aday = new Date(ad); aday.setHours(0, 0, 0, 0);
     if (nextActivityId === null && aday >= today) { nextActivityId = a.id; nextActivityIndex = idx; }
   });
+
+  // Determina l'attività target per l'ordinamento presenze
+  let targetSortAct = null;
+  if (this._scoutSortActivityId) {
+    targetSortAct = acts.find(a => a.id === this._scoutSortActivityId);
+  }
+  if (!targetSortAct && nextActivityId) {
+    targetSortAct = acts.find(a => a.id === nextActivityId);
+  }
+  if (!targetSortAct && displayedActs.length > 0) {
+    targetSortAct = displayedActs[0];
+  }
+  if (!targetSortAct && acts.length > 0) {
+    targetSortAct = acts[0];
+  }
+  const sortTargetActId = targetSortAct?.id || null;
+
+  // Checkbox "Seleziona tutti" nell'header
+  const selectAllChecked = this.batchSelection?.isSelectAll ? 'checked' : '';
+  const currentSortVal = `${this._scoutSortField || 'cognome'}_${this._scoutSortDir || 'asc'}`;
+
+  let sortActBadge = '';
+  if (this._scoutSortField === 'stato' && targetSortAct) {
+    const actDateStr = this.formatDisplayDate(targetSortAct.data);
+    const isTargetNext = targetSortAct.id === nextActivityId;
+    const actLabel = isTargetNext ? 'Prossima attività' : (targetSortAct.tipo || 'Attività');
+    sortActBadge = `<div class="text-[10px] text-green-200/90 font-normal truncate mt-0.5" title="Ordinamento presenze per: ${actLabel} (${actDateStr})">📍 Rif: ${actLabel} (${actDateStr})</div>`;
+  }
+
+  thDates.innerHTML = `<th id="thScoutName" rowspan="2" class="select-none sticky left-0 !bg-green-800 !text-white !p-3 !border-r !border-white/50 text-left z-20 min-w-[220px]" title="Colonna Esploratore">
+    <div class="flex flex-col gap-1.5">
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 cursor-pointer rounded" ${selectAllChecked} title="Seleziona tutti gli esploratori visibili">
+        <span class="font-bold text-sm">Esploratore</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <label for="scoutSortSelect" class="text-[11px] text-green-200 font-medium whitespace-nowrap">Ordina:</label>
+        <select id="scoutSortSelect" class="w-full text-xs bg-green-950/80 hover:bg-green-950 text-white font-medium border border-green-500/50 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-white cursor-pointer shadow-sm transition-colors" title="Ordina la colonna Esploratore">
+          <option value="nome_asc" ${currentSortVal === 'nome_asc' ? 'selected' : ''}>Nome (A → Z)</option>
+          <option value="nome_desc" ${currentSortVal === 'nome_desc' ? 'selected' : ''}>Nome (Z → A)</option>
+          <option value="cognome_asc" ${currentSortVal === 'cognome_asc' ? 'selected' : ''}>Cognome (A → Z)</option>
+          <option value="cognome_desc" ${currentSortVal === 'cognome_desc' ? 'selected' : ''}>Cognome (Z → A)</option>
+          <option value="stato_asc" ${currentSortVal === 'stato_asc' ? 'selected' : ''}>Presenza (P → A → NR)</option>
+          <option value="stato_desc" ${currentSortVal === 'stato_desc' ? 'selected' : ''}>Presenza (NR → A → P)</option>
+          <option value="pattuglia_asc" ${currentSortVal === 'pattuglia_asc' ? 'selected' : ''}>Pattuglia (A → Z)</option>
+          <option value="pattuglia_desc" ${currentSortVal === 'pattuglia_desc' ? 'selected' : ''}>Pattuglia (Z → A)</option>
+        </select>
+      </div>
+      ${sortActBadge}
+    </div>
+  </th>`;
+  thNames.innerHTML = '';
+
+  // Setup checkbox "Seleziona tutti"
+  const selectAllCheckbox = this.qs('#selectAllCheckbox');
+  if (selectAllCheckbox) {
+    selectAllCheckbox.onchange = (e) => {
+      this.toggleSelectAll(e.target.checked);
+    };
+    selectAllCheckbox.onclick = (e) => {
+      e.stopPropagation();
+    };
+  }
+
+  // Setup selettore ordinamento colonna Esploratore
+  const sortSelect = this.qs('#scoutSortSelect');
+  if (sortSelect) {
+    sortSelect.onchange = (e) => {
+      e.stopPropagation();
+      const val = e.target.value;
+      const [field, dir] = val.split('_');
+      this._scoutSortField = field;
+      this._scoutSortDir = dir;
+      if (field !== 'stato') {
+        this._scoutSortActivityId = null;
+      }
+      this.renderPresenceTable();
+    };
+    sortSelect.onclick = (e) => {
+      e.stopPropagation();
+    };
+  }
 
   // Header colonne per le attività visualizzate
   displayedActs.forEach(a => {
@@ -434,13 +577,25 @@ UI.renderPresenceTable = function () {
 
     // Use enhanced colors
     const colors = UI.getActivityTypeColor ? UI.getActivityTypeColor(a.tipo) : { headerBg: 'bg-green-800', headerText: 'bg-green-900' };
-    const thDateClasses = isNext ? colors.headerText : colors.headerBg;
     const baseHeaderClass = colors.headerBg || 'bg-green-800';
     const nextHeaderClass = colors.headerText || 'bg-green-900';
     const finalHeaderClass = isNext ? nextHeaderClass : baseHeaderClass;
     const nextColClass = isNext ? ' next-col' : '';
 
-    thDates.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${finalHeaderClass}${nextColClass} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${displayDate}${isNext ? ' <span class=\"text-xs\">(Prossima)</span>' : ''}</a></th>`);
+    const isSortAct = this._scoutSortField === 'stato' && (this._scoutSortActivityId === a.id || (!this._scoutSortActivityId && a.id === sortTargetActId));
+    const sortIcon = isSortAct ? (this._scoutSortDir === 'desc' ? '▼' : '▲') : '⇅';
+    const sortTitle = isSortAct 
+      ? `Ordinato per presenza (${this._scoutSortDir === 'desc' ? 'NR → Assente → Presente' : 'Presente → Assente → NR'}). Clicca per invertire.` 
+      : `Ordina per presenza in questa attività (${displayDate})`;
+
+    thDates.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${finalHeaderClass}${nextColClass} text-white font-semibold sticky top-0 border-r border-white/40">
+      <div class="flex items-center justify-between gap-1">
+        <a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer flex-1 truncate" title="Apri dettaglio attività">${displayDate}${isNext ? ' <span class=\"text-xs font-normal\">(Prossima)</span>' : ''}</a>
+        <button type="button" data-activity-id="${a.id}" class="activity-sort-btn px-1.5 py-0.5 text-xs rounded transition-all cursor-pointer ${isSortAct ? 'bg-white text-green-900 font-bold shadow-sm' : 'text-white/70 hover:text-white hover:bg-white/20'}" title="${sortTitle}">
+          ${sortIcon}
+        </button>
+      </div>
+    </th>`);
     thNames.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${finalHeaderClass} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${a.tipo}</a><div class="text-xs font-normal text-white/90">${perc}% (${presentCount}/${expectedCount})</div></th>`);
   });
 
@@ -456,24 +611,39 @@ UI.renderPresenceTable = function () {
     });
   });
 
-  // Sort handler su intestazione Esploratore
+  // Event listeners per pulsanti sort attività
+  const activitySortBtns = document.querySelectorAll('.activity-sort-btn');
+  activitySortBtns.forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const activityId = btn.getAttribute('data-activity-id');
+      if (this._scoutSortField === 'stato' && (this._scoutSortActivityId === activityId || (!this._scoutSortActivityId && activityId === sortTargetActId))) {
+        this._scoutSortDir = this._scoutSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        this._scoutSortField = 'stato';
+        this._scoutSortActivityId = activityId;
+        this._scoutSortDir = 'asc';
+      }
+      this.renderPresenceTable();
+    };
+  });
+
+  // Sort handler su intestazione Esploratore (click generico su header)
   const thScout = this.qs('#thScoutName');
-  if (thScout && !thScout._sortBound) {
-    thScout._sortBound = true;
-    thScout.addEventListener('click', () => {
+  if (thScout) {
+    thScout.onclick = (e) => {
+      if (e.target.closest('#scoutSortSelect') || e.target.closest('#selectAllCheckbox') || e.target.closest('label')) {
+        return;
+      }
       this._scoutSortDir = this._scoutSortDir === 'asc' ? 'desc' : 'asc';
       this.renderPresenceTable();
-    });
+    };
   }
 
   // Filtra e ordina gli esploratori
   let sortedScouts = this.getFilteredScouts(allScouts, nextActivityId);
-  sortedScouts.sort((a, b) => {
-    const an = `${a.cognome || ''} ${a.nome || ''}`.toLowerCase();
-    const bn = `${b.cognome || ''} ${b.nome || ''}`.toLowerCase();
-    return an.localeCompare(bn);
-  });
-  if (this._scoutSortDir === 'desc') sortedScouts.reverse();
+  sortedScouts = this.sortScouts(sortedScouts, sortTargetActId);
   this._lastRenderedScouts = sortedScouts;
 
   // Aggiorna riepilogo conteggio filtri

@@ -772,6 +772,21 @@ header a {
   color: #22c55e;
 }
 
+#scoutSortSelect {
+  max-width: 100%;
+}
+
+[data-theme="dark"] #scoutSortSelect {
+  background-color: rgba(15, 23, 42, 0.95);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.activity-sort-btn {
+  line-height: 1;
+  user-select: none;
+}
+
 /* green-500 */
 .payment-select {
   color: #16a34a;

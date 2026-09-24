@@ -3,6 +3,9 @@ config.js
 
 # File di configurazione locale per sviluppo (non committare)
 config.local.js
+.env
+.env.local
+.env.*
 
 # Node modules
 node_modules/

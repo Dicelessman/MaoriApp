@@ -56,6 +56,10 @@ export const DATA = {
         this.adapter = new FirestoreAdapter();
         this.cache.invalidate();
     },
+    useLocal() {
+        this.adapter = new LocalAdapter();
+        this.cache.invalidate();
+    },
     async loadAll(forceRefresh = false) {
         const cacheKey = 'loadAll';
         if (this.adapter instanceof LocalAdapter) {

@@ -519,6 +519,31 @@ export const UI = {
                 }
             });
         }
+        const demoLoginBtn = this.qs('#demoLoginBtn');
+        if (demoLoginBtn && !demoLoginBtn._bound) {
+            demoLoginBtn._bound = true;
+            demoLoginBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                this.closeModal('loginModal');
+                this.currentUser = { email: 'demo@scoutmaori.it', uid: 'demo_user', displayName: 'Staff Demo' };
+                DATA.useLocal();
+                this.showLoadingOverlay('Caricamento dati demo...');
+                try {
+                    this.state = await DATA.loadAll();
+                    this.rebuildPresenceIndex();
+                    const staffMatch = (this.state.staff || [])[0];
+                    if (staffMatch) {
+                        this.selectStaff(staffMatch.id);
+                    }
+                    if (typeof this.renderCurrentPage === 'function') {
+                        this.renderCurrentPage();
+                    }
+                    this.showToast('Accesso effettuato in modalità Demo Locale', { type: 'success' });
+                } finally {
+                    this.hideLoadingOverlay();
+                }
+            });
+        }
         this.setupModalEventListeners();
         if (this.currentUser?.uid) {
             this.setupInAppNotifications();

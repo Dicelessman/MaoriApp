@@ -24,12 +24,12 @@ function extractCachedUrls(sw) {
   return urls;
 }
 
-describe("Service Worker v6", () => {
+describe("Service Worker v7", () => {
   let sw, urls;
   beforeEach(() => { sw = readSwFile(); urls = extractCachedUrls(sw); });
 
-  it("versione cache v6", () => expect(sw).toContain("presenziario-cache-v6"));
-  it("runtime cache v2", () => expect(sw).toContain("presenziario-runtime-v2"));
+  it("versione cache v7", () => expect(sw).toContain("presenziario-cache-v7"));
+  it("runtime cache v3", () => expect(sw).toContain("presenziario-runtime-v3"));
   it("skipWaiting presente", () => expect(sw).toContain("skipWaiting"));
   it("clients.claim presente", () => expect(sw).toContain("clients.claim"));
   it("pagine principali in cache", () => {

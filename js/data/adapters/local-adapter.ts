@@ -49,27 +49,41 @@ export class LocalAdapter {
     private state: LocalState;
 
     constructor() {
-        const saved = JSON.parse(localStorage.getItem('presenziario-state') || '{}');
+        const now = new Date();
+        const past1 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
+        const past2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+        const next1 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+        const next2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14);
+
         this.state = {
             scouts: saved.scouts || [
-                { id: 's1', nome: 'Mario', cognome: 'Rossi' },
-                { id: 's2', nome: 'Luisa', cognome: 'Bianchi' },
-                { id: 's3', nome: 'Andrea', cognome: 'Verdi' }
+                { id: 's1', nome: 'Mario', cognome: 'Rossi', pv_pattuglia: 'Aironi' },
+                { id: 's2', nome: 'Luisa', cognome: 'Bianchi', pv_pattuglia: 'Marmotte' },
+                { id: 's3', nome: 'Andrea', cognome: 'Verdi', pv_pattuglia: 'Aironi' }
             ],
             staff: saved.staff || [
                 { id: 'st1', nome: 'Giulia', cognome: 'Esposito' },
                 { id: 'st2', nome: 'Marco', cognome: 'Gallo' }
             ],
             activities: saved.activities || [
-                { id: 'a1', tipo: 'Uscita', data: new Date('2024-08-18'), descrizione: 'Uscita al lago', costo: '10' },
-                { id: 'a2', tipo: 'Riunione', data: new Date('2024-08-25'), descrizione: 'Riunione settimanale', costo: '0' },
-                { id: 'a3', tipo: 'Attività lunga', data: new Date('2024-09-01'), descrizione: 'Escursione in montagna', costo: '5' },
-                { id: 'a4', tipo: 'Campo', data: new Date('2024-07-15'), descrizione: 'Campo Estivo', costo: '150' }
+                { id: 'a1', tipo: 'Uscita', data: past1, descrizione: 'Uscita al lago', costo: '10' },
+                { id: 'a2', tipo: 'Riunione', data: past2, descrizione: 'Riunione settimanale', costo: '0' },
+                { id: 'a3', tipo: 'Attività lunga', data: next1, descrizione: 'Escursione in montagna', costo: '5' },
+                { id: 'a4', tipo: 'Campo', data: next2, descrizione: 'Campo Estivo', costo: '150' }
             ],
             presences: saved.presences || [
                 { esploratoreId: 's1', attivitaId: 'a1', stato: 'Presente', pagato: true, tipoPagamento: 'Contanti' },
                 { esploratoreId: 's2', attivitaId: 'a1', stato: 'Assente', pagato: false, tipoPagamento: null },
-                { esploratoreId: 's3', attivitaId: 'a1', stato: 'Presente', pagato: true, tipoPagamento: 'Bonifico' }
+                { esploratoreId: 's3', attivitaId: 'a1', stato: 'Presente', pagato: true, tipoPagamento: 'Bonifico' },
+                { esploratoreId: 's1', attivitaId: 'a2', stato: 'Presente', pagato: false, tipoPagamento: null },
+                { esploratoreId: 's2', attivitaId: 'a2', stato: 'Presente', pagato: false, tipoPagamento: null },
+                { esploratoreId: 's3', attivitaId: 'a2', stato: 'Assente', pagato: false, tipoPagamento: null },
+                { esploratoreId: 's1', attivitaId: 'a3', stato: 'Presente', pagato: true, tipoPagamento: 'Contanti' },
+                { esploratoreId: 's2', attivitaId: 'a3', stato: 'NR', pagato: false, tipoPagamento: null },
+                { esploratoreId: 's3', attivitaId: 'a3', stato: 'Assente', pagato: false, tipoPagamento: null },
+                { esploratoreId: 's1', attivitaId: 'a4', stato: 'NR', pagato: false, tipoPagamento: null },
+                { esploratoreId: 's2', attivitaId: 'a4', stato: 'NR', pagato: false, tipoPagamento: null },
+                { esploratoreId: 's3', attivitaId: 'a4', stato: 'NR', pagato: false, tipoPagamento: null }
             ],
             budgets: saved.budgets || [],
             patrols: saved.patrols || ["Aironi", "Marmotte"],

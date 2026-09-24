@@ -24,7 +24,6 @@ UI.renderActivityPage = async function() {
     if (t) t.textContent = 'Attività — non trovata';
     return;
   }
-  const activityId = activity.id;
 
   // Header
   const d = this.toJsDate(activity.data);

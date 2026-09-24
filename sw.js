@@ -1,5 +1,5 @@
-const CACHE_NAME = "presenziario-cache-v6"; // bump cache v6
-const RUNTIME_CACHE = "presenziario-runtime-v2";
+const CACHE_NAME = "presenziario-cache-v7"; // bump cache v7
+const RUNTIME_CACHE = "presenziario-runtime-v3";
 const URLS_TO_CACHE = [
   "/",
   "/index.html",
@@ -96,6 +96,10 @@ self.addEventListener("activate", (event) => {
 // Fetch: Stale-While-Revalidate per asset statici e HTML
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+  // Non intercettare su localhost/127.0.0.1 per non servire codice stale durante lo sviluppo
+  if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1') {
+    return;
+  }
   // Solo GET e stessa origine
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) {
     return;

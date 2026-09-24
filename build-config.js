@@ -7,13 +7,22 @@ const path = require('path');
 // Leggi le variabili d'ambiente
 // In Vercel, le variabili sono disponibili come process.env
 // Usiamo prefisso VITE_ per compatibilità con Vite/standard frontend
+const defaultLocalConfig = {
+  apiKey: "AIzaSyAoa8Rrlplr001PitiFrqBkrbEWL3TWrL4",
+  authDomain: "presenziariomaori.firebaseapp.com",
+  projectId: "presenziariomaori",
+  storageBucket: "presenziariomaori.firebasestorage.app",
+  messagingSenderId: "556210165397",
+  appId: "1:556210165397:web:4f434e78fb97f02d116d9c"
+};
+
 const config = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || '',
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN || '',
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || '',
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID || ''
+  apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || defaultLocalConfig.apiKey,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN || defaultLocalConfig.authDomain,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || defaultLocalConfig.projectId,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || defaultLocalConfig.storageBucket,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID || defaultLocalConfig.messagingSenderId,
+  appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID || defaultLocalConfig.appId
 };
 
 // Genera il contenuto del file config.js

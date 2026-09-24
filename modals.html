@@ -210,6 +210,14 @@
         <input id="loginPassword" type="password" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
       </div>
       <button type="submit" class="btn-primary w-full">Accedi</button>
+      <div class="relative flex py-1.5 items-center">
+        <div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+        <span class="flex-shrink mx-2 text-[11px] text-gray-400">oppure per test locale</span>
+        <div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+      </div>
+      <button type="button" id="demoLoginBtn" class="btn-secondary w-full text-xs font-semibold py-2 flex items-center justify-center gap-1.5" title="Accedi con dati di test locali senza password">
+        <span>🧪</span> Accedi come Demo (Test senza password)
+      </button>
       <p id="loginError" class="text-red-500 text-sm text-center"></p>
     </form>
   </div>

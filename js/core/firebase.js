@@ -9,7 +9,7 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPe
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
 
 // Init Config
-const firebaseConfig = (typeof window !== 'undefined' && window.__FIREBASE_CONFIG__) || {
+const defaultFirebaseConfig = {
     apiKey: "AIzaSyAoa8Rrlplr001PitiFrqBkrbEWL3TWrL4",
     authDomain: "presenziariomaori.firebaseapp.com",
     projectId: "presenziariomaori",
@@ -17,6 +17,9 @@ const firebaseConfig = (typeof window !== 'undefined' && window.__FIREBASE_CONFI
     messagingSenderId: "556210165397",
     appId: "1:556210165397:web:4f434e78fb97f02d116d9c"
 };
+
+const winConfig = typeof window !== 'undefined' ? window.__FIREBASE_CONFIG__ : null;
+const firebaseConfig = (winConfig && winConfig.apiKey) ? winConfig : defaultFirebaseConfig;
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
