@@ -70,13 +70,45 @@
         </div>
       </div>
 
+      <!-- Selettore Liste Separate (Campo Estivo, Uniformi, Distintivi, ecc.) -->
+      <section class="mb-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3.5 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📑</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Lista Materiali:</span>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap flex-1 max-w-full">
+            <div id="listeTabsContainer" class="flex items-center gap-1.5 flex-wrap">
+              <!-- Renderizzato dinamicamente: buttons con badge conteggio e status -->
+            </div>
+            
+            <button id="addListaBtn" type="button" class="px-2.5 py-1 text-xs font-semibold rounded-lg border border-dashed border-gray-300 dark:border-gray-600 hover:border-green-500 hover:text-green-600 text-gray-600 dark:text-gray-300 flex items-center gap-1 transition-colors" title="Crea una nuova lista separata (es. Campo Estivo, Uniformi, Distintivi...)">
+              <span>➕</span>
+              <span>Nuova Lista</span>
+            </button>
+          </div>
+
+          <div id="activeListActions" class="flex items-center gap-2 hidden">
+            <button id="renameActiveListBtn" type="button" class="text-xs text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 underline flex items-center gap-1 cursor-pointer" title="Rinomina questa lista">
+              <span>✏️</span>
+              <span>Rinomina</span>
+            </button>
+            <button id="deleteActiveListBtn" type="button" class="text-xs text-red-500 hover:text-red-700 underline flex items-center gap-1 cursor-pointer" title="Elimina questa lista (gli articoli verranno spostati su Generale)">
+              <span>🗑️</span>
+              <span>Elimina</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- KPI Cards / Riepilogo Inventario e Preventivo -->
       <section class="mb-6">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Totale Articoli -->
           <div class="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-5 rounded-xl shadow-sm flex items-center justify-between">
             <div>
-              <p class="text-blue-100 text-xs font-semibold uppercase tracking-wider mb-1">Totale Articoli a Catalogo</p>
+              <p id="kpiTotalItemsLabel" class="text-blue-100 text-xs font-semibold uppercase tracking-wider mb-1">Totale Articoli a Catalogo</p>
               <p id="kpiTotalItems" class="text-3xl font-extrabold">0</p>
               <p id="kpiCategoriesCount" class="text-blue-100 text-xs mt-1">0 categorie gestite</p>
             </div>
@@ -96,9 +128,9 @@
           <!-- Preventivo Totale Riordino -->
           <div class="bg-gradient-to-br from-green-600 to-green-700 text-white p-5 rounded-xl shadow-sm flex items-center justify-between">
             <div>
-              <p class="text-green-100 text-xs font-semibold uppercase tracking-wider mb-1">Preventivo Spesa Riordino</p>
+              <p id="kpiRestockCostLabel" class="text-green-100 text-xs font-semibold uppercase tracking-wider mb-1">Preventivo Spesa Riordino</p>
               <p id="kpiRestockTotalCost" class="text-3xl font-extrabold">€ 0,00</p>
-              <p class="text-green-100 text-xs mt-1">Costo stimato per ripristino scorte</p>
+              <p id="kpiRestockCostSub" class="text-green-100 text-xs mt-1">Costo stimato per ripristino scorte</p>
             </div>
             <div class="text-3xl opacity-80">💶</div>
           </div>
@@ -204,6 +236,7 @@
               <thead class="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700 text-xs">
                 <tr>
                   <th class="p-3 text-left">Nome Materiale</th>
+                  <th class="p-3 text-left">Lista</th>
                   <th class="p-3 text-left">Categoria</th>
                   <th class="p-3 text-center">Quantità Attuale</th>
                   <th class="p-3 text-center">Scorta Minima</th>
@@ -247,8 +280,22 @@
             class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
         </div>
 
-        <!-- Categoria e Unità -->
+        <!-- Lista e Categoria -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="materialLista" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Lista di Appartenenza *
+            </label>
+            <input type="text" id="materialLista" list="listeScorteDataList" required placeholder="es. Campo Estivo, Uniformi..."
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+            <datalist id="listeScorteDataList">
+              <option value="Campo Estivo"></option>
+              <option value="Uniformi"></option>
+              <option value="Distintivi"></option>
+              <option value="Generale"></option>
+            </datalist>
+          </div>
+
           <div>
             <label for="materialCategoria" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
               Categoria *
@@ -266,6 +313,7 @@
               <option value="Giochi e Animazione"></option>
             </datalist>
           </div>
+        </div>
 
           <div>
             <label for="materialUnita" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
@@ -354,8 +402,19 @@
         <!-- Istruzioni / Formato -->
         <div class="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3 rounded-lg text-xs text-green-900 dark:text-green-200 space-y-1">
           <p class="font-bold">Formati supportati:</p>
-          <p>• <strong>CSV standard</strong> con colonne: <code>Nome, Categoria, Quantità, ScortaMinima, PrezzoUnitario, Unità, Note</code></p>
+          <p>• <strong>CSV standard</strong> con colonne: <code>Nome, Categoria, Quantità, ScortaMinima, PrezzoUnitario, Unità, Note, Lista</code></p>
           <p>• <strong>Testo semplice</strong> (una riga per articolo): <code>Picchetti, Campeggio, 20, 50, 1.20</code> oppure <code>Cordino - Pionieristica - 4</code></p>
+        </div>
+
+        <!-- Selezione Lista di Destinazione -->
+        <div>
+          <label for="importTargetList" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+            Assegna alla Lista:
+          </label>
+          <select id="importTargetList"
+            class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none cursor-pointer">
+            <!-- Popolato dinamicamente -->
+          </select>
         </div>
 
         <!-- Caricamento file -->
@@ -438,9 +497,10 @@ Disinfettante spray, Pronto Soccorso, 5, 5, 4.80, pz"
         <div>
           <h3 class="text-lg font-bold flex items-center gap-2">
             <span>💶</span>
-            <span>Preventivo e Lista di Riordino Materiali</span>
+            <span id="modalPreventivoTitle">Preventivo e Lista di Riordino Materiali</span>
+            <span id="modalPreventivoListBadge" class="text-xs bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full font-bold"></span>
           </h3>
-          <p class="text-xs text-amber-100 mt-0.5">Elenco degli articoli con scorte inferiori alla soglia minima prefissata</p>
+          <p id="modalPreventivoSubtitle" class="text-xs text-amber-100 mt-0.5">Elenco degli articoli con scorte inferiori alla soglia minima prefissata</p>
         </div>
         <button id="closePreventivoModalBtn" type="button" class="text-white hover:text-amber-200 text-xl font-bold p-1">✕</button>
       </div>
@@ -483,6 +543,7 @@ Disinfettante spray, Pronto Soccorso, 5, 5, 4.80, pz"
               <thead class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700">
                 <tr>
                   <th class="p-2.5 text-left">Articolo</th>
+                  <th class="p-2.5 text-left">Lista</th>
                   <th class="p-2.5 text-left">Categoria</th>
                   <th class="p-2.5 text-center">In Scorta</th>
                   <th class="p-2.5 text-center">Obiettivo</th>
@@ -504,6 +565,33 @@ Disinfettante spray, Pronto Soccorso, 5, 5, 4.80, pz"
           Chiudi
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal Nuova / Rinomina Lista -->
+  <div id="listModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-fade-in">
+      <div class="px-6 py-4 bg-green-700 text-white flex justify-between items-center">
+        <h3 id="listModalTitle" class="text-lg font-bold">Nuova Lista Materiali</h3>
+        <button id="closeListModalBtn" type="button" class="text-white hover:text-green-200 text-xl font-bold p-1">✕</button>
+      </div>
+      <form id="listForm" class="p-6 space-y-4">
+        <input type="hidden" id="listOldName" />
+        <div>
+          <label for="listNameInput" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+            Nome Lista *
+          </label>
+          <input type="text" id="listNameInput" required placeholder="es. Campo Estivo, Uniformi, Distintivi..."
+            class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+            Permette di raggruppare i materiali per evento o scopo e generare preventivi dedicati senza elementi superflui.
+          </p>
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <button id="cancelListBtn" type="button" class="btn-secondary px-4 py-2 text-sm font-semibold">Annulla</button>
+          <button type="submit" class="btn-primary px-4 py-2 text-sm font-semibold">Salva Lista</button>
+        </div>
+      </form>
     </div>
   </div>
 

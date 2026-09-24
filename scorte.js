@@ -1,4 +1,4 @@
-// scorte.js - Logica per la gestione scorte, inventario e preventivo di riordino
+// scorte.js - Logica per la gestione scorte, inventario e preventivo di riordino con liste separate
 import { DATA } from './js/data/data-facade.js';
 import { UI } from './js/ui/ui.js';
 
@@ -13,6 +13,8 @@ UI.renderCurrentPage = function () {
 
 UI._scorteState = {
   items: [],
+  lists: ['Campo Estivo', 'Uniformi', 'Distintivi', 'Generale'],
+  activeList: (typeof localStorage !== 'undefined' && localStorage.getItem('scorte-active-list')) || 'all',
   search: '',
   category: '',
   status: 'all', // 'all', 'reorder', 'ok'
@@ -23,16 +25,23 @@ UI._scorteState = {
 
 UI.initScorte = async function () {
   try {
-    this.showLoadingOverlay ? this.showLoadingOverlay('Caricamento scorte...') : null;
-    this._scorteState.items = await DATA.getScorte();
+    this.showLoadingOverlay ? this.showLoadingOverlay('Caricamento scorte e liste...') : null;
+    const [items, lists] = await Promise.all([
+      DATA.getScorte(),
+      DATA.getListeScorte()
+    ]);
+    this._scorteState.items = items || [];
+    this._scorteState.lists = lists && lists.length > 0 ? lists : ['Campo Estivo', 'Uniformi', 'Distintivi', 'Generale'];
   } catch (err) {
     console.error('Errore caricamento scorte:', err);
     this._scorteState.items = [];
+    this._scorteState.lists = ['Campo Estivo', 'Uniformi', 'Distintivi', 'Generale'];
   } finally {
     this.hideLoadingOverlay ? this.hideLoadingOverlay() : null;
   }
 
   this.setupScorteControls();
+  this.renderListeTabs();
   this.renderScorte();
 };
 
@@ -142,20 +151,274 @@ UI.setupScorteControls = function () {
     });
   }
 
+  this.setupListManagementEvents();
   this.setupMaterialModalEvents();
   this.setupImportModalEvents();
   this.setupPreventivoModalEvents();
+};
+
+// ==================== Gestione Liste Separate ====================
+UI.renderListeTabs = function () {
+  const container = document.getElementById('listeTabsContainer');
+  if (!container) return;
+
+  const items = this._scorteState.items || [];
+  const lists = this._scorteState.lists || [];
+  const activeList = this._scorteState.activeList;
+
+  // Calcola statistiche per ogni lista
+  const listStats = {};
+  lists.forEach(l => {
+    listStats[l] = { total: 0, reorder: 0 };
+  });
+
+  let allTotal = 0;
+  let allReorder = 0;
+
+  items.forEach(i => {
+    const listName = (i.lista || 'Generale').trim();
+    const q = Number(i.quantita) || 0;
+    const min = Number(i.quantitaMinima) || 0;
+    const isReorder = min > q;
+
+    allTotal++;
+    if (isReorder) allReorder++;
+
+    if (!listStats[listName]) {
+      listStats[listName] = { total: 0, reorder: 0 };
+    }
+    listStats[listName].total++;
+    if (isReorder) listStats[listName].reorder++;
+  });
+
+  // Include any extra lists found in items
+  const allKnownLists = Array.from(new Set([...lists, ...Object.keys(listStats)])).filter(Boolean);
+
+  let html = '';
+
+  // Tab: Tutte le Liste
+  const isAllActive = activeList === 'all';
+  html += `
+    <button type="button" data-list="all" class="list-tab-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+      isAllActive
+        ? 'bg-green-700 text-white shadow-sm ring-2 ring-green-600'
+        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+    }">
+      <span>Tutte le Liste</span>
+      <span class="px-1.5 py-0.2 rounded-full text-[10px] ${
+        isAllActive ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
+      }">${allTotal}</span>
+      ${allReorder > 0 ? `<span class="text-[10px]" title="${allReorder} articoli sotto scorta">⚠️</span>` : ''}
+    </button>
+  `;
+
+  // Tab per ogni lista specifica (es. Campo Estivo, Uniformi, Distintivi, ecc.)
+  allKnownLists.forEach(l => {
+    const isActive = activeList === l;
+    const stats = listStats[l] || { total: 0, reorder: 0 };
+    html += `
+      <button type="button" data-list="${l}" class="list-tab-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+        isActive
+          ? 'bg-green-700 text-white shadow-sm ring-2 ring-green-600'
+          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+      }">
+        <span>${l}</span>
+        <span class="px-1.5 py-0.2 rounded-full text-[10px] ${
+          isActive ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
+        }">${stats.total}</span>
+        ${stats.reorder > 0 ? `<span class="text-[10px] ${isActive ? 'text-amber-200' : 'text-amber-600'}" title="${stats.reorder} da riordinare">⚠️ ${stats.reorder}</span>` : ''}
+      </button>
+    `;
+  });
+
+  container.innerHTML = html;
+
+  // Click listeners sui tab
+  container.querySelectorAll('.list-tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const targetList = btn.getAttribute('data-list');
+      this.switchActiveList(targetList);
+    });
+  });
+
+  // Aggiorna visibilità azioni lista attiva
+  const actionsEl = document.getElementById('activeListActions');
+  if (actionsEl) {
+    if (activeList !== 'all' && activeList !== 'Generale') {
+      actionsEl.classList.remove('hidden');
+    } else {
+      actionsEl.classList.add('hidden');
+    }
+  }
+};
+
+UI.switchActiveList = function (listName) {
+  this._scorteState.activeList = listName;
+  try {
+    localStorage.setItem('scorte-active-list', listName);
+  } catch {}
+
+  this.renderListeTabs();
+  this.populateCategoryFilter();
+  this.renderScorte();
+};
+
+UI.setupListManagementEvents = function () {
+  const addBtn = document.getElementById('addListaBtn');
+  const renameBtn = document.getElementById('renameActiveListBtn');
+  const deleteBtn = document.getElementById('deleteActiveListBtn');
+
+  const modal = document.getElementById('listModal');
+  const closeBtn = document.getElementById('closeListModalBtn');
+  const cancelBtn = document.getElementById('cancelListBtn');
+  const form = document.getElementById('listForm');
+
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      this.openListModal();
+    });
+  }
+
+  if (renameBtn) {
+    renameBtn.addEventListener('click', () => {
+      const active = this._scorteState.activeList;
+      if (active && active !== 'all') {
+        this.openListModal(active);
+      }
+    });
+  }
+
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', () => {
+      const active = this._scorteState.activeList;
+      if (active && active !== 'all') {
+        this.deleteActiveList(active);
+      }
+    });
+  }
+
+  if (closeBtn) closeBtn.onclick = () => modal?.classList.add('hidden');
+  if (cancelBtn) cancelBtn.onclick = () => modal?.classList.add('hidden');
+
+  if (form) {
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      await this.saveListForm();
+    };
+  }
+};
+
+UI.openListModal = function (oldName = '') {
+  const modal = document.getElementById('listModal');
+  const title = document.getElementById('listModalTitle');
+  const input = document.getElementById('listNameInput');
+  const oldInput = document.getElementById('listOldName');
+
+  if (!modal) return;
+
+  if (oldName) {
+    if (title) title.textContent = `Rinomina Lista "${oldName}"`;
+    if (input) input.value = oldName;
+    if (oldInput) oldInput.value = oldName;
+  } else {
+    if (title) title.textContent = 'Nuova Lista Materiali';
+    if (input) input.value = '';
+    if (oldInput) oldInput.value = '';
+  }
+
+  modal.classList.remove('hidden');
+  input?.focus();
+};
+
+UI.saveListForm = async function () {
+  const modal = document.getElementById('listModal');
+  const input = document.getElementById('listNameInput');
+  const oldInput = document.getElementById('listOldName');
+  const newName = input?.value.trim();
+  const oldName = oldInput?.value.trim();
+
+  if (!newName) {
+    this.showToast('Inserisci il nome della lista', { type: 'error' });
+    return;
+  }
+
+  try {
+    if (oldName) {
+      // Rinomina
+      await DATA.renameListaScorta(oldName, newName, this.currentUser);
+      this.showToast(`Lista rinominata in "${newName}"`);
+    } else {
+      // Nuova
+      await DATA.addListaScorta(newName, this.currentUser);
+      this.showToast(`Nuova lista "${newName}" creata con successo!`);
+    }
+
+    modal?.classList.add('hidden');
+    this._scorteState.lists = await DATA.getListeScorte();
+    this._scorteState.items = await DATA.getScorte();
+    this._scorteState.activeList = newName;
+    try {
+      localStorage.setItem('scorte-active-list', newName);
+    } catch {}
+
+    this.renderListeTabs();
+    this.populateCategoryFilter();
+    this.renderScorte();
+  } catch (err) {
+    console.error('Errore salvataggio lista:', err);
+    this.showToast('Errore durante il salvataggio della lista', { type: 'error' });
+  }
+};
+
+UI.deleteActiveList = function (listName) {
+  if (!listName || listName === 'all' || listName === 'Generale') return;
+
+  const count = (this._scorteState.items || []).filter(i => (i.lista || 'Generale') === listName).length;
+  const message = count > 0
+    ? `Sei sicuro di voler eliminare la lista "${listName}"? I suoi ${count} articoli NON verranno cancellati ma spostati nella lista "Generale".`
+    : `Sei sicuro di voler eliminare la lista "${listName}"?`;
+
+  this.showConfirmModal({
+    title: `Elimina Lista "${listName}"`,
+    message,
+    confirmText: 'Elimina Lista',
+    cancelText: 'Annulla',
+    onConfirm: async () => {
+      try {
+        await DATA.deleteListaScorta(listName, this.currentUser);
+        this.showToast(`Lista "${listName}" eliminata`);
+
+        this._scorteState.lists = await DATA.getListeScorte();
+        this._scorteState.items = await DATA.getScorte();
+        this._scorteState.activeList = 'all';
+        try {
+          localStorage.setItem('scorte-active-list', 'all');
+        } catch {}
+
+        this.renderListeTabs();
+        this.populateCategoryFilter();
+        this.renderScorte();
+      } catch (err) {
+        console.error('Errore eliminazione lista:', err);
+        this.showToast('Errore durante l\'eliminazione della lista', { type: 'error' });
+      }
+    }
+  });
 };
 
 UI.populateCategoryFilter = function () {
   const catFilter = document.getElementById('scorteCategoryFilter');
   if (!catFilter) return;
 
+  const activeList = this._scorteState.activeList;
+  let items = this._scorteState.items || [];
+  if (activeList !== 'all') {
+    items = items.filter(i => (i.lista || 'Generale') === activeList);
+  }
+
   const currentVal = this._scorteState.category;
   const categories = Array.from(new Set(
-    (this._scorteState.items || [])
-      .map(i => (i.categoria || 'Generale').trim())
-      .filter(Boolean)
+    items.map(i => (i.categoria || 'Generale').trim()).filter(Boolean)
   )).sort((a, b) => a.localeCompare(b));
 
   catFilter.innerHTML = '<option value="">Tutte le categorie</option>' +
@@ -164,18 +427,24 @@ UI.populateCategoryFilter = function () {
 };
 
 UI.renderScorte = function () {
-  const items = this._scorteState.items || [];
+  const allItems = this._scorteState.items || [];
+  const activeList = this._scorteState.activeList;
 
-  // Calcola metriche generali per le KPI cards
-  const totalItems = items.length;
-  const categories = new Set(items.map(i => (i.categoria || 'Generale').trim()));
+  // Filtra per lista attiva
+  const listItems = activeList === 'all'
+    ? allItems
+    : allItems.filter(i => (i.lista || 'Generale') === activeList);
+
+  // Calcola metriche per le KPI cards
+  const totalItems = listItems.length;
+  const categories = new Set(listItems.map(i => (i.categoria || 'Generale').trim()));
   
   let toRestockCount = 0;
   let toRestockUnitsCount = 0;
   let totalRestockCost = 0;
   let latestDate = null;
 
-  items.forEach(item => {
+  listItems.forEach(item => {
     const q = Number(item.quantita) || 0;
     const min = Number(item.quantitaMinima) || 0;
     const price = Number(item.prezzoUnitario) || 0;
@@ -197,17 +466,39 @@ UI.renderScorte = function () {
 
   // Aggiorna KPI Cards
   const kpiTotal = document.getElementById('kpiTotalItems');
+  const kpiTotalLabel = document.getElementById('kpiTotalItemsLabel');
   const kpiCategories = document.getElementById('kpiCategoriesCount');
   const kpiToRestock = document.getElementById('kpiToRestockItems');
   const kpiUnits = document.getElementById('kpiToRestockUnits');
   const kpiCost = document.getElementById('kpiRestockTotalCost');
+  const kpiCostLabel = document.getElementById('kpiRestockCostLabel');
+  const kpiCostSub = document.getElementById('kpiRestockCostSub');
   const kpiDate = document.getElementById('kpiInventoryDate');
 
+  if (kpiTotalLabel) {
+    kpiTotalLabel.textContent = activeList === 'all' 
+      ? 'Totale Articoli a Catalogo' 
+      : `Articoli in "${activeList}"`;
+  }
   if (kpiTotal) kpiTotal.textContent = String(totalItems);
-  if (kpiCategories) kpiCategories.textContent = `${categories.size} categorie gestite`;
+  if (kpiCategories) kpiCategories.textContent = `${categories.size} categorie in questa lista`;
   if (kpiToRestock) kpiToRestock.textContent = String(toRestockCount);
-  if (kpiUnits) kpiUnits.textContent = `${toRestockUnitsCount} unità totali mancanti`;
-  if (kpiCost) kpiCost.textContent = `€ ${totalRestockCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (kpiUnits) kpiUnits.textContent = `${toRestockUnitsCount} unità mancanti per l'obiettivo`;
+  
+  if (kpiCostLabel) {
+    kpiCostLabel.textContent = activeList === 'all'
+      ? 'Preventivo Spesa Totale'
+      : `Preventivo "${activeList}"`;
+  }
+  if (kpiCost) {
+    kpiCost.textContent = `€ ${totalRestockCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  if (kpiCostSub) {
+    kpiCostSub.textContent = activeList === 'all'
+      ? 'Spesa stimata totale di riordino'
+      : `Spesa stimata per ordine ${activeList}`;
+  }
+
   if (kpiDate) {
     kpiDate.textContent = latestDate 
       ? latestDate.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -215,14 +506,15 @@ UI.renderScorte = function () {
   }
 
   // Filtra
-  let filtered = [...items];
+  let filtered = [...listItems];
 
   if (this._scorteState.search) {
     const q = this._scorteState.search;
     filtered = filtered.filter(i => 
       (i.nome || '').toLowerCase().includes(q) ||
       (i.note || '').toLowerCase().includes(q) ||
-      (i.categoria || '').toLowerCase().includes(q)
+      (i.categoria || '').toLowerCase().includes(q) ||
+      (i.lista || '').toLowerCase().includes(q)
     );
   }
 
@@ -266,7 +558,8 @@ UI.renderScorte = function () {
   // Aggiorna riepilogo
   const summaryEl = document.getElementById('scorteFilterSummary');
   if (summaryEl) {
-    summaryEl.textContent = `Visualizzati: ${filtered.length} di ${totalItems} articoli (${toRestockCount} da riordinare)`;
+    const listInfo = activeList === 'all' ? 'Tutte le liste' : `Lista: "${activeList}"`;
+    summaryEl.textContent = `[${listInfo}] Visualizzati: ${filtered.length} di ${totalItems} articoli (${toRestockCount} sotto scorta)`;
   }
 
   // Renderizza tabella
@@ -275,10 +568,14 @@ UI.renderScorte = function () {
   if (!tbody) return;
 
   if (filtered.length === 0) {
+    const emptyMsg = totalItems === 0 && activeList !== 'all'
+      ? `Nessun articolo presente nella lista "${activeList}". Clicca su "+ Nuovo Articolo" o "Importa Lista" per aggiungerne.`
+      : 'Nessun articolo trovato con i filtri selezionati.';
+
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="p-8 text-center text-gray-500 dark:text-gray-400 font-medium">
-          Nessun articolo trovato con i filtri selezionati.
+        <td colspan="10" class="p-8 text-center text-gray-500 dark:text-gray-400 font-medium">
+          ${emptyMsg}
         </td>
       </tr>
     `;
@@ -296,118 +593,143 @@ UI.renderScorte = function () {
     const unita = item.unitaMisura || 'pz';
     const diff = Math.max(0, min - q);
     const costoRiordino = diff * price;
+    const itemLista = (item.lista || 'Generale').trim();
 
     tableTotalDaRiordinare += diff;
     tableTotalPreventivo += costoRiordino;
 
-    const isDepleted = diff > 0;
-    const rowClass = isDepleted ? 'bg-amber-50/60 dark:bg-amber-950/20' : '';
+    const isSottoScorta = diff > 0;
+    const statusBadge = isSottoScorta
+      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+           ⚠️ +${diff} ${unita}
+         </span>`
+      : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+           ✓ In scorta
+         </span>`;
 
-    // Badge da riordinare
-    let diffBadge = '';
-    if (isDepleted) {
-      diffBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
-        ⚠️ +${diff} ${unita}
-      </span>`;
-    } else {
-      diffBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300">
-        ✓ In scorta
-      </span>`;
-    }
-
-    // Data Formattata
-    let dataStr = '-';
-    if (item.dataControllo) {
-      const d = new Date(item.dataControllo);
-      if (!isNaN(d)) dataStr = d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    }
-
-    const noteHtml = item.note ? `<div class="text-[11px] text-gray-400 dark:text-gray-500 truncate max-w-xs mt-0.5" title="${item.note}">📌 ${item.note}</div>` : '';
+    const rowBg = isSottoScorta ? 'bg-amber-50/30 dark:bg-amber-950/10' : '';
 
     return `
-      <tr class="${rowClass} hover:bg-gray-100/60 dark:hover:bg-gray-700/30 transition-colors">
-        <td class="p-3 font-semibold text-gray-800 dark:text-gray-100">
-          <div class="font-medium text-gray-900 dark:text-gray-100">${item.nome}</div>
-          ${noteHtml}
-        </td>
+      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${rowBg}" data-id="${item.id}">
+        <!-- Nome & Note -->
         <td class="p-3">
-          <span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800">
-            ${item.categoria || 'Generale'}
+          <div class="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+            <span>${item.nome}</span>
+          </div>
+          ${item.note ? `<div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs mt-0.5" title="${item.note}">📝 ${item.note}</div>` : ''}
+        </td>
+
+        <!-- Lista -->
+        <td class="p-3 whitespace-nowrap">
+          <span class="inline-block px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+            📑 ${itemLista}
           </span>
         </td>
-        <td class="p-3 text-center">
-          <div class="inline-flex items-center gap-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 shadow-sm">
-            <button type="button" class="btn-adjust-qty text-gray-500 hover:text-red-600 font-bold px-1.5 cursor-pointer" data-id="${item.id}" data-delta="-1" title="Diminuisci scorta">-</button>
-            <span class="font-bold text-sm min-w-[28px] text-center ${isDepleted ? 'text-amber-700 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100'}">${q}</span>
-            <span class="text-[11px] text-gray-400">${unita}</span>
-            <button type="button" class="btn-adjust-qty text-gray-500 hover:text-green-600 font-bold px-1.5 cursor-pointer" data-id="${item.id}" data-delta="1" title="Aumenta scorta">+</button>
+
+        <!-- Categoria -->
+        <td class="p-3 whitespace-nowrap">
+          <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+            🏷️ ${item.categoria || 'Generale'}
+          </span>
+        </td>
+
+        <!-- Quantità Attuale con pulsanti rapidi + e - -->
+        <td class="p-3 text-center whitespace-nowrap">
+          <div class="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600">
+            <button type="button" class="btn-qty-minus text-gray-500 hover:text-red-600 font-bold px-1.5 py-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600" data-id="${item.id}" title="Diminuisci scorta">-</button>
+            <span class="font-bold text-sm w-8 text-center text-gray-800 dark:text-gray-200">${q}</span>
+            <button type="button" class="btn-qty-plus text-gray-500 hover:text-green-600 font-bold px-1.5 py-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600" data-id="${item.id}" title="Aumenta scorta">+</button>
+            <span class="text-xs text-gray-400 ml-0.5">${unita}</span>
           </div>
         </td>
-        <td class="p-3 text-center font-medium text-gray-600 dark:text-gray-300">
+
+        <!-- Scorta Minima -->
+        <td class="p-3 text-center whitespace-nowrap font-medium text-gray-600 dark:text-gray-300">
           ${min} <span class="text-xs text-gray-400">${unita}</span>
         </td>
-        <td class="p-3 text-center">
-          ${diffBadge}
+
+        <!-- Da Riordinare -->
+        <td class="p-3 text-center whitespace-nowrap">
+          ${statusBadge}
         </td>
-        <td class="p-3 text-right text-gray-600 dark:text-gray-300 font-mono">
+
+        <!-- Prezzo Unitario -->
+        <td class="p-3 text-right whitespace-nowrap font-mono text-gray-700 dark:text-gray-300">
           € ${price.toFixed(2)}
         </td>
-        <td class="p-3 text-right font-mono font-bold ${costoRiordino > 0 ? 'text-amber-800 dark:text-amber-300' : 'text-gray-400'}">
+
+        <!-- Preventivo Riordino -->
+        <td class="p-3 text-right whitespace-nowrap font-mono font-bold ${isSottoScorta ? 'text-amber-700 dark:text-amber-400' : 'text-gray-400'}">
           € ${costoRiordino.toFixed(2)}
         </td>
-        <td class="p-3 text-center text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-          ${dataStr}
+
+        <!-- Data Controllo -->
+        <td class="p-3 text-center whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+          ${item.dataControllo ? new Date(item.dataControllo).toLocaleDateString('it-IT') : '-'}
         </td>
+
+        <!-- Azioni -->
         <td class="p-3 text-center whitespace-nowrap">
-          <button type="button" class="btn-edit-material p-1.5 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors cursor-pointer" data-id="${item.id}" title="Modifica articolo">
-            ✏️
-          </button>
-          <button type="button" class="btn-delete-material p-1.5 text-gray-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors cursor-pointer ml-1" data-id="${item.id}" title="Elimina articolo">
-            🗑️
-          </button>
+          <div class="inline-flex items-center gap-1">
+            <button type="button" class="btn-edit-item p-1 text-blue-600 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded transition-colors" data-id="${item.id}" title="Modifica articolo">
+              ✏️
+            </button>
+            <button type="button" class="btn-delete-item p-1 text-red-600 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-gray-700 rounded transition-colors" data-id="${item.id}" title="Elimina articolo">
+              🗑️
+            </button>
+          </div>
         </td>
       </tr>
     `;
   }).join('');
 
+  // Riga Totali Tabella
   if (tfoot) {
+    const listLabel = activeList === 'all' ? 'Tutte le liste' : `Lista "${activeList}"`;
     tfoot.innerHTML = `
       <tr>
-        <td colspan="4" class="p-3 text-right uppercase tracking-wider text-xs text-gray-500 dark:text-gray-400">Totale Riordino Articoli Mostrati:</td>
-        <td class="p-3 text-center font-extrabold text-amber-700 dark:text-amber-400">${tableTotalDaRiordinare} unità</td>
+        <td colspan="5" class="p-3 text-right text-gray-600 dark:text-gray-300 uppercase text-xs tracking-wider">
+          Totale Preventivo Riordino (${listLabel}):
+        </td>
+        <td class="p-3 text-center text-amber-700 dark:text-amber-300 font-extrabold">
+          ${tableTotalDaRiordinare > 0 ? `+${tableTotalDaRiordinare} unità` : '0'}
+        </td>
         <td></td>
-        <td class="p-3 text-right font-mono text-base font-extrabold text-green-700 dark:text-green-400">€ ${tableTotalPreventivo.toFixed(2)}</td>
+        <td class="p-3 text-right font-mono font-extrabold text-green-700 dark:text-green-300 text-base">
+          € ${tableTotalPreventivo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </td>
         <td colspan="2"></td>
       </tr>
     `;
   }
 
-  // Event listeners pulsanti riga
-  tbody.querySelectorAll('.btn-adjust-qty').forEach(btn => {
-    btn.onclick = async (e) => {
-      e.stopPropagation();
-      const id = btn.getAttribute('data-id');
-      const delta = parseInt(btn.getAttribute('data-delta'), 10);
-      await UI.adjustMaterialQuantity(id, delta);
-    };
+  // Collega eventi inline (+, -, modifica, elimina)
+  tbody.querySelectorAll('.btn-qty-plus').forEach(b => {
+    b.addEventListener('click', () => {
+      this.adjustItemQuantity(b.getAttribute('data-id'), 1);
+    });
   });
 
-  tbody.querySelectorAll('.btn-edit-material').forEach(btn => {
-    btn.onclick = () => {
-      const id = btn.getAttribute('data-id');
-      UI.openMaterialModal(id);
-    };
+  tbody.querySelectorAll('.btn-qty-minus').forEach(b => {
+    b.addEventListener('click', () => {
+      this.adjustItemQuantity(b.getAttribute('data-id'), -1);
+    });
   });
 
-  tbody.querySelectorAll('.btn-delete-material').forEach(btn => {
-    btn.onclick = () => {
-      const id = btn.getAttribute('data-id');
-      UI.deleteMaterial(id);
-    };
+  tbody.querySelectorAll('.btn-edit-item').forEach(b => {
+    b.addEventListener('click', () => {
+      this.openMaterialModal(b.getAttribute('data-id'));
+    });
+  });
+
+  tbody.querySelectorAll('.btn-delete-item').forEach(b => {
+    b.addEventListener('click', () => {
+      this.deleteMaterial(b.getAttribute('data-id'));
+    });
   });
 };
 
-UI.adjustMaterialQuantity = async function (id, delta) {
+UI.adjustItemQuantity = async function (id, delta) {
   const item = (this._scorteState.items || []).find(i => i.id === id);
   if (!item) return;
 
@@ -415,19 +737,26 @@ UI.adjustMaterialQuantity = async function (id, delta) {
   const newQ = Math.max(0, currentQ + delta);
   if (newQ === currentQ) return;
 
-  item.quantita = newQ;
-  item.dataControllo = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toISOString().split('T')[0];
 
   try {
-    await DATA.updateScorta(id, { quantita: newQ, dataControllo: item.dataControllo }, this.currentUser);
+    await DATA.updateScorta(id, {
+      quantita: newQ,
+      dataControllo: todayStr
+    }, this.currentUser);
+
+    item.quantita = newQ;
+    item.dataControllo = todayStr;
+
+    this.renderListeTabs();
     this.renderScorte();
   } catch (err) {
-    console.error('Errore aggiornamento quantità:', err);
+    console.error('Errore aggiornamento rapido quantità:', err);
     this.showToast('Errore durante l\'aggiornamento', { type: 'error' });
   }
 };
 
-// ==================== Modal Aggiungi / Modifica ====================
+// ==================== Modal Articolo (Aggiungi / Modifica) ====================
 UI.setupMaterialModalEvents = function () {
   const modal = document.getElementById('materialModal');
   const closeBtn = document.getElementById('closeMaterialModalBtn');
@@ -440,7 +769,7 @@ UI.setupMaterialModalEvents = function () {
   if (form) {
     form.onsubmit = async (e) => {
       e.preventDefault();
-      await UI.saveMaterialForm();
+      await this.saveMaterialForm();
     };
   }
 };
@@ -450,6 +779,8 @@ UI.openMaterialModal = function (id = null) {
   const title = document.getElementById('materialModalTitle');
   const idInput = document.getElementById('materialId');
   const nomeInput = document.getElementById('materialNome');
+  const listaInput = document.getElementById('materialLista');
+  const listeDataList = document.getElementById('listeScorteDataList');
   const catInput = document.getElementById('materialCategoria');
   const unitaSelect = document.getElementById('materialUnita');
   const qInput = document.getElementById('materialQuantita');
@@ -462,12 +793,23 @@ UI.openMaterialModal = function (id = null) {
 
   const todayStr = new Date().toISOString().split('T')[0];
 
+  // Popola datalist con tutte le liste note
+  if (listeDataList) {
+    const lists = this._scorteState.lists || ['Campo Estivo', 'Uniformi', 'Distintivi', 'Generale'];
+    listeDataList.innerHTML = lists.map(l => `<option value="${l}"></option>`).join('');
+  }
+
+  const defaultList = this._scorteState.activeList !== 'all'
+    ? this._scorteState.activeList
+    : 'Generale';
+
   if (id) {
     const item = (this._scorteState.items || []).find(i => i.id === id);
     if (!item) return;
     if (title) title.textContent = 'Modifica Articolo Scorte';
     if (idInput) idInput.value = item.id;
     if (nomeInput) nomeInput.value = item.nome || '';
+    if (listaInput) listaInput.value = item.lista || defaultList;
     if (catInput) catInput.value = item.categoria || 'Generale';
     if (unitaSelect) unitaSelect.value = item.unitaMisura || 'pz';
     if (qInput) qInput.value = item.quantita !== undefined ? item.quantita : 0;
@@ -479,6 +821,7 @@ UI.openMaterialModal = function (id = null) {
     if (title) title.textContent = 'Nuovo Articolo Scorte';
     if (idInput) idInput.value = '';
     if (nomeInput) nomeInput.value = '';
+    if (listaInput) listaInput.value = defaultList;
     if (catInput) catInput.value = this._scorteState.category || 'Campeggio';
     if (unitaSelect) unitaSelect.value = 'pz';
     if (qInput) qInput.value = '0';
@@ -496,6 +839,7 @@ UI.saveMaterialForm = async function () {
   const modal = document.getElementById('materialModal');
   const id = document.getElementById('materialId')?.value;
   const nome = document.getElementById('materialNome')?.value.trim();
+  const lista = document.getElementById('materialLista')?.value.trim() || 'Generale';
   const categoria = document.getElementById('materialCategoria')?.value.trim() || 'Generale';
   const unitaMisura = document.getElementById('materialUnita')?.value || 'pz';
   const quantita = Number(document.getElementById('materialQuantita')?.value) || 0;
@@ -511,6 +855,7 @@ UI.saveMaterialForm = async function () {
 
   const payload = {
     nome,
+    lista,
     categoria,
     unitaMisura,
     quantita,
@@ -521,16 +866,25 @@ UI.saveMaterialForm = async function () {
   };
 
   try {
+    // Se la lista è nuova, aggiungila alla lista delle liste conosciute
+    if (lista && !this._scorteState.lists.includes(lista)) {
+      await DATA.addListaScorta(lista, this.currentUser);
+      this._scorteState.lists.push(lista);
+    }
+
     if (id) {
       await DATA.updateScorta(id, payload, this.currentUser);
       this.showToast(`Articolo "${nome}" aggiornato con successo`);
     } else {
       await DATA.addScorta(payload, this.currentUser);
-      this.showToast(`Articolo "${nome}" aggiunto alle scorte`);
+      this.showToast(`Articolo "${nome}" aggiunto alla lista "${lista}"`);
     }
 
     modal?.classList.add('hidden');
     this._scorteState.items = await DATA.getScorte();
+    this._scorteState.lists = await DATA.getListeScorte();
+
+    this.renderListeTabs();
     this.populateCategoryFilter();
     this.renderScorte();
   } catch (err) {
@@ -543,7 +897,7 @@ UI.deleteMaterial = function (id) {
   const item = (this._scorteState.items || []).find(i => i.id === id);
   if (!item) return;
 
-  const message = `Sei sicuro di voler eliminare l'articolo "${item.nome}" (${item.categoria || 'Generale'}) dall'inventario scorte?`;
+  const message = `Sei sicuro di voler eliminare l'articolo "${item.nome}" (${item.categoria || 'Generale'} - Lista: ${item.lista || 'Generale'}) dall'inventario scorte?`;
 
   this.showConfirmModal({
     title: 'Conferma Eliminazione Articolo',
@@ -555,6 +909,7 @@ UI.deleteMaterial = function (id) {
         await DATA.deleteScorta(id, this.currentUser);
         this.showToast(`Articolo "${item.nome}" eliminato`);
         this._scorteState.items = await DATA.getScorte();
+        this.renderListeTabs();
         this.populateCategoryFilter();
         this.renderScorte();
       } catch (err) {
@@ -603,71 +958,117 @@ UI.setupImportModalEvents = function () {
   }
 
   if (confirmBtn) {
-    confirmBtn.onclick = async () => {
-      await UI.confirmImport();
+    confirmBtn.onclick = () => {
+      UI.confirmImport();
     };
   }
 };
 
 UI.openImportModal = function () {
   const modal = document.getElementById('importModal');
-  const fileInput = document.getElementById('importFileInput');
-  const textarea = document.getElementById('importTextarea');
   const preview = document.getElementById('importPreviewContainer');
   const confirmBtn = document.getElementById('confirmImportBtn');
+  const textarea = document.getElementById('importTextarea');
+  const fileInput = document.getElementById('importFileInput');
+  const targetListSelect = document.getElementById('importTargetList');
 
-  if (fileInput) fileInput.value = '';
+  if (!modal) return;
+
   if (textarea) textarea.value = '';
+  if (fileInput) fileInput.value = '';
   if (preview) preview.classList.add('hidden');
   if (confirmBtn) confirmBtn.disabled = true;
-
   this._scorteState.parsedImportItems = [];
-  modal?.classList.remove('hidden');
+
+  // Popola selettore lista destinazione
+  if (targetListSelect) {
+    const lists = this._scorteState.lists || ['Campo Estivo', 'Uniformi', 'Distintivi', 'Generale'];
+    const active = this._scorteState.activeList;
+    let options = '<option value="auto">Usa colonna Lista dal file (o lista attiva)</option>';
+    lists.forEach(l => {
+      const sel = active === l ? 'selected' : '';
+      options += `<option value="${l}" ${sel}>${l}</option>`;
+    });
+    targetListSelect.innerHTML = options;
+  }
+
+  modal.classList.remove('hidden');
 };
 
 UI.processImportText = function (rawText) {
   if (!rawText || !rawText.trim()) {
-    this.showToast('Nessun testo o file inserito per l\'importazione', { type: 'warning' });
+    this.showToast('Inserisci o seleziona dei dati da importare', { type: 'warning' });
     return;
   }
 
-  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-  const parsedItems = [];
+  const targetListSelect = document.getElementById('importTargetList');
+  const forcedList = targetListSelect && targetListSelect.value !== 'auto' ? targetListSelect.value : null;
+  const activeDefaultList = this._scorteState.activeList !== 'all' ? this._scorteState.activeList : 'Generale';
 
-  lines.forEach((line, index) => {
-    // Salta intestazioni se presenti
-    if (index === 0 && (line.toLowerCase().startsWith('nome') || line.toLowerCase().startsWith('"nome'))) {
+  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const parsedItems = [];
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  lines.forEach((line, idx) => {
+    // Riconosce intestazioni
+    const lower = line.toLowerCase();
+    if (idx === 0 && (lower.includes('nome') || lower.includes('categoria') || lower.includes('quantit'))) {
       return;
     }
 
-    // Identifica separatore principale: virgola, punto e virgola, tab, pipe o trattino
-    let sep = ',';
-    if (line.includes(';')) sep = ';';
-    else if (line.includes('\t')) sep = '\t';
-    else if (line.includes('|')) sep = '|';
-    else if (line.includes(' - ')) sep = ' - ';
+    let item = null;
 
-    const parts = line.split(sep).map(p => p.trim().replace(/^["']|["']$/g, ''));
-    if (parts.length === 0 || !parts[0]) return;
+    if (line.includes(',') || line.includes(';')) {
+      // CSV standard
+      const delim = line.includes(';') ? ';' : ',';
+      const parts = line.split(delim).map(p => p.trim().replace(/^["']|["']$/g, ''));
+      if (parts.length >= 1 && parts[0]) {
+        item = {
+          nome: parts[0],
+          categoria: parts[1] || 'Generale',
+          quantita: Number(parts[2]) || 0,
+          quantitaMinima: Number(parts[3]) || 0,
+          prezzoUnitario: Number(parts[4]) || 0,
+          unitaMisura: parts[5] || 'pz',
+          note: parts[6] || '',
+          lista: forcedList || parts[7] || activeDefaultList,
+          dataControllo: todayStr
+        };
+      }
+    } else if (line.includes('-')) {
+      // Formato testuale con trattini: Nome - Categoria - Quantità
+      const parts = line.split('-').map(p => p.trim());
+      if (parts.length >= 1 && parts[0]) {
+        item = {
+          nome: parts[0],
+          categoria: parts[1] || 'Generale',
+          quantita: Number(parts[2]) || 0,
+          quantitaMinima: Number(parts[3]) || 10,
+          prezzoUnitario: 0,
+          unitaMisura: 'pz',
+          note: '',
+          lista: forcedList || activeDefaultList,
+          dataControllo: todayStr
+        };
+      }
+    } else {
+      // Singolo nome
+      item = {
+        nome: line,
+        categoria: 'Generale',
+        quantita: 0,
+        quantitaMinima: 10,
+        prezzoUnitario: 0,
+        unitaMisura: 'pz',
+        note: '',
+        lista: forcedList || activeDefaultList,
+        dataControllo: todayStr
+      };
+    }
 
-    const nome = parts[0];
-    const categoria = parts[1] || 'Generale';
-    const quantita = Number(parts[2]) >= 0 ? Number(parts[2]) : 0;
-    const quantitaMinima = Number(parts[3]) >= 0 ? Number(parts[3]) : 10;
-    const prezzoUnitario = Number(parts[4]) >= 0 ? Number(parts[4]) : 0;
-    const unitaMisura = parts[5] || 'pz';
-    const note = parts[6] || '';
-
-    parsedItems.push({
-      nome,
-      categoria,
-      quantita,
-      quantitaMinima,
-      prezzoUnitario,
-      unitaMisura,
-      note,
-      dataControllo: new Date().toISOString().split('T')[0]
-    });
+    if (item && item.nome) {
+      parsedItems.push(item);
+    }
   });
 
   this._scorteState.parsedImportItems = parsedItems;
@@ -678,24 +1079,25 @@ UI.processImportText = function (rawText) {
   const confirmBtn = document.getElementById('confirmImportBtn');
 
   if (parsedItems.length === 0) {
-    this.showToast('Nessun articolo valido riconosciuto dal testo inserito', { type: 'error' });
-    if (previewContainer) previewContainer.classList.add('hidden');
+    this.showToast('Nessun dato valido riconosciuto', { type: 'warning' });
     if (confirmBtn) confirmBtn.disabled = true;
+    if (previewContainer) previewContainer.classList.add('hidden');
     return;
   }
 
+  if (previewContainer) previewContainer.classList.remove('hidden');
   if (countEl) countEl.textContent = String(parsedItems.length);
   if (confirmBtn) confirmBtn.disabled = false;
-  if (previewContainer) previewContainer.classList.remove('hidden');
 
   if (tbody) {
-    tbody.innerHTML = parsedItems.map(p => `
-      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
-        <td class="p-2 font-medium">${p.nome}</td>
-        <td class="p-2">${p.categoria}</td>
-        <td class="p-2 text-center">${p.quantita} ${p.unitaMisura}</td>
-        <td class="p-2 text-center">${p.quantitaMinima} ${p.unitaMisura}</td>
-        <td class="p-2 text-right">€ ${p.prezzoUnitario.toFixed(2)}</td>
+    tbody.innerHTML = parsedItems.slice(0, 50).map(i => `
+      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+        <td class="p-2 font-medium">${i.nome}</td>
+        <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">${i.lista}</span></td>
+        <td class="p-2">${i.categoria}</td>
+        <td class="p-2 text-center">${i.quantita} ${i.unitaMisura}</td>
+        <td class="p-2 text-center">${i.quantitaMinima}</td>
+        <td class="p-2 text-right">€ ${Number(i.prezzoUnitario).toFixed(2)}</td>
       </tr>
     `).join('');
   }
@@ -716,6 +1118,9 @@ UI.confirmImport = async function () {
     document.getElementById('importModal')?.classList.add('hidden');
 
     this._scorteState.items = await DATA.getScorte();
+    this._scorteState.lists = await DATA.getListeScorte();
+
+    this.renderListeTabs();
     this.populateCategoryFilter();
     this.renderScorte();
   } catch (err) {
@@ -750,19 +1155,50 @@ UI.setupPreventivoModalEvents = function () {
 
 UI.openPreventivoRiordinoModal = function () {
   const modal = document.getElementById('preventivoRiordinoModal');
-  const items = this._scorteState.items || [];
+  const allItems = this._scorteState.items || [];
+  const activeList = this._scorteState.activeList;
+
+  // Filtra per lista attiva (se non "all")
+  const candidateItems = activeList === 'all'
+    ? allItems
+    : allItems.filter(i => (i.lista || 'Generale') === activeList);
 
   // Filtra solo gli articoli che richiedono riordino
-  const toReorder = items.filter(i => {
+  const toReorder = candidateItems.filter(i => {
     const q = Number(i.quantita) || 0;
     const min = Number(i.quantitaMinima) || 0;
     return min > q;
   });
 
+  const titleEl = document.getElementById('modalPreventivoTitle');
+  const badgeEl = document.getElementById('modalPreventivoListBadge');
+  const subtitleEl = document.getElementById('modalPreventivoSubtitle');
   const totalAmountEl = document.getElementById('modalPreventivoTotalAmount');
   const statsEl = document.getElementById('modalPreventivoStats');
   const categoriesEl = document.getElementById('modalPreventivoCategories');
   const tbody = document.getElementById('modalPreventivoTableBody');
+
+  if (titleEl) {
+    titleEl.textContent = activeList === 'all'
+      ? 'Preventivo e Lista di Riordino Completo'
+      : `Preventivo e Riordino: ${activeList}`;
+  }
+
+  if (badgeEl) {
+    if (activeList !== 'all') {
+      badgeEl.textContent = `Lista: ${activeList}`;
+      badgeEl.classList.remove('hidden');
+    } else {
+      badgeEl.textContent = 'Tutte le Liste';
+      badgeEl.classList.remove('hidden');
+    }
+  }
+
+  if (subtitleEl) {
+    subtitleEl.textContent = activeList === 'all'
+      ? 'Elenco di tutti gli articoli con scorte inferiori alla soglia minima prefissata'
+      : `Elenco specifico degli articoli da ordinare per "${activeList}" (esclusi gli altri materiali)`;
+  }
 
   let totalCost = 0;
   let totalUnits = 0;
@@ -790,14 +1226,15 @@ UI.openPreventivoRiordinoModal = function () {
   }
 
   if (statsEl) {
-    statsEl.textContent = `${toReorder.length} articoli da riordinare (${totalUnits} unità totali)`;
+    const listScope = activeList === 'all' ? 'in totale' : `per ${activeList}`;
+    statsEl.textContent = `${toReorder.length} articoli da riordinare (${totalUnits} unità totali) ${listScope}`;
   }
 
   // Ripartizione categorie
   if (categoriesEl) {
     const catList = Object.entries(categoryTotals);
     if (catList.length === 0) {
-      categoriesEl.innerHTML = '<p class="text-green-700 dark:text-green-400 font-medium">Tutti gli articoli sono in scorta sufficiente! Nessun riordino necessario.</p>';
+      categoriesEl.innerHTML = '<p class="text-green-700 dark:text-green-400 font-medium">Tutti gli articoli di questa lista sono in scorta sufficiente! Nessun riordino necessario.</p>';
     } else {
       categoriesEl.innerHTML = catList.map(([cat, data]) => `
         <div class="bg-white dark:bg-gray-700 p-3 rounded-xl border border-amber-200 dark:border-amber-800 shadow-sm">
@@ -814,8 +1251,8 @@ UI.openPreventivoRiordinoModal = function () {
     if (toReorder.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" class="p-8 text-center text-green-700 dark:text-green-400 font-medium">
-            🎉 Nessun articolo da riordinare! L'inventario è al completo secondo le scorte minime impostate.
+          <td colspan="8" class="p-8 text-center text-green-700 dark:text-green-400 font-medium">
+            🎉 Nessun articolo da riordinare per ${activeList === 'all' ? 'l\'intero inventario' : `la lista "${activeList}"`}! Le scorte sono tutte al di sopra della soglia minima.
           </td>
         </tr>
       `;
@@ -827,10 +1264,12 @@ UI.openPreventivoRiordinoModal = function () {
         const diff = min - q;
         const cost = diff * price;
         const unita = i.unitaMisura || 'pz';
+        const itemLista = (i.lista || 'Generale').trim();
 
         return `
           <tr class="hover:bg-amber-50/50 dark:hover:bg-amber-950/20">
             <td class="p-2.5 font-bold text-gray-800 dark:text-gray-100">${i.nome}</td>
+            <td class="p-2.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">${itemLista}</span></td>
             <td class="p-2.5">${i.categoria || 'Generale'}</td>
             <td class="p-2.5 text-center">${q} ${unita}</td>
             <td class="p-2.5 text-center">${min} ${unita}</td>
@@ -850,13 +1289,18 @@ UI.openPreventivoRiordinoModal = function () {
 
 // ==================== Esportazione CSV ====================
 UI.exportScorteCsv = function () {
-  const items = this._scorteState.items || [];
+  const activeList = this._scorteState.activeList;
+  let items = this._scorteState.items || [];
+  if (activeList !== 'all') {
+    items = items.filter(i => (i.lista || 'Generale') === activeList);
+  }
+
   if (items.length === 0) {
     this.showToast('Nessun articolo da esportare', { type: 'warning' });
     return;
   }
 
-  const header = ['Nome', 'Categoria', 'Quantita', 'ScortaMinima', 'Unita', 'PrezzoUnitario', 'DaRiordinare', 'PreventivoRiordino', 'DataControllo', 'Note'];
+  const header = ['Nome', 'Lista', 'Categoria', 'Quantita', 'ScortaMinima', 'Unita', 'PrezzoUnitario', 'DaRiordinare', 'PreventivoRiordino', 'DataControllo', 'Note'];
   const rows = [header.join(',')];
 
   items.forEach(i => {
@@ -868,6 +1312,7 @@ UI.exportScorteCsv = function () {
 
     const row = [
       `"${(i.nome || '').replace(/"/g, '""')}"`,
+      `"${(i.lista || 'Generale').replace(/"/g, '""')}"`,
       `"${(i.categoria || 'Generale').replace(/"/g, '""')}"`,
       q,
       min,
@@ -886,25 +1331,31 @@ UI.exportScorteCsv = function () {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `Inventario_Scorte_${new Date().toISOString().split('T')[0]}.csv`);
+  const fileSuffix = activeList !== 'all' ? activeList.replace(/\s+/g, '_') : 'Tutte';
+  link.setAttribute('download', `Inventario_${fileSuffix}_${new Date().toISOString().split('T')[0]}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 
-  this.showToast('Inventario scorte esportato in formato CSV');
+  this.showToast(`Inventario (${fileSuffix}) esportato in formato CSV`);
 };
 
 UI.exportRiordinoCsv = function () {
-  const items = this._scorteState.items || [];
+  const activeList = this._scorteState.activeList;
+  let items = this._scorteState.items || [];
+  if (activeList !== 'all') {
+    items = items.filter(i => (i.lista || 'Generale') === activeList);
+  }
+
   const toReorder = items.filter(i => (Number(i.quantitaMinima) || 0) > (Number(i.quantita) || 0));
 
   if (toReorder.length === 0) {
-    this.showToast('Nessun articolo da riordinare', { type: 'info' });
+    this.showToast('Nessun articolo da riordinare in questa lista', { type: 'info' });
     return;
   }
 
-  const header = ['Articolo', 'Categoria', 'QuantitaAttuale', 'ScortaObiettivo', 'QuantitaDaOrdinare', 'Unita', 'PrezzoUnitario', 'CostoTotale', 'Note'];
+  const header = ['Articolo', 'Lista', 'Categoria', 'QuantitaAttuale', 'ScortaObiettivo', 'QuantitaDaOrdinare', 'Unita', 'PrezzoUnitario', 'CostoTotale', 'Note'];
   const rows = [header.join(',')];
 
   let totalCost = 0;
@@ -918,6 +1369,7 @@ UI.exportRiordinoCsv = function () {
 
     const row = [
       `"${(i.nome || '').replace(/"/g, '""')}"`,
+      `"${(i.lista || 'Generale').replace(/"/g, '""')}"`,
       `"${(i.categoria || 'Generale').replace(/"/g, '""')}"`,
       q,
       min,
@@ -930,18 +1382,20 @@ UI.exportRiordinoCsv = function () {
     rows.push(row.join(','));
   });
 
-  rows.push(['"TOTALE PREVENTIVO"', '""', '""', '""', '""', '""', '""', totalCost.toFixed(2), '""'].join(','));
+  const listScope = activeList !== 'all' ? `TOTALE PREVENTIVO (${activeList})` : 'TOTALE PREVENTIVO';
+  rows.push([`"${listScope}"`, '""', '""', '""', '""', '""', '""', '""', totalCost.toFixed(2), '""'].join(','));
 
   const csvContent = '\uFEFF' + rows.join('\r\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `Ordine_Riordino_${new Date().toISOString().split('T')[0]}.csv`);
+  const fileSuffix = activeList !== 'all' ? activeList.replace(/\s+/g, '_') : 'Tutte';
+  link.setAttribute('download', `Ordine_Riordino_${fileSuffix}_${new Date().toISOString().split('T')[0]}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 
-  this.showToast('Lista riordino esportata in formato CSV');
+  this.showToast(`Lista riordino (${fileSuffix}) esportata in formato CSV`);
 };

@@ -44,12 +44,14 @@ interface LocalState {
     patrols: string[];
     scadenze: any[];
     scorte: any[];
+    listeScorte?: string[];
 }
 
 export class LocalAdapter {
     private state: LocalState;
 
     constructor() {
+        const saved = JSON.parse(localStorage.getItem('presenziario-state') || '{}');
         const now = new Date();
         const past1 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
         const past2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
@@ -94,6 +96,7 @@ export class LocalAdapter {
                     id: 'sc_test_1',
                     nome: 'Picchetti tenda a V (20 cm)',
                     categoria: 'Campeggio',
+                    lista: 'Campo Estivo',
                     quantita: 24,
                     quantitaMinima: 50,
                     unitaMisura: 'pz',
@@ -105,6 +108,7 @@ export class LocalAdapter {
                     id: 'sc_test_2',
                     nome: 'Cordino canapa 6mm (matassa 50m)',
                     categoria: 'Pionieristica',
+                    lista: 'Campo Estivo',
                     quantita: 4,
                     quantitaMinima: 10,
                     unitaMisura: 'rotoli',
@@ -116,6 +120,7 @@ export class LocalAdapter {
                     id: 'sc_test_3',
                     nome: 'Disinfettante spray 250ml',
                     categoria: 'Pronto Soccorso',
+                    lista: 'Generale',
                     quantita: 5,
                     quantitaMinima: 5,
                     unitaMisura: 'pz',
@@ -123,6 +128,12 @@ export class LocalAdapter {
                     dataControllo: new Date().toISOString().split('T')[0],
                     note: 'Cassetta medica reparto'
                 }
+            ],
+            listeScorte: saved.listeScorte || [
+                'Campo Estivo',
+                'Uniformi',
+                'Distintivi',
+                'Generale'
             ]
         };
         // Restore dates
@@ -297,6 +308,65 @@ export class LocalAdapter {
     }
 
     // Inventory / Scorte
+    // Inventory / Scorte & Liste
+    async getListeScorte(): Promise<string[]> {
+        if (!this.state.listeScorte || !Array.isArray(this.state.listeScorte) || this.state.listeScorte.length === 0) {
+            this.state.listeScorte = ['Campo Estivo', 'Uniformi', 'Distintivi', 'Generale'];
+            this.persist();
+        }
+        return [...this.state.listeScorte];
+    }
+
+    async addListaScorta(nome: string, currentUser?: any): Promise<string> {
+        const cleanName = (nome || '').trim();
+        if (!cleanName) return '';
+        if (!this.state.listeScorte) this.state.listeScorte = [];
+        if (!this.state.listeScorte.includes(cleanName)) {
+            this.state.listeScorte.push(cleanName);
+            this.persist();
+        }
+        console.log('LocalAdapter: addListaScorta', { nome: cleanName, currentUser: currentUser?.email });
+        return cleanName;
+    }
+
+    async deleteListaScorta(nome: string, currentUser?: any): Promise<void> {
+        const cleanName = (nome || '').trim();
+        if (!cleanName || !this.state.listeScorte) return;
+        this.state.listeScorte = this.state.listeScorte.filter(l => l !== cleanName);
+        if (this.state.scorte) {
+            this.state.scorte.forEach(s => {
+                if ((s.lista || 'Generale') === cleanName) {
+                    s.lista = 'Generale';
+                }
+            });
+        }
+        this.persist();
+        console.log('LocalAdapter: deleteListaScorta', { nome: cleanName, currentUser: currentUser?.email });
+    }
+
+    async renameListaScorta(oldName: string, newName: string, currentUser?: any): Promise<void> {
+        const oldClean = (oldName || '').trim();
+        const newClean = (newName || '').trim();
+        if (!oldClean || !newClean || !this.state.listeScorte) return;
+
+        const idx = this.state.listeScorte.indexOf(oldClean);
+        if (idx >= 0) {
+            this.state.listeScorte[idx] = newClean;
+        } else if (!this.state.listeScorte.includes(newClean)) {
+            this.state.listeScorte.push(newClean);
+        }
+
+        if (this.state.scorte) {
+            this.state.scorte.forEach(s => {
+                if ((s.lista || 'Generale') === oldClean) {
+                    s.lista = newClean;
+                }
+            });
+        }
+        this.persist();
+        console.log('LocalAdapter: renameListaScorta', { oldName: oldClean, newName: newClean, currentUser: currentUser?.email });
+    }
+
     async getScorte(): Promise<any[]> {
         return this.state.scorte || [];
     }
@@ -307,6 +377,7 @@ export class LocalAdapter {
             id,
             nome: (item.nome || '').trim(),
             categoria: (item.categoria || 'Generale').trim(),
+            lista: (item.lista || 'Generale').trim(),
             quantita: Number(item.quantita) || 0,
             quantitaMinima: Number(item.quantitaMinima) || 0,
             unitaMisura: (item.unitaMisura || 'pz').trim(),
@@ -330,6 +401,7 @@ export class LocalAdapter {
             this.state.scorte[index] = {
                 ...this.state.scorte[index],
                 ...updates,
+                lista: updates.lista !== undefined ? updates.lista.trim() : (this.state.scorte[index].lista || 'Generale'),
                 quantita: updates.quantita !== undefined ? Number(updates.quantita) : this.state.scorte[index].quantita,
                 quantitaMinima: updates.quantitaMinima !== undefined ? Number(updates.quantitaMinima) : this.state.scorte[index].quantitaMinima,
                 prezzoUnitario: updates.prezzoUnitario !== undefined ? Number(updates.prezzoUnitario) : this.state.scorte[index].prezzoUnitario,
@@ -356,6 +428,7 @@ export class LocalAdapter {
             id: 'sc_' + Math.random().toString(36).slice(2, 10),
             nome: (item.nome || '').trim(),
             categoria: (item.categoria || 'Generale').trim(),
+            lista: (item.lista || 'Generale').trim(),
             quantita: Number(item.quantita) || 0,
             quantitaMinima: Number(item.quantitaMinima) || 0,
             unitaMisura: (item.unitaMisura || 'pz').trim(),

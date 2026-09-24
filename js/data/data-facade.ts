@@ -264,7 +264,36 @@ export const DATA = {
         return result;
     },
 
-    // Inventory / Scorte
+    // Inventory / Scorte & Liste
+    async getListeScorte(): Promise<string[]> {
+        const cacheKey = 'liste_scorte';
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await (this.adapter as any).getListeScorte();
+        this.cache.set(cacheKey, data, 5 * 60 * 1000);
+        return data;
+    },
+
+    async addListaScorta(nome: string, currentUser?: any): Promise<string> {
+        const result = await (this.adapter as any).addListaScorta(nome, currentUser);
+        this.cache.invalidate('liste_scorte');
+        return result;
+    },
+
+    async deleteListaScorta(nome: string, currentUser?: any): Promise<void> {
+        const result = await (this.adapter as any).deleteListaScorta(nome, currentUser);
+        this.cache.invalidate('liste_scorte');
+        this.cache.invalidate('scorte');
+        return result;
+    },
+
+    async renameListaScorta(oldName: string, newName: string, currentUser?: any): Promise<void> {
+        const result = await (this.adapter as any).renameListaScorta(oldName, newName, currentUser);
+        this.cache.invalidate('liste_scorte');
+        this.cache.invalidate('scorte');
+        return result;
+    },
+
     async getScorte(): Promise<any[]> {
         const cacheKey = 'scorte';
         const cached = this.cache.get(cacheKey);

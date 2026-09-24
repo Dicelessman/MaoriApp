@@ -1,5 +1,5 @@
 /**
- * Tests for Scorte and Inventory management, reorder budgeting, and import/export
+ * Tests for Scorte and Inventory management, reorder budgeting, and separate lists (Campo Estivo, Uniformi, Distintivi)
  * @module tests/scorte
  */
 
@@ -15,7 +15,7 @@ describe('Scorte & Materiali Inventory Module', () => {
   });
 
   describe('Inizializzazione e Dati di Test', () => {
-    it('dovrebbe contenere subito 3 elementi di test con categorie e valori corretti', async () => {
+    it('dovrebbe contenere subito 3 elementi di test con categorie, liste e valori corretti', async () => {
       const scorte = await adapter.getScorte();
       expect(scorte).toBeInstanceOf(Array);
       expect(scorte.length).toBe(3);
@@ -23,6 +23,7 @@ describe('Scorte & Materiali Inventory Module', () => {
       const picchetti = scorte.find(s => s.nome.includes('Picchetti'));
       expect(picchetti).toBeDefined();
       expect(picchetti.categoria).toBe('Campeggio');
+      expect(picchetti.lista).toBe('Campo Estivo');
       expect(picchetti.quantita).toBe(24);
       expect(picchetti.quantitaMinima).toBe(50);
       expect(picchetti.prezzoUnitario).toBe(1.20);
@@ -31,6 +32,7 @@ describe('Scorte & Materiali Inventory Module', () => {
       const cordino = scorte.find(s => s.nome.includes('Cordino'));
       expect(cordino).toBeDefined();
       expect(cordino.categoria).toBe('Pionieristica');
+      expect(cordino.lista).toBe('Campo Estivo');
       expect(cordino.quantita).toBe(4);
       expect(cordino.quantitaMinima).toBe(10);
       expect(cordino.prezzoUnitario).toBe(8.50);
@@ -38,17 +40,132 @@ describe('Scorte & Materiali Inventory Module', () => {
       const disinfettante = scorte.find(s => s.nome.includes('Disinfettante'));
       expect(disinfettante).toBeDefined();
       expect(disinfettante.categoria).toBe('Pronto Soccorso');
+      expect(disinfettante.lista).toBe('Generale');
       expect(disinfettante.quantita).toBe(5);
       expect(disinfettante.quantitaMinima).toBe(5);
       expect(disinfettante.prezzoUnitario).toBe(4.80);
     });
+
+    it('dovrebbe includere le liste predefinite per Campo Estivo, Uniformi, Distintivi e Generale', async () => {
+      const liste = await adapter.getListeScorte();
+      expect(liste).toContain('Campo Estivo');
+      expect(liste).toContain('Uniformi');
+      expect(liste).toContain('Distintivi');
+      expect(liste).toContain('Generale');
+    });
+  });
+
+  describe('Gestione Liste Separate (Campo Estivo, Uniformi, Distintivi)', () => {
+    it('dovrebbe permettere di creare una nuova lista personalizzata', async () => {
+      await adapter.addListaScorta('San Giorgio 2026', { email: 'staff@test.it' });
+      const liste = await adapter.getListeScorte();
+      expect(liste).toContain('San Giorgio 2026');
+    });
+
+    it('dovrebbe permettere di rinominare una lista e aggiornare gli articoli associati', async () => {
+      // Aggiungi un articolo nella lista Uniformi
+      const itemId = await adapter.addScorta({
+        nome: 'Camicia Scout tg M',
+        categoria: 'Abbigliamento',
+        lista: 'Uniformi',
+        quantita: 2,
+        quantitaMinima: 10,
+        prezzoUnitario: 28.00
+      }, { email: 'staff@test.it' });
+
+      // Rinomina lista Uniformi in Vestiario Reparto
+      await adapter.renameListaScorta('Uniformi', 'Vestiario Reparto', { email: 'staff@test.it' });
+
+      const liste = await adapter.getListeScorte();
+      expect(liste).toContain('Vestiario Reparto');
+      expect(liste).not.toContain('Uniformi');
+
+      const scorte = await adapter.getScorte();
+      const updatedItem = scorte.find(s => s.id === itemId);
+      expect(updatedItem.lista).toBe('Vestiario Reparto');
+    });
+
+    it('dovrebbe eliminare una lista e spostare i suoi materiali su Generale', async () => {
+      const itemId = await adapter.addScorta({
+        nome: 'Distintivo Squadriglia Aquile',
+        categoria: 'Distintivi',
+        lista: 'Distintivi',
+        quantita: 1,
+        quantitaMinima: 12,
+        prezzoUnitario: 1.50
+      }, { email: 'staff@test.it' });
+
+      await adapter.deleteListaScorta('Distintivi', { email: 'staff@test.it' });
+
+      const liste = await adapter.getListeScorte();
+      expect(liste).not.toContain('Distintivi');
+
+      const scorte = await adapter.getScorte();
+      const movedItem = scorte.find(s => s.id === itemId);
+      expect(movedItem.lista).toBe('Generale');
+    });
+  });
+
+  describe('Calcolo Preventivo di Riordino Isolato per Singola Lista', () => {
+    it('dovrebbe calcolare il preventivo isolato solo per il Campo Estivo senza includere altre liste', async () => {
+      // Aggiungi articoli ad altre liste per verificare che non vengano inclusi
+      await adapter.addScorta({
+        nome: 'Camicia Scout Taglia L',
+        categoria: 'Uniformi',
+        lista: 'Uniformi',
+        quantita: 1,
+        quantitaMinima: 5,
+        prezzoUnitario: 30.00 // da ordinare: 4 * 30 = 120 €
+      });
+
+      await adapter.addScorta({
+        nome: 'Distintivo Lupetto',
+        categoria: 'Distintivi',
+        lista: 'Distintivi',
+        quantita: 0,
+        quantitaMinima: 10,
+        prezzoUnitario: 2.00 // da ordinare: 10 * 2 = 20 €
+      });
+
+      const scorte = await adapter.getScorte();
+
+      // Filtra solo gli articoli di Campo Estivo
+      const campoEstivoItems = scorte.filter(s => s.lista === 'Campo Estivo');
+      expect(campoEstivoItems.length).toBe(2); // Picchetti e Cordino
+
+      let totalCampoEstivoCost = 0;
+      let totalCampoEstivoUnits = 0;
+
+      campoEstivoItems.forEach(item => {
+        const diff = Math.max(0, item.quantitaMinima - item.quantita);
+        if (diff > 0) {
+          totalCampoEstivoUnits += diff;
+          totalCampoEstivoCost += diff * item.prezzoUnitario;
+        }
+      });
+
+      // Picchetti: (50 - 24) * 1.20 = 26 * 1.20 = 31.20 €
+      // Cordino: (10 - 4) * 8.50 = 6 * 8.50 = 51.00 €
+      expect(totalCampoEstivoUnits).toBe(32);
+      expect(totalCampoEstivoCost).toBeCloseTo(82.20, 2);
+
+      // Preventivo per Uniformi
+      const uniformiItems = scorte.filter(s => s.lista === 'Uniformi');
+      let uniformiCost = 0;
+      uniformiItems.forEach(i => {
+        const diff = Math.max(0, i.quantitaMinima - i.quantita);
+        uniformiCost += diff * i.prezzoUnitario;
+      });
+      expect(uniformiCost).toBeCloseTo(120.00, 2);
+    });
   });
 
   describe('Operazioni CRUD Individuali', () => {
-    it('dovrebbe aggiungere un nuovo articolo individualmente con categoria', async () => {
+    it('dovrebbe aggiungere un nuovo articolo individualmente con categoria e lista', async () => {
       const newItem = {
         nome: 'Torcia da testa LED',
         categoria: 'Illuminazione',
+        lista: 'Campo Estivo',
         quantita: 2,
         quantitaMinima: 8,
         unitaMisura: 'pz',
@@ -65,6 +182,7 @@ describe('Scorte & Materiali Inventory Module', () => {
       const added = scorte.find(s => s.id === id);
       expect(added.nome).toBe('Torcia da testa LED');
       expect(added.categoria).toBe('Illuminazione');
+      expect(added.lista).toBe('Campo Estivo');
       expect(added.quantita).toBe(2);
       expect(added.quantitaMinima).toBe(8);
       expect(added.prezzoUnitario).toBe(12.50);
@@ -77,6 +195,7 @@ describe('Scorte & Materiali Inventory Module', () => {
       await adapter.updateScorta(target.id, {
         quantita: 48,
         prezzoUnitario: 1.30,
+        lista: 'Campo Estivo',
         note: 'Rinnovati picchetti'
       }, { email: 'staff@test.it' });
 
@@ -86,6 +205,7 @@ describe('Scorte & Materiali Inventory Module', () => {
       expect(updated.prezzoUnitario).toBe(1.30);
       expect(updated.note).toBe('Rinnovati picchetti');
       expect(updated.categoria).toBe(target.categoria);
+      expect(updated.lista).toBe('Campo Estivo');
     });
 
     it('dovrebbe cancellare un articolo', async () => {
@@ -97,30 +217,6 @@ describe('Scorte & Materiali Inventory Module', () => {
       const updated = await adapter.getScorte();
       expect(updated.length).toBe(2);
       expect(updated.find(s => s.id === idToDelete)).toBeUndefined();
-    });
-  });
-
-  describe('Calcolo Preventivo di Riordino', () => {
-    it('dovrebbe calcolare correttamente il preventivo di riordino per gli articoli sotto scorta', async () => {
-      const scorte = await adapter.getScorte();
-
-      // Test items default:
-      // 1. Picchetti: quantita 24, min 50 -> da ordinare: 26 * 1.20 = 31.20
-      // 2. Cordino: quantita 4, min 10 -> da ordinare: 6 * 8.50 = 51.00
-      // 3. Disinfettante: quantita 5, min 5 -> da ordinare: 0 * 4.80 = 0.00
-      let totalToOrderCount = 0;
-      let totalCost = 0;
-
-      scorte.forEach(item => {
-        const diff = Math.max(0, item.quantitaMinima - item.quantita);
-        if (diff > 0) {
-          totalToOrderCount += diff;
-          totalCost += diff * item.prezzoUnitario;
-        }
-      });
-
-      expect(totalToOrderCount).toBe(26 + 6); // 32 unità
-      expect(totalCost).toBeCloseTo(31.20 + 51.00, 2); // 82.20 €
     });
   });
 
@@ -157,10 +253,10 @@ describe('Scorte & Materiali Inventory Module', () => {
   });
 
   describe('Importazione Batch Liste (CSV / Testo)', () => {
-    it('dovrebbe importare articoli in modalità append', async () => {
+    it('dovrebbe importare articoli in modalità append assegnandoli a liste specifiche', async () => {
       const itemsToImport = [
-        { nome: 'Bussola Silva', categoria: 'Orientamento', quantita: 6, quantitaMinima: 12, prezzoUnitario: 15.00, unitaMisura: 'pz' },
-        { nome: 'Fornello a gas camping', categoria: 'Cucina', quantita: 2, quantitaMinima: 4, prezzoUnitario: 22.00, unitaMisura: 'pz' }
+        { nome: 'Bussola Silva', categoria: 'Orientamento', lista: 'Campo Estivo', quantita: 6, quantitaMinima: 12, prezzoUnitario: 15.00, unitaMisura: 'pz' },
+        { nome: 'Fazzolettone Gruppo', categoria: 'Uniformi', lista: 'Uniformi', quantita: 5, quantitaMinima: 15, prezzoUnitario: 6.50, unitaMisura: 'pz' }
       ];
 
       const count = await adapter.importScorteBatch(itemsToImport, false);
@@ -168,12 +264,18 @@ describe('Scorte & Materiali Inventory Module', () => {
 
       const all = await adapter.getScorte();
       expect(all.length).toBe(5); // 3 originali + 2 nuovi
-      expect(all.find(s => s.nome === 'Bussola Silva')).toBeDefined();
+      const bussola = all.find(s => s.nome === 'Bussola Silva');
+      expect(bussola).toBeDefined();
+      expect(bussola.lista).toBe('Campo Estivo');
+
+      const fazzolettone = all.find(s => s.nome === 'Fazzolettone Gruppo');
+      expect(fazzolettone).toBeDefined();
+      expect(fazzolettone.lista).toBe('Uniformi');
     });
 
     it('dovrebbe importare articoli in modalità replace', async () => {
       const itemsToImport = [
-        { nome: 'Ghirlanda nodi', categoria: 'Pionieristica', quantita: 1, quantitaMinima: 2, prezzoUnitario: 5.00, unitaMisura: 'pz' }
+        { nome: 'Ghirlanda nodi', categoria: 'Pionieristica', lista: 'Campo Estivo', quantita: 1, quantitaMinima: 2, prezzoUnitario: 5.00, unitaMisura: 'pz' }
       ];
 
       const count = await adapter.importScorteBatch(itemsToImport, true);
@@ -182,6 +284,7 @@ describe('Scorte & Materiali Inventory Module', () => {
       const all = await adapter.getScorte();
       expect(all.length).toBe(1);
       expect(all[0].nome).toBe('Ghirlanda nodi');
+      expect(all[0].lista).toBe('Campo Estivo');
     });
   });
 });

@@ -279,6 +279,89 @@ export class FirestoreAdapter {
         await deleteDoc(doc(this.db, 'scadenze', id));
     }
 
+    // Inventory / Scorte & Liste
+    async getListeScorte(): Promise<string[]> {
+        try {
+            const snap = await getDocs(collection(this.db, 'liste_scorte'));
+            if (snap.empty) {
+                const defaults = ['Campo Estivo', 'Uniformi', 'Distintivi', 'Generale'];
+                for (const nome of defaults) {
+                    await this.addListaScorta(nome, { email: 'system' });
+                }
+                return defaults;
+            }
+            const names = snap.docs.map((d: any) => d.data().nome).filter(Boolean);
+            if (!names.includes('Generale')) names.push('Generale');
+            return names;
+        } catch (error) {
+            console.error('Error fetching liste_scorte from Firestore:', error);
+            return ['Campo Estivo', 'Uniformi', 'Distintivi', 'Generale'];
+        }
+    }
+
+    async addListaScorta(nome: string, currentUser?: any): Promise<string> {
+        const cleanName = (nome || '').trim();
+        if (!cleanName) return '';
+        try {
+            const snap = await getDocs(collection(this.db, 'liste_scorte'));
+            const exists = snap.docs.some((d: any) => d.data().nome?.toLowerCase() === cleanName.toLowerCase());
+            if (!exists) {
+                await addDoc(collection(this.db, 'liste_scorte'), {
+                    nome: cleanName,
+                    createdAt: Timestamp.now(),
+                    createdBy: currentUser?.email || 'user'
+                });
+            }
+            return cleanName;
+        } catch (error) {
+            console.error('Error adding lista_scorta:', error);
+            return cleanName;
+        }
+    }
+
+    async deleteListaScorta(nome: string, currentUser?: any): Promise<void> {
+        const cleanName = (nome || '').trim();
+        if (!cleanName) return;
+        try {
+            const snap = await getDocs(collection(this.db, 'liste_scorte'));
+            for (const d of snap.docs) {
+                if (d.data().nome === cleanName) {
+                    await deleteDoc(d.ref);
+                }
+            }
+            const scorteSnap = await getDocs(collection(this.db, 'scorte'));
+            for (const d of scorteSnap.docs) {
+                if (d.data().lista === cleanName) {
+                    await setDoc(d.ref, { lista: 'Generale', updatedAt: Timestamp.now() }, { merge: true });
+                }
+            }
+        } catch (error) {
+            console.error('Error deleting lista_scorta:', error);
+        }
+    }
+
+    async renameListaScorta(oldName: string, newName: string, currentUser?: any): Promise<void> {
+        const oldClean = (oldName || '').trim();
+        const newClean = (newName || '').trim();
+        if (!oldClean || !newClean) return;
+        try {
+            const snap = await getDocs(collection(this.db, 'liste_scorte'));
+            for (const d of snap.docs) {
+                if (d.data().nome === oldClean) {
+                    await setDoc(d.ref, { nome: newClean, updatedAt: Timestamp.now() }, { merge: true });
+                }
+            }
+            const scorteSnap = await getDocs(collection(this.db, 'scorte'));
+            for (const d of scorteSnap.docs) {
+                if (d.data().lista === oldClean) {
+                    await setDoc(d.ref, { lista: newClean, updatedAt: Timestamp.now() }, { merge: true });
+                }
+            }
+        } catch (error) {
+            console.error('Error renaming lista_scorta:', error);
+        }
+    }
+
     // Inventory / Scorte
     async getScorte(): Promise<any[]> {
         try {
@@ -288,6 +371,7 @@ export class FirestoreAdapter {
                     {
                         nome: 'Picchetti tenda a V (20 cm)',
                         categoria: 'Campeggio',
+                        lista: 'Campo Estivo',
                         quantita: 24,
                         quantitaMinima: 50,
                         unitaMisura: 'pz',
@@ -298,6 +382,7 @@ export class FirestoreAdapter {
                     {
                         nome: 'Cordino canapa 6mm (matassa 50m)',
                         categoria: 'Pionieristica',
+                        lista: 'Campo Estivo',
                         quantita: 4,
                         quantitaMinima: 10,
                         unitaMisura: 'rotoli',
@@ -308,6 +393,7 @@ export class FirestoreAdapter {
                     {
                         nome: 'Disinfettante spray 250ml',
                         categoria: 'Pronto Soccorso',
+                        lista: 'Generale',
                         quantita: 5,
                         quantitaMinima: 5,
                         unitaMisura: 'pz',
@@ -320,10 +406,11 @@ export class FirestoreAdapter {
                     await this.addScorta(item, { email: 'system' });
                 }
                 const newSnap = await getDocs(collection(this.db, 'scorte'));
-                return newSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                return newSnap.docs.map(d => ({ id: d.id, lista: d.data().lista || 'Generale', ...d.data() }));
             }
             return snap.docs.map((d: any) => ({
                 id: d.id,
+                lista: d.data().lista || 'Generale',
                 ...d.data(),
                 createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : d.data().createdAt,
                 updatedAt: d.data().updatedAt?.toDate ? d.data().updatedAt.toDate() : d.data().updatedAt
@@ -338,6 +425,7 @@ export class FirestoreAdapter {
         const payload = {
             nome: (item.nome || '').trim(),
             categoria: (item.categoria || 'Generale').trim(),
+            lista: (item.lista || 'Generale').trim(),
             quantita: Number(item.quantita) || 0,
             quantitaMinima: Number(item.quantitaMinima) || 0,
             unitaMisura: (item.unitaMisura || 'pz').trim(),
@@ -356,6 +444,7 @@ export class FirestoreAdapter {
             ...updates,
             updatedAt: Timestamp.now()
         };
+        if (payload.lista !== undefined) payload.lista = (payload.lista || 'Generale').trim();
         if (payload.quantita !== undefined) payload.quantita = Number(payload.quantita);
         if (payload.quantitaMinima !== undefined) payload.quantitaMinima = Number(payload.quantitaMinima);
         if (payload.prezzoUnitario !== undefined) payload.prezzoUnitario = Number(payload.prezzoUnitario);

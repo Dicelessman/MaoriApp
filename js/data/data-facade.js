@@ -227,7 +227,32 @@ export const DATA = {
         this.cache.invalidate('customDeadlines');
         return result;
     },
-    // Inventory / Scorte
+    // Inventory / Scorte & Liste
+    async getListeScorte() {
+        const cacheKey = 'liste_scorte';
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await this.adapter.getListeScorte();
+        this.cache.set(cacheKey, data, 5 * 60 * 1000);
+        return data;
+    },
+    async addListaScorta(nome, currentUser) {
+        const result = await this.adapter.addListaScorta(nome, currentUser);
+        this.cache.invalidate('liste_scorte');
+        return result;
+    },
+    async deleteListaScorta(nome, currentUser) {
+        const result = await this.adapter.deleteListaScorta(nome, currentUser);
+        this.cache.invalidate('liste_scorte');
+        this.cache.invalidate('scorte');
+        return result;
+    },
+    async renameListaScorta(oldName, newName, currentUser) {
+        const result = await this.adapter.renameListaScorta(oldName, newName, currentUser);
+        this.cache.invalidate('liste_scorte');
+        this.cache.invalidate('scorte');
+        return result;
+    },
     async getScorte() {
         const cacheKey = 'scorte';
         const cached = this.cache.get(cacheKey);
