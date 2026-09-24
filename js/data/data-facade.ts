@@ -262,5 +262,39 @@ export const DATA = {
         const result = await (this.adapter as any).deleteCustomDeadline(id, currentUser);
         this.cache.invalidate('customDeadlines');
         return result;
+    },
+
+    // Inventory / Scorte
+    async getScorte(): Promise<any[]> {
+        const cacheKey = 'scorte';
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await (this.adapter as any).getScorte();
+        this.cache.set(cacheKey, data, 2 * 60 * 1000);
+        return data;
+    },
+
+    async addScorta(item: any, currentUser?: any): Promise<string> {
+        const result = await (this.adapter as any).addScorta(item, currentUser);
+        this.cache.invalidate('scorte');
+        return result;
+    },
+
+    async updateScorta(id: string, updates: any, currentUser?: any): Promise<void> {
+        const result = await (this.adapter as any).updateScorta(id, updates, currentUser);
+        this.cache.invalidate('scorte');
+        return result;
+    },
+
+    async deleteScorta(id: string, currentUser?: any): Promise<void> {
+        const result = await (this.adapter as any).deleteScorta(id, currentUser);
+        this.cache.invalidate('scorte');
+        return result;
+    },
+
+    async importScorteBatch(items: any[], replaceExisting: boolean = false, currentUser?: any): Promise<number> {
+        const result = await (this.adapter as any).importScorteBatch(items, replaceExisting, currentUser);
+        this.cache.invalidate('scorte');
+        return result;
     }
 };

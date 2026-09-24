@@ -278,4 +278,107 @@ export class FirestoreAdapter {
     async deleteCustomDeadline(id: string, currentUser: any) {
         await deleteDoc(doc(this.db, 'scadenze', id));
     }
+
+    // Inventory / Scorte
+    async getScorte(): Promise<any[]> {
+        try {
+            const snap = await getDocs(collection(this.db, 'scorte'));
+            if (snap.empty) {
+                const testItems = [
+                    {
+                        nome: 'Picchetti tenda a V (20 cm)',
+                        categoria: 'Campeggio',
+                        quantita: 24,
+                        quantitaMinima: 50,
+                        unitaMisura: 'pz',
+                        prezzoUnitario: 1.20,
+                        dataControllo: new Date().toISOString().split('T')[0],
+                        note: 'Per squadriglie, cassa verde'
+                    },
+                    {
+                        nome: 'Cordino canapa 6mm (matassa 50m)',
+                        categoria: 'Pionieristica',
+                        quantita: 4,
+                        quantitaMinima: 10,
+                        unitaMisura: 'rotoli',
+                        prezzoUnitario: 8.50,
+                        dataControllo: new Date().toISOString().split('T')[0],
+                        note: 'Costruzioni campo e legature'
+                    },
+                    {
+                        nome: 'Disinfettante spray 250ml',
+                        categoria: 'Pronto Soccorso',
+                        quantita: 5,
+                        quantitaMinima: 5,
+                        unitaMisura: 'pz',
+                        prezzoUnitario: 4.80,
+                        dataControllo: new Date().toISOString().split('T')[0],
+                        note: 'Cassetta medica reparto'
+                    }
+                ];
+                for (const item of testItems) {
+                    await this.addScorta(item, { email: 'system' });
+                }
+                const newSnap = await getDocs(collection(this.db, 'scorte'));
+                return newSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            }
+            return snap.docs.map((d: any) => ({
+                id: d.id,
+                ...d.data(),
+                createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : d.data().createdAt,
+                updatedAt: d.data().updatedAt?.toDate ? d.data().updatedAt.toDate() : d.data().updatedAt
+            }));
+        } catch (error) {
+            console.error('Error fetching scorte from Firestore:', error);
+            return [];
+        }
+    }
+
+    async addScorta(item: any, currentUser?: any): Promise<string> {
+        const payload = {
+            nome: (item.nome || '').trim(),
+            categoria: (item.categoria || 'Generale').trim(),
+            quantita: Number(item.quantita) || 0,
+            quantitaMinima: Number(item.quantitaMinima) || 0,
+            unitaMisura: (item.unitaMisura || 'pz').trim(),
+            prezzoUnitario: Number(item.prezzoUnitario) || 0,
+            dataControllo: item.dataControllo || new Date().toISOString().split('T')[0],
+            note: (item.note || '').trim(),
+            createdAt: Timestamp.now(),
+            createdBy: currentUser?.email || currentUser?.uid || 'user'
+        };
+        const ref = await addDoc(collection(this.db, 'scorte'), payload);
+        return ref.id;
+    }
+
+    async updateScorta(id: string, updates: any, currentUser?: any): Promise<void> {
+        const payload: any = {
+            ...updates,
+            updatedAt: Timestamp.now()
+        };
+        if (payload.quantita !== undefined) payload.quantita = Number(payload.quantita);
+        if (payload.quantitaMinima !== undefined) payload.quantitaMinima = Number(payload.quantitaMinima);
+        if (payload.prezzoUnitario !== undefined) payload.prezzoUnitario = Number(payload.prezzoUnitario);
+
+        await setDoc(doc(this.db, 'scorte', id), payload, { merge: true });
+    }
+
+    async deleteScorta(id: string, currentUser?: any): Promise<void> {
+        await deleteDoc(doc(this.db, 'scorte', id));
+    }
+
+    async importScorteBatch(items: any[], replaceExisting: boolean = false, currentUser?: any): Promise<number> {
+        if (replaceExisting) {
+            const snap = await getDocs(collection(this.db, 'scorte'));
+            for (const d of snap.docs) {
+                await deleteDoc(d.ref);
+            }
+        }
+        let count = 0;
+        for (const item of items) {
+            await this.addScorta(item, currentUser);
+            count++;
+        }
+        return count;
+    }
 }

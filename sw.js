@@ -1,4 +1,4 @@
-const CACHE_NAME = "presenziario-cache-v8"; // bump cache v8
+const CACHE_NAME = "presenziario-cache-v9"; // bump cache v9
 const RUNTIME_CACHE = "presenziario-runtime-v3";
 const URLS_TO_CACHE = [
   "/",
@@ -20,6 +20,7 @@ const URLS_TO_CACHE = [
   "/scout2.html",
   "/archivio.html",
   "/scadenze.html",
+  "/scorte.html",
   // Shared & modals
   "/shared.html",
   "/modals.html",

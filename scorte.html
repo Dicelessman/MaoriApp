@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scorte e Materiali - Scout Maori</title>
+  <meta name="description" content="Gestione inventario scorte materiali, calcolo preventivo riordino ed importazione" />
+  <meta name="theme-color" content="#16a34a" />
+
+  <!-- Favicon e icone -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="app" class="max-w-7xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+
+    <!-- Header condiviso -->
+    <div id="shared-header"></div>
+
+    <!-- Main -->
+    <main id="main-content" class="p-6">
+      <!-- Modali condivisi -->
+      <div id="shared-modals"></div>
+
+      <!-- Intestazione pagina -->
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">📦</span>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Gestione Scorte e Materiali</h2>
+          </div>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Inventario materiali, calcolo automatico preventivo di riordino ed import/export
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="addMaterialBtn" type="button" class="btn-primary px-3.5 py-2 text-sm flex items-center gap-1.5 shadow-sm" title="Aggiungi un nuovo articolo all'inventario">
+            <span>➕</span>
+            <span>Nuovo Articolo</span>
+          </button>
+          <button id="importMaterialsBtn" type="button" class="btn-secondary px-3.5 py-2 text-sm flex items-center gap-1.5 shadow-sm" title="Importa lista materiali da file CSV o incolla testo">
+            <span>📥</span>
+            <span>Importa Lista</span>
+          </button>
+          <button id="openPreventivoRiordinoBtn" type="button" class="px-3.5 py-2 text-sm font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-1.5 shadow-sm transition-all" title="Visualizza il preventivo dettagliato di riordino">
+            <span>💶</span>
+            <span>Preventivo Riordino</span>
+          </button>
+          <button id="exportCsvBtn" type="button" class="btn-secondary px-3.5 py-2 text-sm flex items-center gap-1.5 shadow-sm" title="Esporta l'inventario completo in formato CSV">
+            <span>📊</span>
+            <span>Esporta CSV</span>
+          </button>
+          <button id="printBtn" type="button" class="btn-secondary px-3.5 py-2 text-sm flex items-center gap-1.5 shadow-sm" title="Stampa o salva in PDF l'inventario o il preventivo">
+            <span>🖨️</span>
+            <span>Stampa</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Cards / Riepilogo Inventario e Preventivo -->
+      <section class="mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Totale Articoli -->
+          <div class="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-5 rounded-xl shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-blue-100 text-xs font-semibold uppercase tracking-wider mb-1">Totale Articoli a Catalogo</p>
+              <p id="kpiTotalItems" class="text-3xl font-extrabold">0</p>
+              <p id="kpiCategoriesCount" class="text-blue-100 text-xs mt-1">0 categorie gestite</p>
+            </div>
+            <div class="text-3xl opacity-80">📦</div>
+          </div>
+
+          <!-- Sotto Scorta (Da Riordinare) -->
+          <div class="bg-gradient-to-br from-amber-500 to-amber-600 text-white p-5 rounded-xl shadow-sm flex items-center justify-between cursor-pointer hover:opacity-95 transition-opacity" id="kpiSottoScortaCard" title="Clicca per filtrare solo gli articoli sotto scorta">
+            <div>
+              <p class="text-amber-100 text-xs font-semibold uppercase tracking-wider mb-1">Articoli Sotto Scorta</p>
+              <p id="kpiToRestockItems" class="text-3xl font-extrabold">0</p>
+              <p id="kpiToRestockUnits" class="text-amber-100 text-xs mt-1">Richiedono riordino</p>
+            </div>
+            <div class="text-3xl opacity-80">⚠️</div>
+          </div>
+
+          <!-- Preventivo Totale Riordino -->
+          <div class="bg-gradient-to-br from-green-600 to-green-700 text-white p-5 rounded-xl shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-green-100 text-xs font-semibold uppercase tracking-wider mb-1">Preventivo Spesa Riordino</p>
+              <p id="kpiRestockTotalCost" class="text-3xl font-extrabold">€ 0,00</p>
+              <p class="text-green-100 text-xs mt-1">Costo stimato per ripristino scorte</p>
+            </div>
+            <div class="text-3xl opacity-80">💶</div>
+          </div>
+
+          <!-- Data Ultimo Inventario / Controllo -->
+          <div class="bg-gradient-to-br from-purple-600 to-purple-700 text-white p-5 rounded-xl shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-purple-100 text-xs font-semibold uppercase tracking-wider mb-1">Data Riferimento Inventario</p>
+              <p id="kpiInventoryDate" class="text-xl font-bold truncate mt-1">Oggi</p>
+              <p class="text-purple-100 text-xs mt-1">Aggiornato alle scorte correnti</p>
+            </div>
+            <div class="text-3xl opacity-80">📅</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Barra Filtri e Ordinamento -->
+      <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-6 shadow-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+          
+          <!-- Cerca materiale -->
+          <div>
+            <label for="scorteSearchInput" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+              🔍 Cerca Articolo o Note
+            </label>
+            <input type="text" id="scorteSearchInput" placeholder="Nome materiale, codice, fornitore..."
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+
+          <!-- Filtro Categoria -->
+          <div>
+            <label for="scorteCategoryFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+              🏷️ Categoria
+            </label>
+            <select id="scorteCategoryFilter"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none cursor-pointer">
+              <option value="">Tutte le categorie</option>
+            </select>
+          </div>
+
+          <!-- Filtro Stato Scorta -->
+          <div>
+            <label for="scorteStatusFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+              📊 Stato Scorta
+            </label>
+            <select id="scorteStatusFilter"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none cursor-pointer">
+              <option value="all">Tutti gli articoli</option>
+              <option value="reorder">⚠️ Solo da riordinare (sotto scorta)</option>
+              <option value="ok">✅ In scorta sufficiente</option>
+            </select>
+          </div>
+
+          <!-- Ordinamento -->
+          <div>
+            <label for="scorteSortSelect" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+              ↕️ Ordina per
+            </label>
+            <select id="scorteSortSelect"
+              class="w-full px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none cursor-pointer">
+              <option value="categoria_nome">Categoria (A-Z) poi Nome (A-Z)</option>
+              <option value="nome_asc">Nome Articolo (A → Z)</option>
+              <option value="nome_desc">Nome Articolo (Z → A)</option>
+              <option value="quantita_asc">Quantità Attuale (Minore → Maggiore)</option>
+              <option value="quantita_desc">Quantità Attuale (Maggiore → Minore)</option>
+              <option value="da_riordinare_desc">Quantità da Riordinare (Maggiori prima)</option>
+              <option value="costo_riordino_desc">Preventivo Riordino (€ Maggiori)</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs">
+          <div id="scorteFilterSummary" class="text-gray-600 dark:text-gray-300 font-medium">
+            Caricamento inventario...
+          </div>
+          <button id="resetScorteFiltersBtn" type="button" class="text-green-700 dark:text-green-400 hover:underline font-medium cursor-pointer">
+            ✕ Ripristina filtri
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabella Inventario Materiali -->
+      <section class="mb-6">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+          <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                <span>📋</span>
+                <span>Registro Inventario Scorte</span>
+              </h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Quantità disponibili, scorte minime di sicurezza e costi unitari
+              </p>
+            </div>
+            <div id="tableFastActions" class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+              <span>💡 Suggerimento: usa i tasti <span class="font-bold">+</span> e <span class="font-bold">-</span> per aggiornare le scorte al volo</span>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700 text-xs">
+                <tr>
+                  <th class="p-3 text-left">Nome Materiale</th>
+                  <th class="p-3 text-left">Categoria</th>
+                  <th class="p-3 text-center">Quantità Attuale</th>
+                  <th class="p-3 text-center">Scorta Minima</th>
+                  <th class="p-3 text-center">Da Riordinare</th>
+                  <th class="p-3 text-right">Prezzo Unit.</th>
+                  <th class="p-3 text-right">Preventivo Riordino</th>
+                  <th class="p-3 text-center">Data Controllo</th>
+                  <th class="p-3 text-center">Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="scorteTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/40">
+                <!-- Generato dinamicamente da scorte.js -->
+              </tbody>
+              <tfoot id="scorteTableFoot" class="bg-gray-50 dark:bg-gray-800/90 border-t-2 border-gray-300 dark:border-gray-600 font-bold text-sm">
+                <!-- Totali preventivo -->
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal Aggiungi / Modifica Materiale -->
+  <div id="materialModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-fade-in">
+      <div class="px-6 py-4 bg-green-700 text-white flex justify-between items-center">
+        <h3 id="materialModalTitle" class="text-lg font-bold">Nuovo Articolo Scorte</h3>
+        <button id="closeMaterialModalBtn" type="button" class="text-white hover:text-green-200 text-xl font-bold p-1">✕</button>
+      </div>
+      <form id="materialForm" class="p-6 space-y-4">
+        <input type="hidden" id="materialId" />
+
+        <!-- Nome articolo -->
+        <div>
+          <label for="materialNome" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+            Nome Materiale / Articolo *
+          </label>
+          <input type="text" id="materialNome" required placeholder="es. Picchetti tenda, Cordino 6mm..."
+            class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+        </div>
+
+        <!-- Categoria e Unità -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="materialCategoria" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Categoria *
+            </label>
+            <input type="text" id="materialCategoria" list="categoriesList" required placeholder="es. Campeggio, Pionieristica..."
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+            <datalist id="categoriesList">
+              <option value="Campeggio"></option>
+              <option value="Pionieristica"></option>
+              <option value="Cucina"></option>
+              <option value="Pronto Soccorso"></option>
+              <option value="Cancelleria"></option>
+              <option value="Attrezzatura Reparto"></option>
+              <option value="Illuminazione"></option>
+              <option value="Giochi e Animazione"></option>
+            </datalist>
+          </div>
+
+          <div>
+            <label for="materialUnita" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Unità di Misura
+            </label>
+            <select id="materialUnita"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+              <option value="pz">Pezzi (pz)</option>
+              <option value="m">Metri (m)</option>
+              <option value="rotoli">Rotoli</option>
+              <option value="confezioni">Confezioni</option>
+              <option value="kg">Chilogrammi (kg)</option>
+              <option value="litri">Litri</option>
+              <option value="scatole">Scatole</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Quantità e Soglia Minima -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="materialQuantita" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Quantità Attuale Disponibile *
+            </label>
+            <input type="number" id="materialQuantita" min="0" step="any" required value="0"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+
+          <div>
+            <label for="materialQuantitaMinima" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Scorta Minima / Obiettivo *
+            </label>
+            <input type="number" id="materialQuantitaMinima" min="0" step="any" required value="0"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Prezzo Unitario e Data Controllo -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="materialPrezzo" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Prezzo Unitario Stimato (€)
+            </label>
+            <input type="number" id="materialPrezzo" min="0" step="0.01" value="0.00"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+
+          <div>
+            <label for="materialDataControllo" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Data Controllo / Inventario
+            </label>
+            <input type="date" id="materialDataControllo"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Note / Ubicazione / Fornitore -->
+        <div>
+          <label for="materialNote" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+            Note / Ubicazione / Fornitore
+          </label>
+          <input type="text" id="materialNote" placeholder="es. Cassa 2 squadriglia, acquistato da Decathlon..."
+            class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <button id="cancelMaterialBtn" type="button" class="btn-secondary px-4 py-2 text-sm font-semibold">Annulla</button>
+          <button type="submit" class="btn-primary px-4 py-2 text-sm font-semibold">Salva Articolo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Importazione CSV / Testo -->
+  <div id="importModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
+      <div class="px-6 py-4 bg-green-700 text-white flex justify-between items-center">
+        <div>
+          <h3 class="text-lg font-bold">Importa Lista Materiali / Scorte</h3>
+          <p class="text-xs text-green-100 mt-0.5">Carica un file CSV o incolla direttamente righe di testo</p>
+        </div>
+        <button id="closeImportModalBtn" type="button" class="text-white hover:text-green-200 text-xl font-bold p-1">✕</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-4">
+        <!-- Istruzioni / Formato -->
+        <div class="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3 rounded-lg text-xs text-green-900 dark:text-green-200 space-y-1">
+          <p class="font-bold">Formati supportati:</p>
+          <p>• <strong>CSV standard</strong> con colonne: <code>Nome, Categoria, Quantità, ScortaMinima, PrezzoUnitario, Unità, Note</code></p>
+          <p>• <strong>Testo semplice</strong> (una riga per articolo): <code>Picchetti, Campeggio, 20, 50, 1.20</code> oppure <code>Cordino - Pionieristica - 4</code></p>
+        </div>
+
+        <!-- Caricamento file -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+            Opzione 1: Seleziona File CSV / TXT
+          </label>
+          <input type="file" id="importFileInput" accept=".csv, .txt"
+            class="block w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 dark:file:bg-green-900/40 dark:file:text-green-300 cursor-pointer" />
+        </div>
+
+        <!-- Incolla testo -->
+        <div>
+          <label for="importTextarea" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+            Opzione 2: Incolla righe di testo
+          </label>
+          <textarea id="importTextarea" rows="6" placeholder="Incolla qui i tuoi dati...
+Es:
+Picchetti tenda a V, Campeggio, 24, 50, 1.20, pz, Cassa verde
+Cordino canapa 6mm, Pionieristica, 4, 10, 8.50, rotoli
+Disinfettante spray, Pronto Soccorso, 5, 5, 4.80, pz"
+            class="w-full px-3 py-2 text-xs font-mono rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none"></textarea>
+        </div>
+
+        <!-- Opzioni importazione -->
+        <div class="flex items-center gap-6 text-xs">
+          <label class="flex items-center gap-2 cursor-pointer font-medium text-gray-700 dark:text-gray-300">
+            <input type="radio" name="importMode" value="append" checked class="text-green-600 focus:ring-green-500" />
+            <span>Aggiungi ai materiali esistenti</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer font-medium text-gray-700 dark:text-gray-300">
+            <input type="radio" name="importMode" value="replace" class="text-red-600 focus:ring-red-500" />
+            <span class="text-red-600 dark:text-red-400 font-semibold">Sostituisci l'intero inventario</span>
+          </label>
+        </div>
+
+        <!-- Anteprima dati parsati -->
+        <div id="importPreviewContainer" class="hidden">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+              Anteprima (<span id="importParsedCount">0</span> articoli riconosciuti):
+            </h4>
+          </div>
+          <div class="max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg text-xs">
+            <table class="min-w-full text-left">
+              <thead class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 sticky top-0">
+                <tr>
+                  <th class="p-2">Nome</th>
+                  <th class="p-2">Categoria</th>
+                  <th class="p-2 text-center">Quantità</th>
+                  <th class="p-2 text-center">Minima</th>
+                  <th class="p-2 text-right">Prezzo Unit.</th>
+                </tr>
+              </thead>
+              <tbody id="importPreviewTableBody" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/80 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <button id="parseImportBtn" type="button" class="btn-secondary px-3.5 py-2 text-xs font-semibold">
+          🔍 Verifica ed Elabora Dati
+        </button>
+        <div class="flex gap-2">
+          <button id="cancelImportBtn" type="button" class="btn-secondary px-4 py-2 text-xs font-semibold">Annulla</button>
+          <button id="confirmImportBtn" type="button" disabled class="btn-primary px-4 py-2 text-xs font-semibold disabled:opacity-50">
+            ✓ Conferma Importazione
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Preventivo Riordino Dettagliato -->
+  <div id="preventivoRiordinoModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
+      <div class="px-6 py-4 bg-amber-600 text-white flex justify-between items-center">
+        <div>
+          <h3 class="text-lg font-bold flex items-center gap-2">
+            <span>💶</span>
+            <span>Preventivo e Lista di Riordino Materiali</span>
+          </h3>
+          <p class="text-xs text-amber-100 mt-0.5">Elenco degli articoli con scorte inferiori alla soglia minima prefissata</p>
+        </div>
+        <button id="closePreventivoModalBtn" type="button" class="text-white hover:text-amber-200 text-xl font-bold p-1">✕</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-4">
+        <!-- Totali Preventivo Card -->
+        <div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4 rounded-xl flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <p class="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider">Totale Preventivo di Spesa</p>
+            <p id="modalPreventivoTotalAmount" class="text-3xl font-extrabold text-amber-900 dark:text-amber-100">€ 0,00</p>
+            <p id="modalPreventivoStats" class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">0 articoli da ordinare</p>
+          </div>
+          <div class="flex gap-2">
+            <button id="exportRiordinoCsvBtn" type="button" class="btn-secondary px-3 py-1.5 text-xs font-semibold shadow-sm flex items-center gap-1">
+              <span>📊</span> Esporta Ordine CSV
+            </button>
+            <button id="printRiordinoBtn" type="button" class="btn-primary px-3 py-1.5 text-xs font-semibold shadow-sm flex items-center gap-1">
+              <span>🖨️</span> Stampa Ordine
+            </button>
+          </div>
+        </div>
+
+        <!-- Riepilogo per Categoria -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-2">
+            Ripartizione Spesa per Categoria:
+          </h4>
+          <div id="modalPreventivoCategories" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <!-- Popolato dinamicamente -->
+          </div>
+        </div>
+
+        <!-- Tabella Articoli da Riordinare -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-2">
+            Dettaglio Articoli da Acquistare:
+          </h4>
+          <div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-xl">
+            <table class="min-w-full text-xs">
+              <thead class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th class="p-2.5 text-left">Articolo</th>
+                  <th class="p-2.5 text-left">Categoria</th>
+                  <th class="p-2.5 text-center">In Scorta</th>
+                  <th class="p-2.5 text-center">Obiettivo</th>
+                  <th class="p-2.5 text-center font-bold text-amber-700 dark:text-amber-400">Da Ordinare</th>
+                  <th class="p-2.5 text-right">Prezzo Unit.</th>
+                  <th class="p-2.5 text-right font-bold">Costo Totale</th>
+                </tr>
+              </thead>
+              <tbody id="modalPreventivoTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
+                <!-- Popolato dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/80 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+        <button id="closePreventivoModalFooterBtn" type="button" class="btn-secondary px-4 py-2 text-xs font-semibold">
+          Chiudi
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Area di Stampa -->
+  <div id="printArea" class="hidden"></div>
+
+  <!-- Scripts -->
+  <script src="/config.js"></script>
+  <script type="module" src="shared.js"></script>
+  <script type="module" src="scorte.js"></script>
+</body>
+
+</html>

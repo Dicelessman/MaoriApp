@@ -43,6 +43,7 @@ interface LocalState {
     budgets: any[];
     patrols: string[];
     scadenze: any[];
+    scorte: any[];
 }
 
 export class LocalAdapter {
@@ -87,7 +88,42 @@ export class LocalAdapter {
             ],
             budgets: saved.budgets || [],
             patrols: saved.patrols || ["Aironi", "Marmotte"],
-            scadenze: saved.scadenze || []
+            scadenze: saved.scadenze || [],
+            scorte: saved.scorte || [
+                {
+                    id: 'sc_test_1',
+                    nome: 'Picchetti tenda a V (20 cm)',
+                    categoria: 'Campeggio',
+                    quantita: 24,
+                    quantitaMinima: 50,
+                    unitaMisura: 'pz',
+                    prezzoUnitario: 1.20,
+                    dataControllo: new Date().toISOString().split('T')[0],
+                    note: 'Per squadriglie, cassa verde'
+                },
+                {
+                    id: 'sc_test_2',
+                    nome: 'Cordino canapa 6mm (matassa 50m)',
+                    categoria: 'Pionieristica',
+                    quantita: 4,
+                    quantitaMinima: 10,
+                    unitaMisura: 'rotoli',
+                    prezzoUnitario: 8.50,
+                    dataControllo: new Date().toISOString().split('T')[0],
+                    note: 'Costruzioni campo e legature'
+                },
+                {
+                    id: 'sc_test_3',
+                    nome: 'Disinfettante spray 250ml',
+                    categoria: 'Pronto Soccorso',
+                    quantita: 5,
+                    quantitaMinima: 5,
+                    unitaMisura: 'pz',
+                    prezzoUnitario: 4.80,
+                    dataControllo: new Date().toISOString().split('T')[0],
+                    note: 'Cassetta medica reparto'
+                }
+            ]
         };
         // Restore dates
         this.state.activities.forEach(a => {
@@ -258,5 +294,81 @@ export class LocalAdapter {
         this.state.scadenze = this.state.scadenze.filter(d => d.id !== id);
         this.persist();
         console.log('LocalAdapter: deleteCustomDeadline', { id, currentUser: currentUser?.email });
+    }
+
+    // Inventory / Scorte
+    async getScorte(): Promise<any[]> {
+        return this.state.scorte || [];
+    }
+
+    async addScorta(item: any, currentUser?: any): Promise<string> {
+        const id = 'sc_' + Math.random().toString(36).slice(2, 10);
+        const record = {
+            id,
+            nome: (item.nome || '').trim(),
+            categoria: (item.categoria || 'Generale').trim(),
+            quantita: Number(item.quantita) || 0,
+            quantitaMinima: Number(item.quantitaMinima) || 0,
+            unitaMisura: (item.unitaMisura || 'pz').trim(),
+            prezzoUnitario: Number(item.prezzoUnitario) || 0,
+            dataControllo: item.dataControllo || new Date().toISOString().split('T')[0],
+            note: (item.note || '').trim(),
+            createdAt: new Date().toISOString(),
+            createdBy: currentUser?.email || 'user'
+        };
+        if (!this.state.scorte) this.state.scorte = [];
+        this.state.scorte.push(record);
+        this.persist();
+        console.log('LocalAdapter: addScorta', { id, currentUser: currentUser?.email });
+        return id;
+    }
+
+    async updateScorta(id: string, updates: any, currentUser?: any): Promise<void> {
+        if (!this.state.scorte) this.state.scorte = [];
+        const index = this.state.scorte.findIndex(s => s.id === id);
+        if (index >= 0) {
+            this.state.scorte[index] = {
+                ...this.state.scorte[index],
+                ...updates,
+                quantita: updates.quantita !== undefined ? Number(updates.quantita) : this.state.scorte[index].quantita,
+                quantitaMinima: updates.quantitaMinima !== undefined ? Number(updates.quantitaMinima) : this.state.scorte[index].quantitaMinima,
+                prezzoUnitario: updates.prezzoUnitario !== undefined ? Number(updates.prezzoUnitario) : this.state.scorte[index].prezzoUnitario,
+                updatedAt: new Date().toISOString()
+            };
+            this.persist();
+            console.log('LocalAdapter: updateScorta', { id, currentUser: currentUser?.email });
+        }
+    }
+
+    async deleteScorta(id: string, currentUser?: any): Promise<void> {
+        if (!this.state.scorte) return;
+        this.state.scorte = this.state.scorte.filter(s => s.id !== id);
+        this.persist();
+        console.log('LocalAdapter: deleteScorta', { id, currentUser: currentUser?.email });
+    }
+
+    async importScorteBatch(items: any[], replaceExisting: boolean = false, currentUser?: any): Promise<number> {
+        if (!this.state.scorte || replaceExisting) this.state.scorte = [];
+        const now = new Date().toISOString();
+        const dateStr = now.split('T')[0];
+
+        const records = items.map(item => ({
+            id: 'sc_' + Math.random().toString(36).slice(2, 10),
+            nome: (item.nome || '').trim(),
+            categoria: (item.categoria || 'Generale').trim(),
+            quantita: Number(item.quantita) || 0,
+            quantitaMinima: Number(item.quantitaMinima) || 0,
+            unitaMisura: (item.unitaMisura || 'pz').trim(),
+            prezzoUnitario: Number(item.prezzoUnitario) || 0,
+            dataControllo: item.dataControllo || dateStr,
+            note: (item.note || '').trim(),
+            createdAt: now,
+            createdBy: currentUser?.email || 'user'
+        }));
+
+        this.state.scorte.push(...records);
+        this.persist();
+        console.log('LocalAdapter: importScorteBatch', { count: records.length, replace: replaceExisting });
+        return records.length;
     }
 }
