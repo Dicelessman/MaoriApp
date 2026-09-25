@@ -182,9 +182,9 @@ export const UI = {
                 </div>
 
                 <div style="text-align: right; border-left: 1.5px solid #e5e7eb; padding-left: 12px; display: flex; flex-direction: column; justify-content: center; align-items: flex-end;">
-                  <div style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: #6b7280;">Squadriglia & Ruolo</div>
+                  <div style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: #6b7280;">Pattuglia & Ruolo</div>
                   <div style="font-size: 16px; font-weight: 800; color: #15803d;">
-                    Sq. ${pattuglia}
+                    Ptg. ${pattuglia}
                   </div>
                   <span style="display: inline-block; margin-top: 3px; font-size: 10px; font-weight: 700; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px;">
                     ${ruolo}

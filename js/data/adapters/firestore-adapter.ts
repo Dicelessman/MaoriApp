@@ -377,7 +377,7 @@ export class FirestoreAdapter {
                         unitaMisura: 'pz',
                         prezzoUnitario: 1.20,
                         dataControllo: new Date().toISOString().split('T')[0],
-                        note: 'Per squadriglie, cassa verde'
+                        note: 'Per pattuglie, cassa verde'
                     },
                     {
                         nome: 'Cordino canapa 6mm (matassa 50m)',
@@ -481,11 +481,11 @@ export class FirestoreAdapter {
                 const defaultCats = [
                     { nome: 'Puntualità & Presenze', descrizione: 'Presenza puntuale in uniforme alle riunioni e uscite', icona: '⏰', puntiDefault: 10, annoScout: 'all', attiva: true },
                     { nome: 'Uniforme & Tenuta', descrizione: 'Uniforme completa e fazzolettone in ordine', icona: '👔', puntiDefault: 5, annoScout: 'all', attiva: true },
-                    { nome: 'Angolo & Cassa di Sq.', descrizione: 'Cura e pulizia angolo di squadriglia e cassa materiali', icona: '⛺', puntiDefault: 15, annoScout: 'all', attiva: true },
+                    { nome: 'Angolo & Cassa di Ptg.', descrizione: 'Cura e pulizia angolo di pattuglia e cassa materiali', icona: '⛺', puntiDefault: 15, annoScout: 'all', attiva: true },
                     { nome: 'Animazione & Fuoco', descrizione: 'Bans, canti, sketch e partecipazione al fuoco serale', icona: '🔥', puntiDefault: 15, annoScout: 'all', attiva: true },
                     { nome: 'Cucina & Cambusa', descrizione: 'Menù, pulizia, puntualità dei pasti e gestione scorte', icona: '🍳', puntiDefault: 20, annoScout: 'all', attiva: true },
                     { nome: 'Giochi & Grandi Giochi', descrizione: 'Vittoria o piazzamento nelle sfide e tornei di reparto', icona: '🎯', puntiDefault: 20, annoScout: 'all', attiva: true },
-                    { nome: 'Impresa di Squadriglia', descrizione: 'Ideazione, progettazione e realizzazione dell\'impresa', icona: '🛠️', puntiDefault: 50, annoScout: 'all', attiva: true },
+                    { nome: 'Impresa di Pattuglia', descrizione: 'Ideazione, progettazione e realizzazione dell\'impresa', icona: '🛠️', puntiDefault: 50, annoScout: 'all', attiva: true },
                     { nome: 'Spirito di Pattuglia & Stile', descrizione: 'Stile scout, lealtà, allegria e spirito di servizio', icona: '⚜️', puntiDefault: 10, annoScout: 'all', attiva: true }
                 ];
                 for (const cat of defaultCats) {
@@ -562,8 +562,10 @@ export class FirestoreAdapter {
         const entries = Array.isArray(entryOrArray) ? entryOrArray : [entryOrArray];
         const createdIds: string[] = [];
         for (const entry of entries) {
+            const ptgName = (entry.pattuglia || entry.squadriglia || '').trim();
             const payload = {
-                squadriglia: (entry.squadriglia || '').trim(),
+                pattuglia: ptgName,
+                squadriglia: ptgName,
                 attivitaId: entry.attivitaId || null,
                 attivitaNome: (entry.attivitaNome || '').trim(),
                 categoriaId: entry.categoriaId || '',

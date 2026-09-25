@@ -93,7 +93,7 @@ export class LocalAdapter {
                     unitaMisura: 'pz',
                     prezzoUnitario: 1.20,
                     dataControllo: new Date().toISOString().split('T')[0],
-                    note: 'Per squadriglie, cassa verde'
+                    note: 'Per pattuglie, cassa verde'
                 },
                 {
                     id: 'sc_test_2',
@@ -129,16 +129,17 @@ export class LocalAdapter {
             garaCategories: saved.garaCategories || [
                 { id: 'cat_1', nome: 'Puntualità & Presenze', descrizione: 'Presenza puntuale in uniforme alle riunioni e uscite', icona: '⏰', puntiDefault: 10, annoScout: 'all', attiva: true },
                 { id: 'cat_2', nome: 'Uniforme & Tenuta', descrizione: 'Uniforme completa e fazzolettone in ordine', icona: '👔', puntiDefault: 5, annoScout: 'all', attiva: true },
-                { id: 'cat_3', nome: 'Angolo & Cassa di Sq.', descrizione: 'Cura e pulizia angolo di squadriglia e cassa materiali', icona: '⛺', puntiDefault: 15, annoScout: 'all', attiva: true },
+                { id: 'cat_3', nome: 'Angolo & Cassa di Ptg.', descrizione: 'Cura e pulizia angolo di pattuglia e cassa materiali', icona: '⛺', puntiDefault: 15, annoScout: 'all', attiva: true },
                 { id: 'cat_4', nome: 'Animazione & Fuoco', descrizione: 'Bans, canti, sketch e partecipazione al fuoco serale', icona: '🔥', puntiDefault: 15, annoScout: 'all', attiva: true },
                 { id: 'cat_5', nome: 'Cucina & Cambusa', descrizione: 'Menù, pulizia, puntualità dei pasti e gestione scorte', icona: '🍳', puntiDefault: 20, annoScout: 'all', attiva: true },
                 { id: 'cat_6', nome: 'Giochi & Grandi Giochi', descrizione: 'Vittoria o piazzamento nelle sfide e tornei di reparto', icona: '🎯', puntiDefault: 20, annoScout: 'all', attiva: true },
-                { id: 'cat_7', nome: 'Impresa di Squadriglia', descrizione: 'Ideazione, progettazione e realizzazione dell\'impresa', icona: '🛠️', puntiDefault: 50, annoScout: 'all', attiva: true },
+                { id: 'cat_7', nome: 'Impresa di Pattuglia', descrizione: 'Ideazione, progettazione e realizzazione dell\'impresa', icona: '🛠️', puntiDefault: 50, annoScout: 'all', attiva: true },
                 { id: 'cat_8', nome: 'Spirito di Pattuglia & Stile', descrizione: 'Stile scout, lealtà, allegria e spirito di servizio', icona: '⚜️', puntiDefault: 10, annoScout: 'all', attiva: true }
             ],
             garaPunti: saved.garaPunti || [
                 {
                     id: 'gp_test_1',
+                    pattuglia: 'Aironi',
                     squadriglia: 'Aironi',
                     attivitaId: 'a1',
                     attivitaNome: 'Uscita al lago',
@@ -153,6 +154,7 @@ export class LocalAdapter {
                 },
                 {
                     id: 'gp_test_2',
+                    pattuglia: 'Marmotte',
                     squadriglia: 'Marmotte',
                     attivitaId: 'a1',
                     attivitaNome: 'Uscita al lago',
@@ -167,6 +169,7 @@ export class LocalAdapter {
                 },
                 {
                     id: 'gp_test_3',
+                    pattuglia: 'Marmotte',
                     squadriglia: 'Marmotte',
                     attivitaId: 'a2',
                     attivitaNome: 'Riunione settimanale',
@@ -501,11 +504,11 @@ export class LocalAdapter {
             this.state.garaCategories = [
                 { id: 'cat_1', nome: 'Puntualità & Presenze', descrizione: 'Presenza puntuale in uniforme alle riunioni e uscite', icona: '⏰', puntiDefault: 10, annoScout: 'all', attiva: true },
                 { id: 'cat_2', nome: 'Uniforme & Tenuta', descrizione: 'Uniforme completa e fazzolettone in ordine', icona: '👔', puntiDefault: 5, annoScout: 'all', attiva: true },
-                { id: 'cat_3', nome: 'Angolo & Cassa di Sq.', descrizione: 'Cura e pulizia angolo di squadriglia e cassa materiali', icona: '⛺', puntiDefault: 15, annoScout: 'all', attiva: true },
+                { id: 'cat_3', nome: 'Angolo & Cassa di Ptg.', descrizione: 'Cura e pulizia angolo di pattuglia e cassa materiali', icona: '⛺', puntiDefault: 15, annoScout: 'all', attiva: true },
                 { id: 'cat_4', nome: 'Animazione & Fuoco', descrizione: 'Bans, canti, sketch e partecipazione al fuoco serale', icona: '🔥', puntiDefault: 15, annoScout: 'all', attiva: true },
                 { id: 'cat_5', nome: 'Cucina & Cambusa', descrizione: 'Menù, pulizia, puntualità dei pasti e gestione scorte', icona: '🍳', puntiDefault: 20, annoScout: 'all', attiva: true },
                 { id: 'cat_6', nome: 'Giochi & Grandi Giochi', descrizione: 'Vittoria o piazzamento nelle sfide e tornei di reparto', icona: '🎯', puntiDefault: 20, annoScout: 'all', attiva: true },
-                { id: 'cat_7', nome: 'Impresa di Squadriglia', descrizione: 'Ideazione, progettazione e realizzazione dell\'impresa', icona: '🛠️', puntiDefault: 50, annoScout: 'all', attiva: true },
+                { id: 'cat_7', nome: 'Impresa di Pattuglia', descrizione: 'Ideazione, progettazione e realizzazione dell\'impresa', icona: '🛠️', puntiDefault: 50, annoScout: 'all', attiva: true },
                 { id: 'cat_8', nome: 'Spirito di Pattuglia & Stile', descrizione: 'Stile scout, lealtà, allegria e spirito di servizio', icona: '⚜️', puntiDefault: 10, annoScout: 'all', attiva: true }
             ];
             this.persist();
@@ -580,9 +583,11 @@ export class LocalAdapter {
 
         for (const entry of entries) {
             const id = 'gp_' + Math.random().toString(36).slice(2, 10);
+            const ptgName = (entry.pattuglia || entry.squadriglia || '').trim();
             const record = {
                 id,
-                squadriglia: (entry.squadriglia || '').trim(),
+                pattuglia: ptgName,
+                squadriglia: ptgName,
                 attivitaId: entry.attivitaId || null,
                 attivitaNome: (entry.attivitaNome || '').trim(),
                 categoriaId: entry.categoriaId || '',

@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gara di Reparto - Scout Maori</title>
-  <meta name="description" content="Tabellone classifica squadriglie, assegnazione punti e categorie personalizzabili della Gara di Reparto" />
+  <meta name="description" content="Tabellone classifica pattuglie, assegnazione punti e categorie personalizzabili della Gara di Reparto" />
   <meta name="theme-color" content="#16a34a" />
 
   <!-- Favicon e icone -->
@@ -42,7 +42,7 @@
             <div>
               <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Gara di Reparto</h2>
               <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                Classifica squadriglie in tempo reale, storico punti per attività e categorie di punteggio
+                Classifica pattuglie in tempo reale, storico punti per attività e categorie di punteggio
               </p>
             </div>
           </div>
@@ -97,7 +97,7 @@
 
         <div class="bg-gradient-to-br from-emerald-50 to-emerald-100/60 dark:from-emerald-950/30 dark:to-emerald-900/20 p-3.5 sm:p-4 rounded-xl border border-emerald-200/80 dark:border-emerald-800/40">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Squadriglie</span>
+            <span class="text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Pattuglie</span>
             <span class="text-lg">⚜️</span>
           </div>
           <div id="statPatrolCount" class="text-xl sm:text-2xl font-black text-emerald-900 dark:text-emerald-100 mt-1">0</div>
@@ -157,9 +157,9 @@
 
           <!-- Filtri storico -->
           <div class="flex flex-wrap items-center gap-2">
-            <!-- Filtro Squadriglia -->
-            <select id="filterSquadrigliaSelect" class="input py-1.5 px-3 text-xs sm:text-sm min-w-[130px]">
-              <option value="all">Tutte le Sq.</option>
+            <!-- Filtro Pattuglia -->
+            <select id="filterPattugliaSelect" class="input py-1.5 px-3 text-xs sm:text-sm min-w-[130px]">
+              <option value="all">Tutte le Ptg.</option>
               <!-- opzioni aggiunte dinamicamente -->
             </select>
 
@@ -183,7 +183,7 @@
             <thead class="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs uppercase font-semibold">
               <tr>
                 <th scope="col" class="py-3 px-4 text-left">Data</th>
-                <th scope="col" class="py-3 px-4 text-left">Squadriglia</th>
+                <th scope="col" class="py-3 px-4 text-left">Pattuglia</th>
                 <th scope="col" class="py-3 px-4 text-left">Attività</th>
                 <th scope="col" class="py-3 px-4 text-left">Categoria</th>
                 <th scope="col" class="py-3 px-4 text-center">Punti</th>
@@ -215,26 +215,26 @@
       </div>
 
       <form id="assegnaPuntiForm" class="space-y-4">
-        <!-- Target: Singola o Tutte le Squadriglie -->
+        <!-- Target: Singola o Tutte le Pattuglie -->
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1.5">Destinatario</label>
           <div class="grid grid-cols-2 gap-2">
             <label class="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750">
               <input type="radio" name="targetSqType" value="single" checked class="text-green-600 focus:ring-green-500" />
-              <span class="text-xs font-semibold">Singola Sq.</span>
+              <span class="text-xs font-semibold">Singola Ptg.</span>
             </label>
             <label class="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750">
               <input type="radio" name="targetSqType" value="all" class="text-green-600 focus:ring-green-500" />
-              <span class="text-xs font-semibold">Tutte le Sq. (Uguale)</span>
+              <span class="text-xs font-semibold">Tutte le Ptg. (Uguale)</span>
             </label>
           </div>
         </div>
 
-        <!-- Selettore Squadriglia (nascosto se 'all') -->
+        <!-- Selettore Pattuglia (nascosto se 'all') -->
         <div id="singleSqContainer">
-          <label for="assegnaSquadrigliaSelect" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Squadriglia *</label>
-          <select id="assegnaSquadrigliaSelect" class="input w-full">
-            <!-- Popolato con le squadriglie del reparto -->
+          <label for="assegnaPattugliaSelect" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Pattuglia *</label>
+          <select id="assegnaPattugliaSelect" class="input w-full">
+            <!-- Popolato con le pattuglie del reparto -->
           </select>
         </div>
 

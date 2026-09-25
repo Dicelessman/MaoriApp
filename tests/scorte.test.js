@@ -87,7 +87,7 @@ describe('Scorte & Materiali Inventory Module', () => {
 
     it('dovrebbe eliminare una lista e spostare i suoi materiali su Generale', async () => {
       const itemId = await adapter.addScorta({
-        nome: 'Distintivo Squadriglia Aquile',
+        nome: 'Distintivo Pattuglia Aquile',
         categoria: 'Distintivi',
         lista: 'Distintivi',
         quantita: 1,
@@ -170,7 +170,7 @@ describe('Scorte & Materiali Inventory Module', () => {
         quantitaMinima: 8,
         unitaMisura: 'pz',
         prezzoUnitario: 12.50,
-        note: 'Per capi squadriglia'
+        note: 'Per capi pattuglia'
       };
 
       const id = await adapter.addScorta(newItem, { email: 'staff@test.it' });

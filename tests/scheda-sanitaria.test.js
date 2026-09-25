@@ -40,10 +40,10 @@ describe('Scheda Sanitaria Personale & Cartellina di Campo', () => {
         expect(html).toContain('Riservato Capi Campo');
     });
 
-    it('dovrebbe includere tutti i dati anagrafici e la squadriglia', () => {
+    it('dovrebbe includere tutti i dati anagrafici e la pattuglia', () => {
         const html = generateScoutMedicalSheetHtml(mockScoutCompleto);
         expect(html).toContain('Francesco Totti');
-        expect(html).toContain('Sq. Aironi');
+        expect(html).toContain('Ptg. Aironi');
         expect(html).toContain('Capo Pattuglia');
         expect(html).toContain('TTTFNC11P27H501Z');
         expect(html).toContain('Via Appia Nuova 10, Roma');

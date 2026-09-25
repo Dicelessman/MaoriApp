@@ -418,8 +418,8 @@ service cloud.firestore {
 
       // Creazione: solo staff autenticato
       allow create: if isStaff()
-        && request.resource.data.squadriglia is string
-        && request.resource.data.squadriglia.size() > 0;
+        && ((request.resource.data.squadriglia is string && request.resource.data.squadriglia.size() > 0)
+            || (request.resource.data.pattuglia is string && request.resource.data.pattuglia.size() > 0));
 
       // Aggiornamento: solo staff autenticato
       allow update: if isStaff()

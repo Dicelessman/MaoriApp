@@ -26,6 +26,7 @@ UI.garaState = {
     punti: [],
     patrols: [],
     activities: [],
+    filterPattuglia: 'all',
     filterSquadriglia: 'all',
     filterCategoria: 'all',
     searchQuery: ''
@@ -51,7 +52,7 @@ UI.initGaraPage = async function () {
             this.state = await DATA.loadAll();
         }
 
-        // Carica Squadriglie
+        // Carica Pattuglie
         let patrols = await DATA.getPatrols();
         if (!patrols || patrols.length === 0) {
             patrols = ['Aironi', 'Marmotte'];
@@ -123,10 +124,11 @@ UI.calculateGaraLeaderboard = function () {
     const punti = this.garaState.punti || [];
     const categories = this.garaState.categories || [];
 
-    // Mappa per ogni squadriglia
+    // Mappa per ogni pattuglia (con retrocompatibilità squadriglia)
     const rankingMap = {};
     patrols.forEach(p => {
         rankingMap[p] = {
+            pattuglia: p,
             squadriglia: p,
             totalePunti: 0,
             assegnazioniCount: 0,
@@ -139,9 +141,11 @@ UI.calculateGaraLeaderboard = function () {
     });
 
     punti.forEach(entry => {
-        const sq = entry.squadriglia;
+        const sq = entry.pattuglia || entry.squadriglia;
+        if (!sq) return;
         if (!rankingMap[sq]) {
             rankingMap[sq] = {
+                pattuglia: sq,
                 squadriglia: sq,
                 totalePunti: 0,
                 assegnazioniCount: 0,
@@ -165,7 +169,9 @@ UI.calculateGaraLeaderboard = function () {
         if (b.totalePunti !== a.totalePunti) {
             return b.totalePunti - a.totalePunti;
         }
-        return a.squadriglia.localeCompare(b.squadriglia, 'it');
+        const nameA = a.pattuglia || a.squadriglia || '';
+        const nameB = b.pattuglia || b.squadriglia || '';
+        return nameA.localeCompare(nameB, 'it');
     });
 
     return sorted;
@@ -204,7 +210,7 @@ UI.renderGaraMetrics = function (leaderboard, punti, categories) {
     const leaderPointsEl = this.qs('#statLeaderPoints');
     if (leaderPatrolEl && leaderPointsEl) {
         if (leader && leader.totalePunti > 0) {
-            leaderPatrolEl.textContent = `Sq. ${leader.squadriglia}`;
+            leaderPatrolEl.textContent = `Ptg. ${leader.pattuglia || leader.squadriglia}`;
             leaderPointsEl.textContent = `${leader.totalePunti} punti conquistati`;
         } else {
             leaderPatrolEl.textContent = 'Parità / In attesa';
@@ -267,7 +273,7 @@ UI.renderGaraPodium = function (leaderboard) {
     if (!leaderboard || leaderboard.length === 0) {
         container.innerHTML = `
             <div class="col-span-3 text-center py-6 text-gray-500 text-sm">
-                Nessuna squadriglia registrata nella gara di reparto.
+                Nessuna pattuglia registrata nella gara di reparto.
             </div>
         `;
         return;
@@ -317,12 +323,13 @@ UI.renderGaraPodium = function (leaderboard) {
                 <div class="${item.orderClass} rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-4 text-center text-gray-400 text-xs">
                     <span class="text-xl">${item.medal}</span>
                     <div class="mt-1">${item.label}</div>
-                    <div class="text-[11px] text-gray-400 mt-2">Nessuna Sq.</div>
+                    <div class="text-[11px] text-gray-400 mt-2">Nessuna Ptg.</div>
                 </div>
             `;
         }
 
         const sq = item.data;
+        const ptgName = sq.pattuglia || sq.squadriglia;
         return `
             <div class="${item.orderClass} ${item.bgColor} rounded-2xl p-4 sm:p-5 border transition-transform hover:scale-[1.01] flex flex-col items-center text-center">
                 <span class="text-3xl sm:text-4xl drop-shadow-sm mb-1">${item.medal}</span>
@@ -330,7 +337,7 @@ UI.renderGaraPodium = function (leaderboard) {
                     ${item.label}
                 </span>
                 <h4 class="text-xl sm:text-2xl font-black ${item.titleColor} tracking-tight">
-                    Sq. ${sq.squadriglia}
+                    Ptg. ${ptgName}
                 </h4>
                 <div class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mt-1">
                     ${sq.totalePunti} <span class="text-xs font-semibold text-gray-500 uppercase">punti</span>
@@ -338,7 +345,7 @@ UI.renderGaraPodium = function (leaderboard) {
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2">
                     <span>${sq.assegnazioniCount} eventi</span>
                     <span>•</span>
-                    <button type="button" onclick="UI.quickAddPointsToPatrol('${sq.squadriglia}')" class="text-green-700 dark:text-green-400 hover:underline font-semibold cursor-pointer">
+                    <button type="button" onclick="UI.quickAddPointsToPatrol('${ptgName}')" class="text-green-700 dark:text-green-400 hover:underline font-semibold cursor-pointer">
                         + Punti
                     </button>
                 </div>
@@ -366,7 +373,7 @@ UI.renderGaraRankingList = function (leaderboard, categories) {
         const percentage = Math.max(5, Math.round((sq.totalePunti / topPoints) * 100));
         const distacco = index === 0 ? 'Leader' : `-${leaderboard[0].totalePunti - sq.totalePunti} pt`;
 
-        // Genera pillole di punteggio per categoria per squadriglia
+        // Genera pillole di punteggio per categoria per pattuglia
         const categoryPillsHtml = categories.map(cat => {
             const pts = sq.puntiPerCategoria[cat.id] || 0;
             if (pts === 0) return '';
@@ -378,6 +385,8 @@ UI.renderGaraRankingList = function (leaderboard, categories) {
             `;
         }).filter(Boolean).join('');
 
+        const ptgName = sq.pattuglia || sq.squadriglia;
+
         return `
             <div class="p-4 hover:bg-gray-50/80 dark:hover:bg-gray-750/50 transition-colors">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -387,7 +396,7 @@ UI.renderGaraRankingList = function (leaderboard, categories) {
                         </span>
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="font-bold text-base text-gray-900 dark:text-gray-100">Squadriglia ${sq.squadriglia}</span>
+                                <span class="font-bold text-base text-gray-900 dark:text-gray-100">Pattuglia ${ptgName}</span>
                                 <span class="text-xs px-2 py-0.5 rounded-full font-medium ${index === 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}">
                                     ${distacco}
                                 </span>
@@ -404,7 +413,7 @@ UI.renderGaraRankingList = function (leaderboard, categories) {
                             <span class="text-2xl font-black text-gray-900 dark:text-white">${sq.totalePunti}</span>
                             <span class="text-xs text-gray-500 font-semibold block -mt-1">Punti</span>
                         </div>
-                        <button type="button" onclick="UI.quickAddPointsToPatrol('${sq.squadriglia}')" class="btn-secondary text-xs px-2.5 py-1.5 font-semibold text-green-700 dark:text-green-400 hover:bg-green-50">
+                        <button type="button" onclick="UI.quickAddPointsToPatrol('${ptgName}')" class="btn-secondary text-xs px-2.5 py-1.5 font-semibold text-green-700 dark:text-green-400 hover:bg-green-50">
                             + Punti
                         </button>
                     </div>
@@ -436,9 +445,10 @@ UI.renderGaraHistoryTable = function () {
 
     let list = (this.garaState.punti || []).slice();
 
-    // Filtra per Squadriglia
-    if (this.garaState.filterSquadriglia && this.garaState.filterSquadriglia !== 'all') {
-        list = list.filter(p => p.squadriglia === this.garaState.filterSquadriglia);
+    // Filtra per Pattuglia
+    const patrolFilter = this.garaState.filterPattuglia || this.garaState.filterSquadriglia;
+    if (patrolFilter && patrolFilter !== 'all') {
+        list = list.filter(p => (p.pattuglia || p.squadriglia) === patrolFilter);
     }
 
     // Filtra per Categoria
@@ -452,7 +462,7 @@ UI.renderGaraHistoryTable = function () {
         list = list.filter(p =>
             (p.attivitaNome && p.attivitaNome.toLowerCase().includes(q)) ||
             (p.motivazione && p.motivazione.toLowerCase().includes(q)) ||
-            (p.squadriglia && p.squadriglia.toLowerCase().includes(q)) ||
+            ((p.pattuglia || p.squadriglia) && (p.pattuglia || p.squadriglia).toLowerCase().includes(q)) ||
             (p.categoriaNome && p.categoriaNome.toLowerCase().includes(q))
         );
     }
@@ -484,6 +494,7 @@ UI.renderGaraHistoryTable = function () {
 
         const catObj = this.garaState.categories.find(c => c.id === entry.categoriaId);
         const icon = catObj?.icona || '⭐';
+        const ptgName = entry.pattuglia || entry.squadriglia;
 
         return `
             <tr class="hover:bg-gray-50/70 dark:hover:bg-gray-750/40 transition-colors">
@@ -491,7 +502,7 @@ UI.renderGaraHistoryTable = function () {
                     ${entry.data || '-'}
                 </td>
                 <td class="py-3 px-4 font-bold text-gray-900 dark:text-white whitespace-nowrap">
-                    Sq. ${entry.squadriglia}
+                    Ptg. ${ptgName}
                 </td>
                 <td class="py-3 px-4 text-gray-700 dark:text-gray-300 text-xs">
                     ${entry.attivitaNome || '<span class="text-gray-400">Riunione</span>'}
@@ -531,11 +542,11 @@ UI.updateGaraDropdowns = function () {
     const categories = this.garaState.categories || [];
     const activities = this.garaState.activities || [];
 
-    // 1. Filtro Squadriglia nello storico
-    const filterSq = this.qs('#filterSquadrigliaSelect');
+    // 1. Filtro Pattuglia nello storico
+    const filterSq = this.qs('#filterPattugliaSelect') || this.qs('#filterSquadrigliaSelect');
     if (filterSq) {
         const curVal = filterSq.value;
-        filterSq.innerHTML = `<option value="all">Tutte le Sq.</option>` +
+        filterSq.innerHTML = `<option value="all">Tutte le Ptg.</option>` +
             patrols.map(p => `<option value="${p}">${p}</option>`).join('');
         if (curVal && (curVal === 'all' || patrols.includes(curVal))) {
             filterSq.value = curVal;
@@ -551,8 +562,8 @@ UI.updateGaraDropdowns = function () {
         if (curVal) filterCat.value = curVal;
     }
 
-    // 3. Modale Assegna Punti - Squadriglia
-    const modalSq = this.qs('#assegnaSquadrigliaSelect');
+    // 3. Modale Assegna Punti - Pattuglia
+    const modalSq = this.qs('#assegnaPattugliaSelect') || this.qs('#assegnaSquadrigliaSelect');
     if (modalSq) {
         modalSq.innerHTML = patrols.map(p => `<option value="${p}">${p}</option>`).join('');
     }
@@ -597,9 +608,10 @@ UI.setupGaraEventListeners = function () {
     }
 
     // Filtri Storico
-    const filterSq = this.qs('#filterSquadrigliaSelect');
+    const filterSq = this.qs('#filterPattugliaSelect') || this.qs('#filterSquadrigliaSelect');
     if (filterSq) {
         filterSq.addEventListener('change', (e) => {
+            this.garaState.filterPattuglia = e.target.value;
             this.garaState.filterSquadriglia = e.target.value;
             this.renderGaraHistoryTable();
         });
@@ -633,7 +645,7 @@ UI.setupGaraEventListeners = function () {
     this.qs('#closeAssegnaPuntiModal')?.addEventListener('click', () => this.closeAssegnaPuntiModal());
     this.qs('#cancelAssegnaPuntiBtn')?.addEventListener('click', () => this.closeAssegnaPuntiModal());
 
-    // Switch Target: Singola Squadriglia vs Tutte
+    // Switch Target: Singola Pattuglia vs Tutte
     const targetRadios = this.qsa ? this.qsa('input[name="targetSqType"]') : document.querySelectorAll('input[name="targetSqType"]');
     targetRadios.forEach(radio => {
         radio.addEventListener('change', (e) => {
@@ -701,7 +713,7 @@ UI.setupGaraEventListeners = function () {
 // ============================================================
 // Modale Assegnazione Punti - Azioni
 // ============================================================
-UI.openAssegnaPuntiModal = function (defaultSquadriglia = null) {
+UI.openAssegnaPuntiModal = function (defaultPattuglia = null) {
     const modal = this.qs('#modalAssegnaPunti');
     if (!modal) return;
 
@@ -723,13 +735,13 @@ UI.openAssegnaPuntiModal = function (defaultSquadriglia = null) {
         if (ptsInput) ptsInput.value = defPts;
     }
 
-    // Se è specificata una squadriglia di default
-    if (defaultSquadriglia) {
-        const sqSelect = this.qs('#assegnaSquadrigliaSelect');
-        if (sqSelect) sqSelect.value = defaultSquadriglia;
+    // Se è specificata una pattuglia di default
+    if (defaultPattuglia) {
+        const sqSelect = this.qs('#assegnaPattugliaSelect') || this.qs('#assegnaSquadrigliaSelect');
+        if (sqSelect) sqSelect.value = defaultPattuglia;
     }
 
-    // Mostra selettore singola sq
+    // Mostra selettore singola pattuglia
     const singleContainer = this.qs('#singleSqContainer');
     if (singleContainer) singleContainer.classList.remove('hidden');
 
@@ -773,9 +785,9 @@ UI.submitAssegnaPunti = async function () {
         if (targetType === 'all') {
             targets = this.garaState.patrols || [];
         } else {
-            const sq = this.qs('#assegnaSquadrigliaSelect')?.value;
+            const sq = (this.qs('#assegnaPattugliaSelect') || this.qs('#assegnaSquadrigliaSelect'))?.value;
             if (!sq) {
-                this.showToast('Seleziona una squadriglia.', { type: 'warning' });
+                this.showToast('Seleziona una pattuglia.', { type: 'warning' });
                 return;
             }
             targets = [sq];
@@ -784,6 +796,7 @@ UI.submitAssegnaPunti = async function () {
         this.showLoadingOverlay?.('Salvataggio punteggi...');
 
         const entries = targets.map(sq => ({
+            pattuglia: sq,
             squadriglia: sq,
             attivitaId,
             attivitaNome,
@@ -805,8 +818,8 @@ UI.submitAssegnaPunti = async function () {
         this.hideLoadingOverlay?.();
 
         const toastMsg = targets.length > 1
-            ? `Assegnati ${punti} punti a tutte le ${targets.length} squadriglie!`
-            : `Assegnati ${punti} punti alla Sq. ${targets[0]}!`;
+            ? `Assegnati ${punti} punti a tutte le ${targets.length} pattuglie!`
+            : `Assegnati ${punti} punti alla Ptg. ${targets[0]}!`;
         this.showToast(toastMsg, { type: 'success' });
     } catch (e) {
         console.error('Errore salvataggio punteggi:', e);
@@ -953,16 +966,16 @@ UI.exportGaraCsv = function () {
     const year = this.garaState.selectedYear || 'reparto';
 
     let csv = `GARA DI REPARTO - CLASSIFICA ANNO SCOUT ${year}\n`;
-    csv += `Posizione;Squadriglia;Punti Totali;Eventi Registrati\n`;
+    csv += `Posizione;Pattuglia;Punti Totali;Eventi Registrati\n`;
     leaderboard.forEach((sq, i) => {
-        csv += `${i + 1};${sq.squadriglia};${sq.totalePunti};${sq.assegnazioniCount}\n`;
+        csv += `${i + 1};${sq.pattuglia || sq.squadriglia};${sq.totalePunti};${sq.assegnazioniCount}\n`;
     });
 
     csv += `\nSTORICO ASSEGNAZIONI PUNTI\n`;
-    csv += `Data;Squadriglia;Attivita;Categoria;Punti;Motivazione;Assegnato Da\n`;
+    csv += `Data;Pattuglia;Attivita;Categoria;Punti;Motivazione;Assegnato Da\n`;
     punti.forEach(p => {
         const safeMotivazione = (p.motivazione || '').replace(/"/g, '""');
-        csv += `${p.data || ''};${p.squadriglia || ''};"${p.attivitaNome || ''}";"${p.categoriaNome || ''}";${p.punti || 0};"${safeMotivazione}";"${p.assegnatoDa || ''}"\n`;
+        csv += `${p.data || ''};${p.pattuglia || p.squadriglia || ''};"${p.attivitaNome || ''}";"${p.categoriaNome || ''}";${p.punti || 0};"${safeMotivazione}";"${p.assegnatoDa || ''}"\n`;
     });
 
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });

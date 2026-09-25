@@ -226,7 +226,7 @@ describe('Collegamento Scorte -> Preventivo Uscita/Campo', () => {
     it('dovrebbe permettere di filtrare per un\'altra lista tematica come "Uniformi"', async () => {
         // Aggiungi un articolo a Uniformi con scorta insufficiente
         await adapter.addScorta({
-            nome: 'Distintivo Squadriglia Lupi',
+            nome: 'Distintivo Pattuglia Lupi',
             categoria: 'Distintivi',
             lista: 'Uniformi',
             quantita: 2,
@@ -243,6 +243,6 @@ describe('Collegamento Scorte -> Preventivo Uscita/Campo', () => {
         expect(UI._scorteImportState.selectedList).toBe('Uniformi');
         const rows = document.getElementById('importScorteTableBody').querySelectorAll('tr');
         expect(rows.length).toBe(1);
-        expect(rows[0].textContent).toContain('Distintivo Squadriglia Lupi');
+        expect(rows[0].textContent).toContain('Distintivo Pattuglia Lupi');
     });
 });

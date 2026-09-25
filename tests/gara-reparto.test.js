@@ -19,6 +19,8 @@ describe('Gara di Reparto - Data Layer & Classifica', () => {
             const catNames = categories.map(c => c.nome);
             expect(catNames).toContain('Puntualità & Presenze');
             expect(catNames).toContain('Uniforme & Tenuta');
+            expect(catNames).toContain('Angolo & Cassa di Ptg.');
+            expect(catNames).toContain('Impresa di Pattuglia');
             expect(catNames).toContain('Cucina & Cambusa');
             expect(catNames).toContain('Giochi & Grandi Giochi');
             expect(catNames).toContain('Spirito di Pattuglia & Stile');
@@ -110,13 +112,14 @@ describe('Gara di Reparto - Data Layer & Classifica', () => {
             const puntiList = await adapter.getGaraPunti('2025/2026');
             const found = puntiList.find(p => p.id === id);
             expect(found).toBeDefined();
+            expect(found.pattuglia).toBe('Aironi');
             expect(found.squadriglia).toBe('Aironi');
             expect(found.punti).toBe(20);
             expect(found.motivazione).toBe('Vittoria al gioco notturno');
             expect(found.assegnatoDa).toBe('staff@scoutmaori.it');
         });
 
-        it('dovrebbe consentire assegnazione batch simultanea a tutte le squadriglie', async () => {
+        it('dovrebbe consentire assegnazione batch simultanea a tutte le pattuglie', async () => {
             const batch = [
                 {
                     squadriglia: 'Aironi',
@@ -168,7 +171,7 @@ describe('Gara di Reparto - Data Layer & Classifica', () => {
     });
 
     describe('Calcolo Classifica Tabellone in Tempo Reale', () => {
-        it('dovrebbe calcolare correttamente il totale punti e ordinamento delle squadriglie', () => {
+        it('dovrebbe calcolare correttamente il totale punti e ordinamento delle pattuglie', () => {
             const patrols = ['Aironi', 'Marmotte', 'Volpi'];
             const categories = [
                 { id: 'c1', nome: 'Puntualità' },
@@ -185,27 +188,31 @@ describe('Gara di Reparto - Data Layer & Classifica', () => {
             // Simula logica calculateGaraLeaderboard
             const rankingMap = {};
             patrols.forEach(p => {
-                rankingMap[p] = { squadriglia: p, totalePunti: 0, eventiCount: 0, puntiPerCategoria: {} };
+                rankingMap[p] = { pattuglia: p, squadriglia: p, totalePunti: 0, eventiCount: 0, puntiPerCategoria: {} };
             });
             punti.forEach(entry => {
-                rankingMap[entry.squadriglia].totalePunti += entry.punti;
-                rankingMap[entry.squadriglia].eventiCount += 1;
-                rankingMap[entry.squadriglia].puntiPerCategoria[entry.categoriaId] =
-                    (rankingMap[entry.squadriglia].puntiPerCategoria[entry.categoriaId] || 0) + entry.punti;
+                const sq = entry.pattuglia || entry.squadriglia;
+                rankingMap[sq].totalePunti += entry.punti;
+                rankingMap[sq].eventiCount += 1;
+                rankingMap[sq].puntiPerCategoria[entry.categoriaId] =
+                    (rankingMap[sq].puntiPerCategoria[entry.categoriaId] || 0) + entry.punti;
             });
 
             const sorted = Object.values(rankingMap).sort((a, b) => b.totalePunti - a.totalePunti);
 
             // 1° Marmotte con 40 punti (15 + 25)
+            expect(sorted[0].pattuglia).toBe('Marmotte');
             expect(sorted[0].squadriglia).toBe('Marmotte');
             expect(sorted[0].totalePunti).toBe(40);
             expect(sorted[0].puntiPerCategoria['c2']).toBe(25);
 
             // 2° Aironi con 30 punti (10 + 20)
+            expect(sorted[1].pattuglia).toBe('Aironi');
             expect(sorted[1].squadriglia).toBe('Aironi');
             expect(sorted[1].totalePunti).toBe(30);
 
             // 3° Volpi con 5 punti
+            expect(sorted[2].pattuglia).toBe('Volpi');
             expect(sorted[2].squadriglia).toBe('Volpi');
             expect(sorted[2].totalePunti).toBe(5);
         });

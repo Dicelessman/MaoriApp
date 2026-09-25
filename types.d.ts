@@ -128,6 +128,7 @@ export interface GaraCategory {
  */
 export interface GaraPunti {
   id: string;
+  pattuglia?: string;
   squadriglia: string;
   attivitaId?: string | null;
   attivitaNome?: string;

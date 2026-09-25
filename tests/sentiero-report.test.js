@@ -152,7 +152,7 @@ describe('generateScoutSentieroHtml', () => {
           p1_data: '2024-03-10',
           p2_data: '',
           p3_data: null,
-          cr_text: 'Organizzare una salita con la squadriglia',
+          cr_text: 'Organizzare una salita con la pattuglia',
           cr_data: '2024-04-01'
         }
       ]
@@ -169,7 +169,7 @@ describe('generateScoutSentieroHtml', () => {
     expect(html).toContain('Alpinista');
     expect(html).toContain('Conoscere i nodi di cordata e sicurezza.');
     expect(html).toContain('Superata il: 10/03/2024');
-    expect(html).toContain('Organizzare una salita con la squadriglia');
+    expect(html).toContain('Organizzare una salita con la pattuglia');
     expect(html).toContain('01/04/2024');
   });
 
