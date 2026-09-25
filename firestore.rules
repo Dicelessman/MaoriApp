@@ -392,6 +392,43 @@ service cloud.firestore {
       allow delete: if isStaff();
     }
 
+    // ============== COLLEZIONE: gara_categories ==============
+    match /gara_categories/{catId} {
+      // Lettura: tutti gli utenti autenticati possono leggere
+      allow read: if isAuthenticated();
+
+      // Creazione: solo staff autenticato con nome valido
+      allow create: if isStaff()
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0
+        && request.resource.data.nome.size() <= 200;
+
+      // Aggiornamento: solo staff autenticato
+      allow update: if isStaff()
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'createdAt', 'createdBy']));
+
+      // Eliminazione: solo staff autenticato
+      allow delete: if isStaff();
+    }
+
+    // ============== COLLEZIONE: gara_punti ==============
+    match /gara_punti/{puntiId} {
+      // Lettura: tutti gli utenti autenticati possono leggere
+      allow read: if isAuthenticated();
+
+      // Creazione: solo staff autenticato
+      allow create: if isStaff()
+        && request.resource.data.squadriglia is string
+        && request.resource.data.squadriglia.size() > 0;
+
+      // Aggiornamento: solo staff autenticato
+      allow update: if isStaff()
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'createdAt']));
+
+      // Eliminazione: solo staff autenticato
+      allow delete: if isStaff();
+    }
+
     // ============== Default: nega tutto il resto ==============
     match /{document=**} {
       allow read, write: if false;

@@ -243,8 +243,14 @@ export class FirestoreAdapter {
             const snap = await getDocs(collection(this.db, 'liste_scorte'));
             if (snap.empty) {
                 const defaults = ['Campo Estivo', 'Uniformi', 'Distintivi', 'Generale'];
-                for (const nome of defaults) {
-                    await this.addListaScorta(nome, { email: 'system' });
+                if (this.auth?.currentUser) {
+                    try {
+                        for (const nome of defaults) {
+                            await this.addListaScorta(nome, this.auth.currentUser);
+                        }
+                    } catch (seedErr) {
+                        console.warn('Auto-seed liste_scorte skipped or failed:', seedErr?.message || seedErr);
+                    }
                 }
                 return defaults;
             }
@@ -260,6 +266,7 @@ export class FirestoreAdapter {
     async addListaScorta(nome, currentUser) {
         const cleanName = (nome || '').trim();
         if (!cleanName) return '';
+        const user = currentUser || this.auth?.currentUser;
         try {
             const snap = await getDocs(collection(this.db, 'liste_scorte'));
             const exists = snap.docs.some(d => d.data().nome?.toLowerCase() === cleanName.toLowerCase());
@@ -267,7 +274,7 @@ export class FirestoreAdapter {
                 await addDoc(collection(this.db, 'liste_scorte'), {
                     nome: cleanName,
                     createdAt: Timestamp.now(),
-                    createdBy: currentUser?.email || 'user'
+                    createdBy: user?.email || user?.uid || 'user'
                 });
             }
             return cleanName;
@@ -362,11 +369,18 @@ export class FirestoreAdapter {
                         note: 'Cassetta medica reparto'
                     }
                 ];
-                for (const item of testItems) {
-                    await this.addScorta(item, { email: 'system' });
+                if (this.auth?.currentUser) {
+                    try {
+                        for (const item of testItems) {
+                            await this.addScorta(item, this.auth.currentUser);
+                        }
+                        const newSnap = await getDocs(collection(this.db, 'scorte'));
+                        return newSnap.docs.map(d => ({ id: d.id, lista: d.data().lista || 'Generale', ...d.data() }));
+                    } catch (seedErr) {
+                        console.warn('Auto-seed scorte skipped or failed:', seedErr?.message || seedErr);
+                    }
                 }
-                const newSnap = await getDocs(collection(this.db, 'scorte'));
-                return newSnap.docs.map(d => ({ id: d.id, lista: d.data().lista || 'Generale', ...d.data() }));
+                return testItems.map((item, idx) => ({ id: `sc_test_${idx + 1}`, ...item }));
             }
             return snap.docs.map((d) => ({
                 id: d.id,
@@ -382,6 +396,7 @@ export class FirestoreAdapter {
     }
 
     async addScorta(item, currentUser) {
+        const user = currentUser || this.auth?.currentUser;
         const payload = {
             nome: (item.nome || '').trim(),
             categoria: (item.categoria || 'Generale').trim(),
@@ -393,7 +408,7 @@ export class FirestoreAdapter {
             dataControllo: item.dataControllo || new Date().toISOString().split('T')[0],
             note: (item.note || '').trim(),
             createdAt: Timestamp.now(),
-            createdBy: currentUser?.email || currentUser?.uid || 'user'
+            createdBy: user?.email || user?.uid || 'user'
         };
         const ref = await addDoc(collection(this.db, 'scorte'), payload);
         return ref.id;
@@ -417,6 +432,7 @@ export class FirestoreAdapter {
     }
 
     async importScorteBatch(items, replaceExisting = false, currentUser) {
+        const user = currentUser || this.auth?.currentUser;
         if (replaceExisting) {
             const snap = await getDocs(collection(this.db, 'scorte'));
             for (const d of snap.docs) {
@@ -424,8 +440,17 @@ export class FirestoreAdapter {
             }
         }
         let count = 0;
+        const knownLists = new Set();
         for (const item of items) {
-            await this.addScorta(item, currentUser);
+            await this.addScorta(item, user);
+            if (item.lista && item.lista !== 'Generale' && !knownLists.has(item.lista)) {
+                knownLists.add(item.lista);
+                try {
+                    await this.addListaScorta(item.lista, user);
+                } catch {
+                    // lista aggiuntiva opzionale
+                }
+            }
             count++;
         }
         return count;
@@ -448,13 +473,22 @@ export class FirestoreAdapter {
                     { nome: 'Impresa di Squadriglia', descrizione: 'Ideazione, progettazione e realizzazione dell\'impresa', icona: '🛠️', puntiDefault: 50, annoScout: 'all', attiva: true },
                     { nome: 'Spirito di Pattuglia & Stile', descrizione: 'Stile scout, lealtà, allegria e spirito di servizio', icona: '⚜️', puntiDefault: 10, annoScout: 'all', attiva: true }
                 ];
-                for (const cat of defaultCats) {
-                    await this.addGaraCategory(cat, { email: 'system' });
+                if (this.auth?.currentUser) {
+                    try {
+                        for (const cat of defaultCats) {
+                            await this.addGaraCategory(cat, this.auth.currentUser);
+                        }
+                        const newSnap = await getDocs(collection(this.db, 'gara_categories'));
+                        const list = newSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        if (!annoScout || annoScout === 'all') return list;
+                        return list.filter(c => !c.annoScout || c.annoScout === 'all' || c.annoScout === annoScout);
+                    } catch (seedErr) {
+                        console.warn('Auto-seed gara_categories skipped or failed:', seedErr?.message || seedErr);
+                    }
                 }
-                const newSnap = await getDocs(collection(this.db, 'gara_categories'));
-                const list = newSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (!annoScout || annoScout === 'all') return list;
-                return list.filter(c => !c.annoScout || c.annoScout === 'all' || c.annoScout === annoScout);
+                const fallbackList = defaultCats.map((cat, idx) => ({ id: `cat_${idx + 1}`, ...cat }));
+                if (!annoScout || annoScout === 'all') return fallbackList;
+                return fallbackList.filter(c => !c.annoScout || c.annoScout === 'all' || c.annoScout === annoScout);
             }
             const list = snap.docs.map(d => ({
                 id: d.id,
@@ -471,6 +505,7 @@ export class FirestoreAdapter {
     }
 
     async addGaraCategory(category, currentUser) {
+        const user = currentUser || this.auth?.currentUser;
         const payload = {
             nome: (category.nome || '').trim(),
             descrizione: (category.descrizione || '').trim(),
@@ -479,7 +514,7 @@ export class FirestoreAdapter {
             annoScout: (category.annoScout || 'all').trim(),
             attiva: category.attiva !== undefined ? !!category.attiva : true,
             createdAt: Timestamp.now(),
-            createdBy: currentUser?.email || currentUser?.uid || 'user'
+            createdBy: user?.email || user?.uid || 'user'
         };
         const ref = await addDoc(collection(this.db, 'gara_categories'), payload);
         return ref.id;

@@ -865,18 +865,19 @@ UI.saveMaterialForm = async function () {
     note
   };
 
+  const authUser = this.currentUser || DATA.adapter?.auth?.currentUser;
   try {
     // Se la lista è nuova, aggiungila alla lista delle liste conosciute
     if (lista && !this._scorteState.lists.includes(lista)) {
-      await DATA.addListaScorta(lista, this.currentUser);
+      await DATA.addListaScorta(lista, authUser);
       this._scorteState.lists.push(lista);
     }
 
     if (id) {
-      await DATA.updateScorta(id, payload, this.currentUser);
+      await DATA.updateScorta(id, payload, authUser);
       this.showToast(`Articolo "${nome}" aggiornato con successo`);
     } else {
-      await DATA.addScorta(payload, this.currentUser);
+      await DATA.addScorta(payload, authUser);
       this.showToast(`Articolo "${nome}" aggiunto alla lista "${lista}"`);
     }
 
@@ -1112,8 +1113,16 @@ UI.confirmImport = async function () {
   const modeRadio = document.querySelector('input[name="importMode"]:checked');
   const replaceExisting = modeRadio?.value === 'replace';
 
+  const authUser = this.currentUser || DATA.adapter?.auth?.currentUser;
+  const isFirestore = DATA.adapter?.constructor?.name === 'FirestoreAdapter' || !!DATA.adapter?.db;
+  if (isFirestore && !authUser) {
+    this.showToast('Accesso richiesto: effettua il login con un account staff per salvare su Firestore, oppure usa la modalità Demo Locale.', { type: 'warning' });
+    this.showModal && this.showModal('loginModal');
+    return;
+  }
+
   try {
-    await DATA.importScorteBatch(parsedItems, replaceExisting, this.currentUser);
+    await DATA.importScorteBatch(parsedItems, replaceExisting, authUser);
     this.showToast(`Importazione completata con successo (${parsedItems.length} articoli)`, { type: 'success' });
     document.getElementById('importModal')?.classList.add('hidden');
 
@@ -1125,7 +1134,12 @@ UI.confirmImport = async function () {
     this.renderScorte();
   } catch (err) {
     console.error('Errore importazione scorte:', err);
-    this.showToast('Errore durante l\'importazione', { type: 'error' });
+    const isPermission = err?.code === 'permission-denied' || String(err?.message || '').toLowerCase().includes('permission');
+    if (isPermission) {
+      this.showToast('Errore permessi Firestore: le regole di sicurezza per la collezione "scorte" non sono ancora attive sul database Firebase in Cloud.', { type: 'error' });
+    } else {
+      this.showToast('Errore durante l\'importazione: ' + (err?.message || 'controlla i dati'), { type: 'error' });
+    }
   }
 };
 
