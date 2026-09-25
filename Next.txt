@@ -6,10 +6,10 @@
     [x] Filtro rapido "Solo non in regola"
     [x] Generatore messaggi e link WhatsApp precompilati per i genitori
 
-[ ] FASE 2: Collegamento Scorte -> Preventivo Uscita/Campo
-    [ ] Pulsante "Importa da Scorte" in preventivo.html
-    [ ] Selezione lista scorte tematica (es. Campo Estivo)
-    [ ] Calcolo e importazione automatica costi materiali nella quota per ragazzo
+[x] FASE 2: Collegamento Scorte -> Preventivo Uscita/Campo
+    [x] Pulsante "Importa da Scorte" in preventivo.html
+    [x] Selezione lista scorte tematica (es. Campo Estivo)
+    [x] Calcolo e importazione automatica costi materiali nella quota per ragazzo
 
 [ ] FASE 3: Gara di Reparto & Scheda Sanitaria Personale
     [ ] Gara di Reparto: categorie di punteggio personalizzabili anno per anno
