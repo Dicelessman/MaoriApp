@@ -11,7 +11,8 @@ import {
     getScoutYear, getScoutYearDateRange, getCurrentScoutYear, getAllScoutYears, isActivityInScoutYear,
     getUpcomingActivities, getPendingPaymentsByActivity, getUpcomingBirthdays,
     getScoutMedicalStatus, generateWhatsAppReminderUrl,
-    findUpcomingActivity, computeActivityDashboardKPIs
+    findUpcomingActivity, computeActivityDashboardKPIs,
+    generateScoutSentieroHtml
 } from '../utils/utils.js';
 import { setupFormValidation, validateForm, validateFieldValue, checkDataIntegrity } from '../utils/validation.js';
 export const UI = {
@@ -34,6 +35,7 @@ export const UI = {
     generateWhatsAppReminderUrl,
     findUpcomingActivity,
     computeActivityDashboardKPIs,
+    generateScoutSentieroHtml,
     sendMedicalWhatsAppReminder(scoutId) {
         const scout = (this.state.scouts || []).find(s => s.id === scoutId);
         if (!scout) {
@@ -401,6 +403,137 @@ export const UI = {
         } catch (e) {
             console.error('Errore stampa cartellina sanitaria:', e);
             this.showToast('Errore stampa cartellina: ' + e.message, { type: 'error', duration: 4000 });
+        }
+    },
+    challengesData: null,
+    specialitaListData: null,
+    _jsonLoadPromises: {},
+    async loadChallenges() {
+        if (this.challengesData) return this.challengesData;
+        if (!this._jsonLoadPromises) this._jsonLoadPromises = {};
+        if (this._jsonLoadPromises.challenges) {
+            return await this._jsonLoadPromises.challenges;
+        }
+        try {
+            this._jsonLoadPromises.challenges = fetch('challenges.json')
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    this.challengesData = data;
+                    delete this._jsonLoadPromises.challenges;
+                    return data;
+                });
+            return await this._jsonLoadPromises.challenges;
+        } catch (e) {
+            console.error('Errore caricamento challenges.json:', e);
+            if (this._jsonLoadPromises) delete this._jsonLoadPromises.challenges;
+            return {};
+        }
+    },
+    async loadSpecialitaList() {
+        if (this.specialitaListData) return this.specialitaListData;
+        if (!this._jsonLoadPromises) this._jsonLoadPromises = {};
+        if (this._jsonLoadPromises.specialita) {
+            return await this._jsonLoadPromises.specialita;
+        }
+        try {
+            this._jsonLoadPromises.specialita = fetch('specialita.json')
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    this.specialitaListData = data;
+                    delete this._jsonLoadPromises.specialita;
+                    return data;
+                });
+            return await this._jsonLoadPromises.specialita;
+        } catch (e) {
+            console.error('Errore caricamento specialita.json:', e);
+            if (this._jsonLoadPromises) delete this._jsonLoadPromises.specialita;
+            return [];
+        }
+    },
+    async printSentieroSingle(scoutId) {
+        try {
+            if (!scoutId) {
+                this.showToast('ID esploratore mancante', { type: 'error' });
+                return;
+            }
+
+            if (typeof this.showLoadingOverlay === 'function') {
+                this.showLoadingOverlay('Preparazione stampa...');
+            }
+
+            if (!this.state || !this.state.scouts || this.state.scouts.length === 0) {
+                this.state = await DATA.loadAll();
+            }
+
+            const allScouts = this.state.allScouts || this.state.scouts || [];
+            const scout = allScouts.find(s => s.id === scoutId);
+            if (!scout) {
+                if (typeof this.hideLoadingOverlay === 'function') this.hideLoadingOverlay();
+                this.showToast('Esploratore non trovato', { type: 'error' });
+                return;
+            }
+
+            if (!this.challengesData) await this.loadChallenges();
+            if (!this.specialitaListData) await this.loadSpecialitaList();
+
+            const html = (this.generateScoutSentieroHtml || generateScoutSentieroHtml)(scout, this.challengesData, this.specialitaListData);
+            if (typeof this.hideLoadingOverlay === 'function') this.hideLoadingOverlay();
+            this._printHtmlInArea(html, `Il Sentiero di ${scout.nome || ''}`);
+        } catch (e) {
+            if (typeof this.hideLoadingOverlay === 'function') this.hideLoadingOverlay();
+            console.error('Errore stampa singola:', e);
+            this.showToast('Errore stampa: ' + e.message, { type: 'error', duration: 4000 });
+        }
+    },
+    async printSentieroBatch(scoutIds, title = 'Schede Sentiero Reparto') {
+        try {
+            if (!scoutIds || scoutIds.length === 0) {
+                this.showToast('Nessun esploratore selezionato', { type: 'warning' });
+                return;
+            }
+
+            if (typeof this.showLoadingOverlay === 'function') {
+                this.showLoadingOverlay(`Preparazione ${scoutIds.length} schede...`);
+            }
+
+            if (!this.state || !this.state.scouts || this.state.scouts.length === 0) {
+                this.state = await DATA.loadAll();
+            }
+
+            if (!this.challengesData) await this.loadChallenges();
+            if (!this.specialitaListData) await this.loadSpecialitaList();
+
+            const allScouts = this.state.allScouts || this.state.scouts || [];
+            const htmlParts = [];
+
+            scoutIds.forEach((scoutId, i) => {
+                const scout = allScouts.find(s => s.id === scoutId);
+                if (!scout) return;
+                let cardHtml = (this.generateScoutSentieroHtml || generateScoutSentieroHtml)(scout, this.challengesData, this.specialitaListData);
+                if (i < scoutIds.length - 1) {
+                    cardHtml += `<div style="page-break-after: always; height: 0; line-height: 0;"></div>`;
+                }
+                htmlParts.push(cardHtml);
+            });
+
+            if (htmlParts.length === 0) {
+                this.showToast('Nessun esploratore trovato', { type: 'warning' });
+                if (typeof this.hideLoadingOverlay === 'function') this.hideLoadingOverlay();
+                return;
+            }
+
+            if (typeof this.hideLoadingOverlay === 'function') this.hideLoadingOverlay();
+            this._printHtmlInArea(htmlParts.join('\n'), title || 'Schede Sentiero Reparto');
+        } catch (e) {
+            if (typeof this.hideLoadingOverlay === 'function') this.hideLoadingOverlay();
+            console.error('Errore stampa batch sentiero:', e);
+            this.showToast('Errore stampa: ' + e.message, { type: 'error', duration: 4000 });
         }
     },
     getSelectedScoutYear() {
