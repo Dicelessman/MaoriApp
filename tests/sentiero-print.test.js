@@ -104,4 +104,45 @@ describe('UI Sentiero Printing (Single & Batch)', () => {
             expect(printedHtml).toContain('Pattuglia Aquile');
         });
     });
+
+    describe('executePrintSchede (esploratori.js integration)', () => {
+        beforeEach(async () => {
+            // Import esploratori.js to attach UI.executePrintSchede
+            await import('../esploratori.js');
+        });
+
+        it('dovrebbe stampare le schede di tutto il reparto se nessuna pattuglia è selezionata', async () => {
+            document.body.innerHTML = `
+                <div id="printArea" style="display:none;"></div>
+                <div id="printSchedeModal" class="modal"></div>
+                <select id="printPattugliaSelect">
+                    <option value="" selected>Tutto il Reparto</option>
+                    <option value="Aquile">Aquile</option>
+                </select>
+            `;
+            const batchSpy = vi.spyOn(UI, 'printSentieroBatch').mockImplementation(async () => {});
+            const closeSpy = vi.spyOn(UI, 'closeModal').mockImplementation(() => {});
+
+            await UI.executePrintSchede();
+
+            expect(closeSpy).toHaveBeenCalledWith('printSchedeModal');
+            expect(batchSpy).toHaveBeenCalledWith(['s1', 's2'], 'Schede Sentiero — Tutto il Reparto');
+        });
+
+        it('dovrebbe stampare solo le schede della pattuglia selezionata', async () => {
+            document.body.innerHTML = `
+                <div id="printArea" style="display:none;"></div>
+                <div id="printSchedeModal" class="modal"></div>
+                <select id="printPattugliaSelect">
+                    <option value="">Tutto il Reparto</option>
+                    <option value="Aquile" selected>Aquile</option>
+                </select>
+            `;
+            const batchSpy = vi.spyOn(UI, 'printSentieroBatch').mockImplementation(async () => {});
+
+            await UI.executePrintSchede();
+
+            expect(batchSpy).toHaveBeenCalledWith(['s1'], 'Schede Sentiero — Pattuglia Aquile');
+        });
+    });
 });
