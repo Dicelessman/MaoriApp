@@ -58,6 +58,9 @@
           <a href="esploratori.html" class="btn-secondary">← Torna alla lista</a>
           <button type="submit" form="scoutForm" class="btn-primary">Salva</button>
           <button type="button" id="printScoutBtn" class="btn-secondary">Stampa / Esporta PDF</button>
+          <button type="button" id="printMedicalBtn" class="btn-secondary text-rose-700 border-rose-300 hover:bg-rose-50 flex items-center gap-1.5 font-medium" title="Stampa Scheda Sanitaria Personale per la cartellina del campo">
+            <span>🏥</span><span>Scheda Sanitaria</span>
+          </button>
         </div>
       </div>
 
@@ -122,7 +125,12 @@
         </section>
 
         <section id="section-sanitarie" class="bg-gray-50 p-6 rounded-lg shadow-inner scroll-mt-20">
-          <h3 class="text-xl font-semibold text-gray-700 mb-4">Informazioni Sanitarie</h3>
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h3 class="text-xl font-semibold text-gray-700">Informazioni Sanitarie</h3>
+            <button type="button" id="printMedicalSectionBtn" class="btn-secondary text-xs px-3 py-1.5 text-rose-700 border-rose-300 hover:bg-rose-50 flex items-center gap-1.5 font-medium" title="Stampa Scheda Sanitaria Campo">
+              <span>🖨️</span><span>Stampa Scheda Campo</span>
+            </button>
+          </div>
           <div class="grid md:grid-cols-2 gap-4">
             <div class="md:col-span-2"><label class="block text-sm">Gruppo Sanguigno</label><select id="san_gruppo" class="input">
               <option value="">Seleziona gruppo sanguigno...</option>

@@ -19,7 +19,9 @@ export const COLLECTIONS = {
     FCM_TOKENS: 'fcm-tokens',
     NOTIFICATIONS: 'in-app-notifications',
     AUDIT_LOGS: 'audit-logs',
-    DEADLINES: 'scadenze'
+    DEADLINES: 'scadenze',
+    GARA_CATEGORIES: 'gara_categories',
+    GARA_PUNTI: 'gara_punti'
 };
 export const NOTIFICATION_TYPES = {
     INFO: 'info',

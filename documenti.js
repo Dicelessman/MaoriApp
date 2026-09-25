@@ -72,15 +72,25 @@ UI.renderDocumentiMatrix = function() {
       
       if (col.type === 'actions') {
         html += `
-          <td class="border border-gray-300 p-1.5 text-center">
-            <button
-              type="button"
-              onclick="UI.sendMedicalWhatsAppReminder('${scout.id}')"
-              class="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white font-medium rounded shadow-sm inline-flex items-center gap-1 transition"
-              title="Invia promemoria WhatsApp al genitore"
-            >
-              <span>💬</span> <span>WhatsApp</span>
-            </button>
+          <td class="border border-gray-300 p-1.5 text-center whitespace-nowrap">
+            <div class="flex items-center justify-center gap-1.5">
+              <button
+                type="button"
+                onclick="UI.sendMedicalWhatsAppReminder('${scout.id}')"
+                class="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white font-medium rounded shadow-sm inline-flex items-center gap-1 transition"
+                title="Invia promemoria WhatsApp al genitore"
+              >
+                <span>💬</span> <span>WhatsApp</span>
+              </button>
+              <button
+                type="button"
+                onclick="UI.printMedicalSingle('${scout.id}')"
+                class="px-2 py-1 text-xs bg-rose-600 hover:bg-rose-700 text-white font-medium rounded shadow-sm inline-flex items-center gap-1 transition"
+                title="Stampa Scheda Sanitaria Campo per ${nomeCompleto}"
+              >
+                <span>🏥</span> <span>Scheda</span>
+              </button>
+            </div>
           </td>
         `;
       } else if (col.type === 'cert_date') {
@@ -185,6 +195,19 @@ UI.renderDocumentiMatrix = function() {
     </table>
   `;
   container.innerHTML = html;
+
+  // Bind pulsante Stampa Cartellina Sanitaria Campo
+  const cartellinaBtn = this.qs('#printCartellinaSanitariaBtn');
+  if (cartellinaBtn && !cartellinaBtn._bound) {
+    cartellinaBtn._bound = true;
+    cartellinaBtn.addEventListener('click', async () => {
+      if (typeof UI.printMedicalBatch === 'function') {
+        await UI.printMedicalBatch(null, 'Cartellina Sanitaria Campo Reparto');
+      } else {
+        UI.showToast('Funzionalità di stampa in caricamento...', { type: 'info' });
+      }
+    });
+  }
 };
 
 // Funzione per aggiornare un documento (checkbox)

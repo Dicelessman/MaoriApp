@@ -877,4 +877,265 @@ export function generateWhatsAppReminderUrl(options = {}) {
     };
 }
 
+/**
+ * Genera il layout compatto stampabile della Scheda Sanitaria Personale
+ * ad uso dei capi per la cartellina medica di campo
+ */
+export function generateScoutMedicalSheetHtml(data) {
+    const d = data || {};
+    const nomeCompleto = `${d.nome || ''} ${d.cognome || ''}`.trim() || 'Esploratore';
+    const pattuglia = d.pv_pattuglia || 'Reparto';
+    const ruolo = d.cp_vcp || 'Esploratore';
+
+    const dobVal = d.anag_dob || d.dataNascita;
+    let dobStr = 'Non indicata';
+    let etaStr = '';
+    if (dobVal) {
+        const dob = toJsDate(dobVal);
+        if (!isNaN(dob.getTime())) {
+            dobStr = dob.toLocaleDateString('it-IT');
+            const diffMs = Date.now() - dob.getTime();
+            const ageDate = new Date(diffMs);
+            const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+            if (age >= 0 && age < 100) {
+                etaStr = ` (${age} anni)`;
+            }
+        }
+    }
+
+    const pobStr = d.anag_pob || '-';
+    const cfStr = d.anag_cf ? d.anag_cf.toUpperCase() : '-';
+    const indirizzoStr = d.anag_indirizzo || '-';
+
+    const g1Nome = d.ct_g1_nome || 'Genitore 1';
+    const g1Rel = d.ct_g1_rel ? ` (${d.ct_g1_rel})` : '';
+    const g1Tel = d.ct_g1_tel || d.anag_telefono || 'Non specificato';
+
+    const g2Nome = d.ct_g2_nome || 'Genitore 2';
+    const g2Rel = d.ct_g2_rel ? ` (${d.ct_g2_rel})` : '';
+    const g2Tel = d.ct_g2_tel || '-';
+
+    const medNome = d.ct_med_nome || '-';
+    const medTel = d.ct_med_tel || '-';
+
+    const gruppoSangue = d.san_gruppo || 'N.D.';
+    const intolleranze = (d.san_intolleranze || '').trim();
+    const allergie = (d.san_allergie || '').trim();
+    const farmaci = (d.san_farmaci || '').trim();
+    const vaccinazioni = (d.san_vaccinazioni || '').trim();
+    const certScadenza = d.san_cert_scadenza ? toJsDate(d.san_cert_scadenza).toLocaleDateString('it-IT') : 'Non specificata';
+    const certNote = (d.san_cert || '').trim();
+    const altro = (d.san_altro || '').trim();
+
+    const medStatus = getScoutMedicalStatus(d);
+    const certStatusLabel = medStatus ? medStatus.statusLabel : (d.san_cert_scadenza ? 'Registrato' : 'Mancante');
+    const certColor = medStatus && medStatus.color === 'green' ? '#16a34a' : (medStatus && medStatus.color === 'yellow' ? '#d97706' : '#dc2626');
+
+    const privacyOk = !!d.doc_priv;
+    const schedaFirmataOk = !!d.doc_san;
+    const currentYear = getCurrentScoutYear();
+
+    return `
+        <div class="medical-sheet-page" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 820px; margin: 0 auto; padding: 18px 22px; color: #111827; background: #ffffff; box-sizing: border-box; line-height: 1.35; font-size: 12px;">
+          <div style="border-bottom: 2.5px solid #b91c1c; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+              <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #b91c1c;">
+                ⚜️ AGESCI • Reparto Maori • Cartellina Sanitaria Campo
+              </div>
+              <h1 style="font-size: 22px; font-weight: 900; margin: 2px 0 0 0; color: #111827; text-transform: uppercase; letter-spacing: -0.5px;">
+                Scheda Sanitaria & di Emergenza
+              </h1>
+            </div>
+            <div style="text-align: right;">
+              <span style="display: inline-block; font-size: 11px; font-weight: 800; background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 6px; border: 1.5px solid #f87171; text-transform: uppercase;">
+                Riservato Capi Campo
+              </span>
+              <div style="font-size: 10px; color: #4b5563; font-weight: 600; margin-top: 3px;">
+                Anno Scout ${currentYear}
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
+            <div>
+              <div style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: #6b7280;">Esploratore / Guida</div>
+              <div style="font-size: 18px; font-weight: 900; color: #111827; text-transform: uppercase;">
+                ${nomeCompleto}
+              </div>
+              <div style="margin-top: 4px; font-size: 11px; color: #374151;">
+                <strong>Nato il:</strong> ${dobStr}${etaStr} &nbsp;•&nbsp; <strong>A:</strong> ${pobStr}
+              </div>
+              <div style="font-size: 11px; color: #374151; margin-top: 2px;">
+                <strong>C.F.:</strong> <span style="font-family: monospace; font-weight: bold;">${cfStr}</span> &nbsp;•&nbsp; <strong>Residenza:</strong> ${indirizzoStr}
+              </div>
+            </div>
+
+            <div style="text-align: right; border-left: 1.5px solid #e5e7eb; padding-left: 12px; display: flex; flex-direction: column; justify-content: center; align-items: flex-end;">
+              <div style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: #6b7280;">Squadriglia & Ruolo</div>
+              <div style="font-size: 16px; font-weight: 800; color: #15803d;">
+                Sq. ${pattuglia}
+              </div>
+              <span style="display: inline-block; margin-top: 3px; font-size: 10px; font-weight: 700; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px;">
+                ${ruolo}
+              </span>
+            </div>
+          </div>
+
+          <div style="border: 1.5px solid #cbd5e1; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+            <div style="background: #f1f5f9; padding: 6px 12px; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #334155; border-bottom: 1.5px solid #cbd5e1; display: flex; align-items: center; gap: 6px;">
+              <span>🚨</span> Recapiti Telefonici di Emergenza (Genitori / Tutori)
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 10px 12px; font-size: 11px;">
+              <div style="border-right: 1px dashed #cbd5e1; padding-right: 8px;">
+                <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Primo Contatto</div>
+                <div style="font-weight: 800; font-size: 12px; color: #0f172a;">${g1Nome}${g1Rel}</div>
+                <div style="font-size: 14px; font-weight: 900; color: #b91c1c; margin-top: 2px; font-family: monospace;">
+                  📞 ${g1Tel}
+                </div>
+              </div>
+              <div style="border-right: 1px dashed #cbd5e1; padding-right: 8px;">
+                <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Secondo Contatto</div>
+                <div style="font-weight: 800; font-size: 12px; color: #0f172a;">${g2Nome}${g2Rel}</div>
+                <div style="font-size: 13px; font-weight: 800; color: #334155; margin-top: 2px; font-family: monospace;">
+                  📞 ${g2Tel}
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Medico Curante / Pediatra</div>
+                <div style="font-weight: 700; color: #0f172a;">${medNome}</div>
+                <div style="font-size: 11px; color: #475569; margin-top: 1px;">
+                  📞 ${medTel}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 120px 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div style="border: 2px solid #b91c1c; border-radius: 8px; background: #fff5f5; padding: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+              <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #991b1b;">Gruppo Sangue</div>
+              <div style="font-size: 26px; font-weight: 900; color: #b91c1c; line-height: 1.1; margin-top: 2px;">
+                ${gruppoSangue}
+              </div>
+            </div>
+
+            <div style="border: 1.5px solid ${allergie ? '#ef4444' : '#e5e7eb'}; background: ${allergie ? '#fef2f2' : '#ffffff'}; border-radius: 8px; padding: 8px 12px;">
+              <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: ${allergie ? '#b91c1c' : '#4b5563'}; display: flex; items-center; justify-content: space-between;">
+                <span>⚠️ Allergie (Farmaci/Cibo/Insetti)</span>
+                ${allergie ? '<span style="color:#dc2626; font-weight:900;">ATTENZIONE</span>' : ''}
+              </div>
+              <div style="font-size: 12px; font-weight: ${allergie ? '700' : '400'}; color: ${allergie ? '#991b1b' : '#6b7280'}; margin-top: 4px; min-height: 38px;">
+                ${allergie || 'Nessuna allergia nota segnalata.'}
+              </div>
+            </div>
+
+            <div style="border: 1.5px solid ${intolleranze ? '#f59e0b' : '#e5e7eb'}; background: ${intolleranze ? '#fffbeb' : '#ffffff'}; border-radius: 8px; padding: 8px 12px;">
+              <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: ${intolleranze ? '#b45309' : '#4b5563'}; display: flex; items-center; justify-content: space-between;">
+                <span>🍽️ Intolleranze & Dieta</span>
+                ${intolleranze ? '<span style="color:#d97706; font-weight:800;">DIETA SPECIFICA</span>' : ''}
+              </div>
+              <div style="font-size: 12px; font-weight: ${intolleranze ? '700' : '400'}; color: ${intolleranze ? '#92400e' : '#6b7280'}; margin-top: 4px; min-height: 38px;">
+                ${intolleranze || 'Nessuna esigenza alimentare specifica.'}
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div style="border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; background: #ffffff;">
+              <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #334155; margin-bottom: 4px;">
+                💊 Terapie Farmacologiche in Corso & Modalità Assunzione
+              </div>
+              <div style="font-size: 11px; color: ${farmaci ? '#0f172a' : '#64748b'}; font-weight: ${farmaci ? '600' : '400'}; min-height: 36px;">
+                ${farmaci || 'Nessuna terapia farmacologica continuativa indicata.'}
+              </div>
+            </div>
+
+            <div style="border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; background: #ffffff;">
+              <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #334155; margin-bottom: 4px;">
+                💉 Vaccinazioni & Richiamo Antitetanica
+              </div>
+              <div style="font-size: 11px; color: #0f172a; min-height: 36px;">
+                ${vaccinazioni || 'Regolari secondo calendario vaccinale nazionale.'}
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px;">
+            <div>
+              <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b;">Certificato Medico Non Agonistico</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                <span style="font-weight: 800; font-size: 12px; color: ${certColor};">
+                  ● ${certStatusLabel}
+                </span>
+                <span style="color: #475569;">(Scadenza: <strong>${certScadenza}</strong>)</span>
+              </div>
+              ${certNote ? `<div style="font-size: 10px; color: #64748b; margin-top: 2px;">Note: ${certNote}</div>` : ''}
+            </div>
+
+            <div>
+              <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b;">Consensi e Altre Indicazioni</div>
+              <div style="display: flex; gap: 12px; margin-top: 2px; font-size: 11px;">
+                <span>Privacy: <strong>${privacyOk ? '✅ Depositata' : '❌ Mancante'}</strong></span>
+                <span>Scheda Firmata: <strong>${schedaFirmataOk ? '✅ Depositata' : '❌ Mancante'}</strong></span>
+              </div>
+              ${altro ? `<div style="font-size: 10px; color: #475569; margin-top: 2px;">Altro: ${altro}</div>` : ''}
+            </div>
+          </div>
+
+          <div style="border: 1.5px solid #94a3b8; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+            <div style="background: #f1f5f9; padding: 4px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #1e293b; border-bottom: 1px solid #94a3b8; display: flex; justify-content: space-between;">
+              <span>📋 Registro Somministrazioni Farmaci / Interventi Sanitari al Campo (A cura dei Capi)</span>
+              <span style="font-weight: normal; color: #64748b;">Compilare ad ogni evento</span>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+              <thead>
+                <tr style="background: #f8fafc; border-bottom: 1px solid #cbd5e1; color: #475569;">
+                  <th style="padding: 4px 6px; text-align: left; width: 85px; border-right: 1px solid #e2e8f0;">Data e Ora</th>
+                  <th style="padding: 4px 6px; text-align: left; width: 140px; border-right: 1px solid #e2e8f0;">Sintomo / Malessere</th>
+                  <th style="padding: 4px 6px; text-align: left; border-right: 1px solid #e2e8f0;">Farmaco somministrato & Dosaggio</th>
+                  <th style="padding: 4px 6px; text-align: left; width: 100px; border-right: 1px solid #e2e8f0;">Capo Resp.</th>
+                  <th style="padding: 4px 6px; text-align: left; width: 70px;">Firma</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid #e2e8f0; height: 22px;">
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td></td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e2e8f0; height: 22px;">
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td></td>
+                </tr>
+                <tr style="height: 22px;">
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td style="border-right: 1px solid #e2e8f0;"></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 10px; color: #475569;">
+            <div>
+              <div>Firma del Genitore / Esercente potestà:</div>
+              <div style="border-bottom: 1px solid #94a3b8; height: 26px; margin-top: 2px;"></div>
+            </div>
+            <div style="text-align: right;">
+              <div>Firma del Capo Reparto / Capocampo:</div>
+              <div style="border-bottom: 1px solid #94a3b8; height: 26px; margin-top: 2px;"></div>
+            </div>
+          </div>
+
+        </div>
+    `;
+}
+
+
 

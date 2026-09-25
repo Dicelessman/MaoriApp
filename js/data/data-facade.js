@@ -280,5 +280,53 @@ export const DATA = {
         const result = await this.adapter.importScorteBatch(items, replaceExisting, currentUser);
         this.cache.invalidate('scorte');
         return result;
+    },
+    // Gara di Reparto - Categorie
+    async getGaraCategories(annoScout = null) {
+        const cacheKey = `gara_categories_${annoScout || 'all'}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await this.adapter.getGaraCategories(annoScout);
+        this.cache.set(cacheKey, data, 5 * 60 * 1000);
+        return data;
+    },
+    async addGaraCategory(category, currentUser) {
+        const result = await this.adapter.addGaraCategory(category, currentUser);
+        this.cache.invalidate();
+        return result;
+    },
+    async updateGaraCategory(id, updates, currentUser) {
+        const result = await this.adapter.updateGaraCategory(id, updates, currentUser);
+        this.cache.invalidate();
+        return result;
+    },
+    async deleteGaraCategory(id, currentUser) {
+        const result = await this.adapter.deleteGaraCategory(id, currentUser);
+        this.cache.invalidate();
+        return result;
+    },
+    // Gara di Reparto - Punti
+    async getGaraPunti(annoScout = null) {
+        const cacheKey = `gara_punti_${annoScout || 'all'}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await this.adapter.getGaraPunti(annoScout);
+        this.cache.set(cacheKey, data, 2 * 60 * 1000);
+        return data;
+    },
+    async addGaraPunti(entryOrArray, currentUser) {
+        const result = await this.adapter.addGaraPunti(entryOrArray, currentUser);
+        this.cache.invalidate();
+        return result;
+    },
+    async updateGaraPunti(id, updates, currentUser) {
+        const result = await this.adapter.updateGaraPunti(id, updates, currentUser);
+        this.cache.invalidate();
+        return result;
+    },
+    async deleteGaraPunti(id, currentUser) {
+        const result = await this.adapter.deleteGaraPunti(id, currentUser);
+        this.cache.invalidate();
+        return result;
     }
 };

@@ -470,4 +470,127 @@ export class FirestoreAdapter {
         }
         return count;
     }
+
+    // ============================================================
+    // Gara di Reparto - Categorie
+    // ============================================================
+    async getGaraCategories(annoScout: string | null = null): Promise<any[]> {
+        try {
+            const snap = await getDocs(collection(this.db, 'gara_categories'));
+            if (snap.empty) {
+                const defaultCats = [
+                    { nome: 'Puntualità & Presenze', descrizione: 'Presenza puntuale in uniforme alle riunioni e uscite', icona: '⏰', puntiDefault: 10, annoScout: 'all', attiva: true },
+                    { nome: 'Uniforme & Tenuta', descrizione: 'Uniforme completa e fazzolettone in ordine', icona: '👔', puntiDefault: 5, annoScout: 'all', attiva: true },
+                    { nome: 'Angolo & Cassa di Sq.', descrizione: 'Cura e pulizia angolo di squadriglia e cassa materiali', icona: '⛺', puntiDefault: 15, annoScout: 'all', attiva: true },
+                    { nome: 'Animazione & Fuoco', descrizione: 'Bans, canti, sketch e partecipazione al fuoco serale', icona: '🔥', puntiDefault: 15, annoScout: 'all', attiva: true },
+                    { nome: 'Cucina & Cambusa', descrizione: 'Menù, pulizia, puntualità dei pasti e gestione scorte', icona: '🍳', puntiDefault: 20, annoScout: 'all', attiva: true },
+                    { nome: 'Giochi & Grandi Giochi', descrizione: 'Vittoria o piazzamento nelle sfide e tornei di reparto', icona: '🎯', puntiDefault: 20, annoScout: 'all', attiva: true },
+                    { nome: 'Impresa di Squadriglia', descrizione: 'Ideazione, progettazione e realizzazione dell\'impresa', icona: '🛠️', puntiDefault: 50, annoScout: 'all', attiva: true },
+                    { nome: 'Spirito di Pattuglia & Stile', descrizione: 'Stile scout, lealtà, allegria e spirito di servizio', icona: '⚜️', puntiDefault: 10, annoScout: 'all', attiva: true }
+                ];
+                for (const cat of defaultCats) {
+                    await this.addGaraCategory(cat, { email: 'system' });
+                }
+                const newSnap = await getDocs(collection(this.db, 'gara_categories'));
+                const list = newSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+                if (!annoScout || annoScout === 'all') return list;
+                return list.filter((c: any) => !c.annoScout || c.annoScout === 'all' || c.annoScout === annoScout);
+            }
+            const list = snap.docs.map((d: any) => ({
+                id: d.id,
+                ...d.data(),
+                createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : d.data().createdAt,
+                updatedAt: d.data().updatedAt?.toDate ? d.data().updatedAt.toDate() : d.data().updatedAt
+            }));
+            if (!annoScout || annoScout === 'all') return list;
+            return list.filter((c: any) => !c.annoScout || c.annoScout === 'all' || c.annoScout === annoScout);
+        } catch (e) {
+            console.error('Error fetching gara_categories from Firestore:', e);
+            return [];
+        }
+    }
+
+    async addGaraCategory(category: any, currentUser?: any): Promise<string> {
+        const payload = {
+            nome: (category.nome || '').trim(),
+            descrizione: (category.descrizione || '').trim(),
+            icona: (category.icona || '🏆').trim(),
+            puntiDefault: Number(category.puntiDefault) || 10,
+            annoScout: (category.annoScout || 'all').trim(),
+            attiva: category.attiva !== undefined ? !!category.attiva : true,
+            createdAt: Timestamp.now(),
+            createdBy: currentUser?.email || currentUser?.uid || 'user'
+        };
+        const ref = await addDoc(collection(this.db, 'gara_categories'), payload);
+        return ref.id;
+    }
+
+    async updateGaraCategory(id: string, updates: any, currentUser?: any): Promise<void> {
+        const payload = {
+            ...updates,
+            updatedAt: Timestamp.now()
+        };
+        if (payload.puntiDefault !== undefined) payload.puntiDefault = Number(payload.puntiDefault);
+        await setDoc(doc(this.db, 'gara_categories', id), payload, { merge: true });
+    }
+
+    async deleteGaraCategory(id: string, currentUser?: any): Promise<void> {
+        await deleteDoc(doc(this.db, 'gara_categories', id));
+    }
+
+    // ============================================================
+    // Gara di Reparto - Punti
+    // ============================================================
+    async getGaraPunti(annoScout: string | null = null): Promise<any[]> {
+        try {
+            const snap = await getDocs(collection(this.db, 'gara_punti'));
+            const list = snap.docs.map((d: any) => ({
+                id: d.id,
+                ...d.data(),
+                createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : d.data().createdAt,
+                updatedAt: d.data().updatedAt?.toDate ? d.data().updatedAt.toDate() : d.data().updatedAt
+            }));
+            if (!annoScout || annoScout === 'all') return list;
+            return list.filter((p: any) => !p.annoScout || p.annoScout === annoScout);
+        } catch (e) {
+            console.error('Error fetching gara_punti from Firestore:', e);
+            return [];
+        }
+    }
+
+    async addGaraPunti(entryOrArray: any, currentUser?: any): Promise<string | string[]> {
+        const entries = Array.isArray(entryOrArray) ? entryOrArray : [entryOrArray];
+        const createdIds: string[] = [];
+        for (const entry of entries) {
+            const payload = {
+                squadriglia: (entry.squadriglia || '').trim(),
+                attivitaId: entry.attivitaId || null,
+                attivitaNome: (entry.attivitaNome || '').trim(),
+                categoriaId: entry.categoriaId || '',
+                categoriaNome: (entry.categoriaNome || '').trim(),
+                punti: Number(entry.punti) || 0,
+                motivazione: (entry.motivazione || '').trim(),
+                data: entry.data || new Date().toISOString().split('T')[0],
+                annoScout: (entry.annoScout || '').trim(),
+                assegnatoDa: currentUser?.email || 'staff',
+                createdAt: Timestamp.now()
+            };
+            const ref = await addDoc(collection(this.db, 'gara_punti'), payload);
+            createdIds.push(ref.id);
+        }
+        return Array.isArray(entryOrArray) ? createdIds : createdIds[0];
+    }
+
+    async updateGaraPunti(id: string, updates: any, currentUser?: any): Promise<void> {
+        const payload = {
+            ...updates,
+            updatedAt: Timestamp.now()
+        };
+        if (payload.punti !== undefined) payload.punti = Number(payload.punti);
+        await setDoc(doc(this.db, 'gara_punti', id), payload, { merge: true });
+    }
+
+    async deleteGaraPunti(id: string, currentUser?: any): Promise<void> {
+        await deleteDoc(doc(this.db, 'gara_punti', id));
+    }
 }

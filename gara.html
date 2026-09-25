@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gara di Reparto - Scout Maori</title>
+  <meta name="description" content="Tabellone classifica squadriglie, assegnazione punti e categorie personalizzabili della Gara di Reparto" />
+  <meta name="theme-color" content="#16a34a" />
+
+  <!-- Favicon e icone -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-950 flex flex-col min-h-screen text-gray-800 dark:text-gray-100">
+  <div id="app" class="max-w-7xl mx-auto w-full bg-white dark:bg-gray-900 shadow-xl rounded-xl overflow-hidden my-1.5 border border-gray-200 dark:border-gray-800">
+
+    <!-- Header condiviso -->
+    <div id="shared-header"></div>
+
+    <!-- Main -->
+    <main id="main-content" class="p-4 sm:p-6 space-y-6">
+      <!-- Modali condivisi -->
+      <div id="shared-modals"></div>
+
+      <!-- Intestazione pagina & Filtro Anno Scout -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-800">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span class="text-3xl">🏆</span>
+            <div>
+              <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Gara di Reparto</h2>
+              <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                Classifica squadriglie in tempo reale, storico punti per attività e categorie di punteggio
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <!-- Selettore Anno Scout -->
+          <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/80 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">
+            <label for="scoutYearSelect" class="text-xs font-semibold text-gray-600 dark:text-gray-300">Anno Scout:</label>
+            <select id="scoutYearSelect" class="text-xs sm:text-sm font-bold bg-transparent text-green-700 dark:text-green-400 focus:outline-none cursor-pointer">
+              <!-- Popolato dinamicamente da gara.js -->
+            </select>
+          </div>
+
+          <!-- Pulsanti Azione -->
+          <button id="openAssegnaPuntiBtn" type="button" class="btn-primary text-xs sm:text-sm px-3.5 py-2 flex items-center gap-1.5 shadow-sm">
+            <span>➕</span>
+            <span class="font-semibold">Assegna Punti</span>
+          </button>
+
+          <button id="openGestioneCategorieBtn" type="button" class="btn-secondary text-xs sm:text-sm px-3.5 py-2 flex items-center gap-1.5">
+            <span>⚙️</span>
+            <span>Categorie Punteggio</span>
+          </button>
+
+          <button id="exportGaraBtn" type="button" class="btn-secondary text-xs sm:text-sm px-3 py-2 flex items-center gap-1.5" title="Esporta classifica e storico in formato CSV">
+            <span>📥</span>
+            <span class="hidden sm:inline">Esporta CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Row -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-gradient-to-br from-amber-50 to-amber-100/60 dark:from-amber-950/30 dark:to-amber-900/20 p-3.5 sm:p-4 rounded-xl border border-amber-200/80 dark:border-amber-800/40">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider">In Testa</span>
+            <span class="text-lg">🥇</span>
+          </div>
+          <div id="statLeaderPatrol" class="text-xl sm:text-2xl font-black text-amber-900 dark:text-amber-100 mt-1">-</div>
+          <div id="statLeaderPoints" class="text-xs text-amber-700 dark:text-amber-400 mt-0.5">0 punti</div>
+        </div>
+
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100/60 dark:from-blue-950/30 dark:to-blue-900/20 p-3.5 sm:p-4 rounded-xl border border-blue-200/80 dark:border-blue-800/40">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-blue-800 dark:text-blue-300 uppercase tracking-wider">Punti Assegnati</span>
+            <span class="text-lg">⭐</span>
+          </div>
+          <div id="statTotalPoints" class="text-xl sm:text-2xl font-black text-blue-900 dark:text-blue-100 mt-1">0</div>
+          <div id="statTotalAssignments" class="text-xs text-blue-700 dark:text-blue-400 mt-0.5">0 assegnazioni</div>
+        </div>
+
+        <div class="bg-gradient-to-br from-emerald-50 to-emerald-100/60 dark:from-emerald-950/30 dark:to-emerald-900/20 p-3.5 sm:p-4 rounded-xl border border-emerald-200/80 dark:border-emerald-800/40">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Squadriglie</span>
+            <span class="text-lg">⚜️</span>
+          </div>
+          <div id="statPatrolCount" class="text-xl sm:text-2xl font-black text-emerald-900 dark:text-emerald-100 mt-1">0</div>
+          <div id="statActiveSquads" class="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">in competizione</div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100/60 dark:from-purple-950/30 dark:to-purple-900/20 p-3.5 sm:p-4 rounded-xl border border-purple-200/80 dark:border-purple-800/40">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-purple-800 dark:text-purple-300 uppercase tracking-wider">Categoria Top</span>
+            <span class="text-lg">🔥</span>
+          </div>
+          <div id="statTopCategory" class="text-lg sm:text-xl font-bold text-purple-900 dark:text-purple-100 mt-1 truncate">-</div>
+          <div id="statTopCategoryPoints" class="text-xs text-purple-700 dark:text-purple-400 mt-0.5">0 punti totali</div>
+        </div>
+      </div>
+
+      <!-- Tabellone Classifica & Podio -->
+      <section class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg sm:text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+            <span>🏁</span> Tabellone Classifica Generale
+          </h3>
+          <span id="classificaLastUpdate" class="text-xs text-gray-400">In tempo reale</span>
+        </div>
+
+        <!-- Podio visuale (top 3) -->
+        <div id="podiumContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end pt-2">
+          <!-- Renderizzato dinamicamente da gara.js -->
+        </div>
+
+        <!-- Classifica completa con breakdown categorie e barre di progressione -->
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700/80 overflow-hidden shadow-sm">
+          <div class="p-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between flex-wrap gap-2">
+            <div class="font-semibold text-sm text-gray-700 dark:text-gray-200">Dettaglio Punteggio e Distacco</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3">
+              <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-green-500"></span> Punti Totali</span>
+              <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Distacco dal 1°</span>
+            </div>
+          </div>
+          <div id="patrolRankingList" class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            <!-- Renderizzato da gara.js -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Storico Assegnazione Punti per Attività -->
+      <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h3 class="text-lg sm:text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+              <span>📜</span> Storico Assegnazioni Punti
+            </h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Registro dettagliato con attività, motivazione e capi assegnatari
+            </p>
+          </div>
+
+          <!-- Filtri storico -->
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- Filtro Squadriglia -->
+            <select id="filterSquadrigliaSelect" class="input py-1.5 px-3 text-xs sm:text-sm min-w-[130px]">
+              <option value="all">Tutte le Sq.</option>
+              <!-- opzioni aggiunte dinamicamente -->
+            </select>
+
+            <!-- Filtro Categoria -->
+            <select id="filterCategoriaSelect" class="input py-1.5 px-3 text-xs sm:text-sm min-w-[150px]">
+              <option value="all">Tutte le categorie</option>
+              <!-- opzioni aggiunte dinamicamente -->
+            </select>
+
+            <!-- Ricerca testo -->
+            <div class="relative">
+              <input type="text" id="filterHistorySearch" placeholder="Cerca attività o motivo..." class="input py-1.5 pl-8 pr-3 text-xs sm:text-sm w-44 sm:w-56" />
+              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">🔍</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabella Storico Punti -->
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto shadow-sm">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs uppercase font-semibold">
+              <tr>
+                <th scope="col" class="py-3 px-4 text-left">Data</th>
+                <th scope="col" class="py-3 px-4 text-left">Squadriglia</th>
+                <th scope="col" class="py-3 px-4 text-left">Attività</th>
+                <th scope="col" class="py-3 px-4 text-left">Categoria</th>
+                <th scope="col" class="py-3 px-4 text-center">Punti</th>
+                <th scope="col" class="py-3 px-4 text-left">Motivazione</th>
+                <th scope="col" class="py-3 px-4 text-left">Assegnato da</th>
+                <th scope="col" class="py-3 px-4 text-right">Azioni</th>
+              </tr>
+            </thead>
+            <tbody id="puntiHistoryTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/60">
+              <!-- Renderizzato da gara.js -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODALE: Assegna Punti -->
+  <div id="modalAssegnaPunti" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">⭐</span>
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white">Assegna Punti Gara</h3>
+        </div>
+        <button type="button" id="closeAssegnaPuntiModal" class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+          ✕
+        </button>
+      </div>
+
+      <form id="assegnaPuntiForm" class="space-y-4">
+        <!-- Target: Singola o Tutte le Squadriglie -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1.5">Destinatario</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750">
+              <input type="radio" name="targetSqType" value="single" checked class="text-green-600 focus:ring-green-500" />
+              <span class="text-xs font-semibold">Singola Sq.</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750">
+              <input type="radio" name="targetSqType" value="all" class="text-green-600 focus:ring-green-500" />
+              <span class="text-xs font-semibold">Tutte le Sq. (Uguale)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Selettore Squadriglia (nascosto se 'all') -->
+        <div id="singleSqContainer">
+          <label for="assegnaSquadrigliaSelect" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Squadriglia *</label>
+          <select id="assegnaSquadrigliaSelect" class="input w-full">
+            <!-- Popolato con le squadriglie del reparto -->
+          </select>
+        </div>
+
+        <!-- Categoria Punteggio -->
+        <div>
+          <label for="assegnaCategoriaSelect" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Categoria di Punteggio *</label>
+          <select id="assegnaCategoriaSelect" class="input w-full" required>
+            <!-- Popolato con le categorie -->
+          </select>
+        </div>
+
+        <!-- Punti (+ o -) -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="assegnaPuntiInput" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Punti da Assegnare *</label>
+            <div class="relative">
+              <input type="number" id="assegnaPuntiInput" class="input w-full text-lg font-black text-center" required />
+            </div>
+            <p class="text-[11px] text-gray-400 mt-1">Usa valori positivi o negativi (es. +15 o -5)</p>
+          </div>
+
+          <div>
+            <label for="assegnaDataInput" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Data *</label>
+            <input type="date" id="assegnaDataInput" class="input w-full" required />
+          </div>
+        </div>
+
+        <!-- Attività collegata (dal calendario o testo libero) -->
+        <div>
+          <label for="assegnaAttivitaSelect" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Attività Collegata</label>
+          <select id="assegnaAttivitaSelect" class="input w-full">
+            <option value="">Nessuna / Riunione Ordinaria</option>
+            <!-- Popolato dalle attività in calendario -->
+          </select>
+          <input type="text" id="assegnaAttivitaNomeCustom" placeholder="O scrivi nome personalizzato (es. Uscita d'Autunno)..." class="input w-full text-xs mt-1.5" />
+        </div>
+
+        <!-- Motivazione -->
+        <div>
+          <label for="assegnaMotivazioneInput" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Motivazione *</label>
+          <textarea id="assegnaMotivazioneInput" rows="2" placeholder="Es. Primo posto nel grande gioco, puntualità impeccabile..." class="textarea w-full text-xs sm:text-sm" required></textarea>
+        </div>
+
+        <!-- Pulsanti footer -->
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <button type="button" id="cancelAssegnaPuntiBtn" class="btn-secondary text-xs sm:text-sm px-4 py-2">Annulla</button>
+          <button type="submit" class="btn-primary text-xs sm:text-sm px-5 py-2 font-bold shadow-md">Conferma e Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODALE: Gestione Categorie Personalizzabili Anno per Anno -->
+  <div id="modalGestioneCategorie" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-5 max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">⚙️</span>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Categorie di Punteggio Gara</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Personalizza o aggiungi criteri di punteggio per l'anno scout</p>
+          </div>
+        </div>
+        <button type="button" id="closeGestioneCategorieModal" class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+          ✕
+        </button>
+      </div>
+
+      <!-- Form Nuova Categoria -->
+      <form id="newCategoryForm" class="bg-gray-50 dark:bg-gray-750 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3">
+        <div class="text-xs font-bold uppercase tracking-wider text-green-700 dark:text-green-400 flex items-center gap-1.5">
+          <span>➕</span> Aggiungi Nuova Categoria
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-0.5">Icona</label>
+            <input type="text" id="newCatIcon" value="🎯" maxlength="4" class="input w-full text-center text-base" />
+          </div>
+          <div class="sm:col-span-6">
+            <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-0.5">Nome Categoria *</label>
+            <input type="text" id="newCatNome" placeholder="Es. Costruzioni da Campo" class="input w-full text-xs" required />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-0.5">Punti Def.</label>
+            <input type="number" id="newCatPunti" value="15" class="input w-full text-xs text-center" />
+          </div>
+          <div class="sm:col-span-2 flex items-end">
+            <button type="submit" class="btn-primary w-full py-2 text-xs font-semibold justify-center">Aggiungi</button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-0.5">Descrizione / Criteri</label>
+          <input type="text" id="newCatDescrizione" placeholder="Descrizione dei criteri di valutazione..." class="input w-full text-xs" />
+        </div>
+      </form>
+
+      <!-- Lista Categorie Esistenti -->
+      <div class="flex-1 overflow-y-auto space-y-2 pr-1">
+        <div class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Categorie Attive</div>
+        <div id="categorieListContainer" class="space-y-2">
+          <!-- Renderizzato da gara.js -->
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end pt-3 border-t border-gray-100 dark:border-gray-700">
+        <button type="button" id="doneGestioneCategorieBtn" class="btn-secondary text-xs sm:text-sm px-4 py-2">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/config.js"></script>
+  <script type="module" src="shared.js"></script>
+  <script type="module" src="gara.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js")
+        .then(reg => console.log("Service Worker registrato:", reg.scope))
+        .catch(err => console.error("SW registration failed:", err));
+    }
+  </script>
+</body>
+
+</html>

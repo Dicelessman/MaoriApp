@@ -325,5 +325,61 @@ export const DATA = {
         const result = await (this.adapter as any).importScorteBatch(items, replaceExisting, currentUser);
         this.cache.invalidate('scorte');
         return result;
+    },
+
+    // Gara di Reparto - Categorie
+    async getGaraCategories(annoScout: string | null = null): Promise<any[]> {
+        const cacheKey = `gara_categories_${annoScout || 'all'}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await (this.adapter as any).getGaraCategories(annoScout);
+        this.cache.set(cacheKey, data, 5 * 60 * 1000);
+        return data;
+    },
+
+    async addGaraCategory(category: any, currentUser?: any): Promise<string> {
+        const result = await (this.adapter as any).addGaraCategory(category, currentUser);
+        this.cache.invalidate();
+        return result;
+    },
+
+    async updateGaraCategory(id: string, updates: any, currentUser?: any): Promise<void> {
+        const result = await (this.adapter as any).updateGaraCategory(id, updates, currentUser);
+        this.cache.invalidate();
+        return result;
+    },
+
+    async deleteGaraCategory(id: string, currentUser?: any): Promise<void> {
+        const result = await (this.adapter as any).deleteGaraCategory(id, currentUser);
+        this.cache.invalidate();
+        return result;
+    },
+
+    // Gara di Reparto - Punti
+    async getGaraPunti(annoScout: string | null = null): Promise<any[]> {
+        const cacheKey = `gara_punti_${annoScout || 'all'}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await (this.adapter as any).getGaraPunti(annoScout);
+        this.cache.set(cacheKey, data, 2 * 60 * 1000);
+        return data;
+    },
+
+    async addGaraPunti(entryOrArray: any, currentUser?: any): Promise<string | string[]> {
+        const result = await (this.adapter as any).addGaraPunti(entryOrArray, currentUser);
+        this.cache.invalidate();
+        return result;
+    },
+
+    async updateGaraPunti(id: string, updates: any, currentUser?: any): Promise<void> {
+        const result = await (this.adapter as any).updateGaraPunti(id, updates, currentUser);
+        this.cache.invalidate();
+        return result;
+    },
+
+    async deleteGaraPunti(id: string, currentUser?: any): Promise<void> {
+        const result = await (this.adapter as any).deleteGaraPunti(id, currentUser);
+        this.cache.invalidate();
+        return result;
     }
 };

@@ -11,10 +11,10 @@
     [x] Selezione lista scorte tematica (es. Campo Estivo)
     [x] Calcolo e importazione automatica costi materiali nella quota per ragazzo
 
-[ ] FASE 3: Gara di Reparto & Scheda Sanitaria Personale
-    [ ] Gara di Reparto: categorie di punteggio personalizzabili anno per anno
-    [ ] Tabellone classifica squadriglie in tempo reale con storico punti per attività
-    [ ] Scheda sanitaria personale stampabile in PDF/formato compatto per la cartellina del campo
+[x] FASE 3: Gara di Reparto & Scheda Sanitaria Personale
+    [x] Gara di Reparto: categorie di punteggio personalizzabili anno per anno
+    [x] Tabellone classifica squadriglie in tempo reale con storico punti per attività
+    [x] Scheda sanitaria personale stampabile in PDF/formato compatto per la cartellina del campo
 
 [ ] FASE 4: Widget "Prossima Attività" in Dashboard
     [ ] Card riepilogativa dell'attività imminente (countdown, presenti confermati, quote saldate)

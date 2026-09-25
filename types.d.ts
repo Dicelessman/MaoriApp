@@ -108,6 +108,39 @@ export interface InAppNotification {
   notificationType?: string;
 }
 
+/**
+ * Categoria di punteggio per Gara di Reparto
+ */
+export interface GaraCategory {
+  id: string;
+  nome: string;
+  descrizione?: string;
+  icona?: string;
+  puntiDefault?: number;
+  annoScout?: string;
+  attiva?: boolean;
+  createdAt?: string | FirestoreTimestamp;
+  createdBy?: string;
+}
+
+/**
+ * Assegnazione punti Gara di Reparto
+ */
+export interface GaraPunti {
+  id: string;
+  squadriglia: string;
+  attivitaId?: string | null;
+  attivitaNome?: string;
+  categoriaId: string;
+  categoriaNome: string;
+  punti: number;
+  motivazione?: string;
+  data: string;
+  annoScout: string;
+  assegnatoDa?: string;
+  createdAt?: string | FirestoreTimestamp;
+}
+
 // ============== State Types ==============
 
 /**

@@ -45,6 +45,8 @@ interface LocalState {
     scadenze: any[];
     scorte: any[];
     listeScorte?: string[];
+    garaCategories?: any[];
+    garaPunti?: any[];
 }
 
 export class LocalAdapter {
@@ -171,6 +173,60 @@ export class LocalAdapter {
                 'Uniformi',
                 'Distintivi',
                 'Generale'
+            ],
+            garaCategories: saved.garaCategories || [
+                { id: 'cat_1', nome: 'Puntualità & Presenze', descrizione: 'Presenza puntuale in uniforme alle riunioni e uscite', icona: '⏰', puntiDefault: 10, annoScout: 'all', attiva: true },
+                { id: 'cat_2', nome: 'Uniforme & Tenuta', descrizione: 'Uniforme completa e fazzolettone in ordine', icona: '👔', puntiDefault: 5, annoScout: 'all', attiva: true },
+                { id: 'cat_3', nome: 'Angolo & Cassa di Sq.', descrizione: 'Cura e pulizia angolo di squadriglia e cassa materiali', icona: '⛺', puntiDefault: 15, annoScout: 'all', attiva: true },
+                { id: 'cat_4', nome: 'Animazione & Fuoco', descrizione: 'Bans, canti, sketch e partecipazione al fuoco serale', icona: '🔥', puntiDefault: 15, annoScout: 'all', attiva: true },
+                { id: 'cat_5', nome: 'Cucina & Cambusa', descrizione: 'Menù, pulizia, puntualità dei pasti e gestione scorte', icona: '🍳', puntiDefault: 20, annoScout: 'all', attiva: true },
+                { id: 'cat_6', nome: 'Giochi & Grandi Giochi', descrizione: 'Vittoria o piazzamento nelle sfide e tornei di reparto', icona: '🎯', puntiDefault: 20, annoScout: 'all', attiva: true },
+                { id: 'cat_7', nome: 'Impresa di Squadriglia', descrizione: 'Ideazione, progettazione e realizzazione dell\'impresa', icona: '🛠️', puntiDefault: 50, annoScout: 'all', attiva: true },
+                { id: 'cat_8', nome: 'Spirito di Pattuglia & Stile', descrizione: 'Stile scout, lealtà, allegria e spirito di servizio', icona: '⚜️', puntiDefault: 10, annoScout: 'all', attiva: true }
+            ],
+            garaPunti: saved.garaPunti || [
+                {
+                    id: 'gp_test_1',
+                    squadriglia: 'Aironi',
+                    attivitaId: 'a1',
+                    attivitaNome: 'Uscita al lago',
+                    categoriaId: 'cat_6',
+                    categoriaNome: 'Giochi & Grandi Giochi',
+                    punti: 25,
+                    motivazione: 'Vittoria nel grande gioco a tappe',
+                    data: past1.toISOString().split('T')[0],
+                    annoScout: '2025/2026',
+                    assegnatoDa: 'staff@scoutmaori.it',
+                    createdAt: past1.toISOString()
+                },
+                {
+                    id: 'gp_test_2',
+                    squadriglia: 'Marmotte',
+                    attivitaId: 'a1',
+                    attivitaNome: 'Uscita al lago',
+                    categoriaId: 'cat_5',
+                    categoriaNome: 'Cucina & Cambusa',
+                    punti: 20,
+                    motivazione: 'Miglior pasto trappeur e pulizia del luogo',
+                    data: past1.toISOString().split('T')[0],
+                    annoScout: '2025/2026',
+                    assegnatoDa: 'staff@scoutmaori.it',
+                    createdAt: past1.toISOString()
+                },
+                {
+                    id: 'gp_test_3',
+                    squadriglia: 'Marmotte',
+                    attivitaId: 'a2',
+                    attivitaNome: 'Riunione settimanale',
+                    categoriaId: 'cat_1',
+                    categoriaNome: 'Puntualità & Presenze',
+                    punti: 10,
+                    motivazione: 'Tutti i membri presenti in orario',
+                    data: past2.toISOString().split('T')[0],
+                    annoScout: '2025/2026',
+                    assegnatoDa: 'staff@scoutmaori.it',
+                    createdAt: past2.toISOString()
+                }
             ]
         };
         // Restore dates
@@ -480,5 +536,136 @@ export class LocalAdapter {
         this.persist();
         console.log('LocalAdapter: importScorteBatch', { count: records.length, replace: replaceExisting });
         return records.length;
+    }
+
+    // ============================================================
+    // Gara di Reparto - Categorie
+    // ============================================================
+    async getGaraCategories(annoScout: string | null = null) {
+        if (!this.state.garaCategories || !Array.isArray(this.state.garaCategories) || this.state.garaCategories.length === 0) {
+            this.state.garaCategories = [
+                { id: 'cat_1', nome: 'Puntualità & Presenze', descrizione: 'Presenza puntuale in uniforme alle riunioni e uscite', icona: '⏰', puntiDefault: 10, annoScout: 'all', attiva: true },
+                { id: 'cat_2', nome: 'Uniforme & Tenuta', descrizione: 'Uniforme completa e fazzolettone in ordine', icona: '👔', puntiDefault: 5, annoScout: 'all', attiva: true },
+                { id: 'cat_3', nome: 'Angolo & Cassa di Sq.', descrizione: 'Cura e pulizia angolo di squadriglia e cassa materiali', icona: '⛺', puntiDefault: 15, annoScout: 'all', attiva: true },
+                { id: 'cat_4', nome: 'Animazione & Fuoco', descrizione: 'Bans, canti, sketch e partecipazione al fuoco serale', icona: '🔥', puntiDefault: 15, annoScout: 'all', attiva: true },
+                { id: 'cat_5', nome: 'Cucina & Cambusa', descrizione: 'Menù, pulizia, puntualità dei pasti e gestione scorte', icona: '🍳', puntiDefault: 20, annoScout: 'all', attiva: true },
+                { id: 'cat_6', nome: 'Giochi & Grandi Giochi', descrizione: 'Vittoria o piazzamento nelle sfide e tornei di reparto', icona: '🎯', puntiDefault: 20, annoScout: 'all', attiva: true },
+                { id: 'cat_7', nome: 'Impresa di Squadriglia', descrizione: 'Ideazione, progettazione e realizzazione dell\'impresa', icona: '🛠️', puntiDefault: 50, annoScout: 'all', attiva: true },
+                { id: 'cat_8', nome: 'Spirito di Pattuglia & Stile', descrizione: 'Stile scout, lealtà, allegria e spirito di servizio', icona: '⚜️', puntiDefault: 10, annoScout: 'all', attiva: true }
+            ];
+            this.persist();
+        }
+        if (!annoScout || annoScout === 'all') {
+            return [...this.state.garaCategories];
+        }
+        return this.state.garaCategories.filter(c => !c.annoScout || c.annoScout === 'all' || c.annoScout === annoScout);
+    }
+
+    async addGaraCategory(category: any, currentUser?: any) {
+        if (!this.state.garaCategories) this.state.garaCategories = [];
+        const id = 'cat_' + Math.random().toString(36).slice(2, 10);
+        const cat = {
+            id,
+            nome: (category.nome || '').trim(),
+            descrizione: (category.descrizione || '').trim(),
+            icona: (category.icona || '🏆').trim(),
+            puntiDefault: Number(category.puntiDefault) || 10,
+            annoScout: (category.annoScout || 'all').trim(),
+            attiva: category.attiva !== undefined ? !!category.attiva : true,
+            createdAt: new Date().toISOString(),
+            createdBy: currentUser?.email || 'user'
+        };
+        this.state.garaCategories.push(cat);
+        this.persist();
+        console.log('LocalAdapter: addGaraCategory', { id, currentUser: currentUser?.email });
+        return id;
+    }
+
+    async updateGaraCategory(id: string, updates: any, currentUser?: any) {
+        if (!this.state.garaCategories) this.state.garaCategories = [];
+        const idx = this.state.garaCategories.findIndex(c => c.id === id);
+        if (idx >= 0) {
+            this.state.garaCategories[idx] = {
+                ...this.state.garaCategories[idx],
+                ...updates,
+                puntiDefault: updates.puntiDefault !== undefined ? Number(updates.puntiDefault) : this.state.garaCategories[idx].puntiDefault,
+                updatedAt: new Date().toISOString()
+            };
+            this.persist();
+            console.log('LocalAdapter: updateGaraCategory', { id, currentUser: currentUser?.email });
+        }
+    }
+
+    async deleteGaraCategory(id: string, currentUser?: any) {
+        if (!this.state.garaCategories) return;
+        this.state.garaCategories = this.state.garaCategories.filter(c => c.id !== id);
+        this.persist();
+        console.log('LocalAdapter: deleteGaraCategory', { id, currentUser: currentUser?.email });
+    }
+
+    // ============================================================
+    // Gara di Reparto - Punti
+    // ============================================================
+    async getGaraPunti(annoScout: string | null = null) {
+        if (!this.state.garaPunti || !Array.isArray(this.state.garaPunti)) {
+            this.state.garaPunti = [];
+            this.persist();
+        }
+        if (!annoScout || annoScout === 'all') {
+            return [...this.state.garaPunti];
+        }
+        return this.state.garaPunti.filter(p => !p.annoScout || p.annoScout === annoScout);
+    }
+
+    async addGaraPunti(entryOrArray: any, currentUser?: any) {
+        if (!this.state.garaPunti) this.state.garaPunti = [];
+        const entries = Array.isArray(entryOrArray) ? entryOrArray : [entryOrArray];
+        const createdIds: string[] = [];
+        const now = new Date().toISOString();
+
+        for (const entry of entries) {
+            const id = 'gp_' + Math.random().toString(36).slice(2, 10);
+            const record = {
+                id,
+                squadriglia: (entry.squadriglia || '').trim(),
+                attivitaId: entry.attivitaId || null,
+                attivitaNome: (entry.attivitaNome || '').trim(),
+                categoriaId: entry.categoriaId || '',
+                categoriaNome: (entry.categoriaNome || '').trim(),
+                punti: Number(entry.punti) || 0,
+                motivazione: (entry.motivazione || '').trim(),
+                data: entry.data || now.split('T')[0],
+                annoScout: (entry.annoScout || '').trim(),
+                assegnatoDa: currentUser?.email || 'staff',
+                createdAt: now
+            };
+            this.state.garaPunti.push(record);
+            createdIds.push(id);
+        }
+        this.persist();
+        console.log('LocalAdapter: addGaraPunti', { count: createdIds.length, currentUser: currentUser?.email });
+        return Array.isArray(entryOrArray) ? createdIds : createdIds[0];
+    }
+
+    async updateGaraPunti(id: string, updates: any, currentUser?: any) {
+        if (!this.state.garaPunti) this.state.garaPunti = [];
+        const idx = this.state.garaPunti.findIndex(p => p.id === id);
+        if (idx >= 0) {
+            this.state.garaPunti[idx] = {
+                ...this.state.garaPunti[idx],
+                ...updates,
+                punti: updates.punti !== undefined ? Number(updates.punti) : this.state.garaPunti[idx].punti,
+                updatedAt: new Date().toISOString()
+            };
+            this.persist();
+            console.log('LocalAdapter: updateGaraPunti', { id, currentUser: currentUser?.email });
+        }
+    }
+
+    async deleteGaraPunti(id: string, currentUser?: any) {
+        if (!this.state.garaPunti) return;
+        this.state.garaPunti = this.state.garaPunti.filter(p => p.id !== id);
+        this.persist();
+        console.log('LocalAdapter: deleteGaraPunti', { id, currentUser: currentUser?.email });
     }
 }
