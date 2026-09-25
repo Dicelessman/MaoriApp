@@ -536,6 +536,58 @@ export const UI = {
             this.showToast('Errore stampa: ' + e.message, { type: 'error', duration: 4000 });
         }
     },
+    async updatePaymentCombined({ value, scoutId, activityId }) {
+        if (!this.currentUser) {
+            this.showToast('Devi essere autenticato per modificare i pagamenti.', { type: 'error' });
+            return;
+        }
+        const isPaid = !!value;
+        const method = value || null;
+
+        try {
+            await DATA.updatePresence(
+                { field: 'pagato', value: isPaid, scoutId, activityId },
+                this.currentUser
+            );
+            if (isPaid) {
+                await DATA.updatePresence(
+                    { field: 'tipoPagamento', value: method, scoutId, activityId },
+                    this.currentUser
+                );
+            }
+            const key = `${scoutId}_${activityId}`;
+            if (this.presenceIndex) {
+                let p = this.presenceIndex.get(key);
+                if (p) {
+                    p.pagato = isPaid;
+                    p.tipoPagamento = method;
+                    this.presenceIndex.set(key, p);
+                }
+            }
+            if (this.state && Array.isArray(this.state.presences)) {
+                const match = this.state.presences.find(x => x.esploratoreId === scoutId && x.attivitaId === activityId);
+                if (match) {
+                    match.pagato = isPaid;
+                    match.tipoPagamento = method;
+                }
+            }
+            this.showToast(isPaid ? `Pagamento registrato (${method})` : 'Pagamento rimosso', { type: 'success', duration: 2000 });
+            if (typeof this.renderCurrentPage === 'function') {
+                this.renderCurrentPage();
+            } else if (typeof this.renderPaymentsPerActivity === 'function') {
+                this.renderPaymentsPerActivity();
+            }
+        } catch (error) {
+            console.error('Errore updatePaymentCombined:', error);
+            this.showToast('Errore salvataggio pagamento: ' + (error.message || ''), { type: 'error' });
+        }
+    },
+    getDedupedPresences() {
+        if (this.presenceIndex && this.presenceIndex.size > 0) {
+            return Array.from(this.presenceIndex.values());
+        }
+        return this.state?.presences || [];
+    },
     getSelectedScoutYear() {
         const prefs = this.loadUserPreferences();
         return prefs.selectedScoutYear || this.getCurrentScoutYear();
