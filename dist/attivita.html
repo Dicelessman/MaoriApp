@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dettaglio Attività</title>
+  <link rel="manifest" href="/assets/manifest-DovV98Et.json" />
+  <link rel="icon" href="/assets/favicon-D0S-PLtV.ico" />
+  <script type="module" crossorigin src="/assets/attivita-Cxx0cT8-.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-DdNAYcTb.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-Dm_IxfHL.js">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-BUUTnjq0.css">
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+
+    <div id="shared-header"></div>
+
+    <main id="main-content" class="p-6">
+      <div id="shared-modals"></div>
+
+      <section class="tab-content active">
+        <h2 id="activityTitle" class="text-2xl font-semibold text-gray-700 mb-1">Attività</h2>
+        <p id="activityMeta" class="text-gray-600 mb-4"></p>
+
+        <div class="flex flex-wrap gap-2 mb-5">
+          <button id="copyPresentiBtn" class="btn-primary">Copia Presenti</button>
+          <button id="copyAssentiBtn" class="btn-secondary">Copia Assenti</button>
+          <button id="copyPagamentiBtn" class="btn-secondary">Copia Pagamenti</button>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <div class="flex items-baseline justify-between mb-2">
+              <h3 class="text-lg font-semibold text-gray-700">Presenti</h3>
+              <span id="presentiCount" class="text-sm text-gray-500"></span>
+            </div>
+            <ul id="presentiList" class="list-disc pl-5 text-gray-800"></ul>
+          </div>
+          <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <div class="flex items-baseline justify-between mb-2">
+              <h3 class="text-lg font-semibold text-gray-700">Assenti</h3>
+              <span id="assentiCount" class="text-sm text-gray-500"></span>
+            </div>
+            <ul id="assentiList" class="list-disc pl-5 text-gray-800"></ul>
+          </div>
+
+          <div class="mt-6 bg-white rounded-lg border border-gray-200 p-4 md:col-span-2">
+            <div class="flex items-baseline justify-between mb-2">
+              <h3 class="text-lg font-semibold text-gray-700">Pagamenti</h3>
+              <span id="pagamentiCount" class="text-sm text-gray-500"></span>
+            </div>
+            <ul id="pagamentiList" class="list-disc pl-5 text-gray-800"></ul>
+          </div>
+
+          <!-- Commenti e Annotazioni -->
+          <div class="mt-2 bg-white rounded-lg border border-gray-200 p-4 md:col-span-2">
+            <div class="flex items-baseline justify-between mb-2">
+              <h3 class="text-lg font-semibold text-gray-700">Commenti e note</h3>
+            </div>
+            <div id="activityCommentsList" class="divide-y divide-gray-200 text-sm text-gray-800 mb-3"></div>
+            <form id="activityCommentForm" class="mt-3 space-y-2">
+              <label for="activityCommentText" class="block text-sm font-medium text-gray-700">Aggiungi un commento</label>
+              <textarea
+                id="activityCommentText"
+                rows="3"
+                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200 textarea-auto-resize"
+                placeholder="Note logistiche, promemoria, dettagli aggiuntivi..."
+              ></textarea>
+              <div class="flex justify-end">
+                <button type="submit" class="btn-primary px-4 py-2 text-sm">Aggiungi commento</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Configurazione Firebase (generata durante il build) -->
+  <script src="/config.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js")
+        .then(reg => console.log("Service Worker registrato:", reg.scope))
+        .catch(err => console.error("SW registration failed:", err));
+    }
+  </script>
+</body>
+</html>

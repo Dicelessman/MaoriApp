@@ -595,4 +595,19 @@ export class FirestoreAdapter {
     async deleteGaraPunti(id: string, currentUser?: any): Promise<void> {
         await deleteDoc(doc(this.db, 'gara_punti', id));
     }
+
+    async getAuditLogs(limitCount: number = 100): Promise<any[]> {
+        try {
+            const q = query(collection(this.db, 'auditLogs'), orderBy('timestamp', 'desc'), limit(limitCount));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(d => ({
+                id: d.id,
+                ...d.data()
+            }));
+        } catch (error) {
+            console.error('Error fetching audit logs from Firestore:', error);
+            return [];
+        }
+    }
 }
+

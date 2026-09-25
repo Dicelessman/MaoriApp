@@ -673,4 +673,10 @@ export class LocalAdapter {
         this.persist();
         console.log('LocalAdapter: deleteGaraPunti', { id, currentUser: currentUser?.email });
     }
+
+    async getAuditLogs(limitCount: number = 100): Promise<any[]> {
+        const logs = (this.state as any).auditLogs || [];
+        return logs.slice(0, limitCount);
+    }
 }
+

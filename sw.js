@@ -1,8 +1,9 @@
-const CACHE_NAME = "presenziario-cache-v12"; // bump cache v12
+const CACHE_NAME = "presenziario-cache-v14"; // bump cache v14
 const RUNTIME_CACHE = "presenziario-runtime-v5";
 const URLS_TO_CACHE = [
   "/",
   "/index.html",
+  "/home.js",
   // Pagine principali
   "/presenze.html",
   "/storico-presenze.html",
@@ -124,7 +125,12 @@ self.addEventListener("fetch", (event) => {
       })
       .catch(() => cached);
 
-    // Risponde subito con la cache se disponibile, aggiorna in background
-    return cached || fetchPromise;
+    // Risponde subito con la cache se disponibile, aggiorna in background con waitUntil
+    if (cached) {
+      event.waitUntil(fetchPromise);
+      return cached;
+    }
+    return fetchPromise;
   })());
 });
+

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Storico Presenze - Scout Maori</title>
+  <meta name="description" content="Storico e statistiche presenze degli anni scout precedenti" />
+  <meta name="theme-color" content="#16a34a" />
+
+  <!-- Favicon e icone -->
+  <link rel="icon" type="image/x-icon" href="/assets/favicon-D0S-PLtV.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192-BnNgNRfN.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512-DmSUEAR1.png" />
+  <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="/assets/manifest-DovV98Et.json" />
+
+  <!-- CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+  <script type="module" crossorigin src="/assets/storicoPresenze-CLj44H5Z.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-DdNAYcTb.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-Dm_IxfHL.js">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-BUUTnjq0.css">
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="app" class="max-w-7xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+
+    <!-- Header condiviso -->
+    <div id="shared-header"></div>
+
+    <!-- Main -->
+    <main id="main-content" class="p-6">
+      <!-- Modali condivisi -->
+      <div id="shared-modals"></div>
+
+      <!-- Intestazione pagina -->
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">📚</span>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Storico Presenze Anni Precedenti</h2>
+          </div>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Archivio storico delle presenze, statistiche per esploratore e riepilogo per anno scout
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <a href="presenze.html" class="btn-secondary px-3.5 py-2 text-sm flex items-center gap-1.5 shadow-sm" title="Torna al registro presenze dell'anno in corso">
+            <span>←</span>
+            <span>Registro in Corso</span>
+          </a>
+          <button id="printStoricoBtn" type="button" class="btn-secondary px-3.5 py-2 text-sm flex items-center gap-1.5 shadow-sm" title="Stampa o esporta in PDF il report storico">
+            <span>🖨️</span>
+            <span>Stampa Report</span>
+          </button>
+          <button id="exportStoricoCsvBtn" type="button" class="btn-primary px-3.5 py-2 text-sm flex items-center gap-1.5 shadow-sm" title="Esporta le presenze dell'anno selezionato in CSV">
+            <span>📊</span>
+            <span>Esporta CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra Filtri e Selezione Anno Scout -->
+      <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-6 shadow-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+          
+          <!-- Selettore Anno Scout -->
+          <div>
+            <label for="storicoScoutYearSelect" class="block text-xs font-bold uppercase tracking-wider text-green-800 dark:text-green-300 mb-1.5">
+              📅 Anno Scout
+            </label>
+            <select id="storicoScoutYearSelect"
+              class="w-full px-3 py-2 text-sm font-semibold rounded-lg border border-green-300 dark:border-green-700 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none cursor-pointer">
+              <!-- Popolato dinamicamente -->
+            </select>
+          </div>
+
+          <!-- Cerca esploratore -->
+          <div>
+            <label for="storicoSearchInput" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+              🔍 Cerca Esploratore
+            </label>
+            <input type="text" id="storicoSearchInput" placeholder="Nome o cognome..."
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+
+          <!-- Filtro Pattuglia -->
+          <div>
+            <label for="storicoPatrolFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+              ⚜️ Pattuglia
+            </label>
+            <select id="storicoPatrolFilter"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+              <option value="">Tutte le pattuglie</option>
+            </select>
+          </div>
+
+          <!-- Filtro Fascia di Presenza -->
+          <div>
+            <label for="storicoAttendanceFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
+              📈 Fascia di Presenza
+            </label>
+            <select id="storicoAttendanceFilter"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+              <option value="all">Tutti i livelli</option>
+              <option value="high">Alta (≥ 75%)</option>
+              <option value="medium">Media (50% - 74%)</option>
+              <option value="low">Bassa (&lt; 50%)</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs">
+          <div id="storicoFilterSummary" class="text-gray-600 dark:text-gray-300 font-medium">
+            Caricamento statistiche...
+          </div>
+          <button id="resetStoricoFiltersBtn" type="button" class="text-green-700 dark:text-green-400 hover:underline font-medium cursor-pointer">
+            ✕ Ripristina filtri
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Cards dell'Anno Storico -->
+      <section id="storicoKpisSection" class="mb-6">
+        <div id="storicoKpiCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Popolato dinamicamente da storico-presenze.js -->
+        </div>
+      </section>
+
+      <!-- Vista Multi-Anno (Confronto Globale) -->
+      <section id="multiYearComparisonSection" class="hidden mb-6">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+          <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 flex items-center justify-between">
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+              <span>📊</span>
+              <span>Confronto Storico tra gli Anni Scout</span>
+            </h3>
+            <span class="text-xs text-gray-500 dark:text-gray-400">Riepilogo multi-anno</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th class="p-3 text-left">Anno Scout</th>
+                  <th class="p-3 text-right">Attività Totali</th>
+                  <th class="p-3 text-right">Presenze Registrate</th>
+                  <th class="p-3 text-right">Assenze</th>
+                  <th class="p-3 text-right">% Presenza Media</th>
+                  <th class="p-3 text-left">Pattuglia Più Costante</th>
+                  <th class="p-3 text-center">Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="multiYearTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/40">
+                <!-- Generato dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sezione Principale: Tabella Presenze Esploratori dell'Anno Selezionato -->
+      <section id="singleYearStatsSection" class="mb-6">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+          <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                <span>👥</span>
+                <span id="singleYearTableTitle">Statistiche Presenze Esploratori</span>
+              </h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" id="singleYearTableSubtitle">
+                Dettaglio presenze e fedeltà per ciascun esploratore
+              </p>
+            </div>
+
+            <!-- Ordinamento rapido -->
+            <div class="flex items-center gap-2">
+              <label for="storicoSortSelect" class="text-xs text-gray-500 dark:text-gray-400 font-medium">Ordina per:</label>
+              <select id="storicoSortSelect" class="text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white">
+                <option value="perc_desc">% Presenza (Alta → Bassa)</option>
+                <option value="perc_asc">% Presenza (Bassa → Alta)</option>
+                <option value="cognome_asc">Cognome (A → Z)</option>
+                <option value="cognome_desc">Cognome (Z → A)</option>
+                <option value="nome_asc">Nome (A → Z)</option>
+                <option value="pattuglia_asc">Pattuglia (A → Z)</option>
+                <option value="presenti_desc">Numero Presenze (Maggiori)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700 text-xs">
+                <tr>
+                  <th class="p-3 text-left">Esploratore</th>
+                  <th class="p-3 text-left">Pattuglia</th>
+                  <th class="p-3 text-center">Attività Totali</th>
+                  <th class="p-3 text-center">Presenze (P)</th>
+                  <th class="p-3 text-center">Assenze (A)</th>
+                  <th class="p-3 text-center">NR</th>
+                  <th class="p-3 text-left w-48">% Presenza</th>
+                  <th class="p-3 text-center">Fascia</th>
+                  <th class="p-3 text-center">Quote</th>
+                  <th class="p-3 text-center">Dettaglio</th>
+                </tr>
+              </thead>
+              <tbody id="storicoTableBody" class="divide-y divide-gray-100 dark:divide-gray-700/40">
+                <!-- Generato dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Statistiche per Pattuglia dell'Anno -->
+      <section id="patrolStatsSection" class="mb-6">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+          <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+              <span>⚜️</span>
+              <span>Presenze Medie per Pattuglia</span>
+            </h3>
+          </div>
+          <div id="patrolStatsContainer" class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Popolato dinamicamente -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Tabellone Presenze Completo (Griglia Interattiva Sola Consultazione) -->
+      <section id="historicalGridSection" class="mb-6">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+          <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                <span>📋</span>
+                <span>Registro Tabellare Storico Completo</span>
+              </h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Griglia delle presenze con tutte le uscite e riunioni dell'anno selezionato (sola consultazione)
+              </p>
+            </div>
+            <button id="toggleHistoricalGridBtn" type="button" class="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold">
+              <span id="gridToggleIcon">👁️</span>
+              <span id="gridToggleText">Mostra Registro Tabellare</span>
+            </button>
+          </div>
+
+          <div id="historicalGridContainer" class="hidden p-4 overflow-x-auto max-h-[600px] scrollbar-thin">
+            <table class="min-w-full text-xs border-collapse">
+              <thead>
+                <tr id="historicalGridDatesHeader" class="bg-green-800 text-white font-semibold"></tr>
+                <tr id="historicalGridTypesHeader" class="bg-green-900 text-white text-[11px]"></tr>
+              </thead>
+              <tbody id="historicalGridBody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal Dettaglio Esploratore -->
+  <div id="scoutDetailModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 bg-green-700 text-white flex justify-between items-center">
+        <div>
+          <h3 id="scoutDetailModalTitle" class="text-lg font-bold">Dettaglio Presenze</h3>
+          <p id="scoutDetailModalSubtitle" class="text-xs text-green-100 mt-0.5"></p>
+        </div>
+        <button id="closeScoutDetailModalBtn" class="text-white hover:text-green-200 text-xl font-bold p-1">✕</button>
+      </div>
+      <div id="scoutDetailModalContent" class="p-6 overflow-y-auto space-y-4">
+        <!-- Popolato dinamicamente -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Area di Stampa -->
+  <div id="printArea" class="hidden"></div>
+
+  <!-- Scripts -->
+  <script src="/config.js"></script>
+</body>
+
+</html>

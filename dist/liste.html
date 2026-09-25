@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Liste - Scout Maori</title>
+    <meta name="description" content="Liste e Stampe Reparto Scout Maori" />
+
+    <!-- Favicon e icone -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon-D0S-PLtV.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192-BnNgNRfN.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512-DmSUEAR1.png" />
+    <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="/assets/manifest-DovV98Et.json" />
+
+    <!-- CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome (opzionale, se serve per icone extra) -->
+
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+    <!-- jsPDF per generazione PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #printArea,
+            #printArea * {
+                visibility: visible;
+            }
+
+            #printArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 20px;
+                background: white;
+                color: black;
+            }
+        }
+    </style>
+  <script type="module" crossorigin src="/assets/liste-tjKKKU_H.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-DdNAYcTb.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-Dm_IxfHL.js">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-BUUTnjq0.css">
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+
+        <!-- Header condiviso -->
+        <div id="shared-header"></div>
+
+        <!-- Main -->
+        <main id="main-content" class="p-6">
+            <!-- Modali condivisi -->
+            <div id="shared-modals"></div>
+
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">Liste e Stampe</h2>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="border-b border-gray-200 dark:border-gray-700 mb-6 overflow-x-auto">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button data-tab="presenze"
+                        class="tab-btn active border-green-500 text-green-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        📝 Presenze Attività
+                    </button>
+                    <button data-tab="elenco"
+                        class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        📋 Elenco Completo
+                    </button>
+                    <button data-tab="sfide"
+                        class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        🎯 Sfide PV
+                    </button>
+                    <button data-tab="prove"
+                        class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        🏅 Prove PO
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Content Sections -->
+
+            <!-- 1. Presenze Attività (Unchanged) -->
+            <div id="tab-presenze" class="tab-pane block space-y-6">
+                <!-- ... content maintained ... -->
+                <div
+                    class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Lista Presenze per Attività
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Seleziona
+                                Attività</label>
+                            <select id="activitySelect" title="Seleziona un'attività" class="input w-full">
+                                <option value="">-- Seleziona un'attività --</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col justify-end space-y-2">
+                            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" id="presenzeShowDob" class="rounded text-green-600">
+                                Includi Data di Nascita
+                            </label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Ordina per
+                            </label>
+                            <select id="presenzeSortMode" title="Ordina presenze per" class="input w-full text-sm py-1">
+                                <option value="surname">Cognome Nome</option>
+                                <option value="name">Nome Cognome</option>
+                                <option value="patrol">Pattuglia</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="printPresenzeBtn" class="btn-primary" disabled>🖨️ Stampa Lista</button>
+                        <button id="copyPresenzeBtn" class="btn-secondary" disabled>📋 Copia Testo</button>
+                        <button id="csvPresenzeBtn" class="btn-secondary" disabled>💾 Scarica CSV</button>
+                    </div>
+                </div>
+
+                <!-- Preview Area -->
+                <div id="presenzePreview"
+                    class="hidden bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-700">
+                    <h4 class="font-bold text-center mb-2" id="presenzePreviewTitle"></h4>
+                    <div id="presenzePreviewList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Elenco Completo -->
+            <div id="tab-elenco" class="tab-pane hidden space-y-6">
+                <!-- Control Panel -->
+                <div
+                    class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Personalizza Elenco</h3>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Colonne da
+                            mostrare:</label>
+                        <div class="flex flex-wrap gap-4">
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox"
+                                    class="col-toggle rounded text-green-600" data-col="pattuglia"> Pattuglia</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox"
+                                    class="col-toggle rounded text-green-600" data-col="passo"> Passo</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox"
+                                    class="col-toggle rounded text-green-600" data-col="sfide"> Sfide (Sigle)</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox"
+                                    class="col-toggle rounded text-green-600" data-col="specialita"> Specialità</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox"
+                                    class="col-toggle rounded text-green-600" data-col="dob"> Data di Nascita</label>
+                        </div>
+                    </div>
+
+                    <!-- Filtri Avanzati -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Filtra per Pattuglia</label>
+                            <select id="elencoFilterPattuglia" title="Filtra elenco per Pattuglia" class="input w-full py-1 text-sm">
+                                <option value="">-- Tutte --</option>
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Filtra per Passo</label>
+                            <select id="elencoFilterPasso" title="Filtra elenco per Passo" class="input w-full py-1 text-sm">
+                                <option value="">-- Tutti --</option>
+                                <option value="1">I</option>
+                                <option value="2">II</option>
+                                <option value="3">III</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end pb-1">
+                            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" id="elencoHighlightSfide" class="rounded text-green-600">
+                                Evidenzia sfide comuni
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Ordinamento Multiplo -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ordinamento 1</label>
+                            <select id="elencoSort1" title="Primo criterio di ordinamento" class="input w-full py-1 text-sm elenco-sort-select">
+                                <option value="name">Cognome Nome</option>
+                                <option value="pattuglia">Pattuglia</option>
+                                <option value="passo">Passo</option>
+                                <option value="dob">Data Nascita</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ordinamento 2</label>
+                            <select id="elencoSort2" title="Secondo criterio di ordinamento" class="input w-full py-1 text-sm elenco-sort-select">
+                                <option value="">-- Nessuno --</option>
+                                <option value="name">Cognome Nome</option>
+                                <option value="pattuglia">Pattuglia</option>
+                                <option value="passo">Passo</option>
+                                <option value="dob">Data Nascita</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ordinamento 3</label>
+                            <select id="elencoSort3" title="Terzo criterio di ordinamento" class="input w-full py-1 text-sm elenco-sort-select">
+                                <option value="">-- Nessuno --</option>
+                                <option value="name">Cognome Nome</option>
+                                <option value="pattuglia">Pattuglia</option>
+                                <option value="passo">Passo</option>
+                                <option value="dob">Data Nascita</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="printElencoBtn" class="btn-primary">🖨️ Stampa</button>
+                        <button id="copyElencoBtn" class="btn-secondary">📋 Copia</button>
+                        <button id="csvElencoBtn" class="btn-secondary">💾 CSV</button>
+                    </div>
+                </div>
+
+                <!-- Table Preview -->
+                <div
+                    class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="elencoTable">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <!-- Headers dynamically generated -->
+                        </thead>
+                        <tbody>
+                            <!-- Rows dynamically generated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 3. Sfide PV -->
+            <div id="tab-sfide" class="tab-pane hidden space-y-6">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Sfide PV Scelte</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Filtra per Pattuglia</label>
+                            <select id="sfideFilterPattuglia" title="Filtra sfide per Pattuglia" class="input w-full py-1 text-sm">
+                                <option value="">-- Tutte --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="printSfideBtn" class="btn-primary">🖨️ Stampa</button>
+                        <button id="copySfideBtn" class="btn-secondary">📋 Copia</button>
+                        <button id="csvSfideBtn" class="btn-secondary">💾 CSV</button>
+                    </div>
+                </div>
+                <div id="sfideContainer" class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-8">
+                    <!-- Generato da JS -->
+                </div>
+            </div>
+
+            <!-- 4. Prove PO -->
+            <div id="tab-prove" class="tab-pane hidden space-y-6">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Prove Specialità da Superare</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Filtra per Pattuglia</label>
+                            <select id="proveFilterPattuglia" title="Filtra prove per Pattuglia" class="input w-full py-1 text-sm">
+                                <option value="">-- Tutte --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="printProveBtn" class="btn-primary">🖨️ Stampa</button>
+                        <button id="copyProveBtn" class="btn-secondary">📋 Copia</button>
+                        <button id="csvProveBtn" class="btn-secondary">💾 CSV</button>
+                    </div>
+                </div>
+                <div id="proveContainer" class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-8">
+                    <!-- Generato da JS -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="printArea" class="hidden print:block"></div>
+
+    <!-- Scripts -->
+    <script src="/config.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js")
+                .then(reg => console.log("Service Worker registrato:", reg.scope))
+                .catch(err => console.error("SW registration failed:", err));
+        }
+    </script>
+</body>
+
+</html>

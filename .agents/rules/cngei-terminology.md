@@ -18,25 +18,27 @@ In tutte le interfacce, etichette, testi, placeholder, commenti, logiche di visu
 | **Cassa di Squadriglia** | **Cassa di Pattuglia** | - | Cassa materiali della pattuglia |
 | **Impresa di Squadriglia** | **Impresa di Pattuglia** | - | Progetto ideato e realizzato dalla pattuglia |
 | **Grido di Squadriglia** | **Grido di Pattuglia** | - | Motto e richiamo della pattuglia |
-| **Gara tra Squadriglie** | **Gara tra Pattuglie** | - | Competizione di reparto |
+| **Gara tra Squadriglie** | **Gara di Reparto** | - | Competizione periodica di reparto |
 
 ---
 
 ## 2. Struttura delle Branche CNGEI
 
 1. **Branca Lupetti (L)**: 8 - 12 anni
-   - Unità: **Branco**
+   - Unità: **Branco** (non "Cerchio")
    - Sotto-unità: **Sestiglie** (Colori: Neri, Bianchi, Pezzati, Rossi, Grigi, Bruni)
    - Capi: Vecchi Lupi (Akela, Baloo, Bagheera, Kaa, ecc.)
-2. **Branca Esploratori ed Esploratrici (E/E)**: 12 - 16 anni
+2. **Branca Esploratori (E)**: 12 - 16 anni
    - Unità: **Reparto** (laico e coeducativo)
-   - Sotto-unità: **Pattuglie** (animali: Aironi, Marmotte, Volpi, Aquile, Lupi, Puma, ecc.)
-   - Ruoli: **Capo Pattuglia (CP)**, **Vice Capo Pattuglia (VCP)**
-   - Progressione: **Sentiero** (Prove, Sfide, Specialità, Brevetti di Pattuglia)
+   - Sotto-unità: **Pattuglie** (nomi di animali: Aironi, Marmotte, Volpi, Aquile, Lupi, Puma, ecc.)
+   - Ruoli ragazzi: **CP** (Capo Pattuglia), **VCP** (Vice Capo Pattuglia)
+   - Progressione: **Sentiero** (Sfide, Promessa, Giglio e Trifoglio dell'Impegno), **Specialità** (Prove, Specialità, Specialità di Pattuglia, Specialista)
+   - Capi: **CR** (Capo Reparto), **VCR** (Vice Capo Reparto)
 3. **Branca Rover (R)**: 16 - 19 anni
-   - Unità: **Compagnia**
+   - Unità: **Compagnia** (non "Noviziato/Clan")
    - Progressione: Cammino, Servizio, Partenza
-4. **Adulti**: Senior, Capi Unità, Coordinatori
+4. **Adulti**:
+   - Capi Unità, Vice Capi, Capi Gruppo, Senior (Clan Senior)
 
 ---
 

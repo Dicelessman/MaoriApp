@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Presenze - Scout Maori</title>
+  <meta name="description" content="Registro presenze Reparto Scout Maori" />
+  <meta name="theme-color" content="#16a34a" />
+
+  <!-- Favicon e icone -->
+  <link rel="icon" type="image/x-icon" href="/assets/favicon-D0S-PLtV.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192-BnNgNRfN.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512-DmSUEAR1.png" />
+  <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="/assets/manifest-DovV98Et.json" />
+
+  <!-- CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+  <script type="module" crossorigin src="/assets/presenze-CCBu0ZqA.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-DdNAYcTb.js">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-BUUTnjq0.css">
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+
+    <!-- Header condiviso -->
+    <div id="shared-header"></div>
+
+    <!-- Main -->
+    <main id="main-content" class="p-6">
+      <!-- Modali condivisi -->
+      <div id="shared-modals"></div>
+
+      <!-- Contenuto specifico Presenze -->
+      <section id="presencesTab" class="tab-content active">
+        <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+          <div>
+            <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">Registro Presenze</h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Anno scout in corso <span id="currentYearBadge" class="font-bold text-green-700 dark:text-green-400"></span></p>
+          </div>
+          <div class="flex gap-2 items-center flex-wrap">
+            <a href="storico-presenze.html" class="px-3.5 py-2 text-sm rounded-lg border border-green-600/40 text-green-800 dark:text-green-300 bg-green-50 dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-900/40 font-medium flex items-center gap-1.5 transition-colors shadow-sm" title="Consulta lo storico presenze degli anni precedenti">
+              <span>📚</span>
+              <span>Storico Anni Precedenti</span>
+            </a>
+            <button id="openExportModalBtn" onclick="UI.openExportModal()" class="btn-primary px-4 py-2 text-sm flex items-center gap-1.5 shadow-sm" title="Opzioni di esportazione CSV ed Excel">
+              <span>📊</span>
+              <span>Esporta CSV / Excel</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Avviso Archivio Anno Precedente -->
+        <div id="presenceArchiveNotice" class="hidden bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 px-4 py-2.5 rounded-lg mb-3 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-base">📦</span>
+            <span>Stai consultando l'archivio presenze dell'anno scout <strong id="archiveNoticeYear"></strong>.</span>
+          </div>
+          <button type="button" id="resetToCurrentYearBtn" class="underline font-bold hover:text-amber-700 dark:hover:text-amber-100 cursor-pointer">Torna all'anno in corso</button>
+        </div>
+
+        <!-- Barra Filtri Avanzati -->
+        <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3.5 mb-4 shadow-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-2.5">
+            <!-- Filtro Anno Scout -->
+            <div>
+              <label for="presenceScoutYearFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">📅 Anno Scout</label>
+              <select id="presenceScoutYearFilter"
+                class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none font-semibold text-green-700 dark:text-green-400">
+              </select>
+            </div>
+
+            <!-- Cerca esploratore -->
+            <div class="relative">
+              <label for="presenceSearchInput" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Cerca</label>
+              <div class="relative">
+                <input type="text" id="presenceSearchInput" placeholder="Nome o cognome..."
+                  class="w-full pl-8 pr-2 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                <span class="absolute left-2.5 top-1.5 text-gray-400 text-xs">🔍</span>
+              </div>
+            </div>
+
+            <!-- Filtro Pattuglia -->
+            <div>
+              <label for="presencePatrolFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Pattuglia</label>
+              <select id="presencePatrolFilter"
+                class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                <option value="">Tutte le pattuglie</option>
+              </select>
+            </div>
+
+            <!-- Filtro Condizione / Presenze -->
+            <div>
+              <label for="presenceConditionFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Condizione</label>
+              <select id="presenceConditionFilter"
+                class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                <option value="all">Tutti gli esploratori</option>
+                <option value="with_absences">Con almeno 1 assenza</option>
+                <option value="with_debt">Con quote da saldare</option>
+                <option value="next_present">Presenti alla prossima</option>
+                <option value="next_absent">Assenti alla prossima</option>
+              </select>
+            </div>
+
+            <!-- Filtro Tipo Attività -->
+            <div>
+              <label for="presenceActivityTypeFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Tipo Attività</label>
+              <select id="presenceActivityTypeFilter"
+                class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                <option value="all">Tutti i tipi</option>
+                <option value="Riunione">Riunioni</option>
+                <option value="Attività lunga">Attività lunghe</option>
+                <option value="Uscita">Uscite</option>
+                <option value="Campo">Campi</option>
+              </select>
+            </div>
+
+            <!-- Filtro Periodo -->
+            <div>
+              <label for="presencePeriodFilter" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Periodo</label>
+              <select id="presencePeriodFilter"
+                class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                <option value="all">Tutte le date</option>
+                <option value="past">Solo svolte (passate)</option>
+                <option value="future">Solo in programma (future)</option>
+                <option value="last10">Ultime 10 attività</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Barra di riepilogo filtri e reset -->
+          <div class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700 text-xs">
+            <div id="presenceFilterSummary" class="text-gray-600 dark:text-gray-300 font-medium">
+              Caricamento filtri...
+            </div>
+            <button id="presenceResetFiltersBtn" type="button"
+              class="text-green-700 hover:text-green-800 dark:text-green-400 font-medium hover:underline flex items-center gap-1">
+              <span>✕</span>
+              <span>Azzera filtri</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Barra Azioni Batch -->
+        <div id="batchActionBar" class="hidden bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4 flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-semibold text-blue-700 dark:text-blue-300">
+              <span id="batchSelectionCount">0</span> esploratore/i selezionato/i
+            </span>
+            <select id="batchActivitySelect" class="px-3 py-1.5 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 text-sm focus:border-blue-500 focus:ring-blue-200">
+              <option value="">Seleziona attività...</option>
+            </select>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <button id="batchMarkPresentBtn" class="btn-primary text-sm px-3 py-1.5" disabled title="Segna tutti selezionati come Presenti">
+              ✓ Segna Presenti
+            </button>
+            <button id="batchMarkAbsentBtn" class="btn-secondary text-sm px-3 py-1.5" disabled title="Segna tutti selezionati come Assenti">
+              ✗ Segna Assenti
+            </button>
+            <button id="batchApplyPaymentBtn" class="btn-secondary text-sm px-3 py-1.5" disabled title="Applica pagamento a tutti selezionati">
+              💳 Applica Pagamento
+            </button>
+            <button id="batchExportBtn" class="btn-secondary text-sm px-3 py-1.5" title="Esporta selezionati in CSV">
+              📊 Esporta Selezionati
+            </button>
+            <button id="batchClearBtn" class="btn-secondary text-sm px-3 py-1.5" title="Deseleziona tutti">
+              ✕ Annulla Selezione
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Indicator Batch -->
+        <div id="batchProgressIndicator" class="hidden bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
+          <div class="flex items-center gap-3">
+            <div class="flex-shrink-0">
+              <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-green-700 dark:text-green-300" id="batchProgressMessage">Elaborazione in corso...</p>
+              <div class="w-full bg-green-200 dark:bg-green-800 rounded-full h-2 mt-2">
+                <div id="batchProgressBar" class="bg-green-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+            <button id="batchCancelBtn" class="btn-secondary text-sm px-3 py-1.5">Annulla</button>
+          </div>
+        </div>
+
+        <!-- Pulsanti di navigazione colonne 2 -->
+        <div class="flex items-center justify-center gap-2 mb-3 w-full">
+          <button id="scrollPrevBtn"
+            class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg"
+            title="Colonna precedente">‹</button>
+          <button id="scrollNextBtn"
+            class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg"
+            title="Colonna successiva">›</button>
+          <button id="scrollToNextActivityBtn"
+            class="px-4 py-1.5 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors font-semibold text-sm"
+            title="Vai alla prossima attività">Prossima</button>
+        </div>
+
+        <div id="presenceTableContainer" class="overflow-x-auto rounded-lg shadow-sm border border-gray-200 w-full">
+          <table class="presence-table bg-white">
+            <thead>
+              <tr id="tableHeaderDates">
+                <th id="thScoutName" rowspan="2" class="select-none sticky left-0 !bg-green-800 !text-white !p-3 !border-r !border-white/50 text-left z-20 min-w-[220px]" title="Colonna Esploratore">
+                  <div class="flex flex-col gap-1.5">
+                    <div class="flex items-center gap-2">
+                      <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 cursor-pointer rounded" title="Seleziona tutti gli esploratori visibili">
+                      <span class="font-bold text-sm">Esploratore</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <label for="scoutSortSelect" class="text-[11px] text-green-200 font-medium whitespace-nowrap">Ordina:</label>
+                      <select id="scoutSortSelect" class="w-full text-xs bg-green-950/80 hover:bg-green-950 text-white font-medium border border-green-500/50 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-white cursor-pointer shadow-sm transition-colors" title="Ordina la colonna Esploratore">
+                        <option value="nome_asc">Nome (A → Z)</option>
+                        <option value="nome_desc">Nome (Z → A)</option>
+                        <option value="cognome_asc" selected>Cognome (A → Z)</option>
+                        <option value="cognome_desc">Cognome (Z → A)</option>
+                        <option value="stato_asc">Presenza (P → A → NR)</option>
+                        <option value="stato_desc">Presenza (NR → A → P)</option>
+                        <option value="pattuglia_asc">Pattuglia (A → Z)</option>
+                        <option value="pattuglia_desc">Pattuglia (Z → A)</option>
+                      </select>
+                    </div>
+                  </div>
+                </th>
+              </tr>
+              <tr id="tableHeaderNames"></tr>
+            </thead>
+            <tbody id="presenceTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Modale Esportazione Avanzata Presenze -->
+      <div id="exportPresenzeModal" class="modal" role="dialog" aria-labelledby="exportPresenzeModalTitle" aria-modal="true">
+        <div class="modal-content max-w-lg mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
+          <div class="flex justify-between items-center mb-4 border-b pb-3 border-gray-200 dark:border-gray-700">
+            <h3 id="exportPresenzeModalTitle" class="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              <span>📊</span> Esporta Registro Presenze
+            </h3>
+            <button type="button" onclick="UI.closeModal('exportPresenzeModal')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl font-bold leading-none">&times;</button>
+          </div>
+
+          <div class="space-y-4 text-sm text-gray-700 dark:text-gray-300">
+            <!-- Formato -->
+            <div>
+              <label class="block font-semibold mb-1 text-gray-800 dark:text-gray-200">Formato File</label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="flex items-center gap-2 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <input type="radio" name="exportFormat" value="excel" checked class="text-green-600" />
+                  <div>
+                    <div class="font-medium text-xs text-gray-900 dark:text-white">Excel (Consigliato)</div>
+                    <div class="text-[11px] text-gray-500">Separatore ';' + UTF-8 BOM</div>
+                  </div>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <input type="radio" name="exportFormat" value="standard" class="text-green-600" />
+                  <div>
+                    <div class="font-medium text-xs text-gray-900 dark:text-white">CSV Standard</div>
+                    <div class="text-[11px] text-gray-500">Separatore ',' (RFC4180)</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Ambito Esploratori -->
+            <div>
+              <label class="block font-semibold mb-1 text-gray-800 dark:text-gray-200">Esploratori da Includere</label>
+              <div class="space-y-1.5">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="exportScoutsScope" value="filtered" checked class="text-green-600" />
+                  <span id="exportScopeFilteredLabel">Esploratori visibili dai filtri attivi</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="exportScoutsScope" value="all" class="text-green-600" />
+                  <span id="exportScopeAllLabel">Tutti gli esploratori</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="exportScoutsScope" value="selected" id="exportScopeSelectedRadio" class="text-green-600" />
+                  <span id="exportScopeSelectedLabel">Solo esploratori selezionati con checkbox (0)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Ambito Attività -->
+            <div>
+              <label class="block font-semibold mb-1 text-gray-800 dark:text-gray-200">Attività da Includere</label>
+              <div class="space-y-1.5">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="exportActsScope" value="filtered" checked class="text-green-600" />
+                  <span id="exportActsScopeFilteredLabel">Attività visibili dai filtri attivi</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="exportActsScope" value="all" class="text-green-600" />
+                  <span id="exportActsScopeAllLabel">Tutte le attività dell'anno</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Opzioni Colonne e Dati -->
+            <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <label class="block font-semibold mb-2 text-gray-800 dark:text-gray-200">Colonne Aggiuntive e Dati</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="exportColPatrol" checked class="rounded text-green-600" />
+                  <span>Colonna Pattuglia</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="exportColStats" checked class="rounded text-green-600" />
+                  <span>Riepilogo Presenze (Tot, Ass, %)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="exportColPayments" class="rounded text-green-600" />
+                  <span>Dettagli Pagamento quote</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="exportVerboseStatus" class="rounded text-green-600" />
+                  <span>Testo esteso (Presente / Assente)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" onclick="UI.closeModal('exportPresenzeModal')" class="btn-secondary px-4 py-2 text-xs font-semibold">Annulla</button>
+            <button type="button" onclick="UI.executeAdvancedPresenzeExport()" class="btn-primary px-4 py-2 text-xs font-semibold flex items-center gap-1.5">
+              <span>💾</span> Scarica File
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <!-- Configurazione Firebase (generata durante il build) -->
+  <script src="/config.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js")
+        .then(reg => {
+          console.log("Service Worker registrato:", reg.scope);
+          reg.update();
+        })
+        .catch(err => console.error("SW registration failed:", err));
+    }
+  </script>
+</body>
+
+</html>

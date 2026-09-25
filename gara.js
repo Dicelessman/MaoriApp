@@ -19,6 +19,17 @@ const UI = (typeof window !== 'undefined' && window.UI) ? window.UI : (typeof gl
 if (typeof window !== 'undefined') window.UI = UI;
 if (typeof globalThis !== 'undefined') globalThis.UI = UI;
 
+const escapeHtml = (str) => {
+    if (str == null) return '';
+    const s = String(str);
+    const div = typeof document !== 'undefined' ? document.createElement('div') : null;
+    if (div) {
+        div.textContent = s;
+        return div.innerHTML;
+    }
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+};
+
 // Stato locale per Gara di Reparto
 UI.garaState = {
     selectedYear: null,
@@ -337,7 +348,7 @@ UI.renderGaraPodium = function (leaderboard) {
                     ${item.label}
                 </span>
                 <h4 class="text-xl sm:text-2xl font-black ${item.titleColor} tracking-tight">
-                    Ptg. ${ptgName}
+                    Ptg. ${escapeHtml(ptgName)}
                 </h4>
                 <div class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mt-1">
                     ${sq.totalePunti} <span class="text-xs font-semibold text-gray-500 uppercase">punti</span>
@@ -345,7 +356,7 @@ UI.renderGaraPodium = function (leaderboard) {
                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2">
                     <span>${sq.assegnazioniCount} eventi</span>
                     <span>•</span>
-                    <button type="button" onclick="UI.quickAddPointsToPatrol('${ptgName}')" class="text-green-700 dark:text-green-400 hover:underline font-semibold cursor-pointer">
+                    <button type="button" onclick="UI.quickAddPointsToPatrol('${escapeHtml(ptgName)}')" class="text-green-700 dark:text-green-400 hover:underline font-semibold cursor-pointer">
                         + Punti
                     </button>
                 </div>
@@ -378,8 +389,8 @@ UI.renderGaraRankingList = function (leaderboard, categories) {
             const pts = sq.puntiPerCategoria[cat.id] || 0;
             if (pts === 0) return '';
             return `
-                <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 font-medium" title="${cat.nome}: ${pts} pt">
-                    <span>${cat.icona || '⭐'}</span>
+                <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 font-medium" title="${escapeHtml(cat.nome)}: ${pts} pt">
+                    <span>${escapeHtml(cat.icona || '⭐')}</span>
                     <span>${pts}</span>
                 </span>
             `;
@@ -396,7 +407,7 @@ UI.renderGaraRankingList = function (leaderboard, categories) {
                         </span>
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="font-bold text-base text-gray-900 dark:text-gray-100">Pattuglia ${ptgName}</span>
+                                <span class="font-bold text-base text-gray-900 dark:text-gray-100">Pattuglia ${escapeHtml(ptgName)}</span>
                                 <span class="text-xs px-2 py-0.5 rounded-full font-medium ${index === 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}">
                                     ${distacco}
                                 </span>
@@ -499,18 +510,18 @@ UI.renderGaraHistoryTable = function () {
         return `
             <tr class="hover:bg-gray-50/70 dark:hover:bg-gray-750/40 transition-colors">
                 <td class="py-3 px-4 font-mono text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                    ${entry.data || '-'}
+                    ${escapeHtml(entry.data || '-')}
                 </td>
                 <td class="py-3 px-4 font-bold text-gray-900 dark:text-white whitespace-nowrap">
-                    Ptg. ${ptgName}
+                    Ptg. ${escapeHtml(ptgName)}
                 </td>
                 <td class="py-3 px-4 text-gray-700 dark:text-gray-300 text-xs">
-                    ${entry.attivitaNome || '<span class="text-gray-400">Riunione</span>'}
+                    ${escapeHtml(entry.attivitaNome || 'Riunione')}
                 </td>
                 <td class="py-3 px-4 whitespace-nowrap">
                     <span class="inline-flex items-center gap-1.5 text-xs text-gray-800 dark:text-gray-200">
-                        <span>${icon}</span>
-                        <span>${entry.categoriaNome || catObj?.nome || 'Attività'}</span>
+                        <span>${escapeHtml(icon)}</span>
+                        <span>${escapeHtml(entry.categoriaNome || catObj?.nome || 'Attività')}</span>
                     </span>
                 </td>
                 <td class="py-3 px-4 text-center whitespace-nowrap">
@@ -519,13 +530,13 @@ UI.renderGaraHistoryTable = function () {
                     </span>
                 </td>
                 <td class="py-3 px-4 text-xs text-gray-600 dark:text-gray-300 max-w-xs break-words">
-                    ${entry.motivazione || '-'}
+                    ${escapeHtml(entry.motivazione || '-')}
                 </td>
                 <td class="py-3 px-4 text-[11px] text-gray-400 whitespace-nowrap">
-                    ${entry.assegnatoDa || 'staff'}
+                    ${escapeHtml(entry.assegnatoDa || 'staff')}
                 </td>
                 <td class="py-3 px-4 text-right whitespace-nowrap">
-                    <button type="button" onclick="UI.deletePuntiEntry('${entry.id}')" class="p-1 text-red-600 hover:text-red-800 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors" title="Elimina assegnazione">
+                    <button type="button" onclick="UI.deletePuntiEntry('${escapeHtml(entry.id)}')" class="p-1 text-red-600 hover:text-red-800 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors" title="Elimina assegnazione">
                         🗑️
                     </button>
                 </td>
@@ -878,19 +889,19 @@ UI.renderCategorieList = function () {
     container.innerHTML = cats.map(cat => `
         <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <div class="flex items-center gap-3">
-                <span class="text-2xl">${cat.icona || '🏆'}</span>
+                <span class="text-2xl">${escapeHtml(cat.icona || '🏆')}</span>
                 <div>
                     <div class="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                        <span>${cat.nome}</span>
+                        <span>${escapeHtml(cat.nome)}</span>
                         <span class="text-xs font-semibold px-2 py-0.5 rounded bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300">
-                            +${cat.puntiDefault || 10} pt def.
+                            +${Number(cat.puntiDefault) || 10} pt def.
                         </span>
                     </div>
-                    ${cat.descrizione ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">${cat.descrizione}</p>` : ''}
+                    ${cat.descrizione ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">${escapeHtml(cat.descrizione)}</p>` : ''}
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <button type="button" onclick="UI.deleteCategory('${cat.id}')" class="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors text-xs" title="Elimina categoria">
+                <button type="button" onclick="UI.deleteCategory('${escapeHtml(cat.id)}')" class="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors text-xs" title="Elimina categoria">
                     🗑️
                 </button>
             </div>

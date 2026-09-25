@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendario - Reparto Maori</title>
+  <meta name="description" content="Calendario attività Reparto Maori" />
+  <meta name="theme-color" content="#16a34a" />
+
+  <!-- Favicon e icone -->
+  <link rel="icon" type="image/x-icon" href="/assets/favicon-D0S-PLtV.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192-BnNgNRfN.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512-DmSUEAR1.png" />
+  <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="/assets/manifest-DovV98Et.json" />
+
+  <!-- CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+  <script type="module" crossorigin src="/assets/calendario-6HHAeaMO.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-DdNAYcTb.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-Dm_IxfHL.js">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-BUUTnjq0.css">
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+    <!-- Header condiviso -->
+    <div id="shared-header"></div>
+
+    <!-- Main -->
+    <main id="main-content" class="p-6">
+      <!-- Modali condivisi -->
+      <div id="shared-modals"></div>
+
+      <!-- Contenuto Calendario -->
+      <section id="calendarTab" class="tab-content active">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div class="flex items-center gap-3 flex-wrap">
+            <h2 class="text-2xl font-semibold text-gray-700">Calendario Attività</h2>
+            <!-- Selettore Anno Scout -->
+            <div class="flex items-center gap-2 bg-green-50 dark:bg-green-950/40 px-3 py-1.5 rounded-lg border border-green-200 dark:border-green-800 shadow-sm">
+              <label for="scoutYearSelect" class="text-xs font-bold uppercase tracking-wider text-green-800 dark:text-green-300">📅 Anno Scout:</label>
+              <select id="scoutYearSelect" class="text-sm font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800 border-none rounded focus:ring-2 focus:ring-green-500 py-0.5 px-2 cursor-pointer shadow-sm">
+              </select>
+            </div>
+          </div>
+          <div class="flex gap-2 items-center">
+            <!-- Toggle Vista Lista / Griglia Mese -->
+            <div class="flex rounded-lg border border-gray-200 overflow-hidden shadow-sm" role="group" aria-label="Modalità visualizzazione">
+              <button id="calViewListBtn" type="button"
+                class="cal-view-btn active px-3 py-1.5 text-sm font-medium flex items-center gap-1.5"
+                aria-pressed="true" title="Vista lista">
+                <span>☰</span><span class="hidden sm:inline">Lista</span>
+              </button>
+              <button id="calViewMonthBtn" type="button"
+                class="cal-view-btn px-3 py-1.5 text-sm font-medium flex items-center gap-1.5"
+                aria-pressed="false" title="Vista mensile">
+                <span>📆</span><span class="hidden sm:inline">Mese</span>
+              </button>
+            </div>
+            <div class="relative inline-block">
+              <button id="exportCalendarBtn" class="btn-secondary text-sm px-4 py-2 flex items-center gap-2"
+                title="Esporta calendario">
+                📥 Export Calendario
+                <span class="text-xs">▼</span>
+              </button>
+              <div id="exportDropdown"
+                class="hidden absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <button id="exportICSBtn"
+                  class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-t-lg flex items-center gap-2">
+                  📅 Export ICS (Calendario)
+                </button>
+                <button id="exportTXTBtn" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2">
+                  📄 Export TXT (Testo)
+                </button>
+                <button id="exportODSBtn"
+                  class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-b-lg flex items-center gap-2">
+                  📊 Export ODS (Foglio di calcolo)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vista Griglia Mensile -->
+        <div id="monthlyCalendarView" class="hidden">
+          <!-- Nav mese -->
+          <div class="flex items-center justify-between mb-4">
+            <button id="calPrevMonth" type="button" class="btn-secondary px-3 py-1.5 text-sm" aria-label="Mese precedente">&#8592; Prec</button>
+            <h3 id="calMonthLabel" class="text-lg font-semibold text-gray-700"></h3>
+            <button id="calNextMonth" type="button" class="btn-secondary px-3 py-1.5 text-sm" aria-label="Mese successivo">Succ &#8594;</button>
+          </div>
+          <!-- Intestazioni giorni -->
+          <div class="cal-month-grid cal-month-header">
+            <div>Lun</div><div>Mar</div><div>Mer</div><div>Gio</div>
+            <div>Ven</div><div>Sab</div><div>Dom</div>
+          </div>
+          <!-- Celle giorni -->
+          <div id="calMonthGrid" class="cal-month-grid" aria-label="Griglia mensile attività"></div>
+          <!-- Legenda tipi attività -->
+          <div class="cal-month-legend mt-4">
+            <span class="cal-dot" style="background:#16a34a"></span><span>Riunione</span>
+            <span class="cal-dot" style="background:#2563eb"></span><span>Uscita</span>
+            <span class="cal-dot" style="background:#dc2626"></span><span>Campo</span>
+            <span class="cal-dot" style="background:#7c3aed"></span><span>Evento Adulti</span>
+            <span class="cal-dot" style="background:#475569"></span><span>Riunione Adulti</span>
+            <span class="cal-dot" style="background:#d97706"></span><span>Con Esterni</span>
+          </div>
+        </div>
+
+        <!-- Vista Lista (default) -->
+        <div id="listCalendarView">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+              <h3 class="text-xl font-semibold text-gray-700 mb-4">Aggiungi Nuova Attività</h3>
+              <form id="addActivityForm" class="space-y-4">
+
+                <div>
+                  <label for="activityTipo" class="block text-sm font-medium text-gray-700">Tipo</label>
+                  <select id="activityTipo" required
+                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200">
+                    <option value="Riunione">Riunione</option>
+                    <option value="Attività lunga">Attività lunga</option>
+                    <option value="Uscita">Uscita</option>
+                    <option value="Campo">Campo</option>
+                    <option value="Evento Adulti">Evento Adulti</option>
+                    <option value="Riunione Adulti">Riunione Adulti</option>
+                    <option value="Eventi con esterni">Eventi con esterni</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="activityData" class="block text-sm font-medium text-gray-700">Data</label>
+                  <input id="activityData" type="date" required
+                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                </div>
+                <div>
+                  <label for="activityDataFine" class="block text-sm font-medium text-gray-700">Data Fine
+                    (Opzionale)</label>
+                  <input id="activityDataFine" type="date"
+                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                </div>
+                <div>
+                  <label for="activityDescrizione" class="block text-sm font-medium text-gray-700">Descrizione</label>
+                  <input id="activityDescrizione" required
+                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                </div>
+                <div>
+                  <label for="activityCosto" class="block text-sm font-medium text-gray-700">Costo (€)</label>
+                  <input id="activityCosto" type="number" min="0" step="0.01" placeholder="0"
+                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                </div>
+                <button class="btn-primary w-full">Crea Attività</button>
+              </form>
+            </div>
+
+            <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h3 id="calendarListTitle" class="text-xl font-semibold text-gray-700">Attività in Programma</h3>
+                <span id="calendarArchiveBadge" class="hidden px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-300">📦 Archivio</span>
+              </div>
+              <div id="calendarArchiveNotice" class="hidden mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-center gap-2">
+                <span>📦</span>
+                <span><strong>Anno Archiviato:</strong> Stai consultando lo storico delle attività per l'Anno Scout selezionato.</span>
+              </div>
+              <div id="calendarList" class="space-y-2"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modale Modifica Attività -->
+    <div id="cal_editActivityModal"
+      class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 class="text-lg font-semibold text-gray-800">Modifica Attività</h3>
+          <button onclick="UI.closeModal('cal_editActivityModal')" class="text-gray-500 hover:text-gray-700">✕</button>
+        </div>
+        <div class="p-6">
+          <form id="cal_editActivityForm" class="space-y-4">
+            <input type="hidden" id="cal_editActivityId">
+            <div>
+              <label for="cal_editActivityTipo" class="block text-sm font-medium text-gray-700">Tipo</label>
+              <select id="cal_editActivityTipo" required
+                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200">
+                <option value="Riunione">Riunione</option>
+                <option value="Attività lunga">Attività lunga</option>
+                <option value="Uscita">Uscita</option>
+                <option value="Campo">Campo</option>
+                <option value="Evento Adulti">Evento Adulti</option>
+                <option value="Riunione Adulti">Riunione Adulti</option>
+                <option value="Eventi con esterni">Eventi con esterni</option>
+              </select>
+            </div>
+            <div>
+              <label for="cal_editActivityData" class="block text-sm font-medium text-gray-700">Data</label>
+              <input id="cal_editActivityData" type="date" required
+                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+            </div>
+            <div>
+              <label for="cal_editActivityDataFine" class="block text-sm font-medium text-gray-700">Data Fine
+                (Opzionale)</label>
+              <input id="cal_editActivityDataFine" type="date"
+                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+            </div>
+            <div>
+              <label for="cal_editActivityDescrizione"
+                class="block text-sm font-medium text-gray-700">Descrizione</label>
+              <input id="cal_editActivityDescrizione" required
+                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+            </div>
+            <div>
+              <label for="cal_editActivityCosto" class="block text-sm font-medium text-gray-700">Costo (€)</label>
+              <input id="cal_editActivityCosto" type="number" min="0" step="0.01"
+                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+              <button type="button" onclick="UI.closeModal('cal_editActivityModal')"
+                class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Annulla</button>
+              <button type="submit"
+                class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">Salva
+                Modifiche</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modale Conferma Eliminazione -->
+    <div id="cal_confirmDeleteActivityModal"
+      class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-sm mx-4 overflow-hidden">
+        <div class="p-6 text-center">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+            <span class="text-2xl">🗑️</span>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Elimina attività?</h3>
+          <p class="text-sm text-gray-500 mb-6">
+            Sei sicuro di voler eliminare <span id="cal_activityInfoToDelete" class="font-semibold">questa
+              attività</span>?
+            L'azione non può essere annullata.
+          </p>
+          <div class="flex justify-center gap-3">
+            <button onclick="UI.closeModal('cal_confirmDeleteActivityModal')"
+              class="px-4 py-2 text-base font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 w-full">
+              Annulla
+            </button>
+            <button id="cal_confirmDeleteActivityBtn"
+              class="px-4 py-2 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 w-full">
+              Elimina
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <!-- Configurazione Firebase (generata durante il build) -->
+  <script src="/config.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js")
+        .then(reg => console.log("Service Worker registrato:", reg.scope))
+        .catch(err => console.error("SW registration failed:", err));
+    }
+  </script>
+</body>
+
+</html>

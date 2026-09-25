@@ -628,4 +628,10 @@ export class LocalAdapter {
         this.persist();
         console.log('LocalAdapter: deleteGaraPunti', { id, currentUser: currentUser?.email });
     }
+
+    async getAuditLogs(limitCount = 100) {
+        const logs = this.state.auditLogs || [];
+        return logs.slice(0, limitCount);
+    }
 }
+

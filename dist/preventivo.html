@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Preventivo Attività - Reparto Maori</title>
+    <meta name="description" content="Calcolo preventivo completo Reparto Maori" />
+    <meta name="theme-color" content="#16a34a" />
+
+    <!-- Favicon e icone -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon-D0S-PLtV.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192-BnNgNRfN.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512-DmSUEAR1.png" />
+    <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="/assets/manifest-DovV98Et.json" />
+
+    <!-- CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+    <style>
+        @media print {
+
+            /* Force Reset */
+            html,
+            body {
+                background: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                display: block !important;
+            }
+
+            /* Hide Shell */
+            #mainSidebar,
+            #shared-header,
+            #shared-modals,
+            #saveBudgetBtn,
+            #printBudgetBtn,
+            .no-print,
+            header,
+            nav,
+            .tabs-nav {
+                display: none !important;
+            }
+
+            /* Ensure Content Visibility */
+            #app,
+            #main-content {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                background: white !important;
+                box-shadow: none !important;
+                border: none !important;
+                max-width: none !important;
+            }
+
+            /* Elements */
+            details {
+                display: block !important;
+                break-inside: avoid;
+            }
+
+            details[open] {
+                padding-bottom: 20px;
+            }
+
+            h2,
+            h3,
+            div,
+            p,
+            span,
+            label,
+            input {
+                color: black !important;
+                visibility: visible !important;
+            }
+
+            /* Fix Grids */
+            .grid {
+                display: block !important;
+                /* Fallback to block to avoid grid cutoffs? Or keep grid? */
+            }
+
+            /* Actually allow grid but ensure it fits */
+            .grid {
+                display: grid !important;
+            }
+        }
+    </style>
+  <script type="module" crossorigin src="/assets/preventivo-2nh7Y2N1.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-DdNAYcTb.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-Dm_IxfHL.js">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-BUUTnjq0.css">
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+        <!-- Header condiviso -->
+        <div id="shared-header"></div>
+
+        <!-- Main -->
+        <main id="main-content" class="p-6">
+            <!-- Modali condivisi -->
+            <div id="shared-modals"></div>
+
+            <!-- Contenuto Preventivo -->
+            <section id="preventivoTab" class="tab-content active">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold text-gray-700">Preventivo Attività</h2>
+                    <div class="flex gap-2">
+                        <button id="printBudgetBtn"
+                            class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2">
+                            <span>🖨️</span> Stampa
+                        </button>
+                        <button id="saveBudgetBtn"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2">
+                            <span>💾</span> Salva Preventivo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 1. Configurazione Generale -->
+                <div
+                    class="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-xl border border-blue-200 dark:border-blue-800 shadow-sm mb-6">
+                    <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-4">Configurazione Base</h3>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="selectActivity"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Attività</label>
+                                <select id="selectActivity"
+                                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-200 dark:bg-gray-800 dark:border-gray-700 dark:text-white">
+                                    <option value="">Seleziona un'attività...</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Esploratori</label>
+                                    <input type="number" id="scoutsCount" min="0"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-200 dark:bg-gray-800 dark:border-gray-700 dark:text-white font-bold"
+                                        value="0">
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Staff</label>
+                                    <input type="number" id="staffCount" min="0"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-200 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                                        value="0">
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            class="flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-100 dark:border-gray-700">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Totale Partecipanti</p>
+                                <p id="totalParticipantsDisplay"
+                                    class="text-3xl font-bold text-blue-600 dark:text-blue-400">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion Sections for Detailed Costs -->
+                <div class="space-y-4">
+
+                    <!-- 2. Trasporti -->
+                    <details
+                        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm group">
+                        <summary
+                            class="flex justify-between items-center p-4 cursor-pointer list-none bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">
+                            <span class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">🚌
+                                Trasporti (Treni/Bus)</span>
+                            <span id="transportTotalBadge" class="font-bold text-gray-600 dark:text-gray-400">€
+                                0.00</span>
+                        </summary>
+                        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                            <!-- Transport List -->
+                            <div id="transportLegsList" class="space-y-2 mb-4"></div>
+                            <!-- Add Transport Form -->
+                            <div class="grid grid-cols-12 gap-2 items-end bg-gray-50 dark:bg-gray-900/50 p-3 rounded">
+                                <div class="col-span-5">
+                                    <label class="block text-xs text-gray-500">Tratta</label>
+                                    <input type="text" id="newLegName" placeholder="Es. Milano - Roma"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div class="col-span-3">
+                                    <label class="block text-xs text-gray-500">Costo Unit/Tot</label>
+                                    <input type="number" id="newLegCost" placeholder="€" step="0.50"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div class="col-span-3 flex items-center pt-4">
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" id="newLegConvention"
+                                            class="rounded text-green-600 focus:ring-green-500">
+                                        <span class="text-xs text-gray-600">Convenzione?</span>
+                                    </label>
+                                </div>
+                                <div class="col-span-1">
+                                    <button id="addLegBtn"
+                                        class="w-full bg-green-600 params-white text-white rounded p-1 hover:bg-green-700">+</button>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">* Convenzione Trenitalia: 20% sconto se >= 10 pax.
+                                Gratuità staff (1 ogni 10 scout, max 2 o 4).</p>
+                        </div>
+                    </details>
+
+                    <!-- 3. Struttura -->
+                    <details
+                        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm group">
+                        <summary
+                            class="flex justify-between items-center p-4 cursor-pointer list-none bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">
+                            <span class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">🏠
+                                Struttura & Utenze</span>
+                            <span id="structureTotalBadge" class="font-bold text-gray-600 dark:text-gray-400">€
+                                0.00</span>
+                        </summary>
+                        <div class="p-4 border-t border-gray-200 dark:border-gray-700 grid md:grid-cols-2 gap-6">
+
+                            <!-- Base Affitto -->
+                            <div class="space-y-3">
+                                <h4 class="font-medium text-sm uppercase tracking-wide text-gray-500">Affitto</h4>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-xs text-gray-500">Notti</label>
+                                        <input type="number" id="structNights" value="0" min="0"
+                                            class="w-full rounded border-gray-300 text-sm p-1">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-500">Giorni</label>
+                                        <input type="number" id="structDays" value="0" min="0"
+                                            class="w-full rounded border-gray-300 text-sm p-1">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500">Tipo Tariffa</label>
+                                    <select id="structRateType" class="w-full rounded border-gray-300 text-sm p-1">
+                                        <option value="person_night">Per Persona a Notte</option>
+                                        <option value="person_day">Per Persona al Giorno</option>
+                                        <option value="person_flat">Forfettario a Persona</option>
+                                        <option value="group_flat">Forfettario Gruppo (Tot)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500">Costo Unitario (€)</label>
+                                    <input type="number" id="structRate" placeholder="0.00" step="0.01"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                            </div>
+
+                            <!-- Utenze -->
+                            <div class="space-y-3">
+                                <h4 class="font-medium text-sm uppercase tracking-wide text-gray-500">Utenze (Letture)
+                                </h4>
+                                <div class="grid grid-cols-4 gap-1 text-xs items-center">
+                                    <span class="col-span-1 font-bold">Luce (kW)</span>
+                                    <input type="number" id="elecStart" placeholder="Inizio"
+                                        class="rounded border-gray-300 p-1">
+                                    <input type="number" id="elecEnd" placeholder="Fine"
+                                        class="rounded border-gray-300 p-1">
+                                    <input type="number" id="elecRate" placeholder="€/kW" step="0.01"
+                                        class="rounded border-gray-300 p-1">
+
+                                    <span class="col-span-1 font-bold">Gas (mc)</span>
+                                    <input type="number" id="gasStart" placeholder="Inizio"
+                                        class="rounded border-gray-300 p-1">
+                                    <input type="number" id="gasEnd" placeholder="Fine"
+                                        class="rounded border-gray-300 p-1">
+                                    <input type="number" id="gasRate" placeholder="€/mc" step="0.01"
+                                        class="rounded border-gray-300 p-1">
+                                </div>
+                                <p class="text-[10px] text-gray-400 italic">Inserisci letture inizio/fine e costo
+                                    unitario. Il totale è calcolato sulla differenza.</p>
+                            </div>
+                        </div>
+                    </details>
+
+                    <!-- 4. Cambusa -->
+                    <details
+                        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm group">
+                        <summary
+                            class="flex justify-between items-center p-4 cursor-pointer list-none bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">
+                            <span class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">🍏
+                                Cambusa</span>
+                            <span id="galleyTotalBadge" class="font-bold text-gray-600 dark:text-gray-400">€ 0.00</span>
+                        </summary>
+                        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                            <div class="flex gap-4 mb-4 text-sm">
+                                <label class="flex items-center gap-1 cursor-pointer">
+                                    <input type="radio" name="galleyMode" value="meal" checked class="text-green-600">
+                                    Per Pasto
+                                </label>
+                                <label class="flex items-center gap-1 cursor-pointer">
+                                    <input type="radio" name="galleyMode" value="day" class="text-green-600"> Per Giorno
+                                </label>
+                            </div>
+
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                <div>
+                                    <label id="galleyQtyLabel" class="block text-xs text-gray-500">Num. Pasti</label>
+                                    <input type="number" id="galleyQty" value="0"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div>
+                                    <label id="galleyRateLabel" class="block text-xs text-gray-500">Costo (€)</label>
+                                    <input type="number" id="galleyRate" step="0.50"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div
+                                    class="col-span-2 bg-orange-50 dark:bg-orange-900/20 p-2 rounded border border-orange-100 dark:border-orange-800">
+                                    <label
+                                        class="flex items-center gap-2 text-xs font-bold text-orange-800 dark:text-orange-200 cursor-pointer mb-1">
+                                        <input type="checkbox" id="compActive" class="text-orange-600"> Gara di Cucina
+                                    </label>
+                                    <input type="number" id="compBudget" placeholder="Budget Gara (€)" disabled
+                                        class="w-full rounded border-orange-200 dark:border-orange-700 text-sm p-1 bg-white dark:bg-gray-800 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-900">
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <!-- 5. Varie -->
+                    <details
+                        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm group">
+                        <summary
+                            class="flex justify-between items-center p-4 cursor-pointer list-none bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">
+                            <span class="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">📦
+                                Spese Varie & Materiali</span>
+                            <span id="variousTotalBadge" class="font-bold text-gray-600 dark:text-gray-400">€
+                                0.00</span>
+                        </summary>
+                        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                            <!-- Action Toolbar Scorte -->
+                            <div class="flex flex-wrap justify-between items-center gap-2 mb-3 pb-2 border-b border-gray-100 dark:border-gray-700">
+                                <div>
+                                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Voci di Spesa & Materiali</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="openImportScorteBtn"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer">
+                                        <span>📦</span>
+                                        <span>Importa da Scorte</span>
+                                    </button>
+                                    <button type="button" id="clearScorteItemsBtn"
+                                        class="hidden text-xs text-red-600 hover:text-red-700 font-medium px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer">
+                                        Rimuovi materiali importati
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- List -->
+                            <div id="variousItemsList" class="space-y-2 mb-4"></div>
+
+                            <!-- Add Form -->
+                            <div class="grid grid-cols-12 gap-2 items-end bg-gray-50 dark:bg-gray-900/50 p-3 rounded">
+                                <div class="col-span-3">
+                                    <label class="block text-xs text-gray-500">Categoria</label>
+                                    <select id="newVarCat" class="w-full rounded border-gray-300 text-xs p-1">
+                                        <option value="Materiale">Materiale</option>
+                                        <option value="Affitti">Affitti Extra</option>
+                                        <option value="Biglietti">Biglietti/Visite</option>
+                                        <option value="Imprevisti">Fondo Imprevisti</option>
+                                        <option value="Altro">Altro</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-5">
+                                    <label class="block text-xs text-gray-500">Descrizione</label>
+                                    <input type="text" id="newVarDesc" placeholder="Es. Carta igienica"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div class="col-span-3">
+                                    <label class="block text-xs text-gray-500">Costo (€)</label>
+                                    <input type="number" id="newVarCost" step="0.50"
+                                        class="w-full rounded border-gray-300 text-sm p-1">
+                                </div>
+                                <div class="col-span-1">
+                                    <button id="addVarBtn"
+                                        class="w-full bg-green-600 text-white rounded p-1 hover:bg-green-700 text-sm">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- ANALISI E SIMULAZIONE -->
+                <div class="mt-8 grid lg:grid-cols-2 gap-8">
+
+                    <!-- Totali e Quota -->
+                    <div
+                        class="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-6">Riepilogo Costi</h3>
+
+                        <div class="space-y-3 mb-6">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600 dark:text-gray-400">Totale Trasporti</span>
+                                <span id="sumTransport" class="font-medium">€ 0.00</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600 dark:text-gray-400">Totale Struttura</span>
+                                <span id="sumStructure" class="font-medium">€ 0.00</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600 dark:text-gray-400">Totale Cambusa</span>
+                                <span id="sumGalley" class="font-medium">€ 0.00</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600 dark:text-gray-400">Totale Varie</span>
+                                <span id="sumVarious" class="font-medium">€ 0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-4 mb-6">
+                            <div class="flex justify-between items-end mb-2">
+                                <span class="uppercase tracking-wider text-xs font-bold text-gray-500">Costo Totale
+                                    Attività</span>
+                                <span id="finalTotalCost" class="text-2xl font-bold text-gray-900 dark:text-white">€
+                                    0.00</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                <span class="text-blue-800 dark:text-blue-200 font-semibold">Costo per
+                                    Esploratore</span>
+                                <span id="finalCostPerScout"
+                                    class="text-xl font-bold text-blue-700 dark:text-blue-300">€ 0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Proposta Quota -->
+                        <div
+                            class="bg-yellow-50 dark:bg-yellow-900/10 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                            <label class="block text-sm font-bold text-yellow-800 dark:text-yellow-200 mb-2">Proposta
+                                Quota a Testa (€)</label>
+                            <div class="flex gap-4 items-center">
+                                <input type="number" id="proposedQuota" step="0.50"
+                                    class="w-32 rounded-lg border-yellow-400 text-lg font-bold p-2 text-right"
+                                    placeholder="0.00">
+                                <div class="flex-1 text-right">
+                                    <p class="text-xs text-yellow-700 dark:text-yellow-300">Margine</p>
+                                    <p id="marginDisplay" class="font-bold text-lg text-gray-500">---</p>
+                                </div>
+                            </div>
+                            <div id="quotaSuggestedContainer" class="mt-3 pt-2.5 border-t border-yellow-200 dark:border-yellow-800/50 flex justify-between items-center text-xs text-yellow-800 dark:text-yellow-300">
+                                <span>Costo esatto/ragazzo: <strong id="exactCostPerScoutText">€ 0.00</strong></span>
+                                <button type="button" id="applyBreakEvenQuotaBtn" class="text-xs font-bold text-yellow-900 dark:text-yellow-200 bg-yellow-200 dark:bg-yellow-800/60 hover:bg-yellow-300 dark:hover:bg-yellow-700 px-2.5 py-1 rounded-md transition-all cursor-pointer shadow-xs">
+                                    Imposta come Quota
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Simulazione Copertura -->
+                    <div
+                        class="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Simulazione Assenze</h3>
+                        <p class="text-sm text-gray-500 mb-4">Analisi del bilancio in caso di defezioni. I costi
+                            variabili (cibo, biglietti) diminuiscono, ma quelli fissi (bus, affitto) rimangono.</p>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="bg-gray-50 dark:bg-gray-700">
+                                        <th class="p-2 text-left">Scenario</th>
+                                        <th class="p-2 text-right">Costi</th>
+                                        <th class="p-2 text-right">Ricavi</th>
+                                        <th class="p-2 text-right">Bilancio</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="simulationTableBody">
+                                    <!-- Dynamic rows -0, -2, -4, -6 -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-4 italic">* La simulazione assume che cibo, biglietti
+                            trasporti (unitari) e tasse p/p sieno costi variabili, mentre Bus, Affitto Forfettario, e
+                            Spese Varie siano costi fissi.</p>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- Modal Importa Materiali da Scorte -->
+            <div id="importScorteModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden max-h-[92vh] flex flex-col border border-emerald-600/30">
+                    <!-- Modal Header -->
+                    <div class="px-6 py-4 bg-emerald-700 dark:bg-emerald-800 text-white flex justify-between items-center shadow-md">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-2xl">📦</span>
+                            <div>
+                                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                    <span>Importa Materiali da Scorte nel Preventivo</span>
+                                </h3>
+                                <p class="text-xs text-emerald-100">Seleziona una lista scorte tematica e calcola automaticamente l'impatto sulla quota per ragazzo</p>
+                            </div>
+                        </div>
+                        <button id="closeImportScorteModalBtn" type="button" class="text-white hover:text-emerald-200 text-2xl font-bold p-1 leading-none cursor-pointer">✕</button>
+                    </div>
+
+                    <!-- Filter & Controls Toolbar -->
+                    <div class="p-4 bg-emerald-50/70 dark:bg-emerald-950/20 border-b border-emerald-100 dark:border-emerald-800/40 space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                            <!-- Lista Tematica Select -->
+                            <div class="md:col-span-4">
+                                <label for="importScorteListSelect" class="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1">
+                                    📑 Lista Scorte Tematica:
+                                </label>
+                                <select id="importScorteListSelect" class="w-full rounded-lg border-gray-300 dark:border-gray-600 text-sm font-semibold p-1.5 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-emerald-500">
+                                    <!-- Popolato dinamicamente (es. Campo Estivo, Uniformi, Distintivi, Generale, Tutte) -->
+                                </select>
+                            </div>
+
+                            <!-- Search Input -->
+                            <div class="md:col-span-4">
+                                <label for="importScorteSearchInput" class="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1">
+                                    🔍 Cerca Materiale:
+                                </label>
+                                <input type="text" id="importScorteSearchInput" placeholder="Filtra per nome o categoria..."
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 text-sm p-1.5 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-emerald-500">
+                            </div>
+
+                            <!-- Filter Mode -->
+                            <div class="md:col-span-4 flex items-end justify-between gap-2 pt-2 md:pt-0">
+                                <div class="flex items-center gap-1.5">
+                                    <label class="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 cursor-pointer font-medium">
+                                        <input type="checkbox" id="importScorteReorderOnlyToggle" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                                        <span>Solo da riordinare</span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" id="importScorteSelectAllBtn" class="px-2 py-1 text-[11px] font-semibold bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">Tutti</button>
+                                    <button type="button" id="importScorteDeselectAllBtn" class="px-2 py-1 text-[11px] font-semibold bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">Nessuno</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI & Quota Impact Banner -->
+                    <div class="px-6 py-3 bg-gradient-to-r from-emerald-100/90 to-teal-50 dark:from-emerald-950/40 dark:to-gray-800 border-b border-emerald-200 dark:border-emerald-800/40 flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center gap-6">
+                            <div>
+                                <span class="block text-[11px] uppercase tracking-wider font-bold text-gray-600 dark:text-gray-400">Materiali Selezionati</span>
+                                <span id="importScorteSelectedCountBadge" class="text-lg font-extrabold text-emerald-800 dark:text-emerald-300">0 articoli</span>
+                            </div>
+                            <div class="border-l border-emerald-300 dark:border-emerald-700 pl-4">
+                                <span class="block text-[11px] uppercase tracking-wider font-bold text-gray-600 dark:text-gray-400">Totale Costo Materiali</span>
+                                <span id="importScorteTotalCostBadge" class="text-xl font-extrabold text-emerald-900 dark:text-emerald-200">€ 0.00</span>
+                            </div>
+                            <div class="border-l border-emerald-300 dark:border-emerald-700 pl-4">
+                                <span class="block text-[11px] uppercase tracking-wider font-bold text-blue-700 dark:text-blue-300">Incidenza su Quota Ragazzo</span>
+                                <span id="importScorteQuotaImpactBadge" class="text-xl font-extrabold text-blue-800 dark:text-blue-200">€ 0.00 / ragazzo</span>
+                                <span id="importScorteScoutsCountHint" class="block text-[10px] text-gray-500 dark:text-gray-400">(su 0 esploratori)</span>
+                            </div>
+                        </div>
+
+                        <!-- Mode: Detailed vs Grouped -->
+                        <div class="flex items-center gap-3 text-xs bg-white dark:bg-gray-700/80 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                            <span class="font-bold text-gray-700 dark:text-gray-300">Modalità:</span>
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="radio" name="importScorteGrouped" value="detailed" checked class="text-emerald-600">
+                                <span>Voci Dettagliate</span>
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="radio" name="importScorteGrouped" value="grouped" class="text-emerald-600">
+                                <span>Voce Unica Raggruppata</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Items Table -->
+                    <div class="p-6 overflow-y-auto flex-1">
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+                            <table class="min-w-full text-xs">
+                                <thead class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700">
+                                    <tr>
+                                        <th class="p-2.5 text-center w-10">
+                                            <input type="checkbox" id="importScorteTableCheckAll" class="rounded text-emerald-600">
+                                        </th>
+                                        <th class="p-2.5 text-left">Articolo</th>
+                                        <th class="p-2.5 text-left">Lista</th>
+                                        <th class="p-2.5 text-left">Categoria</th>
+                                        <th class="p-2.5 text-center">In Scorta / Min</th>
+                                        <th class="p-2.5 text-right">Prezzo Unit.</th>
+                                        <th class="p-2.5 text-center font-bold text-emerald-800 dark:text-emerald-300">Quantità da Includere</th>
+                                        <th class="p-2.5 text-right font-bold">Costo Totale</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="importScorteTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
+                                    <!-- Popolato dinamicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="px-6 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <button type="button" id="cancelImportScorteBtn" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+                            Annulla
+                        </button>
+                        <button type="button" id="confirmImportScorteBtn" class="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg shadow transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span>✨</span>
+                            <span id="confirmImportScorteBtnText">Importa Materiali Selezionati nel Preventivo</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/config.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js")
+                .catch(err => console.error("SW registration failed:", err));
+        }
+    </script>
+</body>
+
+</html>

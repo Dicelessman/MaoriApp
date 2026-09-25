@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - Scout Maori</title>
+  <meta name="description" content="Dashboard e statistiche Reparto Scout Maori" />
+  <meta name="theme-color" content="#16a34a" />
+
+  <!-- Favicon e icone -->
+  <link rel="icon" type="image/x-icon" href="/assets/favicon-D0S-PLtV.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192-BnNgNRfN.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512-DmSUEAR1.png" />
+  <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="/assets/manifest-DovV98Et.json" />
+
+  <!-- CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+  <script type="module" crossorigin src="/assets/dashboard-mlTa2rir.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-DdNAYcTb.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-Dm_IxfHL.js">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-BUUTnjq0.css">
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+
+    <!-- Header condiviso -->
+    <div id="shared-header"></div>
+
+    <!-- Main -->
+    <main id="main-content" class="p-6">
+      <!-- Modali condivisi -->
+      <div id="shared-modals"></div>
+
+      <!-- Contenuto specifico Dashboard -->
+      <section id="dashboardTab" class="tab-content active">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+              <span>📊</span>
+              <span>Dashboard & Statistiche</span>
+            </h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Panoramica attività imminenti, presenze di reparto, quote e indicatori sanitari
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <a href="calendario.html" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-green-700 text-white hover:bg-green-800 transition flex items-center gap-1.5 shadow-sm">
+              <span>📅</span>
+              <span>Calendario</span>
+            </a>
+            <a href="presenze.html" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition flex items-center gap-1.5 shadow-sm">
+              <span>📋</span>
+              <span>Presenze</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Widget Prossima Attività Imminente & Alert di Sicurezza -->
+        <div id="nextActivityContainer" class="mb-6">
+          <!-- Renderizzato dinamicamente da dashboard.js -->
+        </div>
+
+        <div class="space-y-6">
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">Presenza per Esploratore</h3>
+            <div class="w-full" style="height: 360px;">
+              <canvas id="scoutPresenceChart" style="width:100%; height:100%;"></canvas>
+            </div>
+          </div>
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">Presenze per Attività</h3>
+            <div class="w-full" style="height: 360px;">
+              <canvas id="activityPresenceChart" style="width:100%; height:100%;"></canvas>
+            </div>
+          </div>
+          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">Dettaglio Presenze</h3>
+            <div id="attendanceGrid" class="overflow-x-auto">
+              <!-- Renderizzato via JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <!-- Configurazione Firebase (generata durante il build) -->
+  <script src="/config.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js")
+        .then(reg => console.log("Service Worker registrato:", reg.scope))
+        .catch(err => console.error("SW registration failed:", err));
+    }
+  </script>
+</body>
+
+</html>

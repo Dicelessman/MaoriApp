@@ -20,7 +20,7 @@ A differenza di altre associazioni scout italiane (come l'AGESCI), il CNGEI adot
 | **Cassa di Squadriglia** | **Cassa di Pattuglia** | - | Cassa materiali ed attrezzi di pattuglia |
 | **Impresa di Squadriglia** | **Impresa di Pattuglia** | - | Progetto ideato, realizzato e verificato dalla pattuglia |
 | **Grido di Squadriglia** | **Grido di Pattuglia** | - | Richiamo caratteristico della pattuglia |
-| **Gara tra Squadriglie** | **Gara tra Pattuglie** | - | Competizione periodica di reparto |
+| **Gara tra Squadriglie** | **Gara di Reparto** | - | Competizione periodica di reparto |
 
 ---
 
@@ -30,16 +30,17 @@ A differenza di altre associazioni scout italiane (come l'AGESCI), il CNGEI adot
    - **Branco** (non "Cerchio")
    - Sotto-unità: **Sestiglie** (Colori: Neri, Bianchi, Pezzati, Rossi, Grigi, Bruni)
    - Capi: Vecchi Lupi (Akela, Baloo, Bagheera, Kaa, ecc.)
-2. **Branca Esploratori ed Esploratrici (E/E)** — 12/16 anni:
+2. **Branca Esploratori (E)** — 12/16 anni:
    - **Reparto** (laico e coeducativo)
    - Sotto-unità: **Pattuglie** (nomi di animali: Aironi, Marmotte, Volpi, Aquile, Lupi, ecc.)
    - Ruoli: **CP** (Capo Pattuglia), **VCP** (Vice Capo Pattuglia)
-   - Progressione: **Sentiero** (Prove, Sfide, Specialità, Brevetti di Pattuglia)
+   - Progressione: **Sentiero** (Sfide, Promessa, Giglio e Trifoglio dell'Impegno), **Specialità** (Prove, Specialità, Specialità di Pattuglia, Specialista)
+   - Capi: **CR** (Capo Reparto). **VCR** (Vice Capo Reparto)
 3. **Branca Rover (R)** — 16/19 anni:
    - **Compagnia** (non "Noviziato/Clan")
    - Progressione: Cammino, Servizio, Partenza
 4. **Adulti**:
-   - Capi Unità, Vice Capi, Coordinatori di Gruppo, Senior (Clan Senior)
+   - Capi Unità, Vice Capi, Capi Gruppo, Senior (Clan Senior)
 
 ---
 

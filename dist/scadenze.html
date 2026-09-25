@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scadenze Anno Scout - Reparto Maori</title>
+    <meta name="description" content="Visualizzazione e gestione scadenze e promemoria dell'anno scout" />
+    <meta name="theme-color" content="#16a34a" />
+
+    <!-- Favicon e icone -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon-D0S-PLtV.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192-BnNgNRfN.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512-DmSUEAR1.png" />
+    <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="/assets/manifest-DovV98Et.json" />
+
+    <!-- CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+  <script type="module" crossorigin src="/assets/scadenze-DQ0EUNep.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-DdNAYcTb.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-Dm_IxfHL.js">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-BUUTnjq0.css">
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-950 flex flex-col min-h-screen text-gray-800 dark:text-gray-100 transition-colors">
+    <div id="app" class="max-w-6xl mx-auto w-full bg-white dark:bg-gray-900 shadow-xl rounded-xl overflow-hidden my-1.5 flex flex-col min-h-[90vh]">
+        <!-- Header condiviso -->
+        <div id="shared-header"></div>
+
+        <!-- Main Content -->
+        <main id="main-content" class="p-4 sm:p-6 lg:p-8 flex-1">
+            <!-- Modali condivisi -->
+            <div id="shared-modals"></div>
+
+            <!-- Header Sezione Scadenze -->
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-gray-200 dark:border-gray-800">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">⏰</span>
+                        <div>
+                            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+                                Scadenze Anno Scout
+                            </h1>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                Monitoraggio completo di attività, quote, compleanni e promemoria prima e dopo le notifiche.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- Selettore Anno Scout -->
+                    <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Anno:</span>
+                        <select id="scoutYearSelect" class="bg-transparent text-sm font-bold text-green-700 dark:text-green-400 border-none focus:ring-0 cursor-pointer outline-none">
+                            <!-- Popolato dinamicamente -->
+                        </select>
+                    </div>
+
+                    <!-- Bottone Aggiungi Scadenza -->
+                    <button id="addCustomDeadlineBtn" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-all transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        <span>➕</span>
+                        <span>Nuova Scadenza</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Riepilogo Metriche (Stat Cards) -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 my-6">
+                <!-- Imminenti / Urgenze -->
+                <div class="bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-950/30 dark:to-red-950/20 border border-rose-200/80 dark:border-rose-900/50 rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">🚨 Imminenti (15 gg)</span>
+                        <span class="text-lg">⏳</span>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-2">
+                        <span id="metricImminentCount" class="text-2xl sm:text-3xl font-extrabold text-rose-700 dark:text-rose-300">0</span>
+                        <span id="metricOverdueCount" class="text-xs font-medium text-rose-600/80 dark:text-rose-400/80"></span>
+                    </div>
+                    <div id="metricMedicalAlerts" class="text-[11px] font-semibold text-rose-700 dark:text-rose-300 mt-1"></div>
+                </div>
+
+                <!-- Attività in programma -->
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/20 border border-blue-200/80 dark:border-blue-900/50 rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">📅 Attività Future</span>
+                        <span class="text-lg">🏕️</span>
+                    </div>
+                    <div class="mt-2">
+                        <span id="metricUpcomingActivities" class="text-2xl sm:text-3xl font-extrabold text-blue-700 dark:text-blue-300">0</span>
+                    </div>
+                </div>
+
+                <!-- Quote Sospese -->
+                <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20 border border-amber-200/80 dark:border-amber-900/50 rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">💶 Quote Sospese</span>
+                        <span class="text-lg">💰</span>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-2">
+                        <span id="metricPendingDuesAmount" class="text-2xl sm:text-3xl font-extrabold text-amber-700 dark:text-amber-300">€0</span>
+                        <span id="metricPendingDuesCount" class="text-xs font-medium text-amber-600/80 dark:text-amber-400/80"></span>
+                    </div>
+                </div>
+
+                <!-- Personalizzate -->
+                <div class="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/20 border border-emerald-200/80 dark:border-emerald-900/50 rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">📝 Personalizzate</span>
+                        <span class="text-lg">📋</span>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-2">
+                        <span id="metricCustomActiveCount" class="text-2xl sm:text-3xl font-extrabold text-emerald-700 dark:text-emerald-300">0</span>
+                        <span id="metricCustomCompletedCount" class="text-xs font-medium text-emerald-600/80 dark:text-emerald-400/80"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra Filtri, Ricerca e Categorie -->
+            <div class="bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-200/80 dark:border-gray-700/60 mb-6 space-y-4">
+                <!-- Riga Superiore: Ricerca e Stato -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">🔍</span>
+                        <input type="text" id="searchInput" placeholder="Cerca tra le scadenze (titolo, note, esploratore)..." class="w-full pl-9 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition" />
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <select id="statusFilter" class="text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-green-500 outline-none">
+                            <option value="all">Tutti gli stati</option>
+                            <option value="imminent">🚨 In scadenza / Imminenti (15 gg)</option>
+                            <option value="future">📅 In arrivo / Future</option>
+                            <option value="overdue">⏳ Scadute / Passate</option>
+                            <option value="completed">✅ Completate</option>
+                        </select>
+
+                        <select id="sortOrder" class="text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-green-500 outline-none">
+                            <option value="date-asc">Data (Crescente)</option>
+                            <option value="date-desc">Data (Decrescente)</option>
+                            <option value="title-asc">Titolo (A-Z)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tabs Categorie -->
+                <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-200 dark:border-gray-700/60" id="categoryTabs">
+                    <button data-cat="all" class="cat-tab px-3 py-1.5 text-xs font-bold rounded-lg transition-all bg-green-600 text-white shadow-sm">
+                        🌐 Tutte (<span id="countTabAll">0</span>)
+                    </button>
+                    <button data-cat="medical" class="cat-tab px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
+                        🩺 Certificati & Documenti (<span id="countTabMedical">0</span>)
+                    </button>
+                    <button data-cat="activity" class="cat-tab px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
+                        📅 Attività (<span id="countTabActivity">0</span>)
+                    </button>
+                    <button data-cat="payment" class="cat-tab px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
+                        💶 Quote & Pagamenti (<span id="countTabPayment">0</span>)
+                    </button>
+                    <button data-cat="birthday" class="cat-tab px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
+                        🎂 Compleanni (<span id="countTabBirthday">0</span>)
+                    </button>
+                    <button data-cat="custom" class="cat-tab px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
+                        📝 Personalizzate (<span id="countTabCustom">0</span>)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista Scadenze -->
+            <div id="deadlinesListContainer" class="space-y-3">
+                <!-- Popolato dinamicamente da scadenze.js -->
+                <div class="p-8 text-center text-gray-400 dark:text-gray-500">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mb-2"></div>
+                    <p>Caricamento scadenze in corso...</p>
+                </div>
+            </div>
+
+            <!-- Stato Vuoto (Empty State) -->
+            <div id="emptyStateContainer" class="hidden text-center py-12 px-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">
+                <span class="text-4xl mb-3 block">🎉</span>
+                <h3 class="text-lg font-bold text-gray-700 dark:text-gray-200">Nessuna scadenza trovata</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-md mx-auto">
+                    Non ci sono scadenze corrispondenti ai filtri impostati per l'anno scout selezionato.
+                </p>
+                <button id="emptyAddBtn" class="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition">
+                    <span>➕</span> Aggiungi una scadenza personalizzata
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modale Aggiungi / Modifica Scadenza Personalizzata -->
+    <div id="customDeadlineModal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 hidden" aria-hidden="true">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-150">
+            <!-- Header Modale -->
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+                <h3 id="modalTitle" class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <span>⏰</span> <span>Nuova Scadenza</span>
+                </h3>
+                <button type="button" id="closeModalBtn" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg transition">
+                    <span class="text-xl leading-none">&times;</span>
+                </button>
+            </div>
+
+            <!-- Form Modale -->
+            <form id="customDeadlineForm" class="p-6 space-y-4">
+                <input type="hidden" id="customDeadlineId" value="" />
+
+                <!-- Titolo -->
+                <div>
+                    <label for="deadlineTitle" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                        Titolo Scadenza *
+                    </label>
+                    <input type="text" id="deadlineTitle" required placeholder="es. Consegna moduli San Giorgio, Quota acconto..." class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                </div>
+
+                <!-- Data Scadenza & Categoria (Grid) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="deadlineDate" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                            Data di Scadenza *
+                        </label>
+                        <input type="date" id="deadlineDate" required class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                    </div>
+
+                    <div>
+                        <label for="deadlineCategory" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                            Categoria
+                        </label>
+                        <select id="deadlineCategory" class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+                            <option value="Iscrizioni & Quote">Iscrizioni & Quote</option>
+                            <option value="Documenti / Burocrazia">Documenti / Burocrazia</option>
+                            <option value="Logistica / Sede">Logistica / Sede</option>
+                            <option value="Materiale / Attrezzature">Materiale / Attrezzature</option>
+                            <option value="Evento / Uscita">Evento / Uscita</option>
+                            <option value="Altro">Altro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Priorità -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                        Priorità
+                    </label>
+                    <div class="flex items-center gap-4">
+                        <label class="inline-flex items-center text-sm cursor-pointer">
+                            <input type="radio" name="deadlinePriority" value="Bassa" class="text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400">Bassa</span>
+                        </label>
+                        <label class="inline-flex items-center text-sm cursor-pointer">
+                            <input type="radio" name="deadlinePriority" value="Media" checked class="text-amber-600 focus:ring-amber-500">
+                            <span class="ml-2 text-xs font-medium text-amber-600 dark:text-amber-400">Media</span>
+                        </label>
+                        <label class="inline-flex items-center text-sm cursor-pointer">
+                            <input type="radio" name="deadlinePriority" value="Alta" class="text-rose-600 focus:ring-rose-500">
+                            <span class="ml-2 text-xs font-medium text-rose-600 dark:text-rose-400">Alta</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Note / Dettagli -->
+                <div>
+                    <label for="deadlineNotes" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                        Note o Dettagli Aggiuntivi
+                    </label>
+                    <textarea id="deadlineNotes" rows="3" placeholder="Informazioni utili, istruzioni o promemoria..." class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"></textarea>
+                </div>
+
+                <!-- Checkbox Completata -->
+                <div class="flex items-center gap-2 pt-2">
+                    <input type="checkbox" id="deadlineCompleted" class="w-4 h-4 text-green-600 rounded border-gray-300 dark:border-gray-700 focus:ring-green-500 cursor-pointer">
+                    <label for="deadlineCompleted" class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                        Contrassegna come già completata
+                    </label>
+                </div>
+
+                <!-- Footer Modale -->
+                <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-3">
+                    <button type="button" id="cancelModalBtn" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+                        Annulla
+                    </button>
+                    <button type="submit" id="saveDeadlineBtn" class="px-5 py-2 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition">
+                        Salva Scadenza
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/config.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js")
+                .catch(err => console.error("SW registration failed:", err));
+        }
+    </script>
+</body>
+
+</html>

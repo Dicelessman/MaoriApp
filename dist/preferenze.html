@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Preferenze - Scout Maori</title>
+  <meta name="description" content="Gestione preferenze utente" />
+  <meta name="theme-color" content="#16a34a" />
+
+  <!-- Favicon e icone -->
+  <link rel="icon" type="image/x-icon" href="/assets/favicon-D0S-PLtV.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192-BnNgNRfN.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512-DmSUEAR1.png" />
+  <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="/assets/manifest-DovV98Et.json" />
+
+  <!-- CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS per supporto Excel -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+  <script type="module" crossorigin src="/assets/preferenze-Bg4QeK_H.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-DdNAYcTb.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-Dm_IxfHL.js">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-BUUTnjq0.css">
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+
+    <!-- Header condiviso -->
+    <div id="shared-header"></div>
+
+    <!-- Main -->
+    <main id="main-content" class="p-6">
+      <!-- Modali condivisi -->
+      <div id="shared-modals"></div>
+
+      <!-- Contenuto Preferenze -->
+      <section id="preferencesTab" class="tab-content active">
+        <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-6">Preferenze Utente</h2>
+
+        <div class="space-y-6">
+
+          <!-- Profilo Utente -->
+          <div
+            class="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-lg shadow-sm border-2 border-indigo-200 dark:border-indigo-800">
+            <h3 class="text-lg font-semibold text-indigo-800 dark:text-indigo-300 mb-4">👤 Profilo Utente</h3>
+
+            <form id="userProfileForm" class="space-y-4">
+              <input type="hidden" id="userProfileId"> <!-- ID dello staff -->
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome</label>
+                  <input type="text" id="userProfileNome" class="input w-full" placeholder="Nome">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cognome</label>
+                  <input type="text" id="userProfileCognome" class="input w-full" placeholder="Cognome">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Contatto</label>
+                  <input type="email" id="userProfileEmail" class="input w-full" placeholder="Email">
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">⚠️ Modifica l'email di contatto nel database,
+                    non l'email di accesso (login).</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ruolo</label>
+                  <input type="text" id="userProfileRole" class="input w-full" placeholder="Es. Capo Reparto, Vice...">
+                </div>
+              </div>
+
+              <div class="flex justify-end pt-2">
+                <button type="submit" id="saveUserProfileBtn" class="btn-primary bg-indigo-600 hover:bg-indigo-700">💾
+                  Salva Modifiche Profilo</button>
+              </div>
+            </form>
+
+            <div class="pt-4 mt-4 border-t border-indigo-200 dark:border-indigo-800">
+              <button type="button" id="togglePasswordChange"
+                class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-sm font-medium flex items-center gap-2">
+                <span>🔑</span> Cambia Password Login
+              </button>
+
+              <div id="passwordChangeForm"
+                class="hidden mt-4 bg-white dark:bg-gray-800 p-4 rounded-lg border border-indigo-100 dark:border-indigo-900 space-y-3">
+                <div>
+                  <label class="block text-sm text-gray-600 dark:text-gray-400">Nuova Password</label>
+                  <input type="password" id="newPassword" class="input w-full mt-1" placeholder="Min. 6 caratteri"
+                    autocomplete="new-password">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-600 dark:text-gray-400">Conferma Password</label>
+                  <input type="password" id="confirmNewPassword" class="input w-full mt-1" autocomplete="new-password">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                  <button type="button" id="cancelPasswordChange"
+                    class="btn-secondary text-xs px-3 py-1">Annulla</button>
+                  <button type="button" id="submitPasswordChange"
+                    class="btn-primary bg-indigo-600 hover:bg-indigo-700 text-xs px-3 py-1">Aggiorna Password</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Configurazione Unità -->
+        <div
+          class="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg shadow-sm border-2 border-green-200 dark:border-green-800">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🏕️ Configurazione Unità</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Personalizza il nome della tua unità che apparirà
+            nell'header
+            dell'applicazione</p>
+          <div class="space-y-4">
+            <div>
+              <label for="unitType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo di
+                Unità</label>
+              <select id="unitType"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="Reparto">Reparto</option>
+                <option value="Branco">Branco</option>
+                <option value="Compagnia">Compagnia</option>
+              </select>
+            </div>
+            <div>
+              <label for="unitName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nome
+                Unità</label>
+              <input type="text" id="unitName" placeholder="es. Maori, Aquile, Lupi..."
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-3 rounded border border-green-300 dark:border-green-700">
+              <p class="text-sm text-gray-600 dark:text-gray-400">Anteprima: <span id="unitPreview"
+                  class="font-bold text-green-700 dark:text-green-400">Reparto Maori</span></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tema -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🎨 Aspetto</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tema</label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Scegli tra tema chiaro o scuro</p>
+              </div>
+              <select id="themeSelect"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="light">Chiaro</option>
+                <option value="dark">Scuro</option>
+                <option value="auto">Automatico (segue sistema)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifiche -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">🔔 Notifiche & Promemoria Automatici</h3>
+            <button id="runRemindersNowBtn" type="button" class="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3">
+              <span>🔄</span> Controlla Ora
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            I promemoria compaiono nella campanella 🔔 in alto a destra e ti aiutano a tenere traccia di scadenze, quote e compleanni.
+          </p>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notifiche Push Browser (FCM)</label>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Ricevi notifiche anche a schermo bloccato o app chiusa</p>
+                <span id="notificationPermissionStatus" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 block"></span>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="notificationsEnabled" class="sr-only peer">
+                <div
+                  class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                </div>
+              </label>
+            </div>
+
+            <div class="space-y-3 pt-1">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria Attività Imminenti</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Avviso 3 giorni prima delle attività in calendario</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notificationActivityReminders" class="sr-only peer">
+                  <div
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                  </div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria Quote & Pagamenti</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Avviso se ci sono esploratori presenti con quota non saldata</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notificationPaymentReminders" class="sr-only peer">
+                  <div
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                  </div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Compleanni Esploratori</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Avviso il giorno del compleanno e nei 3 giorni precedenti</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notificationBirthdayReminders" class="sr-only peer">
+                  <div
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                  </div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Modifiche Importanti</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Avviso quando vengono cancellate attività o dati critici</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notificationImportantChanges" class="sr-only peer">
+                  <div
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visualizzazione -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">👁️ Visualizzazione</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Vista Predefinita</label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Pagina da aprire all'accesso</p>
+              </div>
+              <select id="defaultViewSelect"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Automatica</option>
+                <option value="presenze.html">Presenze</option>
+                <option value="dashboard.html">Dashboard</option>
+                <option value="calendario.html">Calendario</option>
+                <option value="esploratori.html">Esploratori</option>
+                <option value="staff.html">Staff</option>
+              </select>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ordinamento Attività</label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Come ordinare le attività nel calendario</p>
+              </div>
+              <select id="activityOrderSelect"
+                class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Data (cronologico)</option>
+                <option value="name">Nome</option>
+                <option value="type">Tipo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scorciatoie Tastiera -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">⌨️ Scorciatoie Tastiera</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Abilita Scorciatoie</label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Consenti l'uso di scorciatoie da tastiera</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="shortcutsEnabled" class="sr-only peer">
+                <div
+                  class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                </div>
+              </label>
+            </div>
+
+            <div id="shortcutsConfigContainer" class="space-y-3">
+              <!-- Shortcuts verranno inseriti qui dinamicamente -->
+            </div>
+
+            <button id="resetShortcutsBtn"
+              class="w-full md:w-auto px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm">
+              🔄 Ripristina Scorciatoie Default
+            </button>
+          </div>
+        </div>
+
+        <!-- Gestione Anno Scout & Archiviazione -->
+        <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20 p-6 rounded-lg shadow-sm border-2 border-green-300 dark:border-green-800">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-green-900 dark:text-green-200 flex items-center gap-2">
+                <span>📅</span> Anno Scout & Archiviazione Calendario
+              </h3>
+              <p class="text-sm text-green-700 dark:text-green-300 mt-1">
+                Configura l'Anno Scout attivo corrente e gestisci l'archiviazione del calendario passato per iniziare un nuovo anno pulito senza cancellare lo storico.
+              </p>
+            </div>
+            <button id="openArchiveYearModalBtn" type="button" class="self-start sm:self-auto px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm flex items-center gap-2">
+              <span>📦</span> Archivia e Avvia Nuovo Anno
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-green-200 dark:border-green-800/60 text-sm">
+            <div>
+              <label for="prefActiveScoutYear" class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">Anno Scout Attivo:</label>
+              <select id="prefActiveScoutYear" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-semibold focus:ring-2 focus:ring-green-500">
+              </select>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">L'anno impostato qui sarà quello predefinito in Calendario, Presenze e Statistiche.</p>
+            </div>
+            <div id="scoutYearSummaryBox" class="bg-white/80 dark:bg-gray-800/80 p-3 rounded-lg border border-green-200 dark:border-green-800 flex flex-col justify-center">
+              <span class="text-xs font-bold uppercase tracking-wider text-green-800 dark:text-green-400 mb-1">Riepilogo Attività & Presenze</span>
+              <div id="scoutYearSummaryText" class="text-xs text-gray-600 dark:text-gray-300">Caricamento statistiche anno...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export/Import Dati -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">📊 Export/Import Dati</h3>
+          <div class="space-y-4">
+            <div>
+              <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Export</h4>
+              <div class="flex flex-wrap gap-2">
+                <button id="exportJSONBtn"
+                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                  📄 Export JSON
+                </button>
+                <button id="exportPresencesCSVBtn"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                  📊 Export Presenze CSV
+                </button>
+                <button id="exportActivitiesCSVBtn"
+                  class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
+                  📅 Export Attività CSV
+                </button>
+                <button id="exportExcelBtn"
+                  class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm">
+                  📗 Export Excel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Importazione Dati Anagrafici da CSV -->
+        <div
+          class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg shadow-sm border border-blue-200 dark:border-blue-800">
+          <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-4">📥 Importazione Dati Anagrafici</h3>
+          <p class="text-sm text-blue-600 dark:text-blue-400 mb-4">Carica un file CSV per aggiornare i dati anagrafici
+            degli esploratori
+            esistenti. Il sistema cercherà corrispondenze per Nome e Cognome.</p>
+
+          <div class="space-y-4">
+            <label class="block w-full">
+              <input type="file" id="importAnagraficaCsvInput" accept=".csv" class="hidden">
+              <div
+                class="w-full border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-lg p-6 text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors">
+                <span class="text-3xl block mb-2">📄</span>
+                <span class="text-sm font-medium text-blue-700 dark:text-blue-300">Clicca per selezionare il file CSV
+                  (es. generated.csv)</span>
+              </div>
+            </label>
+
+            <div id="importLogContainer" class="hidden">
+              <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Risultato Importazione:</h4>
+              <div id="importLogContent"
+                class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3 text-xs font-mono h-40 overflow-y-auto whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Integrità Dati e Manutenzione (Fase 4) -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">🔍 Integrità Dati & Manutenzione</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Verifica incongruenze, presenze orfane, duplicati o date anomale nel database.</p>
+            </div>
+            <button id="runIntegrityCheckBtn" type="button" class="self-start sm:self-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition-colors shadow-sm flex items-center gap-1.5">
+              <span>🔍</span> Verifica Integrità
+            </button>
+          </div>
+
+          <!-- Contenitore Risultati Verifica -->
+          <div id="integrityReportContainer" class="hidden mt-4 space-y-3">
+            <div id="integritySummaryCard" class="p-4 rounded-lg border text-sm font-medium"></div>
+
+            <div id="integrityIssuesList" class="space-y-2 text-xs font-mono max-h-56 overflow-y-auto p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"></div>
+
+            <div id="cleanOrphansAction" class="hidden pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+              <span class="text-xs text-amber-800 dark:text-amber-300 font-medium">Rilevate presenze orfane non più associate ad attività o esploratori attivi.</span>
+              <button id="cleanOrphansBtn" type="button" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-xs font-semibold transition-colors">
+                🧹 Ripulisci Presenze Orfane
+              </button>
+            </div>
+          </div>
+
+          <!-- Registro Errori Recenti -->
+          <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">📋 Registro Errori Recenti</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Tracciamento degli ultimi errori applicativi registrati localmente.</p>
+              </div>
+              <div class="flex gap-2">
+                <button id="viewErrorsBtn" type="button" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded text-xs transition-colors">
+                  Mostra Log
+                </button>
+                <button id="clearErrorsBtn" type="button" class="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/40 dark:text-red-300 rounded text-xs transition-colors">
+                  Svuota
+                </button>
+              </div>
+            </div>
+            <div id="recentErrorsContainer" class="hidden mt-3 p-3 bg-gray-900 text-green-400 font-mono text-xs rounded-lg max-h-48 overflow-y-auto whitespace-pre-wrap"></div>
+          </div>
+        </div>
+
+  <!-- Dati e Sincronizzazione -->
+  <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">💾 Dati</h3>
+    <div class="space-y-3">
+      <button id="syncPreferencesBtn"
+        class="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        🔄 Sincronizza Preferenze
+      </button>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Sincronizza le preferenze con il server (se loggato)</p>
+    </div>
+  </div>
+
+  <!-- Pulsanti Azione -->
+  <div class="flex flex-col sm:flex-row gap-3 pt-4">
+    <button id="savePreferencesBtn"
+      class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 font-medium">
+      💾 Salva Preferenze
+    </button>
+    <button id="resetPreferencesBtn"
+      class="flex-1 px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 font-medium">
+      🔄 Ripristina Default
+    </button>
+  </div>
+
+  </div>
+  </section>
+  </main>
+  </div>
+
+  <!-- Modale Archiviazione Anno Scout -->
+  <div id="archiveYearModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content max-w-lg mx-auto">
+      <div class="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700 mb-4">
+        <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><span>📦</span> Archiviazione Anno Scout</h3>
+        <button type="button" onclick="window.UI && window.UI.closeModal ? window.UI.closeModal('archiveYearModal') : document.getElementById('archiveYearModal').classList.remove('show')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl font-bold">✕</button>
+      </div>
+      <div class="space-y-4 text-sm text-gray-700 dark:text-gray-300">
+        <p>
+          Stai per archiviare il calendario dell'anno uscente e impostare il <strong>nuovo Anno Scout</strong>.
+        </p>
+        <div class="p-4 bg-green-50 dark:bg-green-950/40 rounded-lg border border-green-200 dark:border-green-800">
+          <div class="font-bold text-green-800 dark:text-green-300 mb-1">Cosa succede:</div>
+          <ul class="list-disc list-inside space-y-1 text-xs text-gray-600 dark:text-gray-300">
+            <li><strong>Nessun dato viene cancellato:</strong> tutte le attività e le presenze passate rimangono memorizzate nel database.</li>
+            <li>Il nuovo anno scout avrà un calendario pulito, pronto per inserire le nuove attività.</li>
+            <li>Potrai consultare le statistiche e il calendario dell'anno archiviato in qualsiasi momento tramite il selettore Anno Scout.</li>
+          </ul>
+        </div>
+        <div>
+          <label for="newScoutYearInput" class="block font-semibold mb-1">Nuovo Anno Scout da avviare:</label>
+          <input type="text" id="newScoutYearInput" placeholder="es. 2025/2026" class="input w-full font-bold text-base text-green-800 dark:text-green-300" />
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <button id="downloadBackupBeforeArchiveBtn" type="button" class="btn-secondary text-xs flex items-center justify-center gap-1.5 py-2">
+            <span>📥</span> Scarica Backup JSON
+          </button>
+          <div class="flex gap-2 justify-end">
+            <button type="button" onclick="window.UI && window.UI.closeModal ? window.UI.closeModal('archiveYearModal') : document.getElementById('archiveYearModal').classList.remove('show')" class="btn-secondary text-xs">Annulla</button>
+            <button id="confirmArchiveYearBtn" type="button" class="btn-primary bg-green-700 hover:bg-green-800 text-xs font-semibold">✅ Conferma e Avvia</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+</body>
+
+</html>

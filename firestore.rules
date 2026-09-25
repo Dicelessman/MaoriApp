@@ -8,11 +8,14 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // Helper function: verifica che l'utente sia staff
-    // (per ora accettiamo tutti gli utenti autenticati come staff)
-    // In futuro si può migliorare verificando la collezione staff
+    // Helper function: verifica che l'utente sia staff autorizzato
+    // - Richiede autenticazione valida con provider non anonimo ed email presente
+    // - Se sono impostati custom claims per il ruolo, ammette solo 'staff' o 'admin'
     function isStaff() {
-      return isAuthenticated();
+      return isAuthenticated()
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && request.auth.token.email != null
+        && (!('role' in request.auth.token) || request.auth.token.role in ['staff', 'admin']);
     }
     
     // Helper function: valida formato email
@@ -196,13 +199,9 @@ service cloud.firestore {
       
       // Creazione: solo staff autenticato (append-only)
       allow create: if isStaff()
-        && request.resource.data.keys().hasAll(['action', 'collection', 'documentId', 'timestamp', 'userId'])
         && request.resource.data.action is string
-        && request.resource.data.collection is string
-        && request.resource.data.documentId is string
-        && request.resource.data.timestamp is timestamp
-        && request.resource.data.userId is string
-        && request.resource.data.userId == request.auth.uid; // Utente può loggare solo per se stesso
+        && request.resource.data.action.size() > 0
+        && request.resource.data.action.size() <= 100;
       
       // Aggiornamento: NEGATO (append-only)
       allow update: if false;
@@ -351,11 +350,14 @@ service cloud.firestore {
       // Lettura: tutti gli utenti autenticati possono leggere
       allow read: if isAuthenticated();
 
-      // Creazione: solo staff autenticato con nome valido
+      // Creazione: solo staff autenticato con nome e tipi validi
       allow create: if isStaff()
         && request.resource.data.nome is string
         && request.resource.data.nome.size() > 0
-        && request.resource.data.nome.size() <= 200;
+        && request.resource.data.nome.size() <= 200
+        && (!('quantita' in request.resource.data) || request.resource.data.quantita is number)
+        && (!('quantitaMinima' in request.resource.data) || request.resource.data.quantitaMinima is number)
+        && (!('prezzoUnitario' in request.resource.data) || request.resource.data.prezzoUnitario is number);
 
       // Aggiornamento: solo staff autenticato
       allow update: if isStaff()
@@ -363,7 +365,10 @@ service cloud.firestore {
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nome']) ||
             (request.resource.data.nome is string &&
              request.resource.data.nome.size() > 0 &&
-             request.resource.data.nome.size() <= 200));
+             request.resource.data.nome.size() <= 200))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['quantita']) || request.resource.data.quantita is number)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['quantitaMinima']) || request.resource.data.quantitaMinima is number)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['prezzoUnitario']) || request.resource.data.prezzoUnitario is number);
 
       // Eliminazione: solo staff autenticato
       allow delete: if isStaff();
@@ -401,11 +406,13 @@ service cloud.firestore {
       allow create: if isStaff()
         && request.resource.data.nome is string
         && request.resource.data.nome.size() > 0
-        && request.resource.data.nome.size() <= 200;
+        && request.resource.data.nome.size() <= 200
+        && (!('puntiDefault' in request.resource.data) || request.resource.data.puntiDefault is number);
 
       // Aggiornamento: solo staff autenticato
       allow update: if isStaff()
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'createdAt', 'createdBy']));
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'createdAt', 'createdBy']))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['puntiDefault']) || request.resource.data.puntiDefault is number);
 
       // Eliminazione: solo staff autenticato
       allow delete: if isStaff();
@@ -416,14 +423,16 @@ service cloud.firestore {
       // Lettura: tutti gli utenti autenticati possono leggere
       allow read: if isAuthenticated();
 
-      // Creazione: solo staff autenticato
+      // Creazione: solo staff autenticato con dati validi
       allow create: if isStaff()
-        && ((request.resource.data.squadriglia is string && request.resource.data.squadriglia.size() > 0)
-            || (request.resource.data.pattuglia is string && request.resource.data.pattuglia.size() > 0));
+        && (!('punti' in request.resource.data) || request.resource.data.punti is number)
+        && ((request.resource.data.squadriglia is string && request.resource.data.squadriglia.size() > 0 && request.resource.data.squadriglia.size() <= 100)
+            || (request.resource.data.pattuglia is string && request.resource.data.pattuglia.size() > 0 && request.resource.data.pattuglia.size() <= 100));
 
       // Aggiornamento: solo staff autenticato
       allow update: if isStaff()
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'createdAt']));
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'createdAt']))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['punti']) || request.resource.data.punti is number);
 
       // Eliminazione: solo staff autenticato
       allow delete: if isStaff();

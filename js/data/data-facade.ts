@@ -23,7 +23,7 @@ class CacheManager {
         this.defaultTTL = 5 * 60 * 1000; // 5 minuti
     }
 
-    get<T>(key: string, allowStale: boolean = false): T | null {
+    get<T = any>(key: string, allowStale: boolean = false): T | null {
         const entry = this.cache.get(key);
         if (!entry) return null;
 
@@ -84,6 +84,7 @@ interface DataAdapter {
     saveBudget(budget: any, currentUser: any): Promise<any>;
     getPatrols(): Promise<any>;
     savePatrols(list: any, currentUser: any): Promise<any>;
+    getAuditLogs?(limitCount?: number): Promise<any[]>;
 }
 
 export const DATA = {
@@ -155,7 +156,15 @@ export const DATA = {
 
     async updateActivity(p: any, currentUser: any) {
         const result = await this.adapter.updateActivity(p, currentUser);
-        this._invalidateCache();
+        const cached = this.cache.get<any>('loadAll', true);
+        if (cached && Array.isArray(cached.activities)) {
+            const idx = cached.activities.findIndex((a: any) => a.id === p.id);
+            if (idx >= 0) {
+                cached.activities[idx] = { ...cached.activities[idx], ...p };
+            }
+        } else {
+            this._invalidateCache();
+        }
         return result;
     },
 
@@ -173,7 +182,15 @@ export const DATA = {
 
     async updateStaff(p: any, currentUser: any) {
         const result = await this.adapter.updateStaff(p, currentUser);
-        this._invalidateCache();
+        const cached = this.cache.get<any>('loadAll', true);
+        if (cached && Array.isArray(cached.staff)) {
+            const idx = cached.staff.findIndex((s: any) => s.id === p.id);
+            if (idx >= 0) {
+                cached.staff[idx] = { ...cached.staff[idx], ...p };
+            }
+        } else {
+            this._invalidateCache();
+        }
         return result;
     },
 
@@ -191,7 +208,21 @@ export const DATA = {
 
     async updateScout(id: string, p: any, currentUser: any) {
         const result = await this.adapter.updateScout({ id, ...p }, currentUser);
-        this._invalidateCache();
+        const cached = this.cache.get<any>('loadAll', true);
+        if (cached && Array.isArray(cached.scouts)) {
+            const idx = cached.scouts.findIndex((s: any) => s.id === id);
+            if (idx >= 0) {
+                cached.scouts[idx] = { ...cached.scouts[idx], ...p };
+            }
+            if (Array.isArray(cached.allScouts)) {
+                const aIdx = cached.allScouts.findIndex((s: any) => s.id === id);
+                if (aIdx >= 0) {
+                    cached.allScouts[aIdx] = { ...cached.allScouts[aIdx], ...p };
+                }
+            }
+        } else {
+            this._invalidateCache();
+        }
         return result;
     },
 
@@ -203,7 +234,25 @@ export const DATA = {
 
     async updatePresence(p: any, currentUser: any) {
         const result = await this.adapter.updatePresence(p, currentUser);
-        this._invalidateCache();
+        const cached = this.cache.get<any>('loadAll', true);
+        if (cached && Array.isArray(cached.presences)) {
+            const { field, value, scoutId, activityId } = p;
+            const existing = cached.presences.find((item: any) =>
+                item.esploratoreId === scoutId && item.attivitaId === activityId
+            );
+            if (existing) {
+                existing[field] = value;
+                if (field === 'pagato' && !value) existing.tipoPagamento = null;
+            } else {
+                cached.presences.push({
+                    esploratoreId: scoutId,
+                    attivitaId: activityId,
+                    [field]: value
+                });
+            }
+        } else {
+            this._invalidateCache();
+        }
         return result;
     },
 
@@ -381,5 +430,13 @@ export const DATA = {
         const result = await (this.adapter as any).deleteGaraPunti(id, currentUser);
         this.cache.invalidate();
         return result;
+    },
+
+    // Log di Audit
+    async getAuditLogs(limitCount: number = 100): Promise<any[]> {
+        if (typeof (this.adapter as any).getAuditLogs === 'function') {
+            return await (this.adapter as any).getAuditLogs(limitCount);
+        }
+        return [];
     }
 };

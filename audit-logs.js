@@ -5,6 +5,19 @@ UI.renderCurrentPage = function() {
   this.renderAuditLogs();
 };
 
+UI.loadAuditLogs = async function(limitCount = 100) {
+  try {
+    if (typeof DATA !== 'undefined' && typeof DATA.getAuditLogs === 'function') {
+      return await DATA.getAuditLogs(limitCount);
+    }
+    return [];
+  } catch (err) {
+    console.error('Errore nel recupero dei log da DATA:', err);
+    return [];
+  }
+};
+
+
 UI.renderAuditLogs = async function() {
   const container = this.qs('#auditLogsContent');
   if (!container) return;

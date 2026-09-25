@@ -12,7 +12,7 @@ import {
     getUpcomingActivities, getPendingPaymentsByActivity, getUpcomingBirthdays,
     getScoutMedicalStatus, generateWhatsAppReminderUrl,
     findUpcomingActivity, computeActivityDashboardKPIs,
-    generateScoutSentieroHtml
+    generateScoutSentieroHtml, getAllScoutYearDeadlines
 } from '../utils/utils.js';
 import { setupFormValidation, validateForm, validateFieldValue, checkDataIntegrity } from '../utils/validation.js';
 export const UI = {
@@ -36,6 +36,7 @@ export const UI = {
     findUpcomingActivity,
     computeActivityDashboardKPIs,
     generateScoutSentieroHtml,
+    getAllScoutYearDeadlines,
     sendMedicalWhatsAppReminder(scoutId) {
         const scout = (this.state.scouts || []).find(s => s.id === scoutId);
         if (!scout) {
@@ -973,9 +974,11 @@ export const UI = {
     },
     highlightActiveNavItem() {
         const path = window.location.pathname;
-        const page = path.split('/').pop() || 'index.html';
+        const page = (path.split('/').pop() || 'index.html') || 'index.html';
+        const normalizedPage = (page === '' || page === '/') ? 'index.html' : page;
         const navItems = document.querySelectorAll('.nav-item');
         const labels = {
+            'index.html': 'Home',
             'presenze.html': 'Presenze',
             'storico-presenze.html': 'Storico Presenze',
             'esploratori.html': 'Esploratori',
@@ -988,16 +991,20 @@ export const UI = {
             'preferenze.html': 'Preferenze',
             'preventivo.html': 'Preventivo',
             'scadenze.html': 'Scadenze',
-            'scorte.html': 'Scorte'
+            'scorte.html': 'Scorte',
+            'gara.html': 'Gara di Reparto',
+            'scout2.html': 'Sentiero & Specialità',
+            'archivio.html': 'Archivio Storico',
+            'audit-logs.html': 'Audit Log'
         };
         navItems.forEach(item => {
             const href = item.getAttribute('href');
-            if (href === page) {
+            if (href === normalizedPage) {
                 item.classList.add('active');
                 // Aggiorna etichetta pagina nell'header
                 const pageLabel = this.qs('#current-page-label');
-                if (pageLabel && labels[page]) {
-                    pageLabel.textContent = labels[page];
+                if (pageLabel && labels[normalizedPage]) {
+                    pageLabel.textContent = labels[normalizedPage];
                 }
             }
             else {
@@ -1025,6 +1032,25 @@ export const UI = {
             logoutBtn.addEventListener('click', async () => {
                 try {
                     await signOut(DATA.adapter.auth);
+                    this.currentUser = null;
+                    this.state = null;
+                    this.presenceIndex = new Map();
+                    if (DATA && DATA.cache) {
+                        DATA.cache.invalidate();
+                    }
+                    const passInput = this.qs('#loginPassword');
+                    if (passInput) passInput.value = '';
+                    // GDPR Privacy: rimuove i dati anagrafici e sanitari dei minori dalla persistenza locale
+                    try {
+                        if (typeof localStorage !== 'undefined') {
+                            localStorage.removeItem('presenziario-state');
+                        }
+                    } catch (e) {
+                        console.warn('Pulizia localStorage al logout non riuscita:', e);
+                    }
+                    if (typeof window !== 'undefined' && window.location) {
+                        window.location.reload();
+                    }
                 }
                 catch (error) {
                     console.error('Logout error:', error);
@@ -1078,6 +1104,8 @@ export const UI = {
                 }
                 finally {
                     this.setButtonLoading(submitBtn, false, originalText);
+                    const passInput = this.qs('#loginPassword');
+                    if (passInput) passInput.value = '';
                 }
             });
         }
@@ -2584,7 +2612,7 @@ export const UI = {
                 try {
                     switch (item.action) {
                         case 'updatePresence':
-                            await DATA.updatePresence(item.data.id || `${item.data.scoutId}_${item.data.activityId}`, item.data);
+                            await DATA.updatePresence(item.data, this.currentUser);
                             break;
                         case 'addActivity':
                             await DATA.addActivity(item.data, this.currentUser);

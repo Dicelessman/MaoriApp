@@ -134,7 +134,15 @@ export const DATA = {
     },
     async updateActivity(p, currentUser) {
         const result = await this.adapter.updateActivity(p, currentUser);
-        this._invalidateCache();
+        const cached = this.cache.get('loadAll', true);
+        if (cached && Array.isArray(cached.activities)) {
+            const idx = cached.activities.findIndex(a => a.id === p.id);
+            if (idx >= 0) {
+                cached.activities[idx] = { ...cached.activities[idx], ...p };
+            }
+        } else {
+            this._invalidateCache();
+        }
         return result;
     },
     async deleteActivity(id, currentUser) {
@@ -149,7 +157,15 @@ export const DATA = {
     },
     async updateStaff(p, currentUser) {
         const result = await this.adapter.updateStaff(p, currentUser);
-        this._invalidateCache();
+        const cached = this.cache.get('loadAll', true);
+        if (cached && Array.isArray(cached.staff)) {
+            const idx = cached.staff.findIndex(s => s.id === p.id);
+            if (idx >= 0) {
+                cached.staff[idx] = { ...cached.staff[idx], ...p };
+            }
+        } else {
+            this._invalidateCache();
+        }
         return result;
     },
     async deleteStaff(id, currentUser) {
@@ -164,7 +180,21 @@ export const DATA = {
     },
     async updateScout(id, p, currentUser) {
         const result = await this.adapter.updateScout({ id, ...p }, currentUser);
-        this._invalidateCache();
+        const cached = this.cache.get('loadAll', true);
+        if (cached && Array.isArray(cached.scouts)) {
+            const idx = cached.scouts.findIndex(s => s.id === id);
+            if (idx >= 0) {
+                cached.scouts[idx] = { ...cached.scouts[idx], ...p };
+            }
+            if (Array.isArray(cached.allScouts)) {
+                const aIdx = cached.allScouts.findIndex(s => s.id === id);
+                if (aIdx >= 0) {
+                    cached.allScouts[aIdx] = { ...cached.allScouts[aIdx], ...p };
+                }
+            }
+        } else {
+            this._invalidateCache();
+        }
         return result;
     },
     async deleteScout(id, currentUser) {
@@ -174,7 +204,25 @@ export const DATA = {
     },
     async updatePresence(p, currentUser) {
         const result = await this.adapter.updatePresence(p, currentUser);
-        this._invalidateCache();
+        const cached = this.cache.get('loadAll', true);
+        if (cached && Array.isArray(cached.presences)) {
+            const { field, value, scoutId, activityId } = p;
+            const existing = cached.presences.find(item =>
+                item.esploratoreId === scoutId && item.attivitaId === activityId
+            );
+            if (existing) {
+                existing[field] = value;
+                if (field === 'pagato' && !value) existing.tipoPagamento = null;
+            } else {
+                cached.presences.push({
+                    esploratoreId: scoutId,
+                    attivitaId: activityId,
+                    [field]: value
+                });
+            }
+        } else {
+            this._invalidateCache();
+        }
         return result;
     },
     async deletePresence(id, currentUser) {
@@ -328,5 +376,12 @@ export const DATA = {
         const result = await this.adapter.deleteGaraPunti(id, currentUser);
         this.cache.invalidate();
         return result;
+    },
+    async getAuditLogs(limitCount = 100) {
+        if (typeof this.adapter.getAuditLogs === 'function') {
+            return await this.adapter.getAuditLogs(limitCount);
+        }
+        return [];
     }
 };
+

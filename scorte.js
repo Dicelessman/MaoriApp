@@ -1,6 +1,7 @@
 // scorte.js - Logica per la gestione scorte, inventario e preventivo di riordino con liste separate
 import { DATA } from './js/data/data-facade.js';
 import { UI } from './js/ui/ui.js';
+import { escapeHtml } from './js/utils/utils.js';
 
 if (typeof window !== 'undefined') {
   window.DATA = DATA;
@@ -610,26 +611,26 @@ UI.renderScorte = function () {
     const rowBg = isSottoScorta ? 'bg-amber-50/30 dark:bg-amber-950/10' : '';
 
     return `
-      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${rowBg}" data-id="${item.id}">
+      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${rowBg}" data-id="${escapeHtml(item.id)}">
         <!-- Nome & Note -->
         <td class="p-3">
           <div class="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-            <span>${item.nome}</span>
+            <span>${escapeHtml(item.nome)}</span>
           </div>
-          ${item.note ? `<div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs mt-0.5" title="${item.note}">📝 ${item.note}</div>` : ''}
+          ${item.note ? `<div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs mt-0.5" title="${escapeHtml(item.note)}">📝 ${escapeHtml(item.note)}</div>` : ''}
         </td>
 
         <!-- Lista -->
         <td class="p-3 whitespace-nowrap">
           <span class="inline-block px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-            📑 ${itemLista}
+            📑 ${escapeHtml(itemLista)}
           </span>
         </td>
 
         <!-- Categoria -->
         <td class="p-3 whitespace-nowrap">
           <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-            🏷️ ${item.categoria || 'Generale'}
+            🏷️ ${escapeHtml(item.categoria || 'Generale')}
           </span>
         </td>
 
@@ -1093,11 +1094,11 @@ UI.processImportText = function (rawText) {
   if (tbody) {
     tbody.innerHTML = parsedItems.slice(0, 50).map(i => `
       <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-        <td class="p-2 font-medium">${i.nome}</td>
-        <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">${i.lista}</span></td>
-        <td class="p-2">${i.categoria}</td>
-        <td class="p-2 text-center">${i.quantita} ${i.unitaMisura}</td>
-        <td class="p-2 text-center">${i.quantitaMinima}</td>
+        <td class="p-2 font-medium">${escapeHtml(i.nome)}</td>
+        <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">${escapeHtml(i.lista)}</span></td>
+        <td class="p-2">${escapeHtml(i.categoria)}</td>
+        <td class="p-2 text-center">${Number(i.quantita) || 0} ${escapeHtml(i.unitaMisura)}</td>
+        <td class="p-2 text-center">${Number(i.quantitaMinima) || 0}</td>
         <td class="p-2 text-right">€ ${Number(i.prezzoUnitario).toFixed(2)}</td>
       </tr>
     `).join('');
