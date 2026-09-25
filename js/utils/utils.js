@@ -768,7 +768,8 @@ export function getScoutMedicalStatus(scout, refDate = new Date()) {
     const todayDate = toJsDate(refDate) || new Date();
     const today = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), 0, 0, 0, 0);
 
-    const certDate = scout.san_cert_scadenza ? toJsDate(scout.san_cert_scadenza) : null;
+    const certRaw = scout.san_cert_scadenza || scout.scadenzaCertificatoMedico;
+    const certDate = certRaw ? toJsDate(certRaw) : null;
     let daysRemaining = null;
     let rawDate = '';
     let formattedDate = '';
@@ -801,8 +802,8 @@ export function getScoutMedicalStatus(scout, refDate = new Date()) {
         }
     }
 
-    const docPriv = Boolean(scout.doc_priv);
-    const docSan = Boolean(scout.doc_san);
+    const docPriv = Boolean(scout.doc_priv ?? scout.consensoPrivacy);
+    const docSan = Boolean(scout.doc_san ?? scout.schedaSanitariaConsegnata);
     const missingDocuments = [];
 
     if (certStatus !== 'valid') {
@@ -1137,5 +1138,203 @@ export function generateScoutMedicalSheetHtml(data) {
     `;
 }
 
+/**
+ * Trova l'attività imminente o più rilevante rispetto a una data di riferimento
+ * @param {Array} activities - Elenco attività
+ * @param {Date|string} refDate - Data di riferimento (default: now)
+ * @returns {Object|null} Oggetto riassuntivo attività imminente e countdown
+ */
+export function findUpcomingActivity(activities = [], refDate = new Date()) {
+    if (!Array.isArray(activities) || activities.length === 0) return null;
+    const ref = toJsDate(refDate);
+    if (!ref || isNaN(ref.getTime())) return null;
 
+    const startOfRef = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate(), 0, 0, 0, 0);
 
+    const validActivities = activities
+        .filter(a => a && a.data)
+        .map(a => {
+            const d = toJsDate(a.data);
+            const dEnd = a.dataFine ? toJsDate(a.dataFine) : d;
+            return {
+                raw: a,
+                startDate: d,
+                endDate: dEnd,
+                valid: d && !isNaN(d.getTime())
+            };
+        })
+        .filter(a => a.valid)
+        .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+
+    if (validActivities.length === 0) return null;
+
+    const upcoming = validActivities.filter(a => {
+        const checkEnd = new Date(a.endDate);
+        checkEnd.setHours(23, 59, 59, 999);
+        return checkEnd.getTime() >= startOfRef.getTime();
+    });
+
+    let chosen = null;
+    let isPast = false;
+
+    if (upcoming.length > 0) {
+        chosen = upcoming[0];
+    } else {
+        chosen = validActivities[validActivities.length - 1];
+        isPast = true;
+    }
+
+    const actDay = new Date(chosen.startDate.getFullYear(), chosen.startDate.getMonth(), chosen.startDate.getDate(), 0, 0, 0, 0);
+    const diffTime = actDay.getTime() - startOfRef.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    const isToday = diffDays === 0;
+    const isTomorrow = diffDays === 1;
+    const isFuture = diffDays >= 0;
+
+    let countdownText = '';
+    let badgeText = '';
+    let badgeClass = '';
+
+    if (isToday) {
+        countdownText = "L'attività si svolge oggi!";
+        badgeText = '🔴 OGGI';
+        badgeClass = 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900/40 dark:text-rose-300 animate-pulse';
+    } else if (isTomorrow) {
+        countdownText = "Manca 1 giorno all'attività";
+        badgeText = '⚡ DOMANI';
+        badgeClass = 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300';
+    } else if (diffDays > 1) {
+        countdownText = `Mancano ${diffDays} giorni all'attività`;
+        badgeText = `⏳ Tra ${diffDays} giorni`;
+        badgeClass = 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/40 dark:text-blue-300';
+    } else {
+        const absDays = Math.abs(diffDays);
+        countdownText = `Svolta ${absDays === 1 ? 'ieri' : `${absDays} giorni fa`}`;
+        badgeText = `Svolta ${absDays} gg fa`;
+        badgeClass = 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-700 dark:text-gray-300';
+    }
+
+    return {
+        activity: chosen.raw,
+        startDate: chosen.startDate,
+        endDate: chosen.endDate,
+        isFuture,
+        isPast,
+        isToday,
+        isTomorrow,
+        diffDays,
+        countdownText,
+        badgeText,
+        badgeClass
+    };
+}
+
+/**
+ * Calcola i KPI operativi, finanziari e di sicurezza sanitaria per una determinata attività
+ * @param {Object} activity - Oggetto attività
+ * @param {Array} scouts - Tutti gli esploratori
+ * @param {Array} presences - Tutte le presenze
+ * @param {Date|string} refDate - Data di riferimento
+ * @returns {Object} Riepilogo completo di presenze, quote e conformità medica
+ */
+export function computeActivityDashboardKPIs(activity, scouts = [], presences = [], refDate = new Date()) {
+    if (!activity) return null;
+
+    const activeScouts = (Array.isArray(scouts) ? scouts : []).filter(s => !s.archived);
+    const totalActiveScouts = activeScouts.length;
+    const actId = activity.id;
+    const actDate = toJsDate(activity.data) || toJsDate(refDate);
+
+    const actPresences = (Array.isArray(presences) ? presences : []).filter(p => p.attivitaId === actId);
+    const presenceMap = new Map();
+    actPresences.forEach(p => {
+        presenceMap.set(p.esploratoreId, p);
+    });
+
+    const presentScouts = [];
+    const absentScouts = [];
+    const unrecordedScouts = [];
+
+    activeScouts.forEach(s => {
+        const p = presenceMap.get(s.id);
+        if (!p || p.stato === 'NR' || !p.stato) {
+            unrecordedScouts.push(s);
+        } else if (p.stato === 'Presente') {
+            presentScouts.push({ ...s, presence: p });
+        } else if (p.stato === 'Assente') {
+            absentScouts.push({ ...s, presence: p });
+        } else {
+            unrecordedScouts.push(s);
+        }
+    });
+
+    const presentCount = presentScouts.length;
+    const absentCount = absentScouts.length;
+    const unrecordedCount = unrecordedScouts.length;
+    const attendancePercentage = totalActiveScouts > 0 ? Math.round((presentCount / totalActiveScouts) * 100) : 0;
+
+    const cost = Number(activity.costo) || 0;
+    const isPaidActivity = cost > 0;
+    const paidScouts = presentScouts.filter(s => s.presence && s.presence.pagato);
+    const unpaidScouts = presentScouts.filter(s => !s.presence || !s.presence.pagato);
+    const paidCount = paidScouts.length;
+    const unpaidCount = unpaidScouts.length;
+    const paymentPercentage = presentCount > 0 ? Math.round((paidCount / presentCount) * 100) : 0;
+    const totalCollected = Math.round(paidCount * cost * 100) / 100;
+    const totalExpected = Math.round(presentCount * cost * 100) / 100;
+    const totalPending = Math.round(unpaidCount * cost * 100) / 100;
+
+    const checkDate = actDate && !isNaN(actDate.getTime()) ? actDate : new Date();
+    const medicalAlerts = [];
+
+    presentScouts.forEach(s => {
+        const med = getScoutMedicalStatus(s, checkDate);
+        if (!med.isCompliant) {
+            let warningType = 'docs';
+            let label = 'Documenti mancanti';
+            if (med.certStatus === 'expired') {
+                warningType = 'expired';
+                label = `Certificato scaduto (${Math.abs(med.daysRemaining || 0)} gg prima dell'attività)`;
+            } else if (med.certStatus === 'missing') {
+                warningType = 'missing_cert';
+                label = 'Certificato medico mai consegnato';
+            } else if (med.certStatus === 'expiring') {
+                warningType = 'expiring';
+                label = `Certificato in scadenza (${med.daysRemaining} gg rimanenti)`;
+            }
+
+            medicalAlerts.push({
+                scout: s,
+                medicalStatus: med,
+                warningType,
+                label,
+                missingDocuments: med.missingDocuments
+            });
+        }
+    });
+
+    const isSafetyCompliant = medicalAlerts.length === 0;
+
+    return {
+        activity,
+        totalActiveScouts,
+        presentCount,
+        absentCount,
+        unrecordedCount,
+        attendancePercentage,
+        presentScouts,
+        absentScouts,
+        unrecordedScouts,
+        cost,
+        isPaidActivity,
+        paidCount,
+        unpaidCount,
+        paymentPercentage,
+        totalCollected,
+        totalExpected,
+        totalPending,
+        unpaidScouts,
+        medicalAlerts,
+        isSafetyCompliant
+    };
+}

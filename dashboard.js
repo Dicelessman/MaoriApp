@@ -2,11 +2,271 @@
 
 // Sovrascrive la funzione per il rendering della pagina corrente
 UI.renderCurrentPage = function () {
+  this.renderNextActivityWidget();
   this.renderDashboardCharts();
   if (this.renderAttendanceGrid) {
     this.renderAttendanceGrid();
   }
 };
+
+UI.renderNextActivityWidget = function () {
+  const container = document.getElementById('nextActivityContainer');
+  if (!container) return;
+
+  const activities = this.state.activities || [];
+  const scouts = this.state.scouts || [];
+  const presences = this.state.presences || [];
+
+  const upcomingInfo = this.findUpcomingActivity ? this.findUpcomingActivity(activities) : null;
+  if (!upcomingInfo || !upcomingInfo.activity) {
+    container.innerHTML = `
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 text-center shadow-sm">
+        <div class="w-12 h-12 mx-auto rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-2xl mb-3">
+          📅
+        </div>
+        <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">Nessuna attività programmata</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-md mx-auto">
+          Non sono presenti attività future nel calendario del reparto. Aggiungi la prossima riunione o uscita per sbloccare il monitoraggio presenze, quote e conformità medica.
+        </p>
+        <div class="mt-4">
+          <a href="calendario.html" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-green-700 text-white hover:bg-green-800 shadow-sm transition">
+            <span>➕</span>
+            <span>Pianifica Nuova Attività</span>
+          </a>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const { activity, isFuture, isPast, isToday, isTomorrow, diffDays, countdownText, badgeText, badgeClass } = upcomingInfo;
+  const kpis = this.computeActivityDashboardKPIs ? this.computeActivityDashboardKPIs(activity, scouts, presences) : null;
+  if (!kpis) return;
+
+  const typeIcons = {
+    'Riunione': '⏰',
+    'Attività lunga': '🌲',
+    'Uscita': '🥾',
+    'Campo': '🏕️',
+    'Evento Adulti': '⚜️',
+    'Riunione Adulti': '📋',
+    'Eventi con esterni': '🌟'
+  };
+  const icon = typeIcons[activity.tipo] || '📅';
+
+  const toDate = (v) => (v && v.toDate) ? v.toDate() : new Date(v);
+  const actStart = toDate(activity.data);
+  const dateFormatted = !isNaN(actStart.getTime())
+    ? actStart.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Data non definita';
+  const dateStr = dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1);
+
+  const costNumber = Number(activity.costo) || 0;
+  const costBadge = costNumber > 0
+    ? `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300">Quota: € ${costNumber.toFixed(2)}</span>`
+    : `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Gratuita</span>`;
+
+  const attPerc = kpis.attendancePercentage;
+  const attBarColor = attPerc >= 70 ? 'bg-emerald-600' : (attPerc >= 40 ? 'bg-amber-500' : 'bg-gray-400');
+
+  const payPerc = kpis.paymentPercentage;
+  const payBarColor = payPerc >= 80 ? 'bg-emerald-600' : (payPerc >= 50 ? 'bg-amber-500' : 'bg-rose-500');
+
+  let medicalSectionHtml = '';
+  if (!kpis.isSafetyCompliant && kpis.medicalAlerts.length > 0) {
+    const alerts = kpis.medicalAlerts;
+    medicalSectionHtml = `
+      <div class="mt-5 p-4 rounded-xl bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 shadow-sm animate-fade-in">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">⚠️</span>
+            <div>
+              <h4 class="text-xs font-bold text-rose-900 dark:text-rose-200 uppercase tracking-wider">
+                Allarme Sicurezza Sanitaria (${alerts.length} partecipant${alerts.length === 1 ? 'e' : 'i'} non in regola)
+              </h4>
+              <p class="text-xs text-rose-700 dark:text-rose-300 mt-0.5">
+                Alcuni esploratori confermati presenti non hanno il certificato medico valido o i consensi necessari per questa data.
+              </p>
+            </div>
+          </div>
+          <button type="button" id="toggleMedicalAlertListBtn" class="text-xs font-semibold text-rose-700 dark:text-rose-300 hover:underline cursor-pointer flex-shrink-0">
+            Mostra dettagli ▼
+          </button>
+        </div>
+
+        <div id="medicalAlertListDetails" class="mt-3 pt-3 border-t border-rose-200 dark:border-rose-900/60 divide-y divide-rose-100 dark:divide-rose-900/40">
+          ${alerts.map(a => {
+            const s = a.scout;
+            const nomeCompleto = `${s.nome || ''} ${s.cognome || ''}`.trim() || 'Esploratore';
+            const pattuglia = s.pv_pattuglia ? `(${s.pv_pattuglia})` : '';
+            const missingText = a.missingDocuments.join(', ');
+            return `
+              <div class="py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div>
+                  <span class="font-bold text-gray-800 dark:text-gray-100">${nomeCompleto}</span>
+                  <span class="text-gray-500 dark:text-gray-400 ml-1">${pattuglia}</span>
+                  <div class="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5">
+                    <span class="font-medium">${a.label}</span>: ${missingText}
+                  </div>
+                </div>
+                <button type="button" onclick="UI.sendMedicalWhatsAppReminder('${s.id}')"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-xs transition cursor-pointer">
+                  <span>💬</span>
+                  <span>WhatsApp Genitore</span>
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  } else if (kpis.presentCount > 0) {
+    medicalSectionHtml = `
+      <div class="mt-5 p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-300 font-medium shadow-xs">
+        <div class="flex items-center gap-2">
+          <span class="text-base">🛡️</span>
+          <span><strong>Sicurezza Sanitaria OK:</strong> Tutti i ${kpis.presentCount} esploratori presenti hanno certificato medico e documenti in regola.</span>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">CONFORME</span>
+      </div>
+    `;
+  } else {
+    medicalSectionHtml = `
+      <div class="mt-5 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+        <span class="text-base">📋</span>
+        <span>Nessun esploratore ancora segnato come presente. Registra le presenze per verificare la conformità medica.</span>
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <div class="bg-white dark:bg-gray-800 border-2 border-green-600/30 dark:border-green-500/30 rounded-2xl p-5 sm:p-6 shadow-md transition relative overflow-hidden">
+      <!-- Header Widget -->
+      <div class="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 flex items-center gap-1">
+              <span>${icon}</span>
+              <span>${activity.tipo}</span>
+            </span>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold border ${badgeClass}">
+              ${badgeText}
+            </span>
+            ${costBadge}
+          </div>
+          <h3 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white pt-1">
+            ${activity.descrizione || activity.tipo}
+          </h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 font-medium">
+            <span>📅</span>
+            <span>${dateStr}</span>
+            ${activity.dataFine ? `<span class="text-gray-400">• Fine: ${toDate(activity.dataFine).toLocaleDateString('it-IT')}</span>` : ''}
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <a href="presenze.html" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-green-700 text-white hover:bg-green-800 shadow-sm transition flex items-center gap-1.5">
+            <span>✍️</span>
+            <span>Gestisci Presenze</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Indicatori Operativi & Finanziari -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+        <!-- KPI 1: Presenze Confermate -->
+        <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200/80 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+              <span>👥</span>
+              <span>Presenze Confermate</span>
+            </span>
+            <span class="text-xs font-extrabold text-gray-800 dark:text-gray-100">
+              ${kpis.presentCount} / ${kpis.totalActiveScouts} (${attPerc}%)
+            </span>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden mb-3">
+            <div class="${attBarColor} h-2.5 rounded-full transition-all duration-500" style="width: ${attPerc}%"></div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+            <span class="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
+              ✓ ${kpis.presentCount} Presenti
+            </span>
+            <span class="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300">
+              ✗ ${kpis.absentCount} Assenti
+            </span>
+            <span class="px-2 py-0.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+              ⏳ ${kpis.unrecordedCount} Da registrare
+            </span>
+          </div>
+        </div>
+
+        <!-- KPI 2: Quote Saldate -->
+        <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200/80 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+              <span>💰</span>
+              <span>Quote di Partecipazione</span>
+            </span>
+            ${kpis.isPaidActivity ? `
+              <span class="text-xs font-extrabold text-gray-800 dark:text-gray-100">
+                € ${kpis.totalCollected.toFixed(2)} / € ${kpis.totalExpected.toFixed(2)} (${payPerc}%)
+              </span>
+            ` : `
+              <span class="text-xs font-semibold text-gray-500">Gratuita</span>
+            `}
+          </div>
+
+          ${kpis.isPaidActivity ? `
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden mb-3">
+              <div class="${payBarColor} h-2.5 rounded-full transition-all duration-500" style="width: ${payPerc}%"></div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
+                  ✓ ${kpis.paidCount} Saldati
+                </span>
+                <span class="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
+                  ⏳ ${kpis.unpaidCount} In sospeso
+                </span>
+              </div>
+              ${kpis.totalPending > 0 ? `
+                <a href="pagamenti.html" class="text-green-700 dark:text-green-400 hover:underline text-[11px] font-bold">
+                  Sollecita € ${kpis.totalPending.toFixed(2)} →
+                </a>
+              ` : `
+                <span class="text-emerald-700 dark:text-emerald-400 text-[11px]">Tutto saldato! 🎉</span>
+              `}
+            </div>
+          ` : `
+            <div class="py-3 text-center text-xs text-gray-500 dark:text-gray-400">
+              Nessuna quota richiesta per questa attività di reparto.
+            </div>
+          `}
+        </div>
+      </div>
+
+      <!-- Sezione Alert Sanitario -->
+      ${medicalSectionHtml}
+    </div>
+  `;
+
+  const toggleBtn = document.getElementById('toggleMedicalAlertListBtn');
+  const detailsList = document.getElementById('medicalAlertListDetails');
+  if (toggleBtn && detailsList) {
+    let isOpen = true;
+    toggleBtn.addEventListener('click', () => {
+      isOpen = !isOpen;
+      detailsList.style.display = isOpen ? 'block' : 'none';
+      toggleBtn.textContent = isOpen ? 'Nascondi ▲' : 'Mostra dettagli ▼';
+    });
+  }
+};
+
 
 UI._charts = UI._charts || { scout: null, activity: null };
 

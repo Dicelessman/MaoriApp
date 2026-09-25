@@ -52,6 +52,35 @@ function searchStaff(staff, q) {
     }));
 }
 
+function searchScorte(scorte, q) {
+  return scorte
+    .filter(sc => `${sc.nome || ''} ${sc.categoria || ''} ${sc.lista || ''} ${sc.note || ''}`.toLowerCase().includes(q.toLowerCase()))
+    .slice(0, 5)
+    .map(sc => ({
+      icon: '📦',
+      text: sc.nome || 'Materiale',
+      meta: `${sc.quantita ?? 0} ${sc.unitaMisura || 'pz'} · ${sc.categoria || 'Generale'}${sc.lista ? ` (${sc.lista})` : ''}`,
+      href: 'scorte.html',
+      category: 'Materiali & Scorte'
+    }));
+}
+
+function searchScadenze(scadenze, q) {
+  return scadenze
+    .filter(scad => `${scad.titolo || ''} ${scad.descrizione || ''} ${scad.categoria || ''} ${scad.annoScout || ''}`.toLowerCase().includes(q.toLowerCase()))
+    .slice(0, 5)
+    .map(scad => {
+      const d = scad.dataScadenza ? new Date(scad.dataScadenza).toLocaleDateString('it-IT') : '';
+      return {
+        icon: '⏰',
+        text: scad.titolo || scad.descrizione || 'Scadenza',
+        meta: `${d ? `${d} · ` : ''}${scad.categoria || 'Scadenza'}${scad.completata ? ' (Completata)' : ''}`,
+        href: 'scadenze.html',
+        category: 'Scadenze'
+      };
+    });
+}
+
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
 const mockScouts = [
@@ -70,6 +99,17 @@ const mockActivities = [
 const mockStaff = [
   { nome: 'Carlo', cognome: 'Ferrari', email: 'carlo@scout.it', ruolo: 'Capo Reparto' },
   { nome: 'Giulia', cognome: 'Romano', email: 'giulia@scout.it', ruolo: 'Aiuto Capo' },
+];
+
+const mockScorte = [
+  { nome: 'Picchetti tenda', categoria: 'Campeggio', lista: 'Campo Estivo', quantita: 30, unitaMisura: 'pz' },
+  { nome: 'Cordino nylon', categoria: 'Pionieristica', lista: 'Generale', quantita: 5, unitaMisura: 'rotoli' },
+  { nome: 'Bende sterili', categoria: 'Pronto Soccorso', lista: 'Generale', quantita: 10, unitaMisura: 'pz' },
+];
+
+const mockScadenze = [
+  { titolo: 'Iscrizioni Campo', descrizione: 'Saldo quote campo estivo', categoria: 'Quote', dataScadenza: '2026-06-15', annoScout: '2025/2026', completata: false },
+  { titolo: 'Certificati Medici', descrizione: 'Rinnovo certificati reparto', categoria: 'Documenti', dataScadenza: '2026-05-30', annoScout: '2025/2026', completata: true },
 ];
 
 // ─── cpHighlightMatch ────────────────────────────────────────────────────────
@@ -178,6 +218,71 @@ describe('searchStaff', () => {
     expect(searchStaff(mockStaff, 'carlo')[0].href).toBe('staff.html');
   });
 });
+
+// ─── searchScorte ─────────────────────────────────────────────────────────────
+describe('searchScorte', () => {
+  it('trova materiale per nome', () => {
+    const r = searchScorte(mockScorte, 'picchetti');
+    expect(r).toHaveLength(1);
+    expect(r[0].text).toBe('Picchetti tenda');
+    expect(r[0].category).toBe('Materiali & Scorte');
+    expect(r[0].href).toBe('scorte.html');
+  });
+
+  it('trova materiale per categoria', () => {
+    const r = searchScorte(mockScorte, 'pronto soccorso');
+    expect(r).toHaveLength(1);
+    expect(r[0].text).toBe('Bende sterili');
+  });
+
+  it('trova materiale per lista tematica', () => {
+    const r = searchScorte(mockScorte, 'campo estivo');
+    expect(r).toHaveLength(1);
+    expect(r[0].text).toBe('Picchetti tenda');
+  });
+
+  it('include dettagli quantita nel meta', () => {
+    const r = searchScorte(mockScorte, 'cordino');
+    expect(r[0].meta).toContain('5 rotoli');
+  });
+
+  it('max 5 risultati', () => {
+    const many = Array.from({ length: 10 }, (_, i) => ({
+      nome: `Attrezzo ${i}`, categoria: 'Varie', quantita: i
+    }));
+    expect(searchScorte(many, 'attrezzo')).toHaveLength(5);
+  });
+});
+
+// ─── searchScadenze ───────────────────────────────────────────────────────────
+describe('searchScadenze', () => {
+  it('trova scadenza per titolo', () => {
+    const r = searchScadenze(mockScadenze, 'iscrizioni');
+    expect(r).toHaveLength(1);
+    expect(r[0].text).toBe('Iscrizioni Campo');
+    expect(r[0].category).toBe('Scadenze');
+    expect(r[0].href).toBe('scadenze.html');
+  });
+
+  it('trova scadenza per categoria', () => {
+    const r = searchScadenze(mockScadenze, 'documenti');
+    expect(r).toHaveLength(1);
+    expect(r[0].text).toBe('Certificati Medici');
+  });
+
+  it('indica lo stato completata nel meta', () => {
+    const r = searchScadenze(mockScadenze, 'certificati');
+    expect(r[0].meta).toContain('Completata');
+  });
+
+  it('max 5 risultati', () => {
+    const many = Array.from({ length: 8 }, (_, i) => ({
+      titolo: `Scadenza ${i}`, categoria: 'Test'
+    }));
+    expect(searchScadenze(many, 'scadenza')).toHaveLength(5);
+  });
+});
+
 
 // ─── Command Palette DOM ──────────────────────────────────────────────────────
 describe('Command Palette - DOM behavior', () => {

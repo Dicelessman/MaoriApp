@@ -21,6 +21,8 @@ const URLS_TO_CACHE = [
   "/archivio.html",
   "/scadenze.html",
   "/scorte.html",
+  "/preventivo.html",
+  "/gara.html",
   // Shared & modals
   "/shared.html",
   "/modals.html",
@@ -46,6 +48,9 @@ const URLS_TO_CACHE = [
   "/scout2.js",
   "/archivio.js",
   "/scadenze.js",
+  "/scorte.js",
+  "/preventivo.js",
+  "/gara.js",
   // Moduli core JS
   "/js/core/firebase.js",
   "/js/utils/constants.js",

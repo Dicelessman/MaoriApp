@@ -16,10 +16,11 @@
     [x] Tabellone classifica squadriglie in tempo reale con storico punti per attività
     [x] Scheda sanitaria personale stampabile in PDF/formato compatto per la cartellina del campo
 
-[ ] FASE 4: Widget "Prossima Attività" in Dashboard
-    [ ] Card riepilogativa dell'attività imminente (countdown, presenti confermati, quote saldate)
-    [ ] Alert di sicurezza su certificati scaduti tra i presenti
+[x] FASE 4: Widget "Prossima Attività" in Dashboard
+    [x] Card riepilogativa dell'attività imminente (countdown, presenti confermati, quote saldate)
+    [x] Alert di sicurezza su certificati scaduti tra i presenti
 
-[ ] FASE 5: PWA Offline-First Avanzata & Ricerca Universale
-    [ ] Sincronizzazione a due vie garantita al ritorno online da uscite/campo
-    [ ] Command Palette universale (Ctrl+K) su esploratori, attività, materiali e scadenze
+[x] FASE 5: PWA Offline-First Avanzata & Ricerca Universale
+    [x] Sincronizzazione a due vie garantita al ritorno online da uscite/campo
+    [x] Command Palette universale (Ctrl+K) su esploratori, attività, materiali e scadenze
+

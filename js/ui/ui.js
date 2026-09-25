@@ -10,7 +10,8 @@ import {
     escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit,
     getScoutYear, getScoutYearDateRange, getCurrentScoutYear, getAllScoutYears, isActivityInScoutYear,
     getUpcomingActivities, getPendingPaymentsByActivity, getUpcomingBirthdays,
-    getScoutMedicalStatus, generateWhatsAppReminderUrl
+    getScoutMedicalStatus, generateWhatsAppReminderUrl,
+    findUpcomingActivity, computeActivityDashboardKPIs
 } from '../utils/utils.js';
 import { setupFormValidation, validateForm, validateFieldValue, checkDataIntegrity } from '../utils/validation.js';
 export const UI = {
@@ -31,6 +32,8 @@ export const UI = {
     getUpcomingBirthdays,
     getScoutMedicalStatus,
     generateWhatsAppReminderUrl,
+    findUpcomingActivity,
+    computeActivityDashboardKPIs,
     sendMedicalWhatsAppReminder(scoutId) {
         const scout = (this.state.scouts || []).find(s => s.id === scoutId);
         if (!scout) {
@@ -1736,18 +1739,20 @@ export const UI = {
         const scouts = (this.state?.scouts || []).filter(s => !s.archived);
         const activities = this.state?.activities || [];
         const staff = this.state?.staff || [];
+        const scorte = this.state?.scorte || [];
+        const scadenze = this.state?.scadenze || [];
 
         // Ricerca esploratori
         const scoutResults = scouts
             .filter(s => {
-                const full = `${s.anag_nome || ''} ${s.anag_cognome || ''} ${s.anag_pattuglia || ''}`.toLowerCase();
+                const full = `${s.anag_nome || s.nome || ''} ${s.anag_cognome || s.cognome || ''} ${s.anag_pattuglia || s.pattuglia || s.pv_pattuglia || ''}`.toLowerCase();
                 return full.includes(q);
             })
             .slice(0, 5)
             .map(s => ({
                 icon: '👤',
-                text: `${s.anag_nome || ''} ${s.anag_cognome || ''}`.trim(),
-                meta: s.anag_pattuglia || 'Esploratore',
+                text: `${s.anag_nome || s.nome || ''} ${s.anag_cognome || s.cognome || ''}`.trim(),
+                meta: s.anag_pattuglia || s.pattuglia || s.pv_pattuglia || 'Esploratore',
                 href: `esploratori.html`,
                 category: 'Esploratori'
             }));
@@ -1755,7 +1760,7 @@ export const UI = {
         // Ricerca attività
         const activityResults = activities
             .filter(a => {
-                const text = `${a.descrizione || ''} ${a.tipo || ''}`.toLowerCase();
+                const text = `${a.descrizione || a.titolo || ''} ${a.tipo || ''}`.toLowerCase();
                 return text.includes(q);
             })
             .slice(0, 5)
@@ -1763,7 +1768,7 @@ export const UI = {
                 const dateStr = a.data ? (a.data.toDate ? a.data.toDate() : new Date(a.data)).toLocaleDateString('it-IT') : '';
                 return {
                     icon: '📅',
-                    text: a.descrizione || 'Attività',
+                    text: a.descrizione || a.titolo || 'Attività',
                     meta: dateStr || a.tipo || 'Attività',
                     href: 'calendario.html',
                     category: 'Attività'
@@ -1785,7 +1790,40 @@ export const UI = {
                 category: 'Staff'
             }));
 
-        const allResults = [...scoutResults, ...activityResults, ...staffResults];
+        // Ricerca Scorte & Materiali
+        const scorteResults = scorte
+            .filter(sc => {
+                const full = `${sc.nome || ''} ${sc.categoria || ''} ${sc.lista || ''} ${sc.note || ''}`.toLowerCase();
+                return full.includes(q);
+            })
+            .slice(0, 5)
+            .map(sc => ({
+                icon: '📦',
+                text: sc.nome || 'Materiale',
+                meta: `${sc.quantita ?? 0} ${sc.unitaMisura || 'pz'} · ${sc.categoria || 'Generale'}${sc.lista ? ` (${sc.lista})` : ''}`,
+                href: 'scorte.html',
+                category: 'Materiali & Scorte'
+            }));
+
+        // Ricerca Scadenze
+        const scadenzeResults = scadenze
+            .filter(scad => {
+                const full = `${scad.titolo || ''} ${scad.descrizione || ''} ${scad.categoria || ''} ${scad.annoScout || ''}`.toLowerCase();
+                return full.includes(q);
+            })
+            .slice(0, 5)
+            .map(scad => {
+                const d = scad.dataScadenza ? new Date(scad.dataScadenza).toLocaleDateString('it-IT') : '';
+                return {
+                    icon: '⏰',
+                    text: scad.titolo || scad.descrizione || 'Scadenza',
+                    meta: `${d ? `${d} · ` : ''}${scad.categoria || 'Scadenza'}${scad.completata ? ' (Completata)' : ''}`,
+                    href: 'scadenze.html',
+                    category: 'Scadenze'
+                };
+            });
+
+        const allResults = [...scoutResults, ...activityResults, ...staffResults, ...scorteResults, ...scadenzeResults];
 
         if (allResults.length === 0) {
             if (resultsContainer) resultsContainer.classList.add('hidden');
@@ -2160,12 +2198,9 @@ export const UI = {
             }
         }
         if (!online) {
-            this.showToast('Sei offline: modifiche non disponibili fino alla riconnessione.', { type: 'warning', duration: 4000 });
+            this.showToast('Sei offline: modifiche registrate localmente, sincronizzazione automatica al ritorno online.', { type: 'warning', duration: 4000 });
         } else if (this._wasOffline) {
-            this.showToast('Connessione internet ripristinata!', { type: 'success', duration: 3000 });
-            if (typeof this.renderCurrentPage === 'function') {
-                this.renderCurrentPage();
-            }
+            this.syncOfflineData();
         }
         this._wasOffline = !online;
     },
@@ -2272,14 +2307,178 @@ export const UI = {
      * Mostra/nasconde il banner offline e aggiorna l'indicatore nell'header.
      * Da chiamare una volta all'avvio di ogni pagina.
      */
+    // ── Offline Queue & Sincronizzazione a due vie ───────────────────────────
+    _OFFLINE_QUEUE_KEY: 'maori_offline_sync_queue',
+
+    /**
+     * Recupera la coda delle operazioni salvate offline
+     * @returns {Array<{id: string, action: string, data: any, timestamp: string}>}
+     */
+    getOfflineQueue() {
+        try {
+            const raw = localStorage.getItem(this._OFFLINE_QUEUE_KEY);
+            return raw ? JSON.parse(raw) : [];
+        } catch {
+            return [];
+        }
+    },
+
+    /**
+     * Aggiunge un'operazione da sincronizzare al ritorno online
+     * @param {string} action - Nome dell'operazione (es. 'updatePresence', 'addActivity')
+     * @param {any} data - Payload dell'operazione
+     */
+    addToOfflineQueue(action, data) {
+        try {
+            const queue = this.getOfflineQueue();
+            const item = {
+                id: 'sync_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                action,
+                data,
+                timestamp: new Date().toISOString()
+            };
+            queue.push(item);
+            localStorage.setItem(this._OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+            this.updateSyncBadge();
+            return item;
+        } catch (e) {
+            console.warn('[OfflineQueue] Impossibile salvare:', e);
+            return null;
+        }
+    },
+
+    /**
+     * Pulisce la coda di sincronizzazione
+     */
+    clearOfflineQueue() {
+        try {
+            localStorage.removeItem(this._OFFLINE_QUEUE_KEY);
+            this.updateSyncBadge();
+        } catch {}
+    },
+
+    /**
+     * Restituisce il numero di modifiche in attesa di sincronizzazione
+     * @returns {number}
+     */
+    getPendingSyncCount() {
+        return this.getOfflineQueue().length;
+    },
+
+    /**
+     * Aggiorna eventuale badge UI delle modifiche pendenti
+     */
+    updateSyncBadge() {
+        const count = this.getPendingSyncCount();
+        const badge = document.getElementById('pendingSyncBadge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+    },
+
+    /**
+     * Esegue la sincronizzazione a due vie al ritorno online da uscite o campi:
+     * 1. Push: Invia tutte le mutazioni accumulate offline verso Firestore/Remote Adapter
+     * 2. Pull: Scarica lo stato più recente dal server per allineare la cache locale
+     * 3. Rinfresca la UI corrente
+     */
+    async syncOfflineData() {
+        const queue = this.getOfflineQueue();
+        let syncedCount = 0;
+
+        if (queue.length > 0) {
+            this.showToast(`Sincronizzazione in corso (${queue.length} modifiche)...`, { type: 'info', duration: 2500 });
+            const remaining = [];
+
+            for (const item of queue) {
+                try {
+                    switch (item.action) {
+                        case 'updatePresence':
+                            await DATA.updatePresence(item.data.id || `${item.data.scoutId}_${item.data.activityId}`, item.data);
+                            break;
+                        case 'addActivity':
+                            await DATA.addActivity(item.data, this.currentUser);
+                            break;
+                        case 'updateActivity':
+                            await DATA.updateActivity(item.data, this.currentUser);
+                            break;
+                        case 'updateScout':
+                            await DATA.updateScout(item.data.id, item.data, this.currentUser);
+                            break;
+                        case 'addScorta':
+                            await DATA.addScorta(item.data, this.currentUser);
+                            break;
+                        case 'updateScorta':
+                            await DATA.updateScorta(item.data.id, item.data, this.currentUser);
+                            break;
+                        case 'addCustomDeadline':
+                            await DATA.addCustomDeadline(item.data, this.currentUser);
+                            break;
+                        case 'addGaraPunti':
+                            await DATA.addGaraPunti(item.data, this.currentUser);
+                            break;
+                        default:
+                            console.warn('[OfflineSync] Azione non riconosciuta:', item.action);
+                    }
+                    syncedCount++;
+                } catch (err) {
+                    console.error('[OfflineSync] Errore sincronizzazione item:', item, err);
+                    remaining.push(item);
+                }
+            }
+
+            if (remaining.length > 0) {
+                localStorage.setItem(this._OFFLINE_QUEUE_KEY, JSON.stringify(remaining));
+            } else {
+                this.clearOfflineQueue();
+            }
+        }
+
+        // PULL: Invalida la cache locale e scarica i dati remoti aggiornati
+        try {
+            if (DATA.cache && typeof DATA.cache.invalidate === 'function') {
+                DATA.cache.invalidate();
+            }
+            if (typeof DATA.loadAll === 'function') {
+                const fresh = await DATA.loadAll(true);
+                if (fresh) {
+                    this.state = fresh;
+                    if (typeof this.rebuildPresenceIndex === 'function') {
+                        this.rebuildPresenceIndex();
+                    }
+                }
+            }
+        } catch (pullErr) {
+            console.warn('[OfflineSync] Errore pull dati aggiornati:', pullErr);
+        }
+
+        // Aggiorna la vista se presente
+        if (typeof this.renderCurrentPage === 'function') {
+            this.renderCurrentPage();
+        }
+
+        if (syncedCount > 0) {
+            this.showToast(`✅ Sincronizzazione completata: ${syncedCount} modifiche inviate e dati aggiornati!`, { type: 'success', duration: 4000 });
+        } else {
+            this.showToast('✅ Dati allineati con il server.', { type: 'success', duration: 2500 });
+        }
+
+        return { syncedCount, remainingCount: this.getPendingSyncCount() };
+    },
+
     setupOfflineDetection() {
         this.updateConnectionIndicator(navigator.onLine);
         if (!navigator.onLine) this._showOfflineBanner();
 
-        window.addEventListener('online', () => {
+        window.addEventListener('online', async () => {
             this._hideOfflineBanner();
             this.updateConnectionIndicator(true);
-            this.showToast('✅ Connessione ripristinata. Dati aggiornati.', { type: 'success', duration: 3000 });
+            await this.syncOfflineData();
         });
 
         window.addEventListener('offline', () => {
