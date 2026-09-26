@@ -1,0 +1,1 @@
+import{D as d,U as o}from"./date-picker-uZF_q5LC.js";window.DATA=d;window.UI=o;document.addEventListener("DOMContentLoaded",()=>{o&&o.init&&o.init()});console.log("Shared.js loaded (Modularized version)");

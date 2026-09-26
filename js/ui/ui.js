@@ -993,7 +993,8 @@ export const UI = {
             'scadenze.html': 'Scadenze',
             'scorte.html': 'Scorte',
             'gara.html': 'Gara di Reparto',
-            'scout2.html': 'Sentiero & Specialità',
+            'scout2.html': 'Scheda Esploratore',
+            'liste.html': 'Progressione Verticale e Orizzontale',
             'archivio.html': 'Archivio Storico',
             'audit-logs.html': 'Audit Log'
         };

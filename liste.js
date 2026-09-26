@@ -4,7 +4,7 @@ import { DATA } from './js/data/data-facade.js';
 import { escapeHtml, toYyyyMmDd, toJsDate } from './js/utils/utils.js';
 
 // Extend UI for Liste page
-UI.currentTab = 'presenze';
+UI.currentTab = 'elenco';
 
 UI.renderCurrentPage = async function () {
     this.showLoadingOverlay('Caricamento dati...');
@@ -192,7 +192,7 @@ UI.renderPresenzePreview = async function () {
             meta += `<span class="text-xs font-bold text-blue-600 ml-1">(${s.pv_vcp_cp})</span>`;
         }
 
-        div.innerHTML = `<span class="font-medium">${idx + 1}. ${escapeHtml(name)}</span> <div>${meta}</div>`;
+        div.innerHTML = `<span class="font-medium">${idx + 1}. <a href="scout2.html?id=${encodeURIComponent(s.id)}" class="text-green-700 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:underline">${escapeHtml(name)}</a></span> <div>${meta}</div>`;
         list.appendChild(div);
     });
 };
@@ -386,7 +386,8 @@ UI.initElencoTab = function () {
         if (activeCols.includes('pattuglia')) headers.push("Pattuglia");
         if (activeCols.includes('passo')) headers.push("Passo");
         if (activeCols.includes('sfide')) headers.push("Sfide");
-        if (activeCols.includes('specialita')) headers.push("Specialita");
+        if (activeCols.includes('specialita_ottenute')) headers.push("Specialità Ottenute");
+        if (activeCols.includes('specialita_da_ottenere')) headers.push("Specialità da ottenere");
         if (activeCols.includes('dob')) headers.push("Data Nascita");
 
         const rows = [];
@@ -398,7 +399,7 @@ UI.initElencoTab = function () {
             }
         });
 
-        const filename = `elenco_maori_${new Date().toISOString().slice(0, 10)}.csv`;
+        const filename = `progressione_verticale_orizzontale_${new Date().toISOString().slice(0, 10)}.csv`;
         this.downloadCSV(filename, headers, rows);
     };
 
@@ -447,7 +448,8 @@ UI.renderElencoTable = function () {
         { id: 'pattuglia', label: 'Pattuglia' },
         { id: 'passo', label: 'Passo' },
         { id: 'sfide', label: 'Sfide' },
-        { id: 'specialita', label: 'Specialità' },
+        { id: 'specialita_ottenute', label: 'Specialità Ottenute' },
+        { id: 'specialita_da_ottenere', label: 'Specialità da ottenere' },
         { id: 'dob', label: 'Data Nascita' }
     ];
 
@@ -463,6 +465,14 @@ UI.renderElencoTable = function () {
     });
     headHtml += '</tr>';
     thead.innerHTML = headHtml;
+
+    // Helpers per specialità
+    const isSpecOttenuta = sp => {
+        if (!sp) return false;
+        if (typeof sp === 'string') return false;
+        return !!(sp.ottenuta || sp.brevetto || sp.consegnata || (!('ottenuta' in sp) && sp.data));
+    };
+    const getSpecName = sp => typeof sp === 'string' ? sp : (sp?.nome || '');
 
     // 2. Prepare Data
     let scouts = [...this.state.scouts];
@@ -480,7 +490,8 @@ UI.renderElencoTable = function () {
                 return 1; // I
             }
             case 'sfide': return ''; 
-            case 'specialita': return (s.specialita?.length || 0); 
+            case 'specialita_ottenute': return (s.specialita || []).filter(sp => isSpecOttenuta(sp) && getSpecName(sp)).length;
+            case 'specialita_da_ottenere': return (s.specialita || []).filter(sp => !isSpecOttenuta(sp) && getSpecName(sp)).length;
             case 'dob': return s.anag_dob ? new Date(s.anag_dob).getTime() : 0;
             default: return '';
         }
@@ -599,7 +610,7 @@ UI.renderElencoTable = function () {
         let rowHtml = `<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">`;
 
         // Always Name
-        rowHtml += `<td class="px-4 py-2 font-medium break-words max-w-[150px]">${escapeHtml(s.cognome)} ${escapeHtml(s.nome)}</td>`;
+        rowHtml += `<td class="px-4 py-2 font-medium break-words max-w-[150px]"><a href="scout2.html?id=${encodeURIComponent(s.id)}" class="text-green-700 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:underline">${escapeHtml(s.cognome)} ${escapeHtml(s.nome)}</a></td>`;
 
         if (activeIds.includes('pattuglia')) {
             let role = '';
@@ -637,10 +648,20 @@ UI.renderElencoTable = function () {
             rowHtml += `<td class="px-4 py-2 font-mono text-xs">I:${formatSfida('io')} A:${formatSfida('al')} M:${formatSfida('mt')}</td>`;
         }
 
-        if (activeIds.includes('specialita')) {
+        if (activeIds.includes('specialita_ottenute')) {
+            const ottenute = (s.specialita || []).filter(sp => isSpecOttenuta(sp) && getSpecName(sp));
             let text = '-';
-            if (Array.isArray(s.specialita) && s.specialita.length > 0) {
-                text = s.specialita.map(sp => sp.nome + (sp.data ? ' (C)' : '')).join(', ');
+            if (ottenute.length > 0) {
+                text = ottenute.map(sp => getSpecName(sp)).join(', ');
+            }
+            rowHtml += `<td class="px-4 py-2 text-xs break-words max-w-[200px]">${escapeHtml(text)}</td>`;
+        }
+
+        if (activeIds.includes('specialita_da_ottenere')) {
+            const daOttenere = (s.specialita || []).filter(sp => !isSpecOttenuta(sp) && getSpecName(sp));
+            let text = '-';
+            if (daOttenere.length > 0) {
+                text = daOttenere.map(sp => getSpecName(sp)).join(', ');
             }
             rowHtml += `<td class="px-4 py-2 text-xs break-words max-w-[200px]">${escapeHtml(text)}</td>`;
         }
@@ -729,11 +750,11 @@ UI.renderSfideList = function () {
                         sfideMap[code] = { text: text, scouts: [] };
                     }
                     
-                    let scoutName = `${s.nome} ${s.cognome}`;
+                    let scoutLabel = `${s.nome} ${s.cognome}`;
                     if (parseInt(passo) < currentPasso) {
-                        scoutName += ' (C)';
+                        scoutLabel += ' (C)';
                     }
-                    sfideMap[code].scouts.push(scoutName);
+                    sfideMap[code].scouts.push({ id: s.id, name: scoutLabel });
                 }
             });
         });
@@ -752,7 +773,7 @@ UI.renderSfideList = function () {
             const passo = parts[0];
             const dir = parts[1];
             if (byPassoAndDir[passo] && byPassoAndDir[passo][dir]) {
-                byPassoAndDir[passo][dir].push({ code, text: sfideMap[code].text, scouts: sfideMap[code].scouts.sort() });
+                byPassoAndDir[passo][dir].push({ code, text: sfideMap[code].text, scouts: sfideMap[code].scouts.sort((a, b) => a.name.localeCompare(b.name)) });
             }
         }
     });
@@ -775,7 +796,7 @@ UI.renderSfideList = function () {
                         <li class="pl-4 border-l-4 border-green-500">
                             <div class="font-bold text-gray-900 dark:text-white">${s.code}</div>
                             <div class="text-sm text-gray-600 dark:text-gray-300 italic mb-1">${escapeHtml(s.text || 'Testo non disponibile')}</div>
-                            <div class="text-sm font-medium text-blue-600 dark:text-blue-400">Esploratori: ${s.scouts.map(esc => escapeHtml(esc)).join(', ')}</div>
+                            <div class="text-sm font-medium text-blue-600 dark:text-blue-400">Esploratori: ${s.scouts.map(esc => `<a href="scout2.html?id=${encodeURIComponent(esc.id)}" class="hover:underline">${escapeHtml(esc.name)}</a>`).join(', ')}</div>
                         </li>
                     `;
                 });
@@ -851,18 +872,19 @@ UI.renderProveList = function () {
                     if (spData) {
                         const provaDataKey = `${prova.id}_data`;
                         if (!spData[provaDataKey]) {
-                            scoutsDaSuperare.push(`${s.nome} ${s.cognome}`);
+                            scoutsDaSuperare.push({ id: s.id, name: `${s.nome} ${s.cognome}` });
                         }
                     }
                 });
 
                 if (scoutsDaSuperare.length > 0) {
                     hasProveDaSuperare = true;
+                    scoutsDaSuperare.sort((a, b) => a.name.localeCompare(b.name));
                     htmlSpec += `
                         <div class="pl-4 border-l-4 border-yellow-400">
                             <div class="font-bold text-gray-900 dark:text-white">${escapeHtml(prova.nome)}</div>
                             <div class="text-sm text-gray-600 dark:text-gray-300 italic mb-1">${escapeHtml(prova.text)}</div>
-                            <div class="text-sm font-medium text-red-600 dark:text-red-400">Devono superarla: ${scoutsDaSuperare.sort().map(esc => escapeHtml(esc)).join(', ')}</div>
+                            <div class="text-sm font-medium text-red-600 dark:text-red-400">Devono superarla: ${scoutsDaSuperare.map(esc => `<a href="scout2.html?id=${encodeURIComponent(esc.id)}" class="hover:underline">${escapeHtml(esc.name)}</a>`).join(', ')}</div>
                         </div>
                     `;
                 }

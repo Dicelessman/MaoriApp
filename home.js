@@ -89,7 +89,7 @@ UI.renderHomeHero = function () {
   
   // Saluto orario scout
   const hour = now.getHours();
-  const greeting = hour < 13 ? 'Buon risveglio e Buona Caccia!' : (hour < 18 ? 'Buon pomeriggio e Buona Caccia!' : 'Buona serata e Buona Caccia!');
+  const greeting = hour < 13 ? 'Buon sentiero!' : (hour < 18 ? 'Buon pomeriggio e Buona Caccia!' : 'Buona serata e Buona Caccia!');
 
   const formattedDate = now.toLocaleDateString('it-IT', {
     weekday: 'long',
