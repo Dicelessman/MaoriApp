@@ -34,16 +34,47 @@ UI.getAnnoScout = function (dob) {
   return null;
 };
 
+// Helper per determinare l'anno scout in corso (priorità all'anno calcolato, o al più recente con attività)
+UI.getCurrentScoutYearSmart = function () {
+  const calculatedCurrent = typeof this.getCurrentScoutYear === 'function' ? this.getCurrentScoutYear() : null;
+  const activities = this.state.activities || [];
+
+  if (activities.length === 0) {
+    return calculatedCurrent || '2025/2026';
+  }
+
+  // Se l'anno scout calcolato ha attività, usalo sicuramente
+  if (calculatedCurrent && activities.some(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, calculatedCurrent) : false)) {
+    return calculatedCurrent;
+  }
+
+  // Altrimenti controlla se l'anno scout calcolato è '2025/2026' o '2026/2027'
+  const allYears = typeof this.getAllScoutYears === 'function' ? this.getAllScoutYears(activities) : [];
+  const yearsWithActs = allYears.filter(y => y !== 'all' && activities.some(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, y) : false));
+
+  if (yearsWithActs.length > 0) {
+    return yearsWithActs[0]; // l'anno più recente che ha attività registrate
+  }
+
+  return calculatedCurrent || '2025/2026';
+};
+
 // Helper gestione selettore Anno Scout
 UI.setupStatsScoutYearSelector = function () {
   const select = document.getElementById('statsScoutYearSelect');
   if (!select) return;
 
-  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
-  const allYears = this.getAllScoutYears ? this.getAllScoutYears(this.state.activities) : [currentScoutYear];
+  const currentScoutYear = this.getCurrentScoutYearSmart();
+  const allYears = typeof this.getAllScoutYears === 'function' ? this.getAllScoutYears(this.state.activities) : [currentScoutYear];
 
+  // Assicura che l'anno corrente sia in cima alla lista
+  if (!allYears.includes(currentScoutYear)) {
+    allYears.unshift(currentScoutYear);
+  }
+
+  // Punta SEMPRE di default all'anno scout in corso
   if (!this.selectedStatsScoutYear) {
-    this.selectedStatsScoutYear = this.getSelectedScoutYear ? this.getSelectedScoutYear() : currentScoutYear;
+    this.selectedStatsScoutYear = currentScoutYear;
   }
 
   select.innerHTML = '';
@@ -113,7 +144,8 @@ UI.renderDashboardCharts = function () {
 
   this._destroyCharts();
 
-  const selectedYear = this.selectedStatsScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
+  const currentScoutYear = this.getCurrentScoutYearSmart();
+  const selectedYear = this.selectedStatsScoutYear || currentScoutYear;
   const isAll = selectedYear === 'all';
   const toDate = (v) => this.toJsDate(v) || new Date(v);
 
@@ -139,7 +171,11 @@ UI.renderDashboardCharts = function () {
     aday.setHours(0, 0, 0, 0);
     return aday < today;
   }).map(a => a.id);
-  const consideredIds = nextActivityId ? [...pastIds, nextActivityId] : pastIds;
+
+  let consideredIds = nextActivityId ? [...pastIds, nextActivityId] : pastIds;
+  if (consideredIds.length === 0 && sortedActivities.length > 0) {
+    consideredIds = sortedActivities.map(a => a.id);
+  }
 
   const scoutStats = scouts.map(s => {
     const validActIds = consideredIds.filter(aid => {
@@ -266,29 +302,37 @@ UI.renderAttendanceGrid = function () {
   }
 
   const toDate = (v) => this.toJsDate(v) || new Date(v);
-  const selectedYear = this.selectedStatsScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
+  const currentScoutYear = this.getCurrentScoutYearSmart();
+  const selectedYear = this.selectedStatsScoutYear || currentScoutYear;
   const isAll = selectedYear === 'all';
+
+  // Tutte le attività dell'anno scout selezionato
+  const yearActivities = [...activities]
+    .filter(a => isAll || (this.isActivityInScoutYear ? this.isActivityInScoutYear(a, selectedYear) : true))
+    .sort((a, b) => toDate(a.data) - toDate(b.data));
+
+  if (yearActivities.length === 0) {
+    container.innerHTML = `<p class="text-gray-500 italic p-4">Nessuna attività registrata per l'anno scout ${selectedYear}.</p>`;
+    return;
+  }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const pastActivities = [...activities]
-    .filter(a => isAll || (this.isActivityInScoutYear ? this.isActivityInScoutYear(a, selectedYear) : true))
-    .filter(a => {
-      const aday = new Date(toDate(a.data));
-      aday.setHours(0, 0, 0, 0);
-      return aday <= today;
-    })
-    .sort((a, b) => toDate(a.data) - toDate(b.data));
+  // Mostra le attività passate/odierne, oppure quelle che hanno già presenze registrate
+  const pastOrRecordedActivities = yearActivities.filter(a => {
+    const aday = new Date(toDate(a.data));
+    aday.setHours(0, 0, 0, 0);
+    const hasPresences = presences.some(p => p.attivitaId === a.id && (p.stato === 'Presente' || p.stato === 'Assente'));
+    return aday <= today || hasPresences;
+  });
 
-  if (pastActivities.length === 0) {
-    container.innerHTML = '<p class="text-gray-500 italic p-4">Nessuna attività registrata per il periodo selezionato.</p>';
-    return;
-  }
+  // Se ci sono attività passate/registrate usa quelle, altrimenti mostra tutte le attività dell'anno
+  const activitiesToShow = pastOrRecordedActivities.length > 0 ? pastOrRecordedActivities : yearActivities;
 
-  const pastIds = pastActivities.map(a => a.id);
+  const actIds = activitiesToShow.map(a => a.id);
   const sortedScouts = [...scouts].map(s => {
-    const validActIds = pastIds.filter(aid => {
+    const validActIds = actIds.filter(aid => {
       const pr = presences.find(p => p.esploratoreId === s.id && p.attivitaId === aid);
       return pr && (pr.stato === 'Presente' || pr.stato === 'Assente');
     });
@@ -302,7 +346,7 @@ UI.renderAttendanceGrid = function () {
   html += '<thead><tr class="bg-gray-100 dark:bg-gray-700/60">';
   html += '<th class="p-1.5 px-2.5 border border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-200 sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 w-44 shadow-[1px_0_0_0_#e5e7eb]">Esploratore</th>';
 
-  pastActivities.forEach(a => {
+  activitiesToShow.forEach(a => {
     const d = toDate(a.data);
     const ds = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
     html += `<th class="p-1.5 border border-gray-200 dark:border-gray-700 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-300 truncate max-w-[65px]" title="${a.tipo}: ${a.descrizione || ''}">${ds}</th>`;
@@ -317,7 +361,7 @@ UI.renderAttendanceGrid = function () {
 
     html += `<tr><td class="p-1.5 px-2.5 border border-gray-200 dark:border-gray-700 whitespace-nowrap sticky left-0 bg-white dark:bg-gray-800 z-10 font-medium text-gray-800 dark:text-gray-200 shadow-[1px_0_0_0_#e5e7eb]">${linkName}</td>`;
 
-    pastActivities.forEach(a => {
+    activitiesToShow.forEach(a => {
       const pr = presences.find(p => p.esploratoreId === s.id && p.attivitaId === a.id);
       let colorClass = 'bg-white dark:bg-gray-700';
       let tooltip = 'Dato non inserito';
@@ -522,8 +566,8 @@ UI.renderProgressioniWidget = function () {
   if (!container) return;
 
   const scouts = this.state.scouts || [];
-  const selectedYear = this.selectedStatsScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
-  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const currentScoutYear = this.getCurrentScoutYearSmart();
+  const selectedYear = this.selectedStatsScoutYear || currentScoutYear;
   const isAll = selectedYear === 'all';
   const range = this.getScoutYearDateRange ? this.getScoutYearDateRange(selectedYear) : null;
   const annoScoutLabel = isAll ? 'Tutti gli anni (Globale)' : `Anno Scout ${selectedYear}`;
