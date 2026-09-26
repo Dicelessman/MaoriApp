@@ -47,7 +47,9 @@
       <span class="theme-toggle-icon">🌙</span>
     </button>
 
-    <div id="connectionStatus" class="hidden items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold shadow-inner transition-colors" title="Stato della connessione">
+    <div id="connectionStatus"
+      class="hidden items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold shadow-inner transition-colors"
+      title="Stato della connessione">
       <span class="status-dot w-2 h-2 rounded-full animate-pulse"></span>
       <span class="status-text hidden sm:inline"></span>
     </div>
@@ -60,12 +62,16 @@
 </header>
 
 <!-- Banner Stato Offline -->
-<div id="offlineBanner" class="hidden bg-amber-500 text-amber-950 px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between shadow-sm border-b border-amber-600 transition-all" role="status" aria-live="polite">
+<div id="offlineBanner"
+  class="hidden bg-amber-500 text-amber-950 px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between shadow-sm border-b border-amber-600 transition-all"
+  role="status" aria-live="polite">
   <div class="flex items-center gap-2">
     <span class="text-base">⚠️</span>
-    <span><strong>Sei offline:</strong> Modalità sola lettura. Le modifiche verranno sincronizzate non appena tornerà la connessione.</span>
+    <span><strong>Sei offline:</strong> Modalità sola lettura. Le modifiche verranno sincronizzate non appena tornerà la
+      connessione.</span>
   </div>
-  <button type="button" onclick="window.location.reload()" class="underline hover:text-white ml-2 text-xs font-semibold focus:outline-none">Riprova</button>
+  <button type="button" onclick="window.location.reload()"
+    class="underline hover:text-white ml-2 text-xs font-semibold focus:outline-none">Riprova</button>
 </div>
 
 <!-- Sidebar Overlay (Mobile) -->
@@ -127,13 +133,13 @@
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>✅</span> Presenze
           </a>
-          <a href="storico-presenze.html"
-            class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
-            <span>📚</span> Storico Presenze
-          </a>
           <a href="calendario.html"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>📅</span> Eventi
+          </a>
+          <a href="storico-presenze.html"
+            class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
+            <span>📚</span> Storico Presenze
           </a>
         </div>
       </div>
