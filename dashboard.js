@@ -1,284 +1,111 @@
-// dashboard.js - Logica specifica per la pagina Dashboard
+// dashboard.js - Logica unificata per Dashboard & Statistiche
 
-// Sovrascrive la funzione per il rendering della pagina corrente
-UI.renderCurrentPage = function () {
-  this.renderNextActivityWidget();
-  this.renderDashboardCharts();
-  if (this.renderAttendanceGrid) {
-    this.renderAttendanceGrid();
-  }
+// Helper conversione data
+UI.toJsDate = function (x) {
+  if (!x) return null;
+  if (x instanceof Date) return x;
+  if (x && x.toDate) return x.toDate();
+  const d = new Date(x);
+  return isNaN(d.getTime()) ? null : d;
 };
 
-UI.renderNextActivityWidget = function () {
-  const container = document.getElementById('nextActivityContainer');
-  if (!container) return;
+// Helper calcolo età
+UI.getAnnoEsploratore = function (dob) {
+  if (!dob) return null;
+  const birthDate = this.toJsDate(dob);
+  if (!birthDate) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
 
-  const activities = this.state.activities || [];
-  const scouts = this.state.scouts || [];
-  const presences = this.state.presences || [];
+// Helper calcolo anno scout in base all'età
+UI.getAnnoScout = function (dob) {
+  const age = this.getAnnoEsploratore(dob);
+  if (age === null) return null;
+  if (age >= 11 && age <= 12) return 'I°';
+  if (age === 13) return 'II°';
+  if (age === 14) return 'III°';
+  if (age === 15) return 'IV°';
+  return null;
+};
 
-  const upcomingInfo = this.findUpcomingActivity ? this.findUpcomingActivity(activities) : null;
-  if (!upcomingInfo || !upcomingInfo.activity) {
-    container.innerHTML = `
-      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 text-center shadow-sm">
-        <div class="w-12 h-12 mx-auto rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-2xl mb-3">
-          📅
-        </div>
-        <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">Nessuna attività programmata</h3>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-md mx-auto">
-          Non sono presenti attività future nel calendario del reparto. Aggiungi la prossima riunione o uscita per sbloccare il monitoraggio presenze, quote e conformità medica.
-        </p>
-        <div class="mt-4">
-          <a href="calendario.html" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-green-700 text-white hover:bg-green-800 shadow-sm transition">
-            <span>➕</span>
-            <span>Pianifica Nuova Attività</span>
-          </a>
-        </div>
-      </div>
-    `;
-    return;
+// Helper gestione selettore Anno Scout
+UI.setupStatsScoutYearSelector = function () {
+  const select = document.getElementById('statsScoutYearSelect');
+  if (!select) return;
+
+  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const allYears = this.getAllScoutYears ? this.getAllScoutYears(this.state.activities) : [currentScoutYear];
+
+  if (!this.selectedStatsScoutYear) {
+    this.selectedStatsScoutYear = this.getSelectedScoutYear ? this.getSelectedScoutYear() : currentScoutYear;
   }
 
-  const { activity, isFuture, isPast, isToday, isTomorrow, diffDays, countdownText, badgeText, badgeClass } = upcomingInfo;
-  const kpis = this.computeActivityDashboardKPIs ? this.computeActivityDashboardKPIs(activity, scouts, presences) : null;
-  if (!kpis) return;
+  select.innerHTML = '';
+  allYears.forEach(year => {
+    const isCurrent = year === currentScoutYear;
+    const label = isCurrent ? `${year} (In corso)` : `${year} (Archiviato)`;
+    const opt = document.createElement('option');
+    opt.value = year;
+    opt.textContent = label;
+    if (year === this.selectedStatsScoutYear) opt.selected = true;
+    select.appendChild(opt);
+  });
 
-  const typeIcons = {
-    'Riunione': '⏰',
-    'Attività lunga': '🌲',
-    'Uscita': '🥾',
-    'Campo': '🏕️',
-    'Evento Adulti': '⚜️',
-    'Riunione Adulti': '📋',
-    'Eventi con esterni': '🌟'
-  };
-  const icon = typeIcons[activity.tipo] || '📅';
+  const allOpt = document.createElement('option');
+  allOpt.value = 'all';
+  allOpt.textContent = 'Tutti gli anni (Globale)';
+  if (this.selectedStatsScoutYear === 'all') allOpt.selected = true;
+  select.appendChild(allOpt);
 
-  const toDate = (v) => (v && v.toDate) ? v.toDate() : new Date(v);
-  const actStart = toDate(activity.data);
-  const dateFormatted = !isNaN(actStart.getTime())
-    ? actStart.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    : 'Data non definita';
-  const dateStr = dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1);
-
-  const costNumber = Number(activity.costo) || 0;
-  const costBadge = costNumber > 0
-    ? `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300">Quota: € ${costNumber.toFixed(2)}</span>`
-    : `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Gratuita</span>`;
-
-  const attPerc = kpis.attendancePercentage;
-  const attBarColor = attPerc >= 70 ? 'bg-emerald-600' : (attPerc >= 40 ? 'bg-amber-500' : 'bg-gray-400');
-
-  const payPerc = kpis.paymentPercentage;
-  const payBarColor = payPerc >= 80 ? 'bg-emerald-600' : (payPerc >= 50 ? 'bg-amber-500' : 'bg-rose-500');
-
-  let medicalSectionHtml = '';
-  if (!kpis.isSafetyCompliant && kpis.medicalAlerts.length > 0) {
-    const alerts = kpis.medicalAlerts;
-    medicalSectionHtml = `
-      <div class="mt-5 p-4 rounded-xl bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 shadow-sm animate-fade-in">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-2.5">
-            <span class="text-xl">⚠️</span>
-            <div>
-              <h4 class="text-xs font-bold text-rose-900 dark:text-rose-200 uppercase tracking-wider">
-                Allarme Sicurezza Sanitaria (${alerts.length} partecipant${alerts.length === 1 ? 'e' : 'i'} non in regola)
-              </h4>
-              <p class="text-xs text-rose-700 dark:text-rose-300 mt-0.5">
-                Alcuni esploratori confermati presenti non hanno il certificato medico valido o i consensi necessari per questa data.
-              </p>
-            </div>
-          </div>
-          <button type="button" id="toggleMedicalAlertListBtn" class="text-xs font-semibold text-rose-700 dark:text-rose-300 hover:underline cursor-pointer flex-shrink-0">
-            Mostra dettagli ▼
-          </button>
-        </div>
-
-        <div id="medicalAlertListDetails" class="mt-3 pt-3 border-t border-rose-200 dark:border-rose-900/60 divide-y divide-rose-100 dark:divide-rose-900/40">
-          ${alerts.map(a => {
-            const s = a.scout;
-            const nomeCompleto = `${s.nome || ''} ${s.cognome || ''}`.trim() || 'Esploratore';
-            const pattuglia = s.pv_pattuglia ? `(${s.pv_pattuglia})` : '';
-            const missingText = a.missingDocuments.join(', ');
-            return `
-              <div class="py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div>
-                  <span class="font-bold text-gray-800 dark:text-gray-100">${nomeCompleto}</span>
-                  <span class="text-gray-500 dark:text-gray-400 ml-1">${pattuglia}</span>
-                  <div class="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5">
-                    <span class="font-medium">${a.label}</span>: ${missingText}
-                  </div>
-                </div>
-                <button type="button" onclick="UI.sendMedicalWhatsAppReminder('${s.id}')"
-                  class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-xs transition cursor-pointer">
-                  <span>💬</span>
-                  <span>WhatsApp Genitore</span>
-                </button>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
-  } else if (kpis.presentCount > 0) {
-    medicalSectionHtml = `
-      <div class="mt-5 p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-300 font-medium shadow-xs">
-        <div class="flex items-center gap-2">
-          <span class="text-base">🛡️</span>
-          <span><strong>Sicurezza Sanitaria OK:</strong> Tutti i ${kpis.presentCount} esploratori presenti hanno certificato medico e documenti in regola.</span>
-        </div>
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">CONFORME</span>
-      </div>
-    `;
-  } else {
-    medicalSectionHtml = `
-      <div class="mt-5 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-        <span class="text-base">📋</span>
-        <span>Nessun esploratore ancora segnato come presente. Registra le presenze per verificare la conformità medica.</span>
-      </div>
-    `;
+  const archiveBadge = document.getElementById('statsArchiveBadge');
+  if (archiveBadge) {
+    const isArchive = this.selectedStatsScoutYear !== 'all' && this.selectedStatsScoutYear !== currentScoutYear;
+    archiveBadge.classList.toggle('hidden', !isArchive);
   }
 
-  container.innerHTML = `
-    <div class="bg-white dark:bg-gray-800 border-2 border-green-600/30 dark:border-green-500/30 rounded-2xl p-5 sm:p-6 shadow-md transition relative overflow-hidden">
-      <!-- Header Widget -->
-      <div class="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
-        <div class="space-y-1">
-          <div class="flex items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 flex items-center gap-1">
-              <span>${icon}</span>
-              <span>${activity.tipo}</span>
-            </span>
-            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold border ${badgeClass}">
-              ${badgeText}
-            </span>
-            ${costBadge}
-          </div>
-          <h3 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white pt-1">
-            ${activity.descrizione || activity.tipo}
-          </h3>
-          <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 font-medium">
-            <span>📅</span>
-            <span>${dateStr}</span>
-            ${activity.dataFine ? `<span class="text-gray-400">• Fine: ${toDate(activity.dataFine).toLocaleDateString('it-IT')}</span>` : ''}
-          </p>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <a href="presenze.html" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-green-700 text-white hover:bg-green-800 shadow-sm transition flex items-center gap-1.5">
-            <span>✍️</span>
-            <span>Gestisci Presenze</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- Indicatori Operativi & Finanziari -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-        <!-- KPI 1: Presenze Confermate -->
-        <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200/80 dark:border-gray-700">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-              <span>👥</span>
-              <span>Presenze Confermate</span>
-            </span>
-            <span class="text-xs font-extrabold text-gray-800 dark:text-gray-100">
-              ${kpis.presentCount} / ${kpis.totalActiveScouts} (${attPerc}%)
-            </span>
-          </div>
-
-          <!-- Progress Bar -->
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden mb-3">
-            <div class="${attBarColor} h-2.5 rounded-full transition-all duration-500" style="width: ${attPerc}%"></div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-            <span class="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
-              ✓ ${kpis.presentCount} Presenti
-            </span>
-            <span class="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300">
-              ✗ ${kpis.absentCount} Assenti
-            </span>
-            <span class="px-2 py-0.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-              ⏳ ${kpis.unrecordedCount} Da registrare
-            </span>
-          </div>
-        </div>
-
-        <!-- KPI 2: Quote Saldate -->
-        <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200/80 dark:border-gray-700">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-              <span>💰</span>
-              <span>Quote di Partecipazione</span>
-            </span>
-            ${kpis.isPaidActivity ? `
-              <span class="text-xs font-extrabold text-gray-800 dark:text-gray-100">
-                € ${kpis.totalCollected.toFixed(2)} / € ${kpis.totalExpected.toFixed(2)} (${payPerc}%)
-              </span>
-            ` : `
-              <span class="text-xs font-semibold text-gray-500">Gratuita</span>
-            `}
-          </div>
-
-          ${kpis.isPaidActivity ? `
-            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden mb-3">
-              <div class="${payBarColor} h-2.5 rounded-full transition-all duration-500" style="width: ${payPerc}%"></div>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold">
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
-                  ✓ ${kpis.paidCount} Saldati
-                </span>
-                <span class="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
-                  ⏳ ${kpis.unpaidCount} In sospeso
-                </span>
-              </div>
-              ${kpis.totalPending > 0 ? `
-                <a href="pagamenti.html" class="text-green-700 dark:text-green-400 hover:underline text-[11px] font-bold">
-                  Sollecita € ${kpis.totalPending.toFixed(2)} →
-                </a>
-              ` : `
-                <span class="text-emerald-700 dark:text-emerald-400 text-[11px]">Tutto saldato! 🎉</span>
-              `}
-            </div>
-          ` : `
-            <div class="py-3 text-center text-xs text-gray-500 dark:text-gray-400">
-              Nessuna quota richiesta per questa attività di reparto.
-            </div>
-          `}
-        </div>
-      </div>
-
-      <!-- Sezione Alert Sanitario -->
-      ${medicalSectionHtml}
-    </div>
-  `;
-
-  const toggleBtn = document.getElementById('toggleMedicalAlertListBtn');
-  const detailsList = document.getElementById('medicalAlertListDetails');
-  if (toggleBtn && detailsList) {
-    let isOpen = true;
-    toggleBtn.addEventListener('click', () => {
-      isOpen = !isOpen;
-      detailsList.style.display = isOpen ? 'block' : 'none';
-      toggleBtn.textContent = isOpen ? 'Nascondi ▲' : 'Mostra dettagli ▼';
+  if (!select._bound) {
+    select._bound = true;
+    select.addEventListener('change', async (e) => {
+      this.selectedStatsScoutYear = e.target.value;
+      if (this.setSelectedScoutYear && e.target.value !== 'all') {
+        await this.setSelectedScoutYear(e.target.value);
+      }
+      this.renderCurrentPage();
     });
   }
 };
 
-
+// Gestione distruzione grafici
 UI._charts = UI._charts || { scout: null, activity: null };
-
 UI._destroyCharts = function () {
   try { if (this._charts.scout) { this._charts.scout.destroy(); this._charts.scout = null; } } catch { }
   try { if (this._charts.activity) { this._charts.activity.destroy(); this._charts.activity = null; } } catch { }
 };
 
+// Funzione principale di rendering della pagina Dashboard
+UI.renderCurrentPage = function () {
+  this.setupStatsScoutYearSelector();
+  this.renderDashboardCharts();
+  this.renderAttendanceGrid();
+  this.renderTotaleEsploratoriWidget();
+  this.renderProgressioniWidget();
+  this.renderComposizionePattuglia();
+  this.renderPattuglieTable();
+  this.renderRiepilogoSpecialita();
+};
+
+
+// 1. Presenza per Esploratore & 2. Presenza per Attività
 UI.renderDashboardCharts = function () {
   const scouts = this.state.scouts || [];
   const activities = this.state.activities || [];
-  const presences = this.state.presences || [];
+  const presences = this.getDedupedPresences ? this.getDedupedPresences() : (this.state.presences || []);
 
   const ctxScout = document.getElementById('scoutPresenceChart');
   const ctxActivity = document.getElementById('activityPresenceChart');
@@ -286,20 +113,19 @@ UI.renderDashboardCharts = function () {
 
   this._destroyCharts();
 
-  // Dati per grafico Presenza per Esploratore (percentuale presenze - solo anno scout in corso)
-  const dedup = presences;
-  const toDate = (v) => (v && v.toDate) ? v.toDate() : new Date(v);
-  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const selectedYear = this.selectedStatsScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
+  const isAll = selectedYear === 'all';
+  const toDate = (v) => this.toJsDate(v) || new Date(v);
+
   const sortedActivities = [...activities]
-    .filter(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, currentScoutYear) : true)
+    .filter(a => isAll || (this.isActivityInScoutYear ? this.isActivityInScoutYear(a, selectedYear) : true))
     .sort((a, b) => toDate(a.data) - toDate(b.data));
 
-  // Calcola la prossima attività (>= oggi)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   let nextActivityId = null;
   sortedActivities.forEach(a => {
-    const ad = (a.data && a.data.toDate) ? a.data.toDate() : new Date(a.data);
+    const ad = toDate(a.data);
     const aday = new Date(ad);
     aday.setHours(0, 0, 0, 0);
     if (nextActivityId === null && aday >= today) {
@@ -308,7 +134,7 @@ UI.renderDashboardCharts = function () {
   });
 
   const pastIds = sortedActivities.filter(a => {
-    const ad = (a.data && a.data.toDate) ? a.data.toDate() : new Date(a.data);
+    const ad = toDate(a.data);
     const aday = new Date(ad);
     aday.setHours(0, 0, 0, 0);
     return aday < today;
@@ -317,13 +143,14 @@ UI.renderDashboardCharts = function () {
 
   const scoutStats = scouts.map(s => {
     const validActIds = consideredIds.filter(aid => {
-      const pr = dedup.find(p => p.esploratoreId === s.id && p.attivitaId === aid);
+      const pr = presences.find(p => p.esploratoreId === s.id && p.attivitaId === aid);
       return pr && (pr.stato === 'Presente' || pr.stato === 'Assente');
     });
     const totalActsConsidered = validActIds.length;
-    const presentCount = dedup.filter(p => p.esploratoreId === s.id && p.stato === 'Presente' && validActIds.includes(p.attivitaId)).length;
+    const presentCount = presences.filter(p => p.esploratoreId === s.id && p.stato === 'Presente' && validActIds.includes(p.attivitaId)).length;
     const perc = totalActsConsidered ? Math.round((presentCount / totalActsConsidered) * 100) : 0;
-    return { name: `${s.nome} ${s.cognome}`, perc, presentCount, totalActsConsidered };
+    const name = `${s.nome || ''} ${s.cognome || ''}`.trim() || 'Esploratore';
+    return { name, perc, presentCount, totalActsConsidered };
   });
 
   // Ordina per percentuale decrescente
@@ -331,23 +158,21 @@ UI.renderDashboardCharts = function () {
 
   const scoutLabels = scoutStats.map(s => s.name);
   const scoutPerc = scoutStats.map(s => s.perc);
-
-  // Colori per le barre in base alla percentuale
   const scoutColors = scoutPerc.map(perc => {
     if (perc >= 75) return '#16a34a'; // verde
     if (perc >= 60) return '#eab308'; // giallo
     return '#dc2626'; // rosso
   });
 
-  // Dati per grafico Presenze per Attività (conteggio presenti) ordinati per data
+  // Dati per grafico Presenze per Attività
   const actLabels = sortedActivities.map(a => {
     const d = toDate(a.data);
     const ds = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
     return `${a.tipo}: ${a.descrizione || ''}\n${ds}`;
   });
-  const actData = sortedActivities.map(a => dedup.filter(p => p.attivitaId === a.id && p.stato === 'Presente').length);
+  const actData = sortedActivities.map(a => presences.filter(p => p.attivitaId === a.id && p.stato === 'Presente').length);
 
-  // Datalabels
+  // Plugin ChartDataLabels
   const ChartDataLabels = window.ChartDataLabels;
   if (window.Chart && ChartDataLabels) {
     window.Chart.register(ChartDataLabels);
@@ -368,7 +193,7 @@ UI.renderDashboardCharts = function () {
     elements: { bar: { borderRadius: 4, maxBarThickness: 28 } }
   };
 
-  // Grafico Scout
+  // 1. Grafico Presenza per Esploratore
   this._charts.scout = new window.Chart(ctxScout.getContext('2d'), {
     type: 'bar',
     data: {
@@ -384,15 +209,15 @@ UI.renderDashboardCharts = function () {
       indexAxis: 'y',
       scales: {
         x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
-        y: { ticks: { autoSkip: false, maxTicksLimit: 20 } }
+        y: { ticks: { autoSkip: false, maxTicksLimit: 25 } }
       },
       plugins: {
         ...commonOptions.plugins,
         tooltip: {
           callbacks: {
-            label: function(context) {
+            label: function (context) {
               const stat = scoutStats[context.dataIndex];
-              return ` ${stat.presentCount} / ${stat.totalActsConsidered}`;
+              return ` ${stat.perc}% (${stat.presentCount} / ${stat.totalActsConsidered} attività)`;
             }
           }
         }
@@ -400,7 +225,7 @@ UI.renderDashboardCharts = function () {
     }
   });
 
-  // Grafico Attività
+  // 2. Grafico Presenza per Attività
   this._charts.activity = new window.Chart(ctxActivity.getContext('2d'), {
     type: 'bar',
     data: {
@@ -412,7 +237,7 @@ UI.renderDashboardCharts = function () {
       indexAxis: 'y',
       scales: {
         x: { beginAtZero: true, max: Math.max(1, scouts.length) },
-        y: { ticks: { autoSkip: false, maxTicksLimit: 20 } }
+        y: { ticks: { autoSkip: false, maxTicksLimit: 25 } }
       },
       plugins: {
         ...commonOptions.plugins,
@@ -425,25 +250,30 @@ UI.renderDashboardCharts = function () {
   });
 };
 
+
+// 3. Dettaglio Presenze
 UI.renderAttendanceGrid = function () {
   const container = document.getElementById('attendanceGrid');
   if (!container) return;
 
   const scouts = this.state.scouts || [];
   const activities = this.state.activities || [];
-  const presences = this.state.presences || [];
+  const presences = this.getDedupedPresences ? this.getDedupedPresences() : (this.state.presences || []);
 
-  if (scouts.length === 0 || activities.length === 0) {
-    container.innerHTML = '<p class="text-gray-500 italic">Dati non sufficienti per mostrare la griglia.</p>';
+  if (scouts.length === 0) {
+    container.innerHTML = '<p class="text-gray-500 italic p-4">Nessun esploratore registrato.</p>';
     return;
   }
 
-  const toDate = (v) => (v && v.toDate) ? v.toDate() : new Date(v);
+  const toDate = (v) => this.toJsDate(v) || new Date(v);
+  const selectedYear = this.selectedStatsScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
+  const isAll = selectedYear === 'all';
 
-  // Filtra per mostrare solo le attività passate o di oggi
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
   const pastActivities = [...activities]
+    .filter(a => isAll || (this.isActivityInScoutYear ? this.isActivityInScoutYear(a, selectedYear) : true))
     .filter(a => {
       const aday = new Date(toDate(a.data));
       aday.setHours(0, 0, 0, 0);
@@ -452,7 +282,7 @@ UI.renderAttendanceGrid = function () {
     .sort((a, b) => toDate(a.data) - toDate(b.data));
 
   if (pastActivities.length === 0) {
-    container.innerHTML = '<p class="text-gray-500 italic">Nessuna attività passata registrata.</p>';
+    container.innerHTML = '<p class="text-gray-500 italic p-4">Nessuna attività registrata per il periodo selezionato.</p>';
     return;
   }
 
@@ -469,46 +299,46 @@ UI.renderAttendanceGrid = function () {
   }).sort((a, b) => b.perc - a.perc);
 
   let html = '<div class="overflow-x-auto"><table class="w-full text-xs text-left border-collapse min-w-max">';
-  html += '<thead><tr class="bg-gray-100">';
-  html += '<th class="p-1 px-2 border font-semibold text-gray-700 sticky left-0 bg-gray-100 z-10 w-36 shadow-[1px_0_0_0_#e5e7eb]">Esploratore</th>';
+  html += '<thead><tr class="bg-gray-100 dark:bg-gray-700/60">';
+  html += '<th class="p-1.5 px-2.5 border border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-200 sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 w-44 shadow-[1px_0_0_0_#e5e7eb]">Esploratore</th>';
 
   pastActivities.forEach(a => {
     const d = toDate(a.data);
     const ds = isNaN(d) ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
-    html += `<th class="p-1 border text-center text-[10px] font-normal text-gray-600 truncate max-w-[60px]" title="${a.tipo}: ${a.descrizione || ''}">${ds}</th>`;
+    html += `<th class="p-1.5 border border-gray-200 dark:border-gray-700 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-300 truncate max-w-[65px]" title="${a.tipo}: ${a.descrizione || ''}">${ds}</th>`;
   });
   html += '</tr></thead><tbody>';
 
   sortedScouts.forEach(s => {
-    html += `<tr><td class="p-1 px-2 border whitespace-nowrap sticky left-0 bg-white z-10 font-medium text-gray-800 shadow-[1px_0_0_0_#e5e7eb]">${s.nome} ${s.cognome}</td>`;
+    const scoutName = `${s.nome || ''} ${s.cognome || ''}`.trim() || 'Esploratore';
+    const linkName = s.id
+      ? `<a href="scout2.html?id=${encodeURIComponent(s.id)}" class="hover:text-green-600 dark:hover:text-green-400 hover:underline">${scoutName}</a>`
+      : scoutName;
+
+    html += `<tr><td class="p-1.5 px-2.5 border border-gray-200 dark:border-gray-700 whitespace-nowrap sticky left-0 bg-white dark:bg-gray-800 z-10 font-medium text-gray-800 dark:text-gray-200 shadow-[1px_0_0_0_#e5e7eb]">${linkName}</td>`;
 
     pastActivities.forEach(a => {
       const pr = presences.find(p => p.esploratoreId === s.id && p.attivitaId === a.id);
-      let colorClass = 'bg-white';
-      let symbol = '';
-      let tooltip = 'Dato mancante o non inserito';
+      let colorClass = 'bg-white dark:bg-gray-700';
+      let tooltip = 'Dato non inserito';
 
       if (pr) {
         if (pr.stato === 'Presente') {
           colorClass = 'bg-green-500';
-          symbol = 'P';
           tooltip = 'Presente';
         } else if (pr.stato === 'Assente') {
           colorClass = 'bg-red-500';
-          symbol = 'A';
           tooltip = 'Assente';
         } else if (pr.stato.toLowerCase() === 'x' || pr.stato === 'NR' || pr.stato.toLowerCase() === 'giustificato') {
           colorClass = 'bg-gray-400';
-          symbol = 'X';
-          tooltip = 'Non tenuto a esserci / Giustificato / NR';
+          tooltip = 'Non tenuto a esserci / Giustificato';
         } else {
           colorClass = 'bg-gray-400';
-          symbol = pr.stato.charAt(0).toUpperCase();
           tooltip = pr.stato;
         }
       }
 
-      html += `<td class="p-1 border text-center">
+      html += `<td class="p-1.5 border border-gray-200 dark:border-gray-700 text-center">
                  <div class="w-3.5 h-3.5 mx-auto rounded-sm ${colorClass}" title="${tooltip}"></div>
                </td>`;
     });
@@ -518,16 +348,579 @@ UI.renderAttendanceGrid = function () {
 
   html += '</tbody></table></div>';
 
-  // Aggiungi la legenda
+  // Legenda
   html += `
-    <div class="mt-3 flex flex-wrap gap-4 text-[11px] text-gray-600">
-      <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-sm bg-green-500"></div> Presente</div>
-      <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-sm bg-red-500"></div> Assente</div>
-      <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-sm bg-gray-400"></div> Non tenuto (X)</div>
-      <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-sm bg-white border border-gray-300"></div> Dato mancante</div>
+    <div class="mt-3 flex flex-wrap gap-4 text-[11px] text-gray-600 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-700">
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-green-500"></div> Presente</div>
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-red-500"></div> Assente</div>
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-gray-400"></div> Non tenuto (X)</div>
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></div> Dato mancante</div>
     </div>
   `;
 
   container.innerHTML = html;
 };
 
+
+// 4. Totale Esploratori (con distribuzione sesso marcata e distribuzione per anno inglobata)
+UI.renderTotaleEsploratoriWidget = function () {
+  const container = document.getElementById('totaleEsploratoriWidget');
+  if (!container) return;
+
+  const scouts = this.state.scouts || [];
+  const totalScouts = scouts.length;
+
+  if (totalScouts === 0) {
+    container.innerHTML = '<p class="text-gray-500 italic">Nessun esploratore registrato.</p>';
+    return;
+  }
+
+  // Statistiche Sesso
+  const maschi = scouts.filter(s => s.anag_sesso?.toLowerCase()?.trim() === 'maschio').length;
+  const femmine = scouts.filter(s => s.anag_sesso?.toLowerCase()?.trim() === 'femmina').length;
+  const altro = totalScouts - maschi - femmine;
+
+  const mPerc = Math.round((maschi / totalScouts) * 100);
+  const fPerc = Math.round((femmine / totalScouts) * 100);
+  const altroPerc = altro > 0 ? Math.round((altro / totalScouts) * 100) : 0;
+
+  // Statistiche per Anno Scout (I°, II°, III°, IV°) ed Età
+  const anniScoutCounts = { 'I°': 0, 'II°': 0, 'III°': 0, 'IV°': 0, 'Altro': 0 };
+  const ages = [];
+
+  scouts.forEach(s => {
+    const annoScout = this.getAnnoScout(s.anag_dob);
+    if (annoScout && anniScoutCounts[annoScout] !== undefined) {
+      anniScoutCounts[annoScout]++;
+    } else {
+      anniScoutCounts['Altro']++;
+    }
+
+    const age = this.getAnnoEsploratore(s.anag_dob);
+    if (age !== null) ages.push(age);
+  });
+
+  const avgAge = ages.length > 0 ? (ages.reduce((a, b) => a + b, 0) / ages.length).toFixed(1) : '—';
+  const minAge = ages.length > 0 ? Math.min(...ages) : null;
+  const maxAge = ages.length > 0 ? Math.max(...ages) : null;
+
+  container.innerHTML = `
+    <div class="space-y-5">
+      <!-- 1. Conteggi principali con sesso evidenziato -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Totale Esploratori Card -->
+        <div class="bg-gradient-to-br from-emerald-600 to-green-700 text-white p-5 rounded-xl shadow-md flex items-center justify-between">
+          <div>
+            <p class="text-green-100 text-xs font-bold uppercase tracking-wider">Censiti in Reparto</p>
+            <p class="text-4xl font-extrabold mt-1">${totalScouts}</p>
+            <p class="text-green-200 text-xs mt-1">Totale esploratori attivi</p>
+          </div>
+          <div class="text-4xl opacity-85">👥</div>
+        </div>
+
+        <!-- Maschi Card -->
+        <div class="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 p-5 rounded-xl shadow-xs">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                <span>♂</span> Maschi
+              </span>
+              <p class="text-3xl font-extrabold text-blue-900 dark:text-blue-100 mt-1">${maschi}</p>
+            </div>
+            <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700">
+              ${mPerc}%
+            </span>
+          </div>
+          <div class="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2.5 mt-3 overflow-hidden">
+            <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: ${mPerc}%"></div>
+          </div>
+        </div>
+
+        <!-- Femmine Card -->
+        <div class="bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 p-5 rounded-xl shadow-xs">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-pink-700 dark:text-pink-300 flex items-center gap-1.5">
+                <span>♀</span> Femmine
+              </span>
+              <p class="text-3xl font-extrabold text-pink-900 dark:text-pink-100 mt-1">${femmine}</p>
+            </div>
+            <span class="px-2.5 py-1 text-xs font-bold rounded-full bg-pink-100 dark:bg-pink-900/60 text-pink-800 dark:text-pink-200 border border-pink-200 dark:border-pink-700">
+              ${fPerc}%
+            </span>
+          </div>
+          <div class="w-full bg-pink-200 dark:bg-pink-800 rounded-full h-2.5 mt-3 overflow-hidden">
+            <div class="bg-pink-500 h-2.5 rounded-full transition-all duration-500" style="width: ${fPerc}%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Barra di bilanciamento di genere -->
+      <div class="bg-white dark:bg-gray-800/80 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between text-xs font-bold mb-2">
+          <span class="text-blue-700 dark:text-blue-400 flex items-center gap-1">
+            <span>♂</span> Maschi: ${maschi} (${mPerc}%)
+          </span>
+          ${altro > 0 ? `<span class="text-gray-500 dark:text-gray-400">Non reg.: ${altro} (${altroPerc}%)</span>` : ''}
+          <span class="text-pink-600 dark:text-pink-400 flex items-center gap-1">
+            <span>♀</span> Femmine: ${femmine} (${fPerc}%)
+          </span>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden flex">
+          <div class="bg-blue-600 h-3 transition-all duration-500" style="width: ${mPerc}%" title="Maschi ${mPerc}%"></div>
+          ${altro > 0 ? `<div class="bg-gray-400 h-3 transition-all duration-500" style="width: ${altroPerc}%" title="Non reg. ${altroPerc}%"></div>` : ''}
+          <div class="bg-pink-500 h-3 transition-all duration-500" style="width: ${fPerc}%" title="Femmine ${fPerc}%"></div>
+        </div>
+      </div>
+
+      <!-- 3. Distribuzione per Anno Scout & Età -->
+      <div class="bg-white dark:bg-gray-800/80 p-5 rounded-xl border border-gray-200 dark:border-gray-700">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2 border-b border-gray-100 dark:border-gray-700">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+            <span>📅</span> Distribuzione per Anno Scout (Progressione per Età)
+          </h4>
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+            Età media: <strong class="text-gray-800 dark:text-gray-100">${avgAge} anni</strong>
+            ${minAge && maxAge ? ` · Range: ${minAge}-${maxAge} anni` : ''}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-gray-50 dark:bg-gray-700/40 p-3 rounded-lg border border-gray-200/80 dark:border-gray-700 text-center">
+            <span class="text-xs font-bold text-gray-500 dark:text-gray-400 block uppercase tracking-wide">I° Anno (11-12)</span>
+            <span class="text-xl font-black text-gray-800 dark:text-gray-100 mt-1 block">${anniScoutCounts['I°']}</span>
+            <span class="text-[11px] text-gray-500 dark:text-gray-400">${Math.round((anniScoutCounts['I°'] / totalScouts) * 100)}%</span>
+          </div>
+
+          <div class="bg-gray-50 dark:bg-gray-700/40 p-3 rounded-lg border border-gray-200/80 dark:border-gray-700 text-center">
+            <span class="text-xs font-bold text-gray-500 dark:text-gray-400 block uppercase tracking-wide">II° Anno (13)</span>
+            <span class="text-xl font-black text-gray-800 dark:text-gray-100 mt-1 block">${anniScoutCounts['II°']}</span>
+            <span class="text-[11px] text-gray-500 dark:text-gray-400">${Math.round((anniScoutCounts['II°'] / totalScouts) * 100)}%</span>
+          </div>
+
+          <div class="bg-gray-50 dark:bg-gray-700/40 p-3 rounded-lg border border-gray-200/80 dark:border-gray-700 text-center">
+            <span class="text-xs font-bold text-gray-500 dark:text-gray-400 block uppercase tracking-wide">III° Anno (14)</span>
+            <span class="text-xl font-black text-gray-800 dark:text-gray-100 mt-1 block">${anniScoutCounts['III°']}</span>
+            <span class="text-[11px] text-gray-500 dark:text-gray-400">${Math.round((anniScoutCounts['III°'] / totalScouts) * 100)}%</span>
+          </div>
+
+          <div class="bg-gray-50 dark:bg-gray-700/40 p-3 rounded-lg border border-gray-200/80 dark:border-gray-700 text-center">
+            <span class="text-xs font-bold text-gray-500 dark:text-gray-400 block uppercase tracking-wide">IV° Anno (15)</span>
+            <span class="text-xl font-black text-gray-800 dark:text-gray-100 mt-1 block">${anniScoutCounts['IV°']}</span>
+            <span class="text-[11px] text-gray-500 dark:text-gray-400">${Math.round((anniScoutCounts['IV°'] / totalScouts) * 100)}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+
+// 5. Progressioni (Passi e Specialità ottenuti nell'anno)
+UI.renderProgressioniWidget = function () {
+  const container = document.getElementById('progressioniWidget');
+  if (!container) return;
+
+  const scouts = this.state.scouts || [];
+  const selectedYear = this.selectedStatsScoutYear || (this.getSelectedScoutYear ? this.getSelectedScoutYear() : '2025/2026');
+  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const isAll = selectedYear === 'all';
+  const range = this.getScoutYearDateRange ? this.getScoutYearDateRange(selectedYear) : null;
+  const annoScoutLabel = isAll ? 'Tutti gli anni (Globale)' : `Anno Scout ${selectedYear}`;
+
+  // Calcola Passi ottenuti nell'anno selezionato
+  const passaggi = { 1: 0, 2: 0, 3: 0 };
+  scouts.forEach(scout => {
+    [1, 2, 3].forEach(passo => {
+      const tr = scout[`pv_traccia${passo}`];
+      if (tr && tr.done) {
+        if (isAll) {
+          passaggi[passo]++;
+        } else if (tr.data) {
+          const dt = this.toJsDate(tr.data);
+          if (dt && range && dt >= range.start && dt <= range.end) {
+            passaggi[passo]++;
+          }
+        } else if (selectedYear === currentScoutYear) {
+          passaggi[passo]++;
+        }
+      }
+    });
+  });
+
+  const totPassi = passaggi[1] + passaggi[2] + passaggi[3];
+
+  // Calcola Specialità ottenute nell'anno selezionato
+  let specialitaCount = 0;
+  scouts.forEach(scout => {
+    if (scout.specialita && Array.isArray(scout.specialita)) {
+      scout.specialita.forEach(sp => {
+        if (sp.ottenuta) {
+          if (isAll) {
+            specialitaCount++;
+          } else if (sp.data) {
+            const dt = this.toJsDate(sp.data);
+            if (dt && range && dt >= range.start && dt <= range.end) {
+              specialitaCount++;
+            }
+          } else if (selectedYear === currentScoutYear) {
+            specialitaCount++;
+          }
+        }
+      });
+    }
+  });
+
+  const totProgressioni = totPassi + specialitaCount;
+
+  container.innerHTML = `
+    <div class="space-y-4">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">Progressioni Conquistate</span>
+          <h4 class="text-2xl font-black text-gray-900 dark:text-gray-100 mt-0.5">
+            ${totProgressioni} <span class="text-sm font-normal text-gray-500 dark:text-gray-400">traguardi ottenuti</span>
+          </h4>
+        </div>
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-800">
+          📅 ${annoScoutLabel}
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Card Passi Superati -->
+        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 border border-emerald-200 dark:border-emerald-800 p-5 rounded-xl shadow-xs">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="text-2xl">👣</span>
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Passi Superati</span>
+                <p class="text-2xl font-extrabold text-emerald-900 dark:text-emerald-100">${totPassi}</p>
+              </div>
+            </div>
+            <span class="text-[11px] font-bold px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
+              Progressione Verticale
+            </span>
+          </div>
+          <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-emerald-200/60 dark:border-emerald-800/60 text-center">
+            <div class="bg-white/80 dark:bg-gray-800/80 p-2 rounded-lg border border-emerald-100 dark:border-emerald-900/40">
+              <span class="text-[11px] font-bold text-gray-500 dark:text-gray-400 block">I° Passo</span>
+              <span class="text-base font-extrabold text-emerald-700 dark:text-emerald-300">${passaggi[1]}</span>
+            </div>
+            <div class="bg-white/80 dark:bg-gray-800/80 p-2 rounded-lg border border-emerald-100 dark:border-emerald-900/40">
+              <span class="text-[11px] font-bold text-gray-500 dark:text-gray-400 block">II° Passo</span>
+              <span class="text-base font-extrabold text-emerald-700 dark:text-emerald-300">${passaggi[2]}</span>
+            </div>
+            <div class="bg-white/80 dark:bg-gray-800/80 p-2 rounded-lg border border-emerald-100 dark:border-emerald-900/40">
+              <span class="text-[11px] font-bold text-gray-500 dark:text-gray-400 block">III° Passo</span>
+              <span class="text-base font-extrabold text-emerald-700 dark:text-emerald-300">${passaggi[3]}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Specialità Ottenute -->
+        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/20 border border-purple-200 dark:border-purple-800 p-5 rounded-xl shadow-xs">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="text-2xl">⭐</span>
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-purple-800 dark:text-purple-300">Specialità Ottenute</span>
+                <p class="text-2xl font-extrabold text-purple-900 dark:text-purple-100">${specialitaCount}</p>
+              </div>
+            </div>
+            <span class="text-[11px] font-bold px-2.5 py-1 rounded-md bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200">
+              Progressione Orizzontale
+            </span>
+          </div>
+          <div class="mt-4 pt-3 border-t border-purple-200/60 dark:border-purple-800/60">
+            <p class="text-xs text-purple-700 dark:text-purple-300 flex items-center justify-between">
+              <span>Brevetti e competenze conquistate</span>
+              <span class="font-bold text-purple-900 dark:text-purple-100">${specialitaCount} specialità</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+
+// 6. Composizione per Pattuglia (M/F)
+UI.renderComposizionePattuglia = function () {
+  const container = document.getElementById('totaliStats');
+  if (!container) return;
+
+  const scouts = this.state.scouts || [];
+  const pattugliaMF = {};
+
+  scouts.forEach(scout => {
+    const patt = scout.pv_pattuglia || 'Non assegnata';
+    if (!pattugliaMF[patt]) pattugliaMF[patt] = { m: 0, f: 0, altro: 0, tot: 0 };
+    const sesso = scout.anag_sesso?.toLowerCase()?.trim();
+    pattugliaMF[patt].tot++;
+    if (sesso === 'maschio') pattugliaMF[patt].m++;
+    else if (sesso === 'femmina') pattugliaMF[patt].f++;
+    else pattugliaMF[patt].altro++;
+  });
+
+  const pattuglieOrd = Object.keys(pattugliaMF).sort((a, b) => {
+    if (a === 'Non assegnata') return 1;
+    if (b === 'Non assegnata') return -1;
+    return a.localeCompare(b);
+  });
+
+  const rows = pattuglieOrd.map(p => {
+    const d = pattugliaMF[p];
+
+    let genereLabel = 'Non definita';
+    let genereClass = 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+
+    if (d.tot === 0) {
+      genereLabel = 'Vuota';
+    } else if (d.m > 0 && d.f === 0 && d.altro === 0) {
+      genereLabel = '♂ Maschile';
+      genereClass = 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700';
+    } else if (d.f > 0 && d.m === 0 && d.altro === 0) {
+      genereLabel = '♀ Femminile';
+      genereClass = 'bg-pink-100 dark:bg-pink-900/50 text-pink-800 dark:text-pink-200 border border-pink-200 dark:border-pink-700';
+    } else if (d.m > 0 && d.f > 0) {
+      genereLabel = '⚥ Mista';
+      genereClass = 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-700';
+    }
+
+    return `
+      <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
+        <td class="p-3 font-semibold text-gray-800 dark:text-gray-100">${p}</td>
+        <td class="p-3 text-center font-bold text-gray-700 dark:text-gray-200">${d.tot}</td>
+        <td class="p-3 text-center">
+          <span class="inline-block px-3 py-1 text-xs font-bold rounded-full ${genereClass}">${genereLabel}</span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="border-b bg-gray-100 dark:bg-gray-700/60">
+            <th class="text-left p-2.5 font-semibold text-gray-700 dark:text-gray-200">Pattuglia</th>
+            <th class="text-center p-2.5 font-semibold text-gray-700 dark:text-gray-200">Totale Esploratori</th>
+            <th class="text-center p-2.5 font-semibold text-gray-700 dark:text-gray-200">Identificativo Genere</th>
+          </tr>
+        </thead>
+        <tbody>${rows || '<tr><td colspan="3" class="p-4 text-center text-gray-500">Nessuna pattuglia trovata</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+};
+
+
+// 7. Esploratori per Pattuglia
+UI.renderPattuglieTable = function (scoutsInput) {
+  if (scoutsInput) {
+    this._pattuglieTableScouts = scoutsInput;
+  }
+  const scouts = this._pattuglieTableScouts || this.state.scouts || [];
+
+  if (!this._pattuglieSortState) {
+    this._pattuglieSortState = { field: 'nome', direction: 'asc' };
+  }
+
+  const pattuglieMap = {};
+  scouts.forEach(scout => {
+    const pattuglia = scout.pv_pattuglia || 'Non assegnata';
+    if (!pattuglieMap[pattuglia]) {
+      pattuglieMap[pattuglia] = [];
+    }
+
+    const annoScout = this.getAnnoScout(scout.anag_dob);
+
+    let passo = '-';
+    if (scout.pv_traccia3?.done) passo = '3';
+    else if (scout.pv_traccia2?.done) passo = '2';
+    else if (scout.pv_traccia1?.done) passo = '1';
+
+    let numSpecialita = 0;
+    if (scout.specialita && Array.isArray(scout.specialita)) {
+      numSpecialita = scout.specialita.filter(s => s.ottenuta).length;
+    }
+
+    const cpVcp = scout.pv_vcp_cp || '';
+
+    pattuglieMap[pattuglia].push({
+      id: scout.id,
+      nome: `${scout.nome || ''} ${scout.cognome || ''}`.trim() || 'Nome non disponibile',
+      annoScout: annoScout || 'N/A',
+      cpVcp: cpVcp,
+      passo: passo,
+      numSpecialita: numSpecialita
+    });
+  });
+
+  const sortField = this._pattuglieSortState.field;
+  const sortDir = this._pattuglieSortState.direction;
+
+  Object.keys(pattuglieMap).forEach(pattuglia => {
+    pattuglieMap[pattuglia].sort((a, b) => {
+      let comparison = 0;
+      if (sortField === 'nome') {
+        comparison = a.nome.localeCompare(b.nome);
+      } else if (sortField === 'annoScout') {
+        const order = { 'I°': 1, 'II°': 2, 'III°': 3, 'IV°': 4, 'N/A': 5 };
+        const aOrder = order[a.annoScout] || 5;
+        const bOrder = order[b.annoScout] || 5;
+        comparison = aOrder - bOrder;
+        if (comparison === 0) {
+          comparison = a.nome.localeCompare(b.nome);
+        }
+      }
+      return sortDir === 'asc' ? comparison : -comparison;
+    });
+  });
+
+  const pattuglieSorted = Object.keys(pattuglieMap).sort((a, b) => {
+    if (a === 'Non assegnata') return 1;
+    if (b === 'Non assegnata') return -1;
+    return a.localeCompare(b);
+  });
+
+  const sortNomeIcon = document.getElementById('sortNomeIcon');
+  const sortAnnoScoutIcon = document.getElementById('sortAnnoScoutIcon');
+  if (sortNomeIcon) {
+    sortNomeIcon.textContent = sortField === 'nome' ? (sortDir === 'asc' ? '↑' : '↓') : '↕';
+  }
+  if (sortAnnoScoutIcon) {
+    sortAnnoScoutIcon.textContent = sortField === 'annoScout' ? (sortDir === 'asc' ? '↑' : '↓') : '↕';
+  }
+
+  const tbody = document.getElementById('pattuglieTableBody');
+  if (!tbody) return;
+
+  let html = '';
+  pattuglieSorted.forEach(pattuglia => {
+    const esploratori = pattuglieMap[pattuglia];
+    esploratori.forEach((esp, index) => {
+      const link = esp.id
+        ? `<a href="scout2.html?id=${encodeURIComponent(esp.id)}" class="text-green-700 dark:text-green-400 font-semibold hover:underline">${esp.nome}</a>`
+        : `<span class="text-gray-800 dark:text-gray-200">${esp.nome}</span>`;
+
+      html += `
+        <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/60 dark:hover:bg-gray-700/30">
+          ${index === 0 ? `<td class="p-2.5 font-semibold text-gray-800 dark:text-gray-100 align-top" rowspan="${esploratori.length}">${pattuglia}</td>` : ''}
+          <td class="p-2.5">${link}</td>
+          <td class="p-2.5 text-gray-600 dark:text-gray-300">${esp.annoScout}</td>
+          <td class="p-2.5 text-gray-600 dark:text-gray-300 font-medium">${esp.cpVcp}</td>
+          <td class="p-2.5 text-gray-600 dark:text-gray-300">${esp.passo}</td>
+          <td class="p-2.5 text-gray-600 dark:text-gray-300 font-medium">${esp.numSpecialita}</td>
+        </tr>
+      `;
+    });
+  });
+
+  tbody.innerHTML = html || '<tr><td colspan="6" class="p-4 text-center text-gray-500">Nessun esploratore trovato</td></tr>';
+
+  if (!this._pattuglieSortListenersAdded) {
+    const sortNome = document.getElementById('sortNome');
+    const sortAnnoScout = document.getElementById('sortAnnoScout');
+
+    if (sortNome) {
+      sortNome.addEventListener('click', () => {
+        if (this._pattuglieSortState.field === 'nome') {
+          this._pattuglieSortState.direction = this._pattuglieSortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          this._pattuglieSortState.field = 'nome';
+          this._pattuglieSortState.direction = 'asc';
+        }
+        this.renderPattuglieTable();
+      });
+    }
+
+    if (sortAnnoScout) {
+      sortAnnoScout.addEventListener('click', () => {
+        if (this._pattuglieSortState.field === 'annoScout') {
+          this._pattuglieSortState.direction = this._pattuglieSortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          this._pattuglieSortState.field = 'annoScout';
+          this._pattuglieSortState.direction = 'asc';
+        }
+        this.renderPattuglieTable();
+      });
+    }
+
+    this._pattuglieSortListenersAdded = true;
+  }
+};
+
+
+// 8. Riepilogo Specialità
+UI.renderRiepilogoSpecialita = function () {
+  const container = document.getElementById('tempiSpecialitaStats');
+  if (!container) return;
+
+  const scouts = this.state.scouts || [];
+
+  // Top 5 specialità più ottenute
+  const specialitaCount = {};
+  scouts.forEach(scout => {
+    if (scout.specialita && Array.isArray(scout.specialita)) {
+      scout.specialita.forEach(sp => {
+        if (sp.ottenuta && sp.nome) {
+          specialitaCount[sp.nome] = (specialitaCount[sp.nome] || 0) + 1;
+        }
+      });
+    }
+  });
+
+  const top5 = Object.entries(specialitaCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  // Esploratori senza specialità
+  const senzaSpecialita = scouts.filter(scout => {
+    if (!scout.specialita || !Array.isArray(scout.specialita)) return true;
+    return scout.specialita.filter(sp => sp.ottenuta).length === 0;
+  });
+
+  const top5Html = `
+    <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs">
+      <div class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
+        <span>🏅</span> Top 5 Specialità Conquistate
+      </div>
+      ${top5.length > 0
+        ? `<ol class="space-y-2">
+            ${top5.map(([nome, n], i) => `
+              <li class="flex items-center justify-between text-sm py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                <span class="text-gray-700 dark:text-gray-300 font-medium">${i + 1}. ${nome}</span>
+                <span class="font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-0.5 rounded-full text-xs">${n}</span>
+              </li>`).join('')}
+          </ol>`
+        : '<p class="text-xs text-gray-500 italic">Nessuna specialità registrata.</p>'
+      }
+    </div>
+  `;
+
+  const senzaHtml = `
+    <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs">
+      <div class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center justify-between">
+        <span class="flex items-center gap-2"><span>🎯</span> Senza specialità</span>
+        <span class="font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 rounded-full text-xs">${senzaSpecialita.length}</span>
+      </div>
+      ${senzaSpecialita.length > 0
+        ? `<ul class="text-xs text-gray-600 dark:text-gray-300 space-y-1.5 max-h-48 overflow-y-auto pr-1 divide-y divide-gray-100 dark:divide-gray-700">
+            ${senzaSpecialita.map(s => {
+              const name = `${s.nome || ''} ${s.cognome || ''}`.trim() || 'Esploratore';
+              const patt = s.pv_pattuglia ? `(${s.pv_pattuglia})` : '';
+              return `<li class="pt-1 flex items-center justify-between">
+                <a href="scout2.html?id=${encodeURIComponent(s.id)}" class="hover:text-green-600 dark:hover:text-green-400 hover:underline font-medium">${name}</a>
+                <span class="text-gray-400 text-[10px]">${patt}</span>
+              </li>`;
+            }).join('')}
+          </ul>`
+        : '<div class="text-xs text-green-600 dark:text-green-400 font-medium">Tutti gli esploratori hanno almeno una specialità! 🎉</div>'
+      }
+    </div>
+  `;
+
+  container.innerHTML = top5Html + senzaHtml;
+};

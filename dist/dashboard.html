@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard - Scout Maori</title>
-  <meta name="description" content="Dashboard e statistiche Reparto Scout Maori" />
+  <title>Dashboard & Statistiche - Scout Maori</title>
+  <meta name="description" content="Dashboard e statistiche dettagliate Reparto Scout Maori" />
   <meta name="theme-color" content="#16a34a" />
 
   <!-- Favicon e icone -->
@@ -17,19 +17,19 @@
   <!-- Manifest PWA -->
   <link rel="manifest" href="/assets/manifest-DovV98Et.json" />
 
-  <!-- CSS -->
+  <!-- CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/dashboard-DUhN2NSv.js"></script>
+  <script type="module" crossorigin src="/assets/dashboard-B4rd8w1g.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/date-picker-uZF_q5LC.js">
   <link rel="modulepreload" crossorigin href="/assets/shared-axA01fcI.js">
   <link rel="stylesheet" crossorigin href="/assets/presenze-BUUTnjq0.css">
 </head>
 
 <body class="bg-gray-100 flex flex-col min-h-screen">
-  <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
+  <div id="app" class="max-w-6xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
 
     <!-- Header condiviso -->
     <div id="shared-header"></div>
@@ -39,62 +39,149 @@
       <!-- Modali condivisi -->
       <div id="shared-modals"></div>
 
-      <!-- Contenuto specifico Dashboard -->
-      <section id="dashboardTab" class="tab-content active">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-          <div>
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-              <span>📊</span>
-              <span>Dashboard & Statistiche</span>
-            </h2>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Panoramica attività imminenti, presenze di reparto, quote e indicatori sanitari
-            </p>
+      <!-- Intestazione Pagina con Selettore Anno Scout -->
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <span>📊</span>
+            <span>Dashboard & Statistiche</span>
+          </h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Panoramica presenze, demografia, progressioni e pattuglie del reparto
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+          <!-- Selettore Anno Scout -->
+          <div class="flex items-center gap-2 bg-green-50 dark:bg-green-950/40 px-3 py-1.5 rounded-lg border border-green-200 dark:border-green-800 shadow-sm">
+            <label for="statsScoutYearSelect" class="text-xs font-bold uppercase tracking-wider text-green-800 dark:text-green-300">📅 Anno Scout:</label>
+            <select id="statsScoutYearSelect" class="text-sm font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800 border-none rounded focus:ring-2 focus:ring-green-500 py-0.5 px-2 cursor-pointer shadow-sm">
+            </select>
           </div>
-          <div class="flex items-center gap-2">
-            <a href="calendario.html" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-green-700 text-white hover:bg-green-800 transition flex items-center gap-1.5 shadow-sm">
+          <span id="statsArchiveBadge" class="hidden px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-300">📦 Archivio</span>
+
+          <a href="storico-presenze.html" class="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3 font-semibold shadow-sm" title="Consulta lo storico presenze degli anni precedenti">
+            <span>📚</span>
+            <span>Storico</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Sezioni e Widget in ordine rigido -->
+      <div class="space-y-6">
+
+        <!-- 1. Presenza per Esploratore -->
+        <div class="bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl shadow-inner border border-gray-100 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+              <span>👤</span>
+              <span>Presenza per Esploratore</span>
+            </h3>
+          </div>
+          <div class="w-full" style="height: 380px;">
+            <canvas id="scoutPresenceChart" style="width:100%; height:100%;"></canvas>
+          </div>
+        </div>
+
+        <!-- 2. Presenza per Attività -->
+        <div class="bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl shadow-inner border border-gray-100 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
               <span>📅</span>
-              <span>Calendario</span>
-            </a>
-            <a href="presenze.html" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition flex items-center gap-1.5 shadow-sm">
+              <span>Presenza per Attività</span>
+            </h3>
+          </div>
+          <div class="w-full" style="height: 360px;">
+            <canvas id="activityPresenceChart" style="width:100%; height:100%;"></canvas>
+          </div>
+        </div>
+
+        <!-- 3. Dettaglio Presenze -->
+        <div class="bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl shadow-inner border border-gray-100 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
               <span>📋</span>
-              <span>Presenze</span>
-            </a>
+              <span>Dettaglio Presenze</span>
+            </h3>
+          </div>
+          <div id="attendanceGrid" class="overflow-x-auto">
+            <!-- Renderizzato via JS -->
           </div>
         </div>
 
-        <!-- Widget Prossima Attività Imminente & Alert di Sicurezza -->
-        <div id="nextActivityContainer" class="mb-6">
-          <!-- Renderizzato dinamicamente da dashboard.js -->
+        <!-- 4. Totale Esploratori -->
+        <div class="bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl shadow-inner border border-gray-100 dark:border-gray-700">
+          <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <span>👥</span>
+            <span>Totale Esploratori</span>
+          </h3>
+          <div id="totaleEsploratoriWidget">
+            <!-- Renderizzato via JS -->
+          </div>
         </div>
 
-        <div class="space-y-6">
-          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
-            <h3 class="text-xl font-semibold text-gray-700 mb-4">Presenza per Esploratore</h3>
-            <div class="w-full" style="height: 360px;">
-              <canvas id="scoutPresenceChart" style="width:100%; height:100%;"></canvas>
-            </div>
-          </div>
-          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
-            <h3 class="text-xl font-semibold text-gray-700 mb-4">Presenze per Attività</h3>
-            <div class="w-full" style="height: 360px;">
-              <canvas id="activityPresenceChart" style="width:100%; height:100%;"></canvas>
-            </div>
-          </div>
-          <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
-            <h3 class="text-xl font-semibold text-gray-700 mb-4">Dettaglio Presenze</h3>
-            <div id="attendanceGrid" class="overflow-x-auto">
-              <!-- Renderizzato via JS -->
-            </div>
+        <!-- 5. Progressioni (Passi e Specialità) -->
+        <div class="bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl shadow-inner border border-gray-100 dark:border-gray-700">
+          <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <span>⚜️</span>
+            <span>Progressioni</span>
+          </h3>
+          <div id="progressioniWidget">
+            <!-- Renderizzato via JS -->
           </div>
         </div>
-      </section>
+
+        <!-- 6. Composizione per Pattuglia (M/F) -->
+        <div class="bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl shadow-inner border border-gray-100 dark:border-gray-700">
+          <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <span>🚩</span>
+            <span>Composizione per Pattuglia (M/F)</span>
+          </h3>
+          <div id="totaliStats">
+            <!-- Renderizzato via JS -->
+          </div>
+        </div>
+
+        <!-- 7. Esploratori per Pattuglia -->
+        <div class="bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl shadow-inner border border-gray-100 dark:border-gray-700">
+          <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <span>🏕️</span>
+            <span>Esploratori per Pattuglia</span>
+          </h3>
+          <div id="pattuglieTable" class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="border-b bg-gray-100 dark:bg-gray-700/50">
+                  <th class="text-left p-2.5 font-semibold text-gray-700 dark:text-gray-200">Pattuglia</th>
+                  <th class="text-left p-2.5 font-semibold text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition" id="sortNome">Nome <span id="sortNomeIcon">↕</span></th>
+                  <th class="text-left p-2.5 font-semibold text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition" id="sortAnnoScout">Anno Scout <span id="sortAnnoScoutIcon">↕</span></th>
+                  <th class="text-left p-2.5 font-semibold text-gray-700 dark:text-gray-200">CP/VCP</th>
+                  <th class="text-left p-2.5 font-semibold text-gray-700 dark:text-gray-200">Passo</th>
+                  <th class="text-left p-2.5 font-semibold text-gray-700 dark:text-gray-200">Specialità</th>
+                </tr>
+              </thead>
+              <tbody id="pattuglieTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 8. Riepilogo Specialità -->
+        <div class="bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl shadow-inner border border-gray-100 dark:border-gray-700">
+          <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <span>⭐</span>
+            <span>Riepilogo Specialità</span>
+          </h3>
+          <div id="tempiSpecialitaStats" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Renderizzato via JS -->
+          </div>
+        </div>
+
+      </div>
     </main>
   </div>
 
   <!-- Scripts -->
-  <!-- Configurazione Firebase (generata durante il build) -->
-  <script src="/config.js"></script>
+  <script src="/config.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js")
