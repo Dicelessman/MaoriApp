@@ -1721,6 +1721,22 @@ body.dragging * {
     color: #111;
     padding: 0 !important;
     margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printArea * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printArea img {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    max-width: 100% !important;
+    image-rendering: -webkit-optimize-contrast;
   }
 
   /* Scheda Sentiero: evita spezzamenti su 2 pagine */

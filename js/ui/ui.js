@@ -56,7 +56,7 @@ export const UI = {
             window.open(wa.url, '_blank');
         }
     },
-    _printHtmlInArea(html, pdfTitle) {
+    async _printHtmlInArea(html, pdfTitle) {
         let pa = document.getElementById('printArea');
         if (!pa) {
             pa = document.createElement('div');
@@ -78,9 +78,45 @@ export const UI = {
         const originalTitle = document.title;
         document.title = pdfTitle || originalTitle;
 
+        // Attendi caricamento e decodifica di tutte le immagini in #printArea prima di lanciare la stampa
+        const imgs = Array.from(pa.querySelectorAll('img'));
+        if (imgs.length > 0) {
+            await Promise.all(imgs.map(img => {
+                if (img.complete && img.naturalWidth > 0) {
+                    return typeof img.decode === 'function' ? img.decode().catch(() => {}) : Promise.resolve();
+                }
+                return new Promise(resolve => {
+                    let settled = false;
+                    const finish = () => {
+                        if (!settled) {
+                            settled = true;
+                            if (typeof img.decode === 'function') {
+                                img.decode().then(resolve).catch(resolve);
+                            } else {
+                                resolve();
+                            }
+                        }
+                    };
+                    img.addEventListener('load', finish, { once: true });
+                    img.addEventListener('error', () => {
+                        if (!settled) {
+                            settled = true;
+                            resolve();
+                        }
+                    }, { once: true });
+                    setTimeout(finish, 2000);
+                });
+            }));
+            // Breve ritardo per completare layout e rasterizzazione
+            await new Promise(r => setTimeout(r, 120));
+        }
+
         window.print();
 
-        setTimeout(() => {
+        let cleanedUp = false;
+        const cleanup = () => {
+            if (cleanedUp) return;
+            cleanedUp = true;
             document.title = originalTitle;
             pa.style.display = 'none';
             pa.innerHTML = '';
@@ -91,7 +127,14 @@ export const UI = {
                     appContainer.removeAttribute('style');
                 }
             }
-        }, 1000);
+        };
+
+        if (typeof window !== 'undefined' && ('onafterprint' in window || typeof window.addEventListener === 'function')) {
+            window.addEventListener('afterprint', cleanup, { once: true });
+            setTimeout(cleanup, 60000);
+        } else {
+            setTimeout(cleanup, 2000);
+        }
     },
     generateScoutMedicalSheetHtml(data) {
         const d = data || {};

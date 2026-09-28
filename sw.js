@@ -1,4 +1,4 @@
-const CACHE_NAME = "presenziario-cache-v18"; // bump cache v18 for passi and specialita images
+const CACHE_NAME = "presenziario-cache-v19"; // bump cache v19 for passi and specialita images
 const RUNTIME_CACHE = "presenziario-runtime-v5";
 const URLS_TO_CACHE = [
   "/",
@@ -65,6 +65,11 @@ const URLS_TO_CACHE = [
   "/favicon.ico",
   "/icon-192.png",
   "/icon-512.png",
+  "/img/passi/promessa.png",
+  "/img/passi/passo1.png",
+  "/img/passi/passo2.png",
+  "/img/passi/passo3.png",
+  "/img/passi/giglio-trifoglio.png",
   // Dati statici
   "/challenges.json",
   "/specialita.json"
