@@ -974,6 +974,3 @@ UI.downloadProveCSV = function () {
     const filename = `prove_po_${pattuglia.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
     this.downloadCSV(filename, headers, rows);
 };
-
-// Start
-UI.init();

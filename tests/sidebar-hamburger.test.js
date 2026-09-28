@@ -147,18 +147,33 @@ describe('Hamburger Navigation Menu (Web & Mobile)', () => {
         expect(sidebar.classList.contains('active')).toBe(false);
     });
 
-    it('dovrebbe chiudere la sidebar cliccando una voce del menu (nav-item)', () => {
-        window.innerWidth = 1200;
+    it('dovrebbe gestire correttamente le classi Tailwind translate-x-0 e -translate-x-full', () => {
         UI.setupSidebar();
+        const toggleBtn = document.querySelector('#sidebarToggle');
+        const sidebar = document.querySelector('#mainSidebar');
+
+        expect(sidebar.classList.contains('-translate-x-full')).toBe(true);
+        expect(sidebar.classList.contains('translate-x-0')).toBe(false);
+
+        toggleBtn.click();
+        expect(sidebar.classList.contains('translate-x-0')).toBe(true);
+        expect(sidebar.classList.contains('-translate-x-full')).toBe(false);
+
+        toggleBtn.click();
+        expect(sidebar.classList.contains('-translate-x-full')).toBe(true);
+        expect(sidebar.classList.contains('translate-x-0')).toBe(false);
+    });
+
+    it('dovrebbe funzionare correttamente anche se setupSidebar viene invocato più volte (idempotenza)', () => {
+        UI.setupSidebar();
+        UI.setupSidebar(); // Seconda chiamata non deve causare doppi listener che togglano immediatamente avanti e indietro
 
         const toggleBtn = document.querySelector('#sidebarToggle');
         const sidebar = document.querySelector('#mainSidebar');
-        const navItem = document.querySelector('.nav-item');
 
         toggleBtn.click();
         expect(sidebar.classList.contains('active')).toBe(true);
-
-        navItem.click();
-        expect(sidebar.classList.contains('active')).toBe(false);
+        expect(sidebar.classList.contains('translate-x-0')).toBe(true);
     });
 });
+

@@ -300,7 +300,15 @@ export const UI = {
         requestAnimationFrame(processBatch);
     },
 
+    _initialized: false,
+    _initializing: false,
+
     async init() {
+        if (this._initialized || this._initializing) {
+            console.log('UI.init: already initialized or in progress, skipping duplicate call.');
+            return;
+        }
+        this._initializing = true;
         try {
             this.setupTheme();
             DATA.useFirestore();
@@ -371,8 +379,11 @@ export const UI = {
             });
             this.setupInstallPrompt();
             this.setupKeyboardShortcuts();
+            this._initialized = true;
         } catch (error) {
             console.error('UI.init error:', error);
+        } finally {
+            this._initializing = false;
         }
     },
 
@@ -407,12 +418,14 @@ export const UI = {
         if (!toggleBtn || !sidebar) return;
 
         // Stato iniziale: menu chiuso di default sia su mobile sia su web (hamburger)
-        sidebar.classList.remove('active');
+        sidebar.classList.remove('active', 'translate-x-0');
+        sidebar.classList.add('-translate-x-full');
         if (overlay) overlay.classList.add('hidden');
         toggleBtn.setAttribute('aria-expanded', 'false');
 
         const openSidebar = () => {
-            sidebar.classList.add('active');
+            sidebar.classList.add('active', 'translate-x-0');
+            sidebar.classList.remove('-translate-x-full');
             if (overlay) overlay.classList.remove('hidden');
             toggleBtn.setAttribute('aria-expanded', 'true');
             toggleBtn.setAttribute('aria-label', 'Chiudi menu di navigazione');
@@ -420,7 +433,8 @@ export const UI = {
         };
 
         const closeSidebar = () => {
-            sidebar.classList.remove('active');
+            sidebar.classList.remove('active', 'translate-x-0');
+            sidebar.classList.add('-translate-x-full');
             if (overlay) overlay.classList.add('hidden');
             toggleBtn.setAttribute('aria-expanded', 'false');
             toggleBtn.setAttribute('aria-label', 'Apri menu di navigazione');
@@ -428,7 +442,7 @@ export const UI = {
         };
 
         const toggleSidebar = () => {
-            const isActive = sidebar.classList.contains('active');
+            const isActive = sidebar.classList.contains('active') || sidebar.classList.contains('translate-x-0');
             if (isActive) {
                 closeSidebar();
             } else {
@@ -436,27 +450,54 @@ export const UI = {
             }
         };
 
-        toggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleSidebar();
-        });
-        if (overlay) overlay.addEventListener('click', closeSidebar);
-        if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+        if (!toggleBtn._sidebarBound) {
+            toggleBtn._sidebarBound = true;
+            toggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleSidebar();
+            });
+        }
+        if (overlay && !overlay._sidebarBound) {
+            overlay._sidebarBound = true;
+            overlay.addEventListener('click', closeSidebar);
+        }
+        if (closeBtn && !closeBtn._sidebarBound) {
+            closeBtn._sidebarBound = true;
+            closeBtn.addEventListener('click', closeSidebar);
+        }
 
         // Chiudi sidebar quando si naviga cliccando un link del menu
         const navLinks = sidebar.querySelectorAll('.nav-item');
         navLinks.forEach((link) => {
-            link.addEventListener('click', () => {
-                closeSidebar();
-            });
+            if (!link._sidebarBound) {
+                link._sidebarBound = true;
+                link.addEventListener('click', () => {
+                    closeSidebar();
+                });
+            }
         });
 
         // Chiudi sidebar con il tasto ESC
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && sidebar.classList.contains('active')) {
-                closeSidebar();
-            }
-        });
+        if (!document._sidebarEscBound) {
+            document._sidebarEscBound = true;
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const currentSidebar = document.querySelector('#mainSidebar');
+                    if (currentSidebar && (currentSidebar.classList.contains('active') || currentSidebar.classList.contains('translate-x-0'))) {
+                        const currentToggle = document.querySelector('#sidebarToggle');
+                        const currentOverlay = document.querySelector('#sidebarOverlay');
+                        currentSidebar.classList.remove('active', 'translate-x-0');
+                        currentSidebar.classList.add('-translate-x-full');
+                        if (currentOverlay) currentOverlay.classList.add('hidden');
+                        if (currentToggle) {
+                            currentToggle.setAttribute('aria-expanded', 'false');
+                            currentToggle.setAttribute('aria-label', 'Apri menu di navigazione');
+                        }
+                        document.body.style.overflow = '';
+                    }
+                }
+            });
+        }
     },
 
     highlightActiveNavItem() {
