@@ -20,10 +20,109 @@
   <!-- CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/scorte-CKaTS2pC.js"></script>
+
+  <style>
+    @media screen {
+      #printArea {
+        display: none !important;
+      }
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm 12mm;
+      }
+
+      /* Nascondi completamente l'intera app, barre, bottoni e TUTTI I MODALI */
+      body > *:not(#printArea),
+      #app,
+      #shared-header,
+      #shared-modals,
+      .modal,
+      #materialModal,
+      #importModal,
+      #preventivoRiordinoModal,
+      #listModal,
+      #mainSidebar,
+      #sidebarOverlay,
+      header,
+      nav,
+      button,
+      .no-print {
+        display: none !important;
+        visibility: hidden !important;
+      }
+
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+      }
+
+      /* Mostra esclusivamente #printArea */
+      #printArea {
+        display: block !important;
+        visibility: visible !important;
+        position: static !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+
+      #printArea * {
+        visibility: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .print-shopping-table {
+        width: 100%;
+        border-collapse: collapse !important;
+        margin-top: 10px;
+        font-size: 11.5px;
+      }
+
+      .print-shopping-table th {
+        background-color: #f3f4f6 !important;
+        color: #111827 !important;
+        border: 1.5px solid #374151 !important;
+        padding: 8px 6px;
+        font-weight: 700;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        text-align: center;
+      }
+
+      .print-shopping-table td {
+        border: 1px solid #4b5563 !important;
+        padding: 7px 6px;
+        vertical-align: middle;
+      }
+
+      .print-shopping-table tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+
+      .print-shopping-table thead {
+        display: table-header-group !important;
+      }
+
+      .print-shopping-table tfoot {
+        display: table-footer-group !important;
+      }
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/scorte-KtUrhE28.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/date-picker-g2gujTbE.js">
   <link rel="modulepreload" crossorigin href="/assets/shared-DBsnK70X.js">
-  <link rel="stylesheet" crossorigin href="/assets/presenze-EANlm1nr.css">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-CQQgXCTg.css">
 </head>
 
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -625,7 +724,7 @@ Disinfettante spray, Pronto Soccorso, 5, 5, 4.80, pz"
   </div>
 
   <!-- Area di Stampa -->
-  <div id="printArea" class="hidden"></div>
+  <div id="printArea"></div>
 
   <!-- Scripts -->
   <script src="/config.js"></script>

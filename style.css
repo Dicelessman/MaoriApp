@@ -1681,9 +1681,20 @@ body.dragging * {
     margin: 8mm 10mm;
   }
 
-  /* Nasconde tutto tranne #printArea quando è visibile */
+  /* Nasconde tutto tranne #printArea quando è visibile o popolato */
+  body:has(#printArea:not(:empty)) #app,
+  body:has(#printArea:not(:empty)) > *:not(#printArea),
   body:has(#printArea[style*="block"]) #app,
   body:has(#printArea[style*="block"]) > *:not(#printArea) {
+    display: none !important;
+  }
+
+  /* Nasconde sempre tutti i modali e backdrop in fase di stampa */
+  .modal,
+  .modal.show,
+  .modal.show.flex,
+  #shared-modals,
+  #sidebarOverlay {
     display: none !important;
   }
 

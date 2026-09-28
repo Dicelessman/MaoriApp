@@ -148,7 +148,7 @@ UI.setupScorteControls = function () {
 
   if (printBtn) {
     printBtn.addEventListener('click', () => {
-      window.print();
+      this.printListaSpesa();
     });
   }
 
@@ -1168,7 +1168,7 @@ UI.setupPreventivoModalEvents = function () {
 
   if (printBtn) {
     printBtn.onclick = () => {
-      window.print();
+      this.printListaSpesa();
     };
   }
 };
@@ -1307,6 +1307,153 @@ UI.openPreventivoRiordinoModal = function () {
   modal?.classList.remove('hidden');
 };
 
+// ==================== Stampa Lista Spesa / Riordino Materiali ====================
+UI.printListaSpesa = function (targetList = null) {
+  const activeList = targetList || this._scorteState.activeList;
+  const allItems = this._scorteState.items || [];
+
+  // Filtra per lista attiva (se non "all")
+  const candidateItems = activeList === 'all'
+    ? allItems
+    : allItems.filter(i => (i.lista || 'Generale') === activeList);
+
+  // Filtra solo gli articoli che richiedono riordino (sotto scorta)
+  const toReorder = candidateItems.filter(i => {
+    const q = Number(i.quantita) || 0;
+    const min = Number(i.quantitaMinima) || 0;
+    return min > q;
+  });
+
+  if (toReorder.length === 0) {
+    this.showToast('Nessun articolo sotto scorta da acquistare per questa lista.', { type: 'info' });
+    return;
+  }
+
+  // Ordina per Categoria poi per Nome
+  toReorder.sort((a, b) => {
+    const catA = (a.categoria || 'Generale').toLowerCase();
+    const catB = (b.categoria || 'Generale').toLowerCase();
+    if (catA !== catB) return catA.localeCompare(catB);
+    return (a.nome || '').localeCompare(b.nome || '');
+  });
+
+  const listTitle = activeList === 'all'
+    ? 'Tutte le Liste'
+    : activeList;
+
+  const today = new Date().toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+
+  let totalPreventivo = 0;
+  toReorder.forEach(i => {
+    const q = Number(i.quantita) || 0;
+    const min = Number(i.quantitaMinima) || 0;
+    const price = Number(i.prezzoUnitario) || 0;
+    const diff = min - q;
+    totalPreventivo += (diff * price);
+  });
+
+  const printArea = document.getElementById('printArea');
+  if (!printArea) return;
+
+  printArea.innerHTML = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #000; padding: 0; margin: 0;">
+      <!-- Intestazione Lista Spesa -->
+      <div style="border-bottom: 2px solid #16a34a; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+          <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #15803d; letter-spacing: 0.05em; margin-bottom: 2px;">
+            ⚜️ Reparto Scout Maori
+          </div>
+          <h1 style="font-size: 20px; font-weight: 900; margin: 0; line-height: 1.2; color: #111;">
+            LISTA DELLA SPESA / RIORDINO
+          </h1>
+          <div style="font-size: 13px; font-weight: 700; color: #374151; margin-top: 4px;">
+            Lista: <span style="color: #15803d;">${escapeHtml(listTitle)}</span>
+          </div>
+        </div>
+        <div style="text-align: right; font-size: 11px; color: #4b5563; line-height: 1.5;">
+          <div>Data stampa: <strong>${today}</strong></div>
+          <div>Articoli da acquistare: <strong>${toReorder.length}</strong></div>
+        </div>
+      </div>
+
+      <!-- Tabella Formato Spesa -->
+      <table class="print-shopping-table" style="width: 100%; border-collapse: collapse; font-size: 11px;">
+        <thead>
+          <tr>
+            <th style="width: 27%; text-align: left; background: #f3f4f6; border: 1.5px solid #374151; padding: 8px 6px; font-weight: 700; text-transform: uppercase;">Materiale</th>
+            <th style="width: 13%; text-align: center; background: #f3f4f6; border: 1.5px solid #374151; padding: 8px 6px; font-weight: 700; text-transform: uppercase;">Acquistare</th>
+            <th style="width: 16%; text-align: right; background: #f3f4f6; border: 1.5px solid #374151; padding: 8px 6px; font-weight: 700; text-transform: uppercase;">Preventivo Spesa</th>
+            <th style="width: 14%; text-align: center; background: #f3f4f6; border: 1.5px solid #374151; padding: 8px 6px; font-weight: 700; text-transform: uppercase;">Prezzo Reale</th>
+            <th style="width: 15%; text-align: center; background: #f3f4f6; border: 1.5px solid #374151; padding: 8px 6px; font-weight: 700; text-transform: uppercase;">Totale Materiale</th>
+            <th style="width: 15%; text-align: left; background: #f3f4f6; border: 1.5px solid #374151; padding: 8px 6px; font-weight: 700; text-transform: uppercase;">Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${toReorder.map(i => {
+            const q = Number(i.quantita) || 0;
+            const min = Number(i.quantitaMinima) || 0;
+            const price = Number(i.prezzoUnitario) || 0;
+            const diff = min - q;
+            const cost = diff * price;
+            const unita = i.unitaMisura || 'pz';
+            const cat = (i.categoria || 'Generale').trim();
+            const noteText = (i.note || '').trim();
+
+            return `
+              <tr style="page-break-inside: avoid;">
+                <td style="border: 1px solid #4b5563; padding: 7px 6px; vertical-align: middle;">
+                  <div style="font-weight: 700; font-size: 12px; color: #111;">${escapeHtml(i.nome)}</div>
+                  <div style="font-size: 9.5px; color: #555; margin-top: 1px;">
+                    ${escapeHtml(cat)}${activeList === 'all' && i.lista ? ` &bull; ${escapeHtml(i.lista)}` : ''}
+                  </div>
+                </td>
+                <td style="border: 1px solid #4b5563; padding: 7px 6px; text-align: center; vertical-align: middle;">
+                  <span style="font-weight: 800; font-size: 12.5px; color: #111;">${diff} ${escapeHtml(unita)}</span>
+                </td>
+                <td style="border: 1px solid #4b5563; padding: 7px 6px; text-align: right; vertical-align: middle; white-space: nowrap;">
+                  <div style="font-weight: 700; font-size: 12px; color: #111;">€ ${cost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  ${price > 0 ? `<div style="font-size: 9px; color: #666;">(${price.toFixed(2)} €/${escapeHtml(unita)})</div>` : ''}
+                </td>
+                <td style="border: 1px solid #4b5563; padding: 7px 6px; text-align: center; vertical-align: middle;">
+                  <div class="write-box" style="border: 1.5px solid #374151; border-radius: 4px; height: 28px; width: 68px; margin: 0 auto; display: flex; align-items: center; padding-left: 5px; font-size: 11px; color: #4b5563; background: #fff;">
+                    €&nbsp;
+                  </div>
+                </td>
+                <td style="border: 1px solid #4b5563; padding: 7px 6px; text-align: center; vertical-align: middle;">
+                  <div class="write-box" style="border: 1.5px solid #374151; border-radius: 4px; height: 28px; width: 75px; margin: 0 auto; display: flex; align-items: center; padding-left: 5px; font-size: 11px; color: #4b5563; background: #fff;">
+                    €&nbsp;
+                  </div>
+                </td>
+                <td style="border: 1px solid #4b5563; padding: 7px 6px; vertical-align: middle;">
+                  ${noteText ? `<div style="font-size: 9.5px; color: #222; margin-bottom: 2px;">${escapeHtml(noteText)}</div>` : ''}
+                  <div style="border-bottom: 1px dashed #9ca3af; height: 12px;"></div>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr style="border-top: 2px solid #000; background: #f3f4f6; page-break-inside: avoid;">
+            <td colspan="2" style="border: 1.5px solid #374151; padding: 10px 8px; text-align: right; font-weight: 800; font-size: 12px; text-transform: uppercase;">
+              TOTALE PREVENTIVO ATTESO:
+            </td>
+            <td style="border: 1.5px solid #374151; padding: 10px 8px; text-align: right; font-weight: 900; font-size: 13.5px; white-space: nowrap; color: #000;">
+              € ${totalPreventivo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </td>
+            <td colspan="3" style="border: 1.5px solid #374151; background: #f3f4f6;"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  `;
+
+  window.print();
+};
+
 // ==================== Esportazione CSV ====================
 UI.exportScorteCsv = function () {
   const activeList = this._scorteState.activeList;
@@ -1419,3 +1566,6 @@ UI.exportRiordinoCsv = function () {
 
   this.showToast(`Lista riordino (${fileSuffix}) esportata in formato CSV`);
 };
+
+export { UI };
+

@@ -3,8 +3,35 @@
  * @module tests/scorte
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LocalAdapter } from '../js/data/adapters/local-adapter.js';
+
+vi.mock('../js/core/firebase.js', () => ({
+  db: {},
+  auth: {},
+  messaging: null,
+  collection: vi.fn(),
+  doc: vi.fn(),
+  getDocs: vi.fn(),
+  addDoc: vi.fn(),
+  setDoc: vi.fn(),
+  deleteDoc: vi.fn(),
+  updateDoc: vi.fn(),
+  getDoc: vi.fn(),
+  query: vi.fn(),
+  limit: vi.fn(),
+  startAfter: vi.fn(),
+  orderBy: vi.fn(),
+  where: vi.fn(),
+  Timestamp: { now: () => new Date(), fromDate: (d) => d },
+  signInWithEmailAndPassword: vi.fn(),
+  signOut: vi.fn(),
+  onAuthStateChanged: vi.fn(),
+  setPersistence: vi.fn(),
+  browserLocalPersistence: {},
+  getToken: vi.fn(),
+  onMessage: vi.fn()
+}));
 
 describe('Scorte & Materiali Inventory Module', () => {
   let adapter;
@@ -346,4 +373,108 @@ describe('Scorte & Materiali Inventory Module', () => {
       expect(form.contains(document.getElementById('cancelMaterialBtn'))).toBe(true);
     });
   });
+
+  describe('Stampa Lista della Spesa (UI.printListaSpesa)', () => {
+    it('dovrebbe generare la tabella per la stampa con le colonne richieste e caselle per scrittura a mano', async () => {
+      // Mock window.print
+      const printSpy = vi.fn();
+      window.print = printSpy;
+
+      // Import dinamico o setup UI
+      const { UI } = await import('../scorte.js');
+
+      document.body.innerHTML = `
+        <div id="printArea"></div>
+      `;
+
+      UI._scorteState.activeList = 'Campo Estivo';
+      UI._scorteState.items = [
+        {
+          id: '1',
+          nome: 'Farina Tipo 2',
+          categoria: 'Cibo',
+          lista: 'Campo Estivo',
+          quantita: 0,
+          quantitaMinima: 2,
+          prezzoUnitario: 1.50,
+          unitaMisura: 'kg',
+          note: 'Pacco da 1kg'
+        },
+        {
+          id: '2',
+          nome: 'Carote',
+          categoria: 'Cibo',
+          lista: 'Campo Estivo',
+          quantita: 1,
+          quantitaMinima: 3,
+          prezzoUnitario: 2.00,
+          unitaMisura: 'kg',
+          note: ''
+        },
+        {
+          id: '3',
+          nome: 'Picchetti',
+          categoria: 'Campeggio',
+          lista: 'Campo Estivo',
+          quantita: 10,
+          quantitaMinima: 10, // Non sotto scorta, non deve comparire
+          prezzoUnitario: 0.50,
+          unitaMisura: 'pz'
+        }
+      ];
+
+      UI.printListaSpesa('Campo Estivo');
+
+      const printArea = document.getElementById('printArea');
+      expect(printArea).toBeDefined();
+
+      // 1. Titolo della lista
+      expect(printArea.innerHTML).toContain('LISTA DELLA SPESA / RIORDINO');
+      expect(printArea.innerHTML).toContain('Campo Estivo');
+
+      // 2. Colonne richieste
+      expect(printArea.innerHTML).toContain('Materiale');
+      expect(printArea.innerHTML).toContain('Acquistare');
+      expect(printArea.innerHTML).toContain('Preventivo Spesa');
+      expect(printArea.innerHTML).toContain('Prezzo Reale');
+      expect(printArea.innerHTML).toContain('Totale Materiale');
+      expect(printArea.innerHTML).toContain('Note');
+
+      // 3. Articoli e quantità mancante ("Acquistare")
+      expect(printArea.innerHTML).toContain('Farina Tipo 2');
+      expect(printArea.innerHTML).toContain('2 kg'); // 2 - 0 = 2 kg
+      expect(printArea.innerHTML).toContain('Carote');
+      expect(printArea.innerHTML).toContain('2 kg'); // 3 - 1 = 2 kg
+      expect(printArea.innerHTML).not.toContain('Picchetti'); // Era in scorta sufficiente
+
+      // 4. Caselle per scrittura manuale ("Prezzo Reale" e "Totale Materiale")
+      const writeBoxes = printArea.querySelectorAll('.write-box');
+      expect(writeBoxes.length).toBe(4); // 2 articoli x 2 caselle
+
+      // 5. Totale preventivo atteso nel footer
+      expect(printArea.innerHTML).toContain('TOTALE PREVENTIVO ATTESO:');
+      // Farina: 2 * 1.50 = 3.00, Carote: 2 * 2.00 = 4.00 => Totale: 7,00 €
+      expect(printArea.innerHTML).toContain('7,00');
+
+      // 6. Invocazione di window.print
+      expect(printSpy).toHaveBeenCalled();
+    });
+
+    it('dovrebbe mostrare un avviso se nessun articolo è sotto scorta', async () => {
+      const { UI } = await import('../scorte.js');
+      const toastSpy = vi.fn();
+      UI.showToast = toastSpy;
+
+      UI._scorteState.items = [
+        { id: '1', nome: 'Bussola', quantita: 5, quantitaMinima: 5, lista: 'Campo Estivo' }
+      ];
+
+      UI.printListaSpesa('Campo Estivo');
+      expect(toastSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Nessun articolo sotto scorta'),
+        expect.anything()
+      );
+    });
+  });
 });
+
