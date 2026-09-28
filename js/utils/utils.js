@@ -78,6 +78,78 @@ export function toYyyyMmDd(date) {
     }
 }
 
+export const SPECIALITA_LEGACY_MAP = {
+    'pioniere': 'Pionierismo',
+    'alpinista': 'Arrampicata',
+    'campeggiatore': 'Campismo',
+    'infermiere': 'Primo Soccorso',
+    'topografo': 'Orientamento',
+    'naturalista': 'Conservazione Mondiale',
+    'archeologo': 'Archeostoria',
+    'storico': 'Archeostoria',
+    'botanico': 'Agroecologia',
+    'coltivatore': 'Agroecologia',
+    'computerista': 'Coding',
+    'canoista': 'Canottaggio',
+    'velista': 'Navigazione',
+    'falegname': 'Carpenteria',
+    'costruttore': 'Carpenteria',
+    'calciatore': 'Giochi di Squadra',
+    'sportivo': 'Olimpia',
+    'segnalatore': 'Comunicazione',
+    'attore': 'Animazione',
+    'teatrista': 'Animazione',
+    'cantante': 'Musica',
+    'musicista': 'Musica',
+    'danza': 'Espressione Corporea',
+    'disegnatore': 'Arti Grafiche',
+    'elettricista': 'Meccatronica',
+    'hebertista': 'Hebertismo',
+    'informatico': 'Informatica',
+    'maestro dei nodi': 'Pionierismo',
+    'maestro dei giochi': 'Animazione',
+    'meteorologo': 'Meteo',
+    'modellista': 'Artigianato',
+    'mosaichista': 'Arte',
+    'nuotatore': 'Nuoto',
+    'osservatore': 'Osservazione',
+    'pattugliatore': 'Esplorazione',
+    'regista': 'Videomaking',
+    'sarto': 'Sartoria',
+    'scenografo': 'Arte',
+    'servizio liturgico': 'Spiritualità nel Mondo',
+    'sopravvivenza': 'Trappeur',
+    'traduttore': 'Interprete'
+};
+
+export function normalizeSpecialitaName(name) {
+    if (!name) return '';
+    const trimmed = name.trim();
+    const key = trimmed.toLowerCase();
+    return SPECIALITA_LEGACY_MAP[key] || trimmed;
+}
+
+export const SPECIALITA_SLUG_MAP = {
+    'astronomia': 'astronomo',
+    'carpenteria-navale': 'carpentiere-navale',
+    'espressione-corporea': 'espressione',
+    'fai-da-te': 'faidate',
+    'hebertismo': 'herbertismo',
+    'benessere': 'wellbeing',
+    'abilita-aquatiche': 'abilita-acquatiche'
+};
+
+export function getSpecialitaSlug(spName) {
+    const canonical = normalizeSpecialitaName(spName);
+    const raw = (canonical || spName || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    return SPECIALITA_SLUG_MAP[raw] || raw;
+}
+
 /**
  * Generates printable HTML for a scout's Sentiero sheet
  * @param {Object} scout - The scout object
@@ -206,17 +278,12 @@ export function generateScoutSentieroHtml(scout, challenges = {}, specialitaList
         return getSpecName(a).localeCompare(getSpecName(b));
     });
 
-    const getSpecialitaSlug = (spName) => {
-        return (spName || '')
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '');
-    };
-
     const getSpecialitaColors = (spName) => {
-        const specDef = (specialitaList || []).find((s) => s && s.nome && s.nome.trim().toLowerCase() === spName.trim().toLowerCase());
+        const normalized = normalizeSpecialitaName(spName);
+        const specDef = (specialitaList || []).find((s) => s && s.nome && (
+            s.nome.trim().toLowerCase() === spName.trim().toLowerCase() ||
+            s.nome.trim().toLowerCase() === normalized.trim().toLowerCase()
+        ));
         return {
             bordo: specDef?.bordo_colore || '#15803d',
             sfondo: specDef?.sfondo_colore || '#ffffff'

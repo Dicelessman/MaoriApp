@@ -1,5 +1,5 @@
 // scout2.js - pagina scheda personale esploratore (versione refactored)
-import { generateScoutSentieroHtml } from './js/utils/utils.js';
+import { generateScoutSentieroHtml, normalizeSpecialitaName } from './js/utils/utils.js';
 
 // Cache per i dati JSON statici (permanente, questi file non cambiano mai)
 UI.challengesData = null;
@@ -474,8 +474,9 @@ UI.addSpecialita = async function (data = null, index = null) {
   // Carica la lista delle specialità
   const specialitaList = await this.loadSpecialitaList();
 
-  // Trova la specialità selezionata per ottenere i nomi delle prove
-  const selectedSpec = data?.nome ? specialitaList.find(s => s.nome === data.nome) : null;
+  // Trova la specialità selezionata per ottenere i nomi delle prove (supportando anche nomi storici/legacy)
+  const canonicalName = data?.nome ? normalizeSpecialitaName(data.nome) : '';
+  const selectedSpec = (data?.nome && specialitaList) ? specialitaList.find(s => s.nome === data.nome || s.nome === canonicalName) : null;
   const prove = selectedSpec?.prove || [
     { nome: 'Prova 1', id: 'p1' },
     { nome: 'Prova 2', id: 'p2' },
@@ -491,7 +492,7 @@ UI.addSpecialita = async function (data = null, index = null) {
     <div class="specialita-header p-4 cursor-pointer hover:bg-gray-50 transition-colors" data-specialita="${realIndex}">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <h4 class="font-semibold text-lg"><span id="${spId}_title">${(data?.nome && String(data.nome).trim()) || 'Specialità'}</span></h4>
+          <h4 class="font-semibold text-lg"><span id="${spId}_title">${(selectedSpec?.nome || data?.nome && String(data.nome).trim()) || 'Specialità'}</span></h4>
           <label class="flex items-center gap-2">
             <input type="checkbox" id="${spId}_ott_chk" ${data?.ottenuta ? 'checked' : ''} />
             <span>Ottenuta</span>
@@ -519,7 +520,7 @@ UI.addSpecialita = async function (data = null, index = null) {
           <label class="block text-sm">Specialità</label>
           <select id="${spId}_nome" class="input">
             <option value="">Seleziona specialità...</option>
-            ${specialitaList.map(spec => `<option value="${spec.nome}" ${data?.nome === spec.nome ? 'selected' : ''}>${spec.nome}</option>`).join('')}
+            ${specialitaList.map(spec => `<option value="${spec.nome}" ${(data?.nome === spec.nome || canonicalName === spec.nome) ? 'selected' : ''}>${spec.nome} (${spec.categoria || (spec.sfondo_colore === 'green' ? 'Verdi' : 'Gialle')}${spec.ambito ? ' - ' + spec.ambito : ''})</option>`).join('')}
           </select>
         </div>
         <div class="md:col-span-2 space-y-2">

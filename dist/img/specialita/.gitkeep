@@ -1,63 +1,82 @@
-# Inserisci qui i file PNG delle Specialità con il nome in formato kebab-case (tutto minuscolo, spazi sostituiti da trattini, senza accenti).
-# Esempi:
+# Cartella per i file PNG delle Specialità (CNGEI - Aggiornamento Ottobre 2024)
+# Inserisci i file PNG con il nome in formato kebab-case (tutto minuscolo, senza accenti, spazi sostituiti da trattini).
+# Totale: 57 Specialità (20 Verdi + 37 Gialle)
+
+# ==========================================
+# SPECIALITÀ VERDI (20) - Sfondo Verde
+# ==========================================
+# Corporeità (Bordo Verde)
 # - abilita-aquatiche.png
+# - esplorazione.png
+# - hebertismo.png
+# - orientamento.png
+# - osservazione.png
+
+# Impegno Civile (Bordo Rosso)
 # - amicizia-internazionale.png
-# - animazione.png
-# - alpinista.png
-# - archeologo.png
-# - artigiano.png
-# - astronomo.png
-# - attore.png
-# - botanico.png
-# - calciatore.png
-# - campeggiatore.png
-# - canoista.png
-# - cantante.png
-# - ciclista.png
-# - collezionista.png
-# - coltivatore.png
-# - computerista.png
-# - corrispondente.png
-# - costruttore.png
-# - cucina.png
-# - danza.png
-# - disegnatore.png
-# - elettricista.png
-# - esploratore.png
-# - falegname.png
-# - fotografo.png
-# - giornalista.png
 # - guida.png
-# - hebertista.png
-# - infermiere.png
-# - informatico.png
-# - interprete.png
-# - inventore.png
-# - maestro-dei-nodi.png
-# - maestro-dei-giochi.png
-# - meteorologo.png
-# - modellista.png
-# - mosaichista.png
-# - musicista.png
-# - naturalista.png
-# - nuotatore.png
-# - osservatore.png
-# - pattugliatore.png
-# - pescatore.png
-# - pioniere.png
-# - pompiere.png
+# - impatto-ambientale.png
+# - spiritualita-nel-mondo.png
+
+# Carattere (Bordo Blu)
+# - animazione.png
+# - avventura.png
+# - comunicazione.png
+# - meteo.png
 # - primo-soccorso.png
-# - regista.png
-# - sarto.png
-# - scenografo.png
-# - segnalatore.png
-# - servizio-liturgico.png
-# - sopravvivenza.png
-# - speleologo.png
-# - sportivo.png
-# - sterilizzatore.png
-# - storico.png
-# - teatrista.png
-# - topografo.png
-# - traduttore.png
-# - velista.png
+# - trappeur.png
+
+# Creatività (Bordo Giallo)
+# - campismo.png
+# - cucina.png
+# - fuochismo.png
+# - navigazione.png
+# - pionierismo.png
+
+# ==========================================
+# SPECIALITÀ GIALLE (37) - Sfondo Giallo
+# ==========================================
+# Corporeità (Bordo Verde)
+# - arrampicata.png
+# - benessere.png
+# - canottaggio.png
+# - ciclismo.png
+# - difesa-personale.png
+# - espressione-corporea.png
+# - giochi-di-squadra.png
+# - nuoto.png
+# - olimpia.png
+# - sport-di-strada.png
+
+# Impegno Civile (Bordo Rosso)
+# - agroecologia.png
+# - archeostoria.png
+# - cittadinanza-digitale.png
+# - conservazione-mondiale.png
+# - folklore.png
+# - impatto-nella-comunita.png
+# - interprete.png
+# - sfide-globali.png
+
+# Carattere (Bordo Blu)
+# - astronomia.png
+# - collezionismo.png
+# - fai-da-te.png
+# - giornalismo.png
+# - informatica.png
+# - lettura.png
+# - musica.png
+# - scrittura.png
+# - videomaking.png
+
+# Creatività (Bordo Giallo)
+# - arte.png
+# - arti-grafiche.png
+# - artigianato.png
+# - carpenteria.png
+# - carpenteria-navale.png
+# - coding.png
+# - fotografia.png
+# - meccatronica.png
+# - sartoria.png
+# - scienze-di-laboratorio.png

@@ -1,6 +1,10 @@
 [
   {
     "nome": "Abilità Aquatiche",
+    "categoria": "Verdi",
+    "ambito": "Corporeità",
+    "sfondo_colore": "green",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -17,12 +21,14 @@
         "id": "p3",
         "text": "Con l'aiuto della ptg/eqp simulare un intervento di soccorso in acqua dimostrando di saper recuperare un compagno privo di sensi riportandolo in superficie, a riva o su un’imbarcazione."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Amicizia Internazionale",
+    "categoria": "Verdi",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "green",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -39,12 +45,14 @@
         "id": "p3",
         "text": "Partecipare ad un evento di portata internazionale (Jota-Joti, Jamboree, campo all’estero, ecc.) o entrare in contatto con una delle comunità straniere presenti sul tuo territorio, svolgendo con loro almeno un’attività/evento."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Animazione",
+    "categoria": "Verdi",
+    "ambito": "Carattere",
+    "sfondo_colore": "green",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -61,12 +69,14 @@
         "id": "p3",
         "text": "Programmare ed animare un fuoco di bivacco con l’aiuto della propria ptg/eqp o un piccolo gruppo, utilizzando diverse tecniche di espressione e ponendo attenzione a scenografia, costumi, trucco, tempo di scena, coinvolgimento del pubblico, messaggi lanciati, etc."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Avventura",
+    "categoria": "Verdi",
+    "ambito": "Carattere",
+    "sfondo_colore": "green",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -83,12 +93,14 @@
         "id": "p3",
         "text": "Progettare e realizzare il percorso, assieme ad altri esploratori o esploratrici, portando con sé lo stretto indispensabile per almeno un pernotto e un momento di riflessione."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Campismo",
+    "categoria": "Verdi",
+    "ambito": "Creatività",
+    "sfondo_colore": "green",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -105,12 +117,14 @@
         "id": "p3",
         "text": "Progettare e realizzare la disposizione di un sottocampo tenendo conto della conformazione dell'area e delle esigenze di ptg/eqp e Reparto, ideando e realizzando soluzioni pratiche per rendere la vita al campo più confortevole."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Comunicazione",
+    "categoria": "Verdi",
+    "ambito": "Carattere",
+    "sfondo_colore": "green",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -127,12 +141,14 @@
         "id": "p3",
         "text": "Ideare e organizzare un gioco o attività con la ptg/eqp basata sulle tecniche di trasmissione e la decifrazione tramite un codice inventato."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Cucina",
+    "categoria": "Verdi",
+    "ambito": "Creatività",
+    "sfondo_colore": "green",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -149,12 +165,14 @@
         "id": "p3",
         "text": "Progettare e realizzare un menù giornaliero per la ptg/eqp utilizzando almeno due diverse tecniche di cottura. Tenere in considerazione le possibili varianti delle principali esigenze alimentari (vegetariana, vegana, no latticini, etc...), e la stagionalità e provenienza degli alimenti."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Esplorazione",
+    "categoria": "Verdi",
+    "ambito": "Corporeità",
+    "sfondo_colore": "green",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -171,12 +189,14 @@
         "id": "p3",
         "text": "Documentare e geo-referenziare, nel modo che si ritiene più opportuno (racconti scritti, raccolte di fotografie, disegni, video, etc.), gli aspetti naturalistici e antropici che catturano il proprio interesse. Realizzare un reportage dell'esplorazione compiuta e presentarlo al Reparto."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Fuochismo",
+    "categoria": "Verdi",
+    "ambito": "Creatività",
+    "sfondo_colore": "green",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -193,12 +213,14 @@
         "id": "p3",
         "text": "Gestire in più occasioni della vita di reparto o ptg/eqp, tutte le fasi di un fuoco: dalla ricerca e taglio della legna, al suo spegnimento, tenendo conto delle norme di sicurezza personali e ambientali."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Guida",
+    "categoria": "Verdi",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "green",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -215,12 +237,14 @@
         "id": "p3",
         "text": "Condurre un itinerario di visita guidata della tua città, focalizzandosi su uno di questi aspetti: naturalistico, sociale, culturale o storico."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Hebertismo",
+    "categoria": "Verdi",
+    "ambito": "Corporeità",
+    "sfondo_colore": "green",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -237,12 +261,14 @@
         "id": "p3",
         "text": "Progettare, realizzare ed eseguire un percorso Hebert per la ptg/eqp e/o Reparto, come modo di tenersi in forma o per svolgere un'attività."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Impatto Ambientale",
+    "categoria": "Verdi",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "green",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -259,12 +285,14 @@
         "id": "p3",
         "text": "Organizzare con la tua pattuglia un'attività di sensibilizzazione a tema ambientale da proporre alla tua comunità, scegliendo le modalità (video, volantini, giochi, conferenze, collaborazioni con associazioni) e la tematica (consumo di suolo o di acqua, energie rinnovabili, riscaldamento globale, raccolta differenziata, tutela della biodiversità, ecc.) in base a ciò di cui ha più bisogno il territorio in cui vivi."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Meteo",
+    "categoria": "Verdi",
+    "ambito": "Carattere",
+    "sfondo_colore": "green",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -281,12 +309,14 @@
         "id": "p3",
         "text": "Saper consultare gli aggiornamenti sui bollettini meteo ufficiali per la pianificazione di un’attività all’aperto e con l’equipaggiamento adeguato."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Navigazione",
+    "categoria": "Verdi",
+    "ambito": "Creatività",
+    "sfondo_colore": "green",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -303,12 +333,14 @@
         "id": "p3",
         "text": "Organizzare con il Reparto o ptg/eqp un’attività di navigazione o partecipare ad una regata."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Orientamento",
+    "categoria": "Verdi",
+    "ambito": "Corporeità",
+    "sfondo_colore": "green",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -325,12 +357,14 @@
         "id": "p3",
         "text": "Saper progettare una breve escursione per una Ptg/Eqp utilizzando strumenti classici o digitali, tenendo in considerazione distanze, dislivelli e tempi di percorrenza, preferibilmente realizzandone il profilo topografico o percorso rettificato."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Osservazione",
+    "categoria": "Verdi",
+    "ambito": "Corporeità",
+    "sfondo_colore": "green",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -347,12 +381,14 @@
         "id": "p3",
         "text": "Organizzare un’attività/percorso/gioco di osservazione da far svolgere al resto della ptg/eqp e/o reparto che preveda lo sviluppo di almeno tre sensi."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Pionierismo",
+    "categoria": "Verdi",
+    "ambito": "Creatività",
+    "sfondo_colore": "green",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -369,12 +405,14 @@
         "id": "p3",
         "text": "Progettare e realizzare una grande costruzione, coordinando la ptg/eqp o il reparto."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Primo Soccorso",
+    "categoria": "Verdi",
+    "ambito": "Carattere",
+    "sfondo_colore": "green",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -391,12 +429,14 @@
         "id": "p3",
         "text": "Mantenere la cassetta di primo soccorso di Ptg/Egp in ordine e in efficienza, con i dispositivi sanitari utili. Sperimentarsi nel posto d’azione di ambulanziere almeno due volte durante l'anno."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Spiritualità nel Mondo",
+    "categoria": "Verdi",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "green",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -413,12 +453,14 @@
         "id": "p3",
         "text": "Proporre alla ptg/eqp e/o al reparto un momento di riflessione usando testi, canzoni, danze legate alle fedi, culti, filosofia che hai conosciuto, basato su un tema a scelta"
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Trappeur",
+    "categoria": "Verdi",
+    "ambito": "Carattere",
+    "sfondo_colore": "green",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -435,12 +477,14 @@
         "id": "p3",
         "text": "Organizzare una cucina alla trappeur di ptg/eqp e/o reparto preparando il menu, utilizzando ricette trappeur, e utensili autoprodotti."
       }
-    ],
-    "sfondo_colore": "green",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Agroecologia",
+    "categoria": "Gialle",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -457,12 +501,14 @@
         "id": "p3",
         "text": "Realizzare con la/il propria/o ptg/eqp/reparto un orto o un allevamento condiviso nella propria sede/ quartiere/città per ricavarne una piccola produzione utile."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Archeostoria",
+    "categoria": "Gialle",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -479,12 +525,14 @@
         "id": "p3",
         "text": "Organizzare e promuovere un’attività interattiva di approfondimento su un periodo o evento storico, ad esempio visitando un museo o una mostra."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Arrampicata",
+    "categoria": "Gialle",
+    "ambito": "Corporeità",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -501,12 +549,14 @@
         "id": "p3",
         "text": "Coinvolgere la tua ptg/eqp o reparto nel vivere un’attività di arrampicata con l’aiuto di un adulto esperto."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Arte",
+    "categoria": "Gialle",
+    "ambito": "Creatività",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -523,12 +573,14 @@
         "id": "p3",
         "text": "Partecipare attivamente all’arredamento/decorazione della sede/angolo o realizzare altre opere che possano essere utili al reparto o ptg/eqp (es. stemma di ptg, scenografia per un fuoco, etc ...)."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Arti Grafiche",
+    "categoria": "Gialle",
+    "ambito": "Creatività",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -545,12 +597,14 @@
         "id": "p3",
         "text": "Realizzare e curare tutto il materiale promozionale ed espositivo per un evento di ptg/eqp e/o reparto (mostra, autofinanziamento, ecc.)"
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Artigianato",
+    "categoria": "Gialle",
+    "ambito": "Creatività",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -567,12 +621,14 @@
         "id": "p3",
         "text": "Progettare e realizzare un oggetto utile per la vita di ptg/eqp e/o reparto o per un’attività di autofinanziamento."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Astronomia",
+    "categoria": "Gialle",
+    "ambito": "Carattere",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -589,12 +645,14 @@
         "id": "p3",
         "text": "Realizzare un'attività serale con la pattuglia o con il reparto per condividere le proprie conoscenze astronomiche su un argomento a propria scelta (pianeti, satelliti, buchi neri, nebulose, ecc.)."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Benessere",
+    "categoria": "Gialle",
+    "ambito": "Corporeità",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -611,12 +669,14 @@
         "id": "p3",
         "text": "Realizzare un momento per la ptg/eqp e/o reparto di pratica della disciplina conosciuta, includendo esercizi di respirazione, di rilassamento, di flessibilità e di tono muscolare."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Canottaggio",
+    "categoria": "Gialle",
+    "ambito": "Corporeità",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -633,12 +693,14 @@
         "id": "p3",
         "text": "Realizzare con la propria Ptg/Eqp o Reparto, utilizzando imbarcazioni a remi, un gioco o un'attività nell'ambiente acquatico."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Carpenteria",
+    "categoria": "Gialle",
+    "ambito": "Creatività",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -655,12 +717,14 @@
         "id": "p3",
         "text": "Ideare, progettare e realizzare un manufatto in legno utilizzando materiali sostenibili (certificati) o di recupero, utile alla propria ptg/eqp/reparto."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Carpenteria Navale",
+    "categoria": "Gialle",
+    "ambito": "Creatività",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -677,12 +741,14 @@
         "id": "p3",
         "text": "Costruire una piccola imbarcazione e un’attrezzatura nautica di vario genere (es. scandaglio a mano, parabordi, gancio d'accosto, remi...) con l’aiuto della propria ptg/eqp, da utilizzare in un’attività."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Ciclismo",
+    "categoria": "Gialle",
+    "ambito": "Corporeità",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -699,12 +765,14 @@
         "id": "p3",
         "text": "Promuovere l’utilizzo regolare della bicicletta come mezzo di trasporto per ridurre il proprio impatto ambientale e/o per mantenere la propria forma fisica (ad esempio svolgendo un’attività di ptg/eq/ reparto in bicicletta)."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Cittadinanza Digitale",
+    "categoria": "Gialle",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -721,12 +789,14 @@
         "id": "p3",
         "text": "Proporre un’attività di ptg/eqp per sensibilizzare sul tema della cittadinanza digitale attiva e sicura."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Coding",
+    "categoria": "Gialle",
+    "ambito": "Creatività",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -743,12 +813,14 @@
         "id": "p3",
         "text": "Programmare un software o un’app utile al reparto o alla ptg/eqp con qualsiasi linguaggio di programmazione."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Collezionismo",
+    "categoria": "Gialle",
+    "ambito": "Carattere",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -765,12 +837,14 @@
         "id": "p3",
         "text": "Organizzare un momento per mostrare la collezione, illustrando tutto ciò che è stato appreso nel curarla, presentando alcuni pezzi scelti sulla base del valore affettivo e/o economico, raccontandone la storia."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Conservazione Mondiale",
+    "categoria": "Gialle",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -787,12 +861,14 @@
         "id": "p3",
         "text": "Organizzare con la tua pattuglia un'attività di sensibilizzazione a tema ambientale da proporre alla tua comunità, scegliendo le modalità (video, volantini, giochi, conferenze, collaborazioni con associazioni) e la tematica (consumo di suolo o di acqua, energie rinnovabili, riscaldamento globale, raccolta differenziata, tutela della biodiversità, …) in base a ciò di cui ha più bisogno il territorio in cui vivi."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Difesa Personale",
+    "categoria": "Gialle",
+    "ambito": "Corporeità",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -809,12 +885,14 @@
         "id": "p3",
         "text": "Realizzare una dimostrazione (allenamento o simulazione) coinvolgendo in sicurezza la tua ptg/eqp o il Reparto."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Espressione Corporea",
+    "categoria": "Gialle",
+    "ambito": "Corporeità",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -831,12 +909,14 @@
         "id": "p3",
         "text": "Coinvolgere la propria Ptg/Eqp o il Reparto, nello svolgere insieme la disciplina scelta."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Fai Da Te",
+    "categoria": "Gialle",
+    "ambito": "Carattere",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -853,12 +933,14 @@
         "id": "p3",
         "text": "Contribuire a riparare e a manutenere la sede e/o la casa e la relativa mobilia. Effettuare un intervento che migliori gli spazi in cui vivo, mettendo in campo la propria inventiva."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Folklore",
+    "categoria": "Gialle",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -875,12 +957,14 @@
         "id": "p3",
         "text": "Valorizzare le tradizioni attuali della tua Ptg/Eqp, Reparto, e/o Gruppo, riscoprire quelle in disuso, proporre nuove tradizioni o arricchire quelle in essere."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Fotografia",
+    "categoria": "Gialle",
+    "ambito": "Creatività",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -897,12 +981,14 @@
         "id": "p3",
         "text": "Realizzare una raccolta di fotografie su un'attività scout o su un tema scelto e presentale al reparto, (Es. mostra, reportage, etc..) spiegando le scelte stilistiche. ."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Giochi di Squadra",
+    "categoria": "Gialle",
+    "ambito": "Corporeità",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -919,12 +1005,14 @@
         "id": "p3",
         "text": "Organizzare un torneo dello sport praticato con la propria ptg/eqp e/o reparto, sperimentandosi anche nell'arbitraggio."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Giornalismo",
+    "categoria": "Gialle",
+    "ambito": "Carattere",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -941,12 +1029,14 @@
         "id": "p3",
         "text": "Proporre al Reparto delle iniziative giornalistiche di informazione (es: creare una bacheca, scrivere un articolo per la rivista associativa “Scautismo”, realizzare un podcast in un'uscita o al campo, realizzare un reportage, ecc.) ponendo particolare attenzione alle fonti di informazioni attendibili e non."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Impatto nella Comunità",
+    "categoria": "Gialle",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -963,12 +1053,14 @@
         "id": "p3",
         "text": "Promuovere uno o più momenti di confronto e sensibilizzazione su un tema di interesse della comunità e partecipare alle iniziative locali (manifestazioni, banchetti informativi, sit in, ecc.)"
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Informatica",
+    "categoria": "Gialle",
+    "ambito": "Carattere",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -985,12 +1077,14 @@
         "id": "p3",
         "text": "Contribuire alla digitalizzazione di un aspetto della vita di Reparto (archiviazione foto, scrittura di documenti, cassa di Ptg/Eqp, account social...)."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Interprete",
+    "categoria": "Gialle",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1007,12 +1101,14 @@
         "id": "p3",
         "text": "Insegnare al Reparto una canzone, ban, o gioco nella lingua prescelta, traducendo e spiegandone il testo in italiano."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Lettura",
+    "categoria": "Gialle",
+    "ambito": "Carattere",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1029,12 +1125,14 @@
         "id": "p3",
         "text": "Realizzare o curare (se già esistente) la biblioteca di reparto, fisica e/o digitale o proporre un’altra attività di incoraggiamento o stimolo alla lettura (es: club letterario)."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Meccatronica",
+    "categoria": "Gialle",
+    "ambito": "Creatività",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1051,12 +1149,14 @@
         "id": "p3",
         "text": "Realizzare un sistema elettronico e meccanico per automatizzare un processo che coinvolge la vita di pattuglia e/o reparto, ad esempio attraverso la realizzazione di un semplice robot."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Musica",
+    "categoria": "Gialle",
+    "ambito": "Carattere",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1073,12 +1173,14 @@
         "id": "p3",
         "text": "Preparare, organizzare e realizzare un intrattenimento musicale proponendo nuove canzoni al Reparto."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Nuoto",
+    "categoria": "Gialle",
+    "ambito": "Corporeità",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1095,12 +1197,14 @@
         "id": "p3",
         "text": "Organizzare giochi da fare in sicurezza in acqua, in prossimità della riva, con la propria ptg/eqp e/o Reparto, che non richiedano particolari abilità acquatiche."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Olimpia",
+    "categoria": "Gialle",
+    "ambito": "Corporeità",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1117,12 +1221,14 @@
         "id": "p3",
         "text": "Organizzare una sessione di allenamento dello sport praticato con la propria ptg/eqp e/o reparto."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Sartoria",
+    "categoria": "Gialle",
+    "ambito": "Creatività",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1139,12 +1245,14 @@
         "id": "p3",
         "text": "Realizzare dei prodotti sartoriali sulla base di un cartamodello, utili per la ptg/eqp o il reparto, per autofinanziamento, per un’attività, etc."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Scienze di Laboratorio",
+    "categoria": "Gialle",
+    "ambito": "Creatività",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "yellow",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1161,12 +1269,14 @@
         "id": "p3",
         "text": "Realizzare un esperimento scientifico che possa avere dei risvolti nella vita di tutti i giorni, da presentare al reparto/ptg/eqp, esponendo i risultati ottenuti e descrivendo il fenomeno dal punto di vista fisico/chimico."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "yellow"
+    ]
   },
   {
     "nome": "Scrittura",
+    "categoria": "Gialle",
+    "ambito": "Carattere",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1183,12 +1293,14 @@
         "id": "p3",
         "text": "Scrivere i racconti delle avventure vissute dalla ptg/eqp o reparto, scegliendo il genere, lo stile e il registro linguistico e raccogliendoli nell’albo d’oro."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "blue"
+    ]
   },
   {
     "nome": "Sfide Globali",
+    "categoria": "Gialle",
+    "ambito": "Impegno Civile",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "red",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1205,12 +1317,14 @@
         "id": "p3",
         "text": "Essere promotori e/o partecipare a iniziative locali con la propria ptg/eqp o reparto per sensibilizzare e contribuire in modo concreto al superamento di una di queste sfide."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "red"
+    ]
   },
   {
     "nome": "Sport di Strada",
+    "categoria": "Gialle",
+    "ambito": "Corporeità",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "green",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1227,12 +1341,14 @@
         "id": "p3",
         "text": "Organizzare una piccola dimostrazione dello sport scelto, mostrando le tue abilità nell'eseguire tricks e tecniche."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "green"
+    ]
   },
   {
     "nome": "Videomaking",
+    "categoria": "Gialle",
+    "ambito": "Carattere",
+    "sfondo_colore": "yellow",
+    "bordo_colore": "blue",
     "prove": [
       {
         "nome": "Prova 1",
@@ -1249,8 +1365,6 @@
         "id": "p3",
         "text": "Realizzare un video originale e creativo (tra i 3 e i 5 minuti) con l’aiuto del Reparto e/o Ptg/Eqp, partendo da una sceneggiatura e uno storyboard che raccontino un episodio a scelta, individuando le risorse materiali e umane necessarie."
       }
-    ],
-    "sfondo_colore": "yellow",
-    "bordo_colore": "blue"
+    ]
   }
 ]

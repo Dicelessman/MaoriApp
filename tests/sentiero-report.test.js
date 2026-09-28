@@ -308,8 +308,24 @@ describe('generateScoutSentieroHtml', () => {
     expect(html).toContain('img/passi/giglio-trifoglio.png');
 
     // Specialità slugified image
-    expect(html).toContain('img/specialita/abilita-aquatiche.png');
+    expect(html).toContain('img/specialita/abilita-acquatiche.png');
     expect(html).toContain('onerror="this.style.display=\'none\';"');
+  });
+
+  it('should resolve legacy names to correct image slug', () => {
+    const scout = {
+      nome: 'Marco',
+      cognome: 'Bianchi',
+      specialita: [
+        { nome: 'Pioniere', data: '2023-01-10', ottenuta: true },
+        { nome: 'Astronomia', data: '2023-02-15', ottenuta: true },
+        { nome: 'Hebertismo', data: '2023-03-20', ottenuta: true }
+      ]
+    };
+    const html = generateScoutSentieroHtml(scout, mockChallenges, []);
+    expect(html).toContain('img/specialita/pionierismo.png');
+    expect(html).toContain('img/specialita/astronomo.png');
+    expect(html).toContain('img/specialita/herbertismo.png');
   });
 });
 
