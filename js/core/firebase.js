@@ -4,7 +4,7 @@
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, updateDoc, onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { getFirestore, initializeFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, updateDoc, onSnapshot, getDoc, query, limit, startAfter, orderBy, where, Timestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, updatePassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
 
@@ -23,7 +23,14 @@ const firebaseConfig = (winConfig && winConfig.apiKey) ? winConfig : defaultFire
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+let db;
+try {
+    db = initializeFirestore(app, {
+        experimentalAutoDetectLongPolling: true
+    });
+} catch (e) {
+    db = getFirestore(app);
+}
 const auth = getAuth(app);
 
 // Initialize FCM only in browser and if service worker is supported
