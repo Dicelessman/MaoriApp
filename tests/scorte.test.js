@@ -287,4 +287,63 @@ describe('Scorte & Materiali Inventory Module', () => {
       expect(all[0].lista).toBe('Campo Estivo');
     });
   });
+
+  describe('Modal Nuovo Articolo (Layout Verticale & Mobile UX)', () => {
+    it('dovrebbe avere un layout verticale con scroll interno e footer fisso', () => {
+      // Simula il DOM del modale aggiornato
+      document.body.innerHTML = `
+        <div id="materialModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-3 sm:p-4">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md sm:max-w-lg w-full shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="header shrink-0">
+              <h3 id="materialModalTitle">Nuovo Articolo Scorte</h3>
+              <button id="closeMaterialModalBtn">✕</button>
+            </div>
+            <form id="materialForm" class="flex flex-col flex-1 overflow-hidden">
+              <div class="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1 scrollbar-thin">
+                <input type="hidden" id="materialId" />
+                <input type="text" id="materialNome" />
+                <input type="text" id="materialLista" />
+                <datalist id="listeScorteDataList"></datalist>
+                <input type="text" id="materialCategoria" />
+                <datalist id="categoriesList"></datalist>
+                <select id="materialUnita"></select>
+                <input type="number" id="materialQuantita" />
+                <input type="number" id="materialQuantitaMinima" />
+                <input type="number" id="materialPrezzo" />
+                <input type="date" id="materialDataControllo" />
+                <input type="text" id="materialNote" />
+              </div>
+              <div class="footer shrink-0 flex flex-col-reverse sm:flex-row">
+                <button id="cancelMaterialBtn">Annulla</button>
+                <button type="submit">Salva Articolo</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+
+      const modal = document.getElementById('materialModal');
+      const dialog = modal.querySelector('div');
+      const form = document.getElementById('materialForm');
+      const scrollContainer = form.querySelector('.overflow-y-auto');
+
+      // Verifica classi responsitive verticali
+      expect(dialog.classList.contains('flex-col')).toBe(true);
+      expect(dialog.classList.contains('max-h-[90vh]')).toBe(true);
+      expect(dialog.classList.contains('max-w-md')).toBe(true);
+      expect(scrollContainer.classList.contains('flex-1')).toBe(true);
+
+      // Tutti i campi attesi sono figli del form (risolvendo il bug di nesting precedente)
+      expect(form.contains(document.getElementById('materialNome'))).toBe(true);
+      expect(form.contains(document.getElementById('materialLista'))).toBe(true);
+      expect(form.contains(document.getElementById('materialCategoria'))).toBe(true);
+      expect(form.contains(document.getElementById('materialUnita'))).toBe(true);
+      expect(form.contains(document.getElementById('materialQuantita'))).toBe(true);
+      expect(form.contains(document.getElementById('materialQuantitaMinima'))).toBe(true);
+      expect(form.contains(document.getElementById('materialPrezzo'))).toBe(true);
+      expect(form.contains(document.getElementById('materialDataControllo'))).toBe(true);
+      expect(form.contains(document.getElementById('materialNote'))).toBe(true);
+      expect(form.contains(document.getElementById('cancelMaterialBtn'))).toBe(true);
+    });
+  });
 });

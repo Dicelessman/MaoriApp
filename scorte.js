@@ -766,6 +766,11 @@ UI.setupMaterialModalEvents = function () {
 
   if (closeBtn) closeBtn.onclick = () => modal?.classList.add('hidden');
   if (cancelBtn) cancelBtn.onclick = () => modal?.classList.add('hidden');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.add('hidden');
+    });
+  }
 
   if (form) {
     form.onsubmit = async (e) => {
