@@ -4,7 +4,7 @@
   "description": "Registro presenze Reparto Scout Maori",
   "scripts": {
     "dev": "vite",
-    "build": "node build-config.js && vite build",
+    "build": "node build-config.js && vite build && node sync-dist.js",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

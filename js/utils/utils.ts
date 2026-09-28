@@ -204,6 +204,15 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
         return getSpecName(a).localeCompare(getSpecName(b));
     });
 
+    const getSpecialitaSlug = (spName: string) => {
+        return (spName || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    };
+
     const getSpecialitaColors = (spName: string) => {
         const specDef = (specialitaList || []).find((s: any) => s && s.nome && s.nome.trim().toLowerCase() === spName.trim().toLowerCase());
         return {
@@ -216,8 +225,9 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
         const colors = getSpecialitaColors(spName);
         const bordoColore = colors.bordo;
         const sfondoColore = colors.sfondo;
+        const slug = getSpecialitaSlug(spName);
 
-        return `<span style="display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; margin-right: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border: 2px solid ${bordoColore}; background: transparent; border-radius: 2px; box-sizing: border-box;" title="Bordo: ${bordoColore}"></span><span style="display: inline-block; width: 10px; height: 10px; background-color: ${sfondoColore}; border: 1px solid ${sfondoColore === 'white' ? '#9ca3af' : sfondoColore}; border-radius: 2px; box-sizing: border-box;" title="Sfondo: ${sfondoColore}"></span></span>`;
+        return `<span style="display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; margin-right: 4px;"><img src="img/specialita/${slug}.png" alt="${spName}" style="width: 14px; height: 14px; object-fit: contain; vertical-align: middle;" onerror="this.style.display='none';" onload="if(this.nextElementSibling)this.nextElementSibling.style.display='none';"><span style="display: inline-flex; align-items: center; gap: 3px;"><span style="display: inline-block; width: 10px; height: 10px; border: 2px solid ${bordoColore}; background: transparent; border-radius: 2px; box-sizing: border-box;" title="Bordo: ${bordoColore}"></span><span style="display: inline-block; width: 10px; height: 10px; background-color: ${sfondoColore}; border: 1px solid ${sfondoColore === 'white' ? '#9ca3af' : sfondoColore}; border-radius: 2px; box-sizing: border-box;" title="Sfondo: ${sfondoColore}"></span></span></span>`;
     };
 
     let html = `
@@ -258,20 +268,25 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
           </div>
 
           <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; font-size: 10.5px;">
-            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_promessa ? '#bbf7d0' : '#e5e7eb'};">
-              <strong>Promessa:</strong><br>${scout.pv_promessa ? `☑ ${fmtDate(scout.pv_promessa)}` : '☐ Non fatta'}
+            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_promessa ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
+              <img src="img/passi/promessa.png" alt="Promessa" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; ${scout.pv_promessa ? '' : 'filter: grayscale(1); opacity: 0.35;'}" onerror="this.style.display='none';" />
+              <div style="min-width: 0; flex: 1;"><strong>Promessa:</strong><br>${scout.pv_promessa ? `☑ ${fmtDate(scout.pv_promessa)}` : '☐ Non fatta'}</div>
             </div>
-            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT1 ? '#bbf7d0' : '#e5e7eb'};">
-              <strong>1° Passo:</strong><br>${isT1 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia1)}` : '☐ Da raggiungere'}
+            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT1 ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
+              <img src="img/passi/passo1.png" alt="1° Passo" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; ${isT1 ? '' : 'filter: grayscale(1); opacity: 0.35;'}" onerror="this.style.display='none';" />
+              <div style="min-width: 0; flex: 1;"><strong>1° Passo:</strong><br>${isT1 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia1)}` : '☐ Da raggiungere'}</div>
             </div>
-            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT2 ? '#bbf7d0' : '#e5e7eb'};">
-              <strong>2° Passo:</strong><br>${isT2 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia2)}` : '☐ Da raggiungere'}
+            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT2 ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
+              <img src="img/passi/passo2.png" alt="2° Passo" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; ${isT2 ? '' : 'filter: grayscale(1); opacity: 0.35;'}" onerror="this.style.display='none';" />
+              <div style="min-width: 0; flex: 1;"><strong>2° Passo:</strong><br>${isT2 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia2)}` : '☐ Da raggiungere'}</div>
             </div>
-            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT3 ? '#bbf7d0' : '#e5e7eb'};">
-              <strong>3° Passo:</strong><br>${isT3 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia3)}` : '☐ Da raggiungere'}
+            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT3 ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
+              <img src="img/passi/passo3.png" alt="3° Passo" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; ${isT3 ? '' : 'filter: grayscale(1); opacity: 0.35;'}" onerror="this.style.display='none';" />
+              <div style="min-width: 0; flex: 1;"><strong>3° Passo:</strong><br>${isT3 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia3)}` : '☐ Da raggiungere'}</div>
             </div>
-            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_giglio_data ? '#bbf7d0' : '#e5e7eb'};">
-              <strong>Giglio e Trifoglio:</strong><br>${scout.pv_giglio_data ? `☑ ${fmtDate(scout.pv_giglio_data)}` : '☐ Non conseguito'}
+            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_giglio_data ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
+              <img src="img/passi/giglio-trifoglio.png" alt="Giglio e Trifoglio" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; ${scout.pv_giglio_data ? '' : 'filter: grayscale(1); opacity: 0.35;'}" onerror="this.style.display='none';" />
+              <div style="min-width: 0; flex: 1;"><strong>Giglio e Trifoglio:</strong><br>${scout.pv_giglio_data ? `☑ ${fmtDate(scout.pv_giglio_data)}` : '☐ Non conseguito'}</div>
             </div>
           </div>
         </div>

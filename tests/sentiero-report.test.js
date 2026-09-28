@@ -281,5 +281,36 @@ describe('generateScoutSentieroHtml', () => {
     const strippedHtml = html.replace(/[☑☐]/g, '');
     expect(emojiRegex.test(strippedHtml)).toBe(false);
   });
+
+  it('should include img tags for Passi and Specialità with graceful onerror/onload fallback', () => {
+    const specialitaList = [
+      { nome: 'Abilità Aquatiche', bordo_colore: 'green', sfondo_colore: 'green' },
+      { nome: 'Primo Soccorso', bordo_colore: 'green', sfondo_colore: 'green' }
+    ];
+
+    const scout = {
+      nome: 'Chiara',
+      cognome: 'Verdi',
+      pv_promessa: '2023-04-23',
+      pv_traccia1: true,
+      specialita: [
+        { nome: 'Abilità Aquatiche', data: '2024-05-10', ottenuta: true }
+      ]
+    };
+
+    const html = generateScoutSentieroHtml(scout, mockChallenges, specialitaList);
+
+    // Passi images
+    expect(html).toContain('img/passi/promessa.png');
+    expect(html).toContain('img/passi/passo1.png');
+    expect(html).toContain('img/passi/passo2.png');
+    expect(html).toContain('img/passi/passo3.png');
+    expect(html).toContain('img/passi/giglio-trifoglio.png');
+
+    // Specialità slugified image
+    expect(html).toContain('img/specialita/abilita-aquatiche.png');
+    expect(html).toContain('onerror="this.style.display=\'none\';"');
+  });
 });
+
 

@@ -54,3 +54,16 @@ if (missing.length > 0) {
   console.warn('\n  Configura le variabili d\'ambiente in Vercel Project Settings.');
 }
 
+// Sincronizza cartella img verso dist/img se presente
+const srcImg = path.join(__dirname, 'img');
+const distImg = path.join(__dirname, 'dist', 'img');
+try {
+  if (fs.existsSync(srcImg)) {
+    fs.mkdirSync(distImg, { recursive: true });
+    fs.cpSync(srcImg, distImg, { recursive: true });
+    console.log('✓ Asset img/ sincronizzati in dist/img');
+  }
+} catch (e) {
+  console.warn('Avviso sincronizzazione img:', e.message);
+}
+
