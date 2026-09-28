@@ -185,4 +185,31 @@ describe('generateScoutSentieroHtml', () => {
     expect(html).toContain('Nessuna specialità ancora conquistata.');
     expect(html).toContain('Nessuna specialità attualmente in corso di svolgimento.');
   });
+
+  it('should format specialità già conseguite with badge icon and date in a 2-column layout', () => {
+    const scout = {
+      nome: 'Chiara',
+      cognome: 'Verdi',
+      pv_pattuglia: 'Lupi',
+      pv_promessa: '2023-03-15',
+      pv_traccia1: { done: true, date: '2024-01-20' },
+      specialita: [
+        { nome: 'Animatore', ottenuta: true, data: '2024-02-10' },
+        { nome: 'Naturalista', brevetto: true, data: '2024-05-18' }
+      ]
+    };
+
+    const html = generateScoutSentieroHtml(scout, mockChallenges, mockSpecialitaList);
+
+    // Verify 2-column layout
+    expect(html).toContain('grid-template-columns: 1fr 1fr');
+    expect(html).toContain('sentiero-sheet-page');
+
+    // Verify specialità conseguite section
+    expect(html).toContain('SPECIALITÀ GIÀ CONQUISTATE');
+    expect(html).toContain('Animatore');
+    expect(html).toContain('(10/02/2024)');
+    expect(html).toContain('Naturalista');
+    expect(html).toContain('(18/05/2024)');
+  });
 });
