@@ -406,33 +406,57 @@ export const UI = {
 
         if (!toggleBtn || !sidebar) return;
 
-        // Stato iniziale: su mobile deve essere chiusa (rimuovi 'active' se presente)
-        if (window.innerWidth < 768) {
+        // Stato iniziale: menu chiuso di default sia su mobile sia su web (hamburger)
+        sidebar.classList.remove('active');
+        if (overlay) overlay.classList.add('hidden');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+
+        const openSidebar = () => {
+            sidebar.classList.add('active');
+            if (overlay) overlay.classList.remove('hidden');
+            toggleBtn.setAttribute('aria-expanded', 'true');
+            toggleBtn.setAttribute('aria-label', 'Chiudi menu di navigazione');
+            document.body.style.overflow = 'hidden';
+        };
+
+        const closeSidebar = () => {
             sidebar.classList.remove('active');
             if (overlay) overlay.classList.add('hidden');
-        } else {
-            // Su desktop per default la teniamo aperta (aggiungi 'active')
-            sidebar.classList.add('active');
-            if (overlay) overlay.classList.add('hidden');
-        }
+            toggleBtn.setAttribute('aria-expanded', 'false');
+            toggleBtn.setAttribute('aria-label', 'Apri menu di navigazione');
+            document.body.style.overflow = '';
+        };
 
         const toggleSidebar = () => {
-            const isActive = sidebar.classList.toggle('active');
-
-            // L'overlay serve solo su mobile e solo quando la sidebar è attiva
-            if (window.innerWidth < 768) {
-                if (overlay) {
-                    overlay.classList.toggle('hidden', !isActive);
-                }
+            const isActive = sidebar.classList.contains('active');
+            if (isActive) {
+                closeSidebar();
             } else {
-                // Su desktop l'overlay non serve mai
-                if (overlay) overlay.classList.add('hidden');
+                openSidebar();
             }
         };
 
-        toggleBtn.addEventListener('click', toggleSidebar);
-        if (overlay) overlay.addEventListener('click', toggleSidebar);
-        if (closeBtn) closeBtn.addEventListener('click', toggleSidebar);
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleSidebar();
+        });
+        if (overlay) overlay.addEventListener('click', closeSidebar);
+        if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+
+        // Chiudi sidebar quando si naviga cliccando un link del menu
+        const navLinks = sidebar.querySelectorAll('.nav-item');
+        navLinks.forEach((link) => {
+            link.addEventListener('click', () => {
+                closeSidebar();
+            });
+        });
+
+        // Chiudi sidebar con il tasto ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                closeSidebar();
+            }
+        });
     },
 
     highlightActiveNavItem() {

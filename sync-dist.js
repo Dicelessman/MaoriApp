@@ -15,6 +15,8 @@ if (fs.existsSync(distDir)) {
 
   // Sync static root files if present
   const staticFiles = [
+    'shared.html',
+    'modals.html',
     'challenges.json',
     'specialita.json',
     'descriptions.json',

@@ -564,19 +564,19 @@ header a {
   /* Permette al flex-child di restringersi sotto il suo contenuto per scrollbar */
 }
 
-@media (min-width: 768px) {
-  #app {
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-  }
-
-  header {
-    width: 100% !important;
-    order: -2;
-  }
+/* Sidebar Overlay (Mobile & Desktop) */
+#sidebarOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 1999;
+  cursor: pointer;
+  transition: opacity 0.3s ease-in-out;
 }
 
-/* Sidebar Styling */
+/* Sidebar Styling (Hamburger su Web e Mobile) */
 #mainSidebar {
   background-color: #ffffff;
   border-right: 1px solid #f3f4f6;
@@ -587,9 +587,11 @@ header a {
   z-index: 2000;
   /* Massima priorità per stare sopra a colonne sticky */
   width: 16rem;
+  max-width: 85vw;
   transform: translateX(-100%);
-  transition: transform 0.3s ease-in-out, margin-left 0.3s ease-in-out;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 #mainSidebar.active {
@@ -599,21 +601,7 @@ header a {
 .dark #mainSidebar {
   background-color: #111827;
   border-right: 1px solid #1f2937;
-}
-
-@media (min-width: 768px) {
-  #mainSidebar {
-    order: -1;
-    /* Posiziona a sinistra del main-content nel flex-wrap */
-    position: sticky;
-    transform: translateX(0);
-    margin-left: -16rem;
-    transition: margin-left 0.3s ease-in-out;
-  }
-
-  #mainSidebar.active {
-    margin-left: 0;
-  }
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
 }
 
 /* Nav Item Styling */
@@ -675,21 +663,6 @@ header a {
 
 .dark .scrollbar-thin::-webkit-scrollbar-thumb {
   background: #374151;
-}
-
-@media (max-width: 767px) {
-  #mainSidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100vh;
-    z-index: 300;
-    transition: transform 0.3s ease-in-out;
-  }
-
-  #mainSidebar:not(.active) {
-    transform: translateX(-100%);
-  }
 }
 
 /* Utility Classes */
