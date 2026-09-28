@@ -186,7 +186,7 @@ describe('generateScoutSentieroHtml', () => {
     expect(html).toContain('Nessuna specialità attualmente in corso di svolgimento.');
   });
 
-  it('should format specialità già conseguite with badge icon and date in a 2-column layout', () => {
+  it('should format specialità già conseguite with badge icon and date in a single-column stacked layout', () => {
     const scout = {
       nome: 'Chiara',
       cognome: 'Verdi',
@@ -201,17 +201,17 @@ describe('generateScoutSentieroHtml', () => {
 
     const html = generateScoutSentieroHtml(scout, mockChallenges, mockSpecialitaList);
 
-    // Verify 2-column layout and Montserrat font
-    expect(html).toContain('grid-template-columns: 1fr 1fr');
+    // Verify single-column layout (no 2-column division) and Montserrat font
+    expect(html).not.toContain('grid-template-columns: 1fr 1fr');
     expect(html).toContain('sentiero-sheet-page');
     expect(html).toContain('Montserrat');
 
     // Verify specialità conseguite section
-    expect(html).toContain('SPECIALITÀ GIÀ CONQUISTATE');
+    expect(html.toUpperCase()).toContain('SPECIALITÀ GIÀ CONQUISTATE');
     expect(html).toContain('Animatore');
-    expect(html).toContain('(10/02/2024)');
+    expect(html).toContain('10/02/2024');
     expect(html).toContain('Naturalista');
-    expect(html).toContain('(18/05/2024)');
+    expect(html).toContain('18/05/2024');
   });
 
   it('should render CP/VCP role and Giglio e Trifoglio status with date only', () => {
@@ -242,7 +242,7 @@ describe('generateScoutSentieroHtml', () => {
     expect(htmlVCP).toContain('Non conseguito');
   });
 
-  it('should sort specialità conseguite in chronological order and render color squares without emojis', () => {
+  it('should sort specialità conseguite in chronological order and render color initials in black-on-white without emojis', () => {
     const specialitaListWithColors = [
       { nome: 'Cucina', bordo_colore: 'blue', sfondo_colore: 'yellow' },
       { nome: 'Pioniere', bordo_colore: 'red', sfondo_colore: 'white' },
@@ -269,15 +269,28 @@ describe('generateScoutSentieroHtml', () => {
     expect(idxPioniere).toBeLessThan(idxPrimoSoccorso);
     expect(idxPrimoSoccorso).toBeLessThan(idxCucina);
 
-    // Verify color squares for border and background
-    expect(html).toContain('border: 2px solid red');
-    expect(html).toContain('background-color: white');
-    expect(html).toContain('border: 2px solid blue');
-    expect(html).toContain('background-color: yellow');
+    // Verify color initials (black on white) for border and background
+    expect(html).toContain('border: 1.2px solid #000000; background: #ffffff; color: #000000;');
+    expect(html).toContain('title="Bordo: Rosso">R</span>');
+    expect(html).toContain('title="Sfondo: Bianco">B</span>');
+    expect(html).toContain('title="Bordo: Blu">B</span>');
+    expect(html).toContain('title="Sfondo: Giallo">G</span>');
+    expect(html).toContain('title="Bordo: Verde">V</span>');
+    expect(html).toContain('title="Sfondo: Verde">V</span>');
+
+    // Verify 3 or 4 cards per row grid
+    expect(html).toContain('grid-template-columns: repeat(auto-fill, minmax(160px, 1fr))');
+
+    // Verify no 2-column layout dividing sfide and specialità
+    expect(html).not.toContain('grid-template-columns: 1fr 1fr');
+
+    // Verify Progressione Verticale appears before Progressione Orizzontale
+    const idxProgVert = html.indexOf('Progressione Verticale');
+    const idxProgOrizz = html.indexOf('Progressione Orizzontale (Specialità)');
+    expect(idxProgVert).toBeLessThan(idxProgOrizz);
 
     // Verify no emojis are present in the output
     const emojiRegex = /[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
-    // Remove the unicode checkboxes ☑ (U+2611) and ☐ (U+2610) before testing for decorative emojis
     const strippedHtml = html.replace(/[☑☐]/g, '');
     expect(emojiRegex.test(strippedHtml)).toBe(false);
   });

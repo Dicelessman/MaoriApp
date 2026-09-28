@@ -152,6 +152,28 @@ export function getSpecialitaSlug(spName: string): string {
     return SPECIALITA_SLUG_MAP[raw] || raw;
 }
 
+export function getColorInitial(color: string | undefined | null): string {
+    if (!color) return '-';
+    const c = color.trim().toLowerCase();
+    if (c === 'green' || c === 'verde' || c.startsWith('#15803d') || c.startsWith('#16a34a') || c.startsWith('#22c55e')) return 'V';
+    if (c === 'red' || c === 'rosso' || c.startsWith('#b91c1c') || c.startsWith('#dc2626') || c.startsWith('#ef4444')) return 'R';
+    if (c === 'blue' || c === 'blu' || c.startsWith('#1d4ed8') || c.startsWith('#2563eb') || c.startsWith('#3b82f6')) return 'B';
+    if (c === 'yellow' || c === 'giallo' || c.startsWith('#ca8a04') || c.startsWith('#eab308') || c.startsWith('#facc15')) return 'G';
+    if (c === 'white' || c === 'bianco' || c.startsWith('#ffffff')) return 'B';
+    return c.charAt(0).toUpperCase();
+}
+
+export function getColorName(color: string | undefined | null): string {
+    if (!color) return '-';
+    const c = color.trim().toLowerCase();
+    if (c === 'green' || c === 'verde' || c.startsWith('#15803d') || c.startsWith('#16a34a') || c.startsWith('#22c55e')) return 'Verde';
+    if (c === 'red' || c === 'rosso' || c.startsWith('#b91c1c') || c.startsWith('#dc2626') || c.startsWith('#ef4444')) return 'Rosso';
+    if (c === 'blue' || c === 'blu' || c.startsWith('#1d4ed8') || c.startsWith('#2563eb') || c.startsWith('#3b82f6')) return 'Blu';
+    if (c === 'yellow' || c === 'giallo' || c.startsWith('#ca8a04') || c.startsWith('#eab308') || c.startsWith('#facc15')) return 'Giallo';
+    if (c === 'white' || c === 'bianco' || c.startsWith('#ffffff')) return 'Bianco';
+    return c;
+}
+
 /**
  * Generates printable HTML for a scout's Sentiero sheet
  */
@@ -289,22 +311,26 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
         };
     };
 
-    const renderSpecSquares = (spName: string) => {
+    const renderSpecInitials = (spName: string) => {
         const colors = getSpecialitaColors(spName);
-        const bordoColore = colors.bordo;
-        const sfondoColore = colors.sfondo;
-        const slug = getSpecialitaSlug(spName);
+        const bInit = getColorInitial(colors.bordo);
+        const sInit = getColorInitial(colors.sfondo);
+        const bName = getColorName(colors.bordo);
+        const sName = getColorName(colors.sfondo);
 
-        return `<span style="display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; margin-right: 4px;"><img src="img/specialita/${slug}.png" alt="${spName}" style="width: 14px; height: 14px; object-fit: contain; vertical-align: middle;" onerror="this.style.display='none';" onload="if(this.nextElementSibling)this.nextElementSibling.style.display='none';"><span style="display: inline-flex; align-items: center; gap: 3px;"><span style="display: inline-block; width: 10px; height: 10px; border: 2px solid ${bordoColore}; background: transparent; border-radius: 2px; box-sizing: border-box;" title="Bordo: ${bordoColore}"></span><span style="display: inline-block; width: 10px; height: 10px; background-color: ${sfondoColore}; border: 1px solid ${sfondoColore === 'white' ? '#9ca3af' : sfondoColore}; border-radius: 2px; box-sizing: border-box;" title="Sfondo: ${sfondoColore}"></span></span></span>`;
+        return `<span style="display: inline-flex; align-items: center; gap: 2px; vertical-align: middle;" title="Bordo: ${bName}, Sfondo: ${sName}">` +
+            `<span style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border: 1.2px solid #000000; background: #ffffff; color: #000000; font-size: 8.5px; font-weight: 800; border-radius: 2px; box-sizing: border-box; line-height: 1;" title="Bordo: ${bName}">${bInit}</span>` +
+            `<span style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border: 1.2px solid #000000; background: #ffffff; color: #000000; font-size: 8.5px; font-weight: 800; border-radius: 2px; box-sizing: border-box; line-height: 1;" title="Sfondo: ${sName}">${sInit}</span>` +
+        `</span>`;
     };
 
     let html = `
       <div class="sentiero-sheet-page" style="box-sizing: border-box; font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; line-height: 1.35; padding: 10px 14px; background: #ffffff; max-height: 278mm; page-break-inside: avoid; break-inside: avoid;">
         <!-- Header Scheda Compatto -->
-        <div style="border-bottom: 2px solid #15803d; padding-bottom: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div style="border-bottom: 2px solid #15803d; padding-bottom: 5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end;">
           <div>
             <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #15803d;">Reparto Maori · Scheda di Progressione</div>
-            <h1 style="font-size: 20px; font-weight: 800; margin: 2px 0 0 0; color: #111827; line-height: 1.2;">
+            <h1 style="font-size: 19px; font-weight: 800; margin: 2px 0 0 0; color: #111827; line-height: 1.2;">
               Il sentiero di ${scout.nome || nomeCompleto}
               ${ruoloPattuglia ? `<span style="font-size: 13px; font-weight: 600; color: #1e40af; margin-left: 6px;">(${ruoloPattuglia})</span>` : ''}
             </h1>
@@ -318,60 +344,52 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
           </div>
         </div>
 
-        <!-- PROGRESSIONE VERTICALE (striscia orizzontale a tutta larghezza) -->
-        <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; background: #f9fafb;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;">
+        <!-- SEZIONE 1: PROGRESSIONE VERTICALE -->
+        <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 7px 10px; margin-bottom: 8px; background: #f9fafb;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px;">
             <div style="font-size: 11px; font-weight: 800; color: #15803d; text-transform: uppercase; letter-spacing: 0.05em;">
               Progressione Verticale
             </div>
             ${versoCosa ? `
-              <div style="font-size: 11px; font-weight: 700; color: #1e40af;">
+              <div style="font-size: 10.5px; font-weight: 700; color: #1e40af;">
                 Stai camminando verso: <span style="text-decoration: underline;">${versoCosa}</span>
               </div>
             ` : (passoRaggiunto === 3 ? `
-              <div style="font-size: 11px; font-weight: 700; color: #15803d;">
+              <div style="font-size: 10.5px; font-weight: 700; color: #15803d;">
                 Tutti i 3 Passi sono stati completati con successo!
               </div>
             ` : '')}
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; font-size: 10.5px;">
-            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_promessa ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
+          <!-- Striscia dei 5 Passi -->
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; font-size: 10px; margin-bottom: ${prossimoPasso ? '6px' : '0'};">
+            <div style="padding: 3px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_promessa ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
               <img src="img/passi/promessa.png" alt="Promessa" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; ${scout.pv_promessa ? '' : 'filter: grayscale(1); opacity: 0.35;'}" onerror="this.style.display='none';" />
               <div style="min-width: 0; flex: 1;"><strong>Promessa:</strong><br>${scout.pv_promessa ? `☑ ${fmtDate(scout.pv_promessa)}` : '☐ Non fatta'}</div>
             </div>
-            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT1 ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
+            <div style="padding: 3px 5px; background: white; border-radius: 4px; border: 1px solid ${isT1 ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
               <img src="img/passi/passo1.png" alt="1° Passo" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; ${isT1 ? '' : 'filter: grayscale(1); opacity: 0.35;'}" onerror="this.style.display='none';" />
               <div style="min-width: 0; flex: 1;"><strong>1° Passo:</strong><br>${isT1 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia1)}` : '☐ Da raggiungere'}</div>
             </div>
-            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT2 ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
+            <div style="padding: 3px 5px; background: white; border-radius: 4px; border: 1px solid ${isT2 ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
               <img src="img/passi/passo2.png" alt="2° Passo" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; ${isT2 ? '' : 'filter: grayscale(1); opacity: 0.35;'}" onerror="this.style.display='none';" />
               <div style="min-width: 0; flex: 1;"><strong>2° Passo:</strong><br>${isT2 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia2)}` : '☐ Da raggiungere'}</div>
             </div>
-            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT3 ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
+            <div style="padding: 3px 5px; background: white; border-radius: 4px; border: 1px solid ${isT3 ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
               <img src="img/passi/passo3.png" alt="3° Passo" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; ${isT3 ? '' : 'filter: grayscale(1); opacity: 0.35;'}" onerror="this.style.display='none';" />
               <div style="min-width: 0; flex: 1;"><strong>3° Passo:</strong><br>${isT3 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia3)}` : '☐ Da raggiungere'}</div>
             </div>
-            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_giglio_data ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
+            <div style="padding: 3px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_giglio_data ? '#bbf7d0' : '#e5e7eb'}; display: flex; align-items: center; gap: 5px;">
               <img src="img/passi/giglio-trifoglio.png" alt="Giglio e Trifoglio" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; ${scout.pv_giglio_data ? '' : 'filter: grayscale(1); opacity: 0.35;'}" onerror="this.style.display='none';" />
               <div style="min-width: 0; flex: 1;"><strong>Giglio e Trifoglio:</strong><br>${scout.pv_giglio_data ? `☑ ${fmtDate(scout.pv_giglio_data)}` : '☐ Non conseguito'}</div>
             </div>
           </div>
-        </div>
-
-        <!-- GRIGLIA A 2 COLONNE: SFIDE (A SINISTRA) & SPECIALITÀ (A DESTRA) -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start;">
-          
-          <!-- COLONNA SINISTRA: SFIDE DA SUPERARE -->
-          <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; background: #ffffff;">
-            <div style="font-size: 11.5px; font-weight: 800; color: #b45309; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; border-bottom: 1px solid #fef3c7; padding-bottom: 4px;">
-              Sfide da Superare ${prossimoPasso ? `(per il ${prossimoPasso}° Passo)` : ''}
-            </div>
     `;
 
     if (prossimoPasso) {
         const direzioni = ['io', 'al', 'mt'];
         let hasSfide = false;
+        let sfideHtml = '';
 
         direzioni.forEach(dir => {
             const code = scout[`pv_sfida_${dir}_${prossimoPasso}`];
@@ -380,13 +398,13 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
                 hasSfide = true;
                 const isCompl = isCheckDone(dataSfida);
                 const sfidaText = getSfidaText(prossimoPasso, dir, code);
-                html += `
-                  <div style="margin-bottom: 6px; padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 4px; background: ${isCompl ? '#f0fdf4' : '#fafafa'}; display: flex; align-items: flex-start; gap: 8px;">
-                    <div style="font-size: 15px; line-height: 1; min-width: 18px; color: ${isCompl ? '#16a34a' : '#6b7280'};">${isCompl ? '☑' : '☐'}</div>
+                sfideHtml += `
+                  <div style="padding: 5px 7px; border: 1px solid #e5e7eb; border-radius: 4px; background: ${isCompl ? '#f0fdf4' : '#ffffff'}; display: flex; align-items: flex-start; gap: 6px;">
+                    <div style="font-size: 14px; line-height: 1; min-width: 16px; color: ${isCompl ? '#16a34a' : '#6b7280'};">${isCompl ? '☑' : '☐'}</div>
                     <div style="flex: 1; min-width: 0;">
-                      <div style="font-weight: 700; font-size: 11px; color: #111827;">${direzioniLabels[dir]} — Codice: ${code}</div>
-                      <div style="font-size: 10.5px; color: #374151; line-height: 1.35; margin-top: 1px;">${sfidaText || 'Nessuna descrizione'}</div>
-                      ${dataSfida ? `<div style="font-size: 9.5px; color: #15803d; font-weight: 600; margin-top: 2px;">Completata il: ${fmtDate(dataSfida)}</div>` : ''}
+                      <div style="font-weight: 700; font-size: 10.5px; color: #111827;">${direzioniLabels[dir]} — Codice: ${code}</div>
+                      <div style="font-size: 10px; color: #374151; line-height: 1.3; margin-top: 1px;">${sfidaText || 'Nessuna descrizione'}</div>
+                      ${dataSfida ? `<div style="font-size: 9px; color: #15803d; font-weight: 600; margin-top: 2px;">Completata il: ${fmtDate(dataSfida)}</div>` : ''}
                     </div>
                   </div>
                 `;
@@ -396,115 +414,136 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
         const sfidaBianca = scout[`pv_sfida_bianca_${prossimoPasso}`];
         if (sfidaBianca) {
             hasSfide = true;
-            html += `
-              <div style="margin-bottom: 6px; padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 4px; background: #fafafa; display: flex; align-items: flex-start; gap: 8px;">
-                <div style="font-size: 15px; line-height: 1; min-width: 18px; color: #6b7280;">☐</div>
+            sfideHtml += `
+              <div style="padding: 5px 7px; border: 1px solid #e5e7eb; border-radius: 4px; background: #ffffff; display: flex; align-items: flex-start; gap: 6px;">
+                <div style="font-size: 14px; line-height: 1; min-width: 16px; color: #6b7280;">☐</div>
                 <div style="flex: 1; min-width: 0;">
-                  <div style="font-weight: 700; font-size: 11px; color: #111827;">Sfida Bianca (Personale)</div>
-                  <div style="font-size: 10.5px; color: #374151; line-height: 1.35; margin-top: 1px;">${sfidaBianca}</div>
+                  <div style="font-weight: 700; font-size: 10.5px; color: #111827;">Sfida Bianca (Personale)</div>
+                  <div style="font-size: 10px; color: #374151; line-height: 1.3; margin-top: 1px;">${sfidaBianca}</div>
                 </div>
               </div>
             `;
         }
 
-        if (!hasSfide) {
-            html += `<div style="color: #6b7280; font-style: italic; font-size: 11px; padding: 4px 0;">Nessuna sfida ancora selezionata per questo passo.</div>`;
-        }
-    } else {
-        html += `<div style="color: #15803d; font-weight: 600; font-size: 12px; padding: 6px 0;">Tutti i 3 Passi sono stati completati con successo!</div>`;
+        html += `
+          <div style="border-top: 1px solid #e5e7eb; padding-top: 6px;">
+            <div style="font-size: 10.5px; font-weight: 800; color: #b45309; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 5px;">
+              Sfide da Superare (per il ${prossimoPasso}° Passo):
+            </div>
+            ${hasSfide ? `
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px;">
+                ${sfideHtml}
+              </div>
+            ` : `
+              <div style="color: #6b7280; font-style: italic; font-size: 10px; padding: 2px 0;">Nessuna sfida ancora selezionata per questo passo.</div>
+            `}
+          </div>
+        `;
     }
 
     html += `
-          </div>
+        </div>
 
-          <!-- COLONNA DESTRA: SPECIALITÀ (PROGRESSIONE ORIZZONTALE) -->
-          <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; background: #ffffff;">
-            <div style="font-size: 11.5px; font-weight: 800; color: #4338ca; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; border-bottom: 1px solid #e0e7ff; padding-bottom: 4px;">
+        <!-- SEZIONE 2: PROGRESSIONE ORIZZONTALE (SPECIALITÀ) -->
+        <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 7px 10px; background: #ffffff;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #e0e7ff; padding-bottom: 4px;">
+            <div style="font-size: 11px; font-weight: 800; color: #4338ca; text-transform: uppercase; letter-spacing: 0.05em;">
               Progressione Orizzontale (Specialità)
             </div>
-
-            <!-- SOTTOSEZIONE: SPECIALITÀ GIÀ CONQUISTATE -->
-            <div style="margin-bottom: 8px; padding: 6px 8px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
-              <div style="font-size: 10.5px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
-                <span>SPECIALITÀ GIÀ CONQUISTATE</span>
-                <span style="font-size: 10px; color: #15803d; font-weight: 700;">${specialitaOttenute.length}</span>
-              </div>
-              ${specialitaOttenute.length > 0 ? `
-                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                  ${specialitaOttenute.map((sp: any) => {
-                      const spName = getSpecName(sp);
-                      const spDate = getSpecData(sp);
-                      return `
-                        <div style="display: inline-flex; align-items: center; gap: 4px; background: #ffffff; border: 1px solid #86efac; color: #14532d; font-weight: 700; font-size: 11px; padding: 2px 7px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-                          ${renderSpecSquares(spName)}
-                          <span>${spName}</span>
-                          ${spDate ? `<span style="font-size: 9.5px; font-weight: 600; color: #15803d;">(${fmtDate(spDate)})</span>` : ''}
-                        </div>
-                      `;
-                  }).join('')}
-                </div>
-              ` : `
-                <div style="font-size: 10.5px; color: #6b7280; font-style: italic;">Nessuna specialità ancora conquistata.</div>
-              `}
+            <div style="font-size: 9px; color: #4b5563;">
+              Iniziali: [<strong>B</strong>: Bordo, <strong>S</strong>: Sfondo · <strong>V</strong>: Verde, <strong>R</strong>: Rosso, <strong>B</strong>: Blu, <strong>G</strong>: Giallo]
             </div>
+          </div>
 
-            <!-- SOTTOSEZIONE: SPECIALITÀ IN CORSO E PROVE DA SUPERARE -->
-            <div>
-              <div style="font-size: 10.5px; font-weight: 700; color: #374151; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em;">
-                SPECIALITÀ IN CORSO E PROVE DA SUPERARE:
-              </div>
-              ${specialitaDaOttenere.length > 0 ? `
-                <div style="display: grid; gap: 6px;">
-                  ${specialitaDaOttenere.map((sp: any) => {
-                      const spName = getSpecName(sp);
-                      const specDef = (specialitaList || []).find(s => s && s.nome === spName);
-                      const prove = specDef?.prove || [
-                          { nome: 'Prova 1', id: 'p1' },
-                          { nome: 'Prova 2', id: 'p2' },
-                          { nome: 'Prova 3', id: 'p3' }
-                      ];
-
-                      return `
-                        <div style="border: 1px solid #e5e7eb; border-radius: 5px; padding: 6px 8px; background: #fafafa;">
-                          <div style="font-weight: 700; font-size: 11px; color: #1f2937; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="display: inline-flex; align-items: center;">
-                              ${renderSpecSquares(spName)}
-                              <span>${spName}</span>
-                            </span>
-                            ${sp.note ? `<span style="font-size: 9.5px; font-weight: normal; color: #6b7280; font-style: italic;">Note: ${sp.note}</span>` : ''}
+          <!-- SOTTOSEZIONE: SPECIALITÀ GIÀ CONQUISTATE -->
+          <div style="margin-bottom: 7px; padding: 6px 8px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 5px;">
+            <div style="font-size: 10px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between;">
+              <span>Specialità già conquistate</span>
+              <span style="font-size: 10px; color: #15803d; font-weight: 700;">${specialitaOttenute.length}</span>
+            </div>
+            ${specialitaOttenute.length > 0 ? `
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px;">
+                ${specialitaOttenute.map((sp: any) => {
+                    const spName = getSpecName(sp);
+                    const spDate = getSpecData(sp);
+                    const slug = getSpecialitaSlug(spName);
+                    return `
+                      <div style="display: flex; align-items: center; gap: 6px; background: #ffffff; border: 1px solid #86efac; padding: 3px 6px; border-radius: 4px; box-sizing: border-box;">
+                        <img src="img/specialita/${slug}.png" alt="${spName}" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0;" onerror="this.style.display='none';" />
+                        <div style="min-width: 0; flex: 1; line-height: 1.2;">
+                          <div style="display: flex; align-items: center; gap: 3px; flex-wrap: wrap;">
+                            ${renderSpecInitials(spName)}
+                            <span style="font-weight: 700; font-size: 10px; color: #14532d;">${spName}</span>
                           </div>
-                          <div style="display: grid; gap: 3px;">
-                            ${prove.map((prova: any) => {
-                                const pData = sp[`${prova.id}_data`];
-                                const pDone = isCheckDone(pData);
-                                return `
-                                  <div style="display: flex; align-items: flex-start; gap: 6px; font-size: 10px; background: white; padding: 3px 5px; border-radius: 3px; border: 1px solid #f3f4f6;">
-                                    <span style="font-size: 12px; line-height: 1; color: ${pDone ? '#16a34a' : '#9ca3af'};">${pDone ? '☑' : '☐'}</span>
-                                    <div style="flex: 1; min-width: 0; line-height: 1.25;">
-                                      <strong style="color: #374151;">${prova.nome}:</strong> ${prova.text || ''}
-                                      ${pData ? `<span style="color: #15803d; font-weight: 600; margin-left: 4px;">(Superata il: ${fmtDate(pData)})</span>` : ''}
-                                    </div>
+                          ${spDate ? `<div style="font-size: 8.5px; font-weight: 600; color: #15803d; margin-top: 1px;">☑ ${fmtDate(spDate)}</div>` : ''}
+                        </div>
+                      </div>
+                    `;
+                }).join('')}
+              </div>
+            ` : `
+              <div style="font-size: 9.5px; color: #6b7280; font-style: italic;">Nessuna specialità ancora conquistata.</div>
+            `}
+          </div>
+
+          <!-- SOTTOSEZIONE: SPECIALITÀ IN CORSO E PROVE DA SUPERARE -->
+          <div>
+            <div style="font-size: 10px; font-weight: 800; color: #374151; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em;">
+              Specialità in corso e prove da superare:
+            </div>
+            ${specialitaDaOttenere.length > 0 ? `
+              <div style="display: grid; grid-template-columns: ${specialitaDaOttenere.length > 1 ? 'repeat(2, 1fr)' : '1fr'}; gap: 6px;">
+                ${specialitaDaOttenere.map((sp: any) => {
+                    const spName = getSpecName(sp);
+                    const slug = getSpecialitaSlug(spName);
+                    const specDef = (specialitaList || []).find(s => s && s.nome === spName);
+                    const prove = specDef?.prove || [
+                        { nome: 'Prova 1', id: 'p1' },
+                        { nome: 'Prova 2', id: 'p2' },
+                        { nome: 'Prova 3', id: 'p3' }
+                    ];
+
+                    return `
+                      <div style="border: 1px solid #e5e7eb; border-radius: 5px; padding: 5px 7px; background: #fafafa;">
+                        <div style="font-weight: 700; font-size: 10.5px; color: #1f2937; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                          <span style="display: inline-flex; align-items: center; gap: 4px;">
+                            <img src="img/specialita/${slug}.png" alt="${spName}" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0;" onerror="this.style.display='none';" />
+                            ${renderSpecInitials(spName)}
+                            <span>${spName}</span>
+                          </span>
+                          ${sp.note ? `<span style="font-size: 9px; font-weight: normal; color: #6b7280; font-style: italic;">Note: ${sp.note}</span>` : ''}
+                        </div>
+                        <div style="display: grid; gap: 2.5px;">
+                          ${prove.map((prova: any) => {
+                              const pData = sp[`${prova.id}_data`];
+                              const pDone = isCheckDone(pData);
+                              return `
+                                <div style="display: flex; align-items: flex-start; gap: 5px; font-size: 9.5px; background: white; padding: 2.5px 4px; border-radius: 3px; border: 1px solid #f3f4f6;">
+                                  <span style="font-size: 11px; line-height: 1; color: ${pDone ? '#16a34a' : '#9ca3af'};">${pDone ? '☑' : '☐'}</span>
+                                  <div style="flex: 1; min-width: 0; line-height: 1.25;">
+                                    <strong style="color: #374151;">${prova.nome}:</strong> ${prova.text || ''}
+                                    ${pData ? `<span style="color: #15803d; font-weight: 600; margin-left: 3px;">(Superata il: ${fmtDate(pData)})</span>` : ''}
                                   </div>
-                                `;
-                            }).join('')}
-                            ${(sp.cr_text || sp.cr_data) ? `
-                              <div style="display: flex; align-items: flex-start; gap: 6px; font-size: 10px; background: white; padding: 3px 5px; border-radius: 3px; border: 1px solid #f3f4f6;">
-                                <span style="font-size: 12px; line-height: 1; color: ${sp.cr_data ? '#16a34a' : '#9ca3af'};">${sp.cr_data ? '☑' : '☐'}</span>
-                                <div style="flex: 1; min-width: 0; line-height: 1.25;">
-                                  <strong style="color: #374151;">Prova stabilita dal Consiglio di Reparto:</strong> ${sp.cr_text || ''}
-                                  ${sp.cr_data ? `<span style="color: #15803d; font-weight: 600; margin-left: 4px;">(${fmtDate(sp.cr_data)})</span>` : ''}
                                 </div>
+                              `;
+                          }).join('')}
+                          ${(sp.cr_text || sp.cr_data) ? `
+                            <div style="display: flex; align-items: flex-start; gap: 5px; font-size: 9.5px; background: white; padding: 2.5px 4px; border-radius: 3px; border: 1px solid #f3f4f6;">
+                              <span style="font-size: 11px; line-height: 1; color: ${sp.cr_data ? '#16a34a' : '#9ca3af'};">${sp.cr_data ? '☑' : '☐'}</span>
+                              <div style="flex: 1; min-width: 0; line-height: 1.25;">
+                                <strong style="color: #374151;">Prova concordata con lo Staff:</strong> ${sp.cr_text || ''}
+                                ${sp.cr_data ? `<span style="color: #15803d; font-weight: 600; margin-left: 3px;">(${fmtDate(sp.cr_data)})</span>` : ''}
                               </div>
-                            ` : ''}
-                          </div>
+                            </div>
+                          ` : ''}
                         </div>
-                      `;
-                  }).join('')}
-                </div>
-              ` : `
-                <div style="font-size: 10.5px; color: #6b7280; font-style: italic;">Nessuna specialità attualmente in corso di svolgimento.</div>
-              `}
-            </div>
+                      </div>
+                    `;
+                }).join('')}
+              </div>
+            ` : `
+              <div style="font-size: 9.5px; color: #6b7280; font-style: italic;">Nessuna specialità attualmente in corso di svolgimento.</div>
+            `}
           </div>
         </div>
       </div>
