@@ -212,4 +212,73 @@ describe('generateScoutSentieroHtml', () => {
     expect(html).toContain('Naturalista');
     expect(html).toContain('(18/05/2024)');
   });
+
+  it('should render CP/VCP role and Giglio e Trifoglio status and date', () => {
+    const scoutCP = {
+      nome: 'Federico',
+      cognome: 'Riva',
+      pv_pattuglia: 'Aquile',
+      pv_vcp_cp: 'CP',
+      pv_giglio_data: '2024-05-24',
+      pv_giglio_note: 'Per dedizione al reparto'
+    };
+
+    const htmlCP = generateScoutSentieroHtml(scoutCP, mockChallenges, mockSpecialitaList);
+    expect(htmlCP).toContain('Capo Pattuglia');
+    expect(htmlCP).toContain('Giglio e Trifoglio:');
+    expect(htmlCP).toContain('24/05/2024');
+    expect(htmlCP).toContain('Per dedizione al reparto');
+
+    const scoutVCP = {
+      nome: 'Marta',
+      cognome: 'Costa',
+      pv_pattuglia: 'Volpi',
+      pv_vcp_cp: 'VCP'
+    };
+
+    const htmlVCP = generateScoutSentieroHtml(scoutVCP, mockChallenges, mockSpecialitaList);
+    expect(htmlVCP).toContain('Vice Capo Pattuglia');
+    expect(htmlVCP).toContain('Non conseguito');
+  });
+
+  it('should sort specialità conseguite in chronological order and render color squares without emojis', () => {
+    const specialitaListWithColors = [
+      { nome: 'Cucina', bordo_colore: 'blue', sfondo_colore: 'yellow' },
+      { nome: 'Pioniere', bordo_colore: 'red', sfondo_colore: 'white' },
+      { nome: 'Primo Soccorso', bordo_colore: 'green', sfondo_colore: 'green' }
+    ];
+
+    const scout = {
+      nome: 'Lorenzo',
+      cognome: 'Conti',
+      specialita: [
+        { nome: 'Cucina', data: '2024-06-15', ottenuta: true },
+        { nome: 'Pioniere', data: '2022-10-10', ottenuta: true },
+        { nome: 'Primo Soccorso', data: '2023-04-20', ottenuta: true }
+      ]
+    };
+
+    const html = generateScoutSentieroHtml(scout, mockChallenges, specialitaListWithColors);
+
+    // Verify chronological order: Pioniere (2022) < Primo Soccorso (2023) < Cucina (2024)
+    const idxPioniere = html.indexOf('Pioniere');
+    const idxPrimoSoccorso = html.indexOf('Primo Soccorso');
+    const idxCucina = html.indexOf('Cucina');
+
+    expect(idxPioniere).toBeLessThan(idxPrimoSoccorso);
+    expect(idxPrimoSoccorso).toBeLessThan(idxCucina);
+
+    // Verify color squares for border and background
+    expect(html).toContain('border: 2px solid red');
+    expect(html).toContain('background-color: white');
+    expect(html).toContain('border: 2px solid blue');
+    expect(html).toContain('background-color: yellow');
+
+    // Verify no emojis are present in the output
+    const emojiRegex = /[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
+    // Remove the unicode checkboxes ☑ (U+2611) and ☐ (U+2610) before testing for decorative emojis
+    const strippedHtml = html.replace(/[☑☐]/g, '');
+    expect(emojiRegex.test(strippedHtml)).toBe(false);
+  });
 });
+

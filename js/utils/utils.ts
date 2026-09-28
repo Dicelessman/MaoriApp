@@ -114,6 +114,16 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
     const nomeCompleto = `${scout.nome || ''} ${scout.cognome || ''}`.trim() || 'Esploratore';
     const pattuglia = scout.pv_pattuglia ? `Pattuglia ${scout.pv_pattuglia}` : '';
 
+    let ruoloPattuglia = '';
+    const vcpVal = (scout.pv_vcp_cp || '').trim().toUpperCase();
+    if (vcpVal === 'CP' || vcpVal === 'CAPO PATTUGLIA') {
+        ruoloPattuglia = 'Capo Pattuglia';
+    } else if (vcpVal === 'VCP' || vcpVal === 'VICE CAPO PATTUGLIA') {
+        ruoloPattuglia = 'Vice Capo Pattuglia';
+    } else if (scout.pv_vcp_cp && scout.pv_vcp_cp.trim()) {
+        ruoloPattuglia = scout.pv_vcp_cp.trim();
+    }
+
     const isT1 = isCheckDone(scout.pv_traccia1);
     const isT2 = isCheckDone(scout.pv_traccia2);
     const isT3 = isCheckDone(scout.pv_traccia3);
@@ -169,8 +179,46 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
         return sp.data || null;
     };
 
+    const getSpecTime = (sp: any): number => {
+        if (!sp || typeof sp === 'string') return 0;
+        const raw = sp.data || sp.dataConseguimento || sp.p3_data || sp.cr_data || sp.p2_data || sp.p1_data;
+        if (!raw) return 0;
+        try {
+            const d = raw && typeof raw.toDate === 'function' ? raw.toDate() : (raw instanceof Date ? raw : new Date(raw));
+            return isNaN(d.getTime()) ? 0 : d.getTime();
+        } catch {
+            return 0;
+        }
+    };
+
     const specialitaOttenute = specialitaListArray.filter((sp: any) => getSpecName(sp) && isSpecOttenuta(sp));
     const specialitaDaOttenere = specialitaListArray.filter((sp: any) => getSpecName(sp) && !isSpecOttenuta(sp));
+
+    // Metti le specialità conseguite in ordine di conseguimento (cronologico crescente)
+    specialitaOttenute.sort((a: any, b: any) => {
+        const timeA = getSpecTime(a);
+        const timeB = getSpecTime(b);
+        if (timeA && timeB) return timeA - timeB;
+        if (timeA) return -1;
+        if (timeB) return 1;
+        return getSpecName(a).localeCompare(getSpecName(b));
+    });
+
+    const getSpecialitaColors = (spName: string) => {
+        const specDef = (specialitaList || []).find((s: any) => s && s.nome && s.nome.trim().toLowerCase() === spName.trim().toLowerCase());
+        return {
+            bordo: specDef?.bordo_colore || '#15803d',
+            sfondo: specDef?.sfondo_colore || '#ffffff'
+        };
+    };
+
+    const renderSpecSquares = (spName: string) => {
+        const colors = getSpecialitaColors(spName);
+        const bordoColore = colors.bordo;
+        const sfondoColore = colors.sfondo;
+
+        return `<span style="display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; margin-right: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border: 2px solid ${bordoColore}; background: transparent; border-radius: 2px; box-sizing: border-box;" title="Bordo: ${bordoColore}"></span><span style="display: inline-block; width: 10px; height: 10px; background-color: ${sfondoColore}; border: 1px solid ${sfondoColore === 'white' ? '#9ca3af' : sfondoColore}; border-radius: 2px; box-sizing: border-box;" title="Sfondo: ${sfondoColore}"></span></span>`;
+    };
 
     let html = `
       <div class="sentiero-sheet-page" style="box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; line-height: 1.35; padding: 10px 14px; background: #ffffff; max-height: 278mm; page-break-inside: avoid; break-inside: avoid;">
@@ -178,10 +226,16 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
         <div style="border-bottom: 2px solid #15803d; padding-bottom: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end;">
           <div>
             <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #15803d;">Reparto Maori · Scheda di Progressione</div>
-            <h1 style="font-size: 20px; font-weight: 800; margin: 2px 0 0 0; color: #111827; line-height: 1.2;">Il sentiero di ${scout.nome || nomeCompleto}</h1>
+            <h1 style="font-size: 20px; font-weight: 800; margin: 2px 0 0 0; color: #111827; line-height: 1.2;">
+              Il sentiero di ${scout.nome || nomeCompleto}
+              ${ruoloPattuglia ? `<span style="font-size: 13px; font-weight: 600; color: #1e40af; margin-left: 6px;">(${ruoloPattuglia})</span>` : ''}
+            </h1>
           </div>
           <div style="text-align: right;">
-            ${pattuglia ? `<span style="display: inline-block; background: #fef3c7; color: #92400e; font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 9999px; border: 1px solid #fde68a;">${pattuglia}</span>` : ''}
+            <div style="display: flex; gap: 4px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+              ${pattuglia ? `<span style="display: inline-block; background: #fef3c7; color: #92400e; font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 9999px; border: 1px solid #fde68a;">${pattuglia}</span>` : ''}
+              ${ruoloPattuglia ? `<span style="display: inline-block; background: #dbeafe; color: #1e40af; font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 9999px; border: 1px solid #bfdbfe;">${ruoloPattuglia}</span>` : ''}
+            </div>
             <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">Data: ${new Date().toLocaleDateString('it-IT')}</div>
           </div>
         </div>
@@ -190,31 +244,34 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
         <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; background: #f9fafb;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;">
             <div style="font-size: 11px; font-weight: 800; color: #15803d; text-transform: uppercase; letter-spacing: 0.05em;">
-              👣 Progressione Verticale
+              Progressione Verticale
             </div>
             ${versoCosa ? `
               <div style="font-size: 11px; font-weight: 700; color: #1e40af;">
-                ➔ Stai camminando verso: <span style="text-decoration: underline;">${versoCosa}</span>
+                Stai camminando verso: <span style="text-decoration: underline;">${versoCosa}</span>
               </div>
             ` : (passoRaggiunto === 3 ? `
               <div style="font-size: 11px; font-weight: 700; color: #15803d;">
-                🎉 Tutti i 3 Passi sono stati completati con successo!
+                Tutti i 3 Passi sono stati completati con successo!
               </div>
             ` : '')}
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 11px;">
-            <div style="padding: 4px 6px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_promessa ? '#bbf7d0' : '#e5e7eb'};">
-              <strong>Promessa:</strong> ${scout.pv_promessa ? `☑ Fatta il ${fmtDate(scout.pv_promessa)}` : '☐ Da fare'}
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; font-size: 10.5px;">
+            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_promessa ? '#bbf7d0' : '#e5e7eb'};">
+              <strong>Promessa:</strong><br>${scout.pv_promessa ? `☑ Fatta il ${fmtDate(scout.pv_promessa)}` : '☐ Da fare'}
             </div>
-            <div style="padding: 4px 6px; background: white; border-radius: 4px; border: 1px solid ${isT1 ? '#bbf7d0' : '#e5e7eb'};">
-              <strong>1° Passo:</strong> ${isT1 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia1)}` : '☐ Da raggiungere'}
+            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT1 ? '#bbf7d0' : '#e5e7eb'};">
+              <strong>1° Passo:</strong><br>${isT1 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia1)}` : '☐ Da raggiungere'}
             </div>
-            <div style="padding: 4px 6px; background: white; border-radius: 4px; border: 1px solid ${isT2 ? '#bbf7d0' : '#e5e7eb'};">
-              <strong>2° Passo:</strong> ${isT2 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia2)}` : '☐ Da raggiungere'}
+            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT2 ? '#bbf7d0' : '#e5e7eb'};">
+              <strong>2° Passo:</strong><br>${isT2 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia2)}` : '☐ Da raggiungere'}
             </div>
-            <div style="padding: 4px 6px; background: white; border-radius: 4px; border: 1px solid ${isT3 ? '#bbf7d0' : '#e5e7eb'};">
-              <strong>3° Passo:</strong> ${isT3 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia3)}` : '☐ Da raggiungere'}
+            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT3 ? '#bbf7d0' : '#e5e7eb'};">
+              <strong>3° Passo:</strong><br>${isT3 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia3)}` : '☐ Da raggiungere'}
+            </div>
+            <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_giglio_data ? '#bbf7d0' : '#e5e7eb'};">
+              <strong>Giglio e Trifoglio:</strong><br>${scout.pv_giglio_data ? `☑ Conseguito il ${fmtDate(scout.pv_giglio_data)}${scout.pv_giglio_note ? ' (' + scout.pv_giglio_note + ')' : ''}` : '☐ Non conseguito'}
             </div>
           </div>
         </div>
@@ -225,7 +282,7 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
           <!-- COLONNA SINISTRA: SFIDE DA SUPERARE -->
           <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; background: #ffffff;">
             <div style="font-size: 11.5px; font-weight: 800; color: #b45309; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; border-bottom: 1px solid #fef3c7; padding-bottom: 4px;">
-              🎯 Sfide da Superare ${prossimoPasso ? `(per il ${prossimoPasso}° Passo)` : ''}
+              Sfide da Superare ${prossimoPasso ? `(per il ${prossimoPasso}° Passo)` : ''}
             </div>
     `;
 
@@ -271,7 +328,7 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
             html += `<div style="color: #6b7280; font-style: italic; font-size: 11px; padding: 4px 0;">Nessuna sfida ancora selezionata per questo passo.</div>`;
         }
     } else {
-        html += `<div style="color: #15803d; font-weight: 600; font-size: 12px; padding: 6px 0;">🎉 Tutti i 3 Passi sono stati completati con successo!</div>`;
+        html += `<div style="color: #15803d; font-weight: 600; font-size: 12px; padding: 6px 0;">Tutti i 3 Passi sono stati completati con successo!</div>`;
     }
 
     html += `
@@ -280,13 +337,13 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
           <!-- COLONNA DESTRA: SPECIALITÀ (PROGRESSIONE ORIZZONTALE) -->
           <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; background: #ffffff;">
             <div style="font-size: 11.5px; font-weight: 800; color: #4338ca; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; border-bottom: 1px solid #e0e7ff; padding-bottom: 4px;">
-              ⭐ Progressione Orizzontale (Specialità)
+              Progressione Orizzontale (Specialità)
             </div>
 
             <!-- SOTTOSEZIONE: SPECIALITÀ GIÀ CONQUISTATE -->
             <div style="margin-bottom: 8px; padding: 6px 8px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
               <div style="font-size: 10.5px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
-                <span>🏅 SPECIALITÀ GIÀ CONQUISTATE</span>
+                <span>SPECIALITÀ GIÀ CONQUISTATE</span>
                 <span style="font-size: 10px; color: #15803d; font-weight: 700;">${specialitaOttenute.length}</span>
               </div>
               ${specialitaOttenute.length > 0 ? `
@@ -296,7 +353,8 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
                       const spDate = getSpecData(sp);
                       return `
                         <div style="display: inline-flex; align-items: center; gap: 4px; background: #ffffff; border: 1px solid #86efac; color: #14532d; font-weight: 700; font-size: 11px; padding: 2px 7px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-                          <span>🏅 ${spName}</span>
+                          ${renderSpecSquares(spName)}
+                          <span>${spName}</span>
                           ${spDate ? `<span style="font-size: 9.5px; font-weight: 600; color: #15803d;">(${fmtDate(spDate)})</span>` : ''}
                         </div>
                       `;
@@ -331,7 +389,10 @@ export function generateScoutSentieroHtml(scout: any, challenges: Record<string,
                       return `
                         <div style="border: 1px solid #e5e7eb; border-radius: 5px; padding: 6px 8px; background: #fafafa;">
                           <div style="font-weight: 700; font-size: 11px; color: #1f2937; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-                            <span>🎯 ${spName}</span>
+                            <span style="display: inline-flex; align-items: center;">
+                              ${renderSpecSquares(spName)}
+                              <span>${spName}</span>
+                            </span>
                             ${sp.note ? `<span style="font-size: 9.5px; font-weight: normal; color: #6b7280; font-style: italic;">Note: ${sp.note}</span>` : ''}
                           </div>
                           <div style="display: grid; gap: 3px;">

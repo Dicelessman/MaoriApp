@@ -1,4 +1,4 @@
-const CACHE_NAME = "presenziario-cache-v15"; // bump cache v15
+const CACHE_NAME = "presenziario-cache-v16"; // bump cache v16
 const RUNTIME_CACHE = "presenziario-runtime-v5";
 const URLS_TO_CACHE = [
   "/",
