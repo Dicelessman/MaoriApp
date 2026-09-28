@@ -223,7 +223,7 @@ export function generateScoutSentieroHtml(scout, challenges = {}, specialitaList
     };
 
     let html = `
-      <div class="sentiero-sheet-page" style="box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; line-height: 1.35; padding: 10px 14px; background: #ffffff; max-height: 278mm; page-break-inside: avoid; break-inside: avoid;">
+      <div class="sentiero-sheet-page" style="box-sizing: border-box; font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; line-height: 1.35; padding: 10px 14px; background: #ffffff; max-height: 278mm; page-break-inside: avoid; break-inside: avoid;">
         <!-- Header Scheda Compatto -->
         <div style="border-bottom: 2px solid #15803d; padding-bottom: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end;">
           <div>
@@ -261,7 +261,7 @@ export function generateScoutSentieroHtml(scout, challenges = {}, specialitaList
 
           <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; font-size: 10.5px;">
             <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_promessa ? '#bbf7d0' : '#e5e7eb'};">
-              <strong>Promessa:</strong><br>${scout.pv_promessa ? `☑ Fatta il ${fmtDate(scout.pv_promessa)}` : '☐ Da fare'}
+              <strong>Promessa:</strong><br>${scout.pv_promessa ? `☑ ${fmtDate(scout.pv_promessa)}` : '☐ Non fatta'}
             </div>
             <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${isT1 ? '#bbf7d0' : '#e5e7eb'};">
               <strong>1° Passo:</strong><br>${isT1 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia1)}` : '☐ Da raggiungere'}
@@ -273,7 +273,7 @@ export function generateScoutSentieroHtml(scout, challenges = {}, specialitaList
               <strong>3° Passo:</strong><br>${isT3 ? `☑ Raggiunto ${getTracciaDate(scout.pv_traccia3)}` : '☐ Da raggiungere'}
             </div>
             <div style="padding: 4px 5px; background: white; border-radius: 4px; border: 1px solid ${scout.pv_giglio_data ? '#bbf7d0' : '#e5e7eb'};">
-              <strong>Giglio e Trifoglio:</strong><br>${scout.pv_giglio_data ? `☑ Conseguito il ${fmtDate(scout.pv_giglio_data)}${scout.pv_giglio_note ? ' (' + scout.pv_giglio_note + ')' : ''}` : '☐ Non conseguito'}
+              <strong>Giglio e Trifoglio:</strong><br>${scout.pv_giglio_data ? `☑ ${fmtDate(scout.pv_giglio_data)}` : '☐ Non conseguito'}
             </div>
           </div>
         </div>
@@ -362,11 +362,6 @@ export function generateScoutSentieroHtml(scout, challenges = {}, specialitaList
                       `;
                   }).join('')}
                 </div>
-                ${specialitaOttenute.some((sp) => sp.note) ? `
-                  <div style="font-size: 9.5px; color: #4b5563; background: #ffffff; padding: 4px 6px; border-radius: 4px; border: 1px solid #dcfce7; margin-top: 5px;">
-                    ${specialitaOttenute.filter((sp) => sp.note).map((sp) => `<div><strong>${getSpecName(sp)}:</strong> ${sp.note}</div>`).join('')}
-                  </div>
-                ` : ''}
               ` : `
                 <div style="font-size: 10.5px; color: #6b7280; font-style: italic;">Nessuna specialità ancora conquistata.</div>
               `}

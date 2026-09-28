@@ -160,10 +160,10 @@ describe('generateScoutSentieroHtml', () => {
 
     const html = generateScoutSentieroHtml(scout, mockChallenges, mockSpecialitaList);
 
-    // Specialita ottenuta
+    // Specialita ottenuta (note rimosse come richiesto)
     expect(html).toContain('Pioniere');
     expect(html).toContain('20/11/2023');
-    expect(html).toContain('Ottima costruzione torretta');
+    expect(html).not.toContain('Ottima costruzione torretta');
 
     // Specialita in corso
     expect(html).toContain('Alpinista');
@@ -201,9 +201,10 @@ describe('generateScoutSentieroHtml', () => {
 
     const html = generateScoutSentieroHtml(scout, mockChallenges, mockSpecialitaList);
 
-    // Verify 2-column layout
+    // Verify 2-column layout and Montserrat font
     expect(html).toContain('grid-template-columns: 1fr 1fr');
     expect(html).toContain('sentiero-sheet-page');
+    expect(html).toContain('Montserrat');
 
     // Verify specialità conseguite section
     expect(html).toContain('SPECIALITÀ GIÀ CONQUISTATE');
@@ -213,7 +214,7 @@ describe('generateScoutSentieroHtml', () => {
     expect(html).toContain('(18/05/2024)');
   });
 
-  it('should render CP/VCP role and Giglio e Trifoglio status and date', () => {
+  it('should render CP/VCP role and Giglio e Trifoglio status with date only', () => {
     const scoutCP = {
       nome: 'Federico',
       cognome: 'Riva',
@@ -227,7 +228,7 @@ describe('generateScoutSentieroHtml', () => {
     expect(htmlCP).toContain('Capo Pattuglia');
     expect(htmlCP).toContain('Giglio e Trifoglio:');
     expect(htmlCP).toContain('24/05/2024');
-    expect(htmlCP).toContain('Per dedizione al reparto');
+    expect(htmlCP).toContain('☑ 24/05/2024');
 
     const scoutVCP = {
       nome: 'Marta',

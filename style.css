@@ -1,5 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300..900;1,300..900&display=swap');
+
 /* Design Tokens - Light Mode (default) */
 :root {
+  --font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   --bg: #f3f4f6;
   --card-bg: #ffffff;
   --text: #111827;
@@ -360,8 +363,19 @@ html {
 }
 
 /* Base */
+html,
+body,
+#app,
+button,
+input,
+optgroup,
+select,
+textarea,
+.font-sans {
+  font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif !important;
+}
+
 body {
-  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji';
   background: var(--bg);
   color: var(--text);
 }
@@ -1702,7 +1716,7 @@ body.dragging * {
   /* Mostra e formatta #printArea */
   #printArea {
     display: block !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
     font-size: 11px;
     color: #111;
     padding: 0 !important;
