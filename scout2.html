@@ -172,7 +172,13 @@
         <section id="section-progressione" class="bg-green-100 p-6 rounded-lg shadow-inner scroll-mt-20">
           <h3 class="text-xl font-semibold text-gray-700 mb-4">Progressione Verticale</h3>
           <div class="grid md:grid-cols-2 gap-4">
-            <div><label class="block text-sm">Promessa</label><input id="pv_promessa" type="date" class="input" /></div>
+            <div>
+              <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                <img src="img/passi/promessa.png" alt="Promessa" class="w-6 h-6 object-contain" onerror="this.style.display='none';" />
+                <span>Promessa</span>
+              </label>
+              <input id="pv_promessa" type="date" class="input" />
+            </div>
             <div>
               <label class="block text-sm">VCP/CP</label>
               <div class="flex gap-4">
@@ -195,8 +201,14 @@
             </div>
             <div class="md:col-span-2 bg-yellow-100 p-4 rounded-lg">
               <div class="grid md:grid-cols-2 gap-4">
-                <div><label class="block text-sm">Giglio/Trifoglio (data)</label><input id="pv_giglio_data" type="date" class="input" /></div>
-                <div><label class="block text-sm">Note</label><input id="pv_giglio_note" class="input" /></div>
+                <div>
+                  <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                    <img src="img/passi/giglio-trifoglio.png" alt="Giglio e Trifoglio" class="w-6 h-6 object-contain" onerror="this.style.display='none';" />
+                    <span>Giglio/Trifoglio (data)</span>
+                  </label>
+                  <input id="pv_giglio_data" type="date" class="input" />
+                </div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Note</label><input id="pv_giglio_note" class="input" /></div>
               </div>
             </div>
           </div>
@@ -206,8 +218,11 @@
               <!-- Header compatto -->
               <div class="traccia-header p-4 cursor-pointer hover:bg-blue-200 transition-colors" data-traccia="1">
                 <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <h4 class="font-semibold text-lg">Passo I</h4>
+                  <div class="flex items-center gap-4 flex-wrap">
+                    <div class="flex items-center gap-2">
+                      <img src="img/passi/passo1.png" alt="Passo I" class="w-7 h-7 object-contain" onerror="this.style.display='none';" />
+                      <h4 class="font-semibold text-lg">Passo I</h4>
+                    </div>
                     <label class="flex items-center gap-2">
                       <input type="checkbox" id="pv_traccia1_chk" />
                       <span>Completata</span>
@@ -278,8 +293,11 @@
               <!-- Header compatto -->
               <div class="traccia-header p-4 cursor-pointer hover:bg-orange-200 transition-colors" data-traccia="2">
                 <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <h4 class="font-semibold text-lg">Passo II</h4>
+                  <div class="flex items-center gap-4 flex-wrap">
+                    <div class="flex items-center gap-2">
+                      <img src="img/passi/passo2.png" alt="Passo II" class="w-7 h-7 object-contain" onerror="this.style.display='none';" />
+                      <h4 class="font-semibold text-lg">Passo II</h4>
+                    </div>
                     <label class="flex items-center gap-2">
                       <input type="checkbox" id="pv_traccia2_chk" />
                       <span>Completata</span>
@@ -350,8 +368,11 @@
               <!-- Header compatto -->
               <div class="traccia-header p-4 cursor-pointer hover:bg-red-200 transition-colors" data-traccia="3">
                 <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <h4 class="font-semibold text-lg">Passo III</h4>
+                  <div class="flex items-center gap-4 flex-wrap">
+                    <div class="flex items-center gap-2">
+                      <img src="img/passi/passo3.png" alt="Passo III" class="w-7 h-7 object-contain" onerror="this.style.display='none';" />
+                      <h4 class="font-semibold text-lg">Passo III</h4>
+                    </div>
                     <label class="flex items-center gap-2">
                       <input type="checkbox" id="pv_traccia3_chk" />
                       <span>Completata</span>

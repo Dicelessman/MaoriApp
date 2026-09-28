@@ -1,5 +1,5 @@
 // scout2.js - pagina scheda personale esploratore (versione refactored)
-import { generateScoutSentieroHtml, normalizeSpecialitaName } from './js/utils/utils.js';
+import { generateScoutSentieroHtml, normalizeSpecialitaName, getSpecialitaSlug } from './js/utils/utils.js';
 
 // Cache per i dati JSON statici (permanente, questi file non cambiano mai)
 UI.challengesData = null;
@@ -477,6 +477,8 @@ UI.addSpecialita = async function (data = null, index = null) {
   // Trova la specialità selezionata per ottenere i nomi delle prove (supportando anche nomi storici/legacy)
   const canonicalName = data?.nome ? normalizeSpecialitaName(data.nome) : '';
   const selectedSpec = (data?.nome && specialitaList) ? specialitaList.find(s => s.nome === data.nome || s.nome === canonicalName) : null;
+  const specNameForSlug = selectedSpec?.nome || (data?.nome && String(data.nome).trim()) || '';
+  const slug = specNameForSlug ? getSpecialitaSlug(specNameForSlug) : '';
   const prove = selectedSpec?.prove || [
     { nome: 'Prova 1', id: 'p1' },
     { nome: 'Prova 2', id: 'p2' },
@@ -491,8 +493,11 @@ UI.addSpecialita = async function (data = null, index = null) {
     <!-- Header compatto -->
     <div class="specialita-header p-4 cursor-pointer hover:bg-gray-50 transition-colors" data-specialita="${realIndex}">
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <h4 class="font-semibold text-lg"><span id="${spId}_title">${(selectedSpec?.nome || data?.nome && String(data.nome).trim()) || 'Specialità'}</span></h4>
+        <div class="flex items-center gap-4 flex-wrap">
+          <div class="flex items-center gap-2">
+            <img id="${spId}_badge" src="${slug ? `img/specialita/${slug}.png` : ''}" alt="Distintivo Specialità" class="w-8 h-8 object-contain rounded-full shadow-sm bg-white p-0.5 border border-gray-200" style="${slug ? '' : 'display:none;'}" onerror="this.style.display='none';" />
+            <h4 class="font-semibold text-lg"><span id="${spId}_title">${(selectedSpec?.nome || data?.nome && String(data.nome).trim()) || 'Specialità'}</span></h4>
+          </div>
           <label class="flex items-center gap-2">
             <input type="checkbox" id="${spId}_ott_chk" ${data?.ottenuta ? 'checked' : ''} />
             <span>Ottenuta</span>
@@ -517,11 +522,14 @@ UI.addSpecialita = async function (data = null, index = null) {
     <div class="specialita-content p-4 pt-0 space-y-2">
       <div class="grid md:grid-cols-2 gap-4">
         <div class="md:col-span-2">
-          <label class="block text-sm">Specialità</label>
-          <select id="${spId}_nome" class="input">
-            <option value="">Seleziona specialità...</option>
-            ${specialitaList.map(spec => `<option value="${spec.nome}" ${(data?.nome === spec.nome || canonicalName === spec.nome) ? 'selected' : ''}>${spec.nome} (${spec.categoria || (spec.sfondo_colore === 'green' ? 'Verdi' : 'Gialle')}${spec.ambito ? ' - ' + spec.ambito : ''})</option>`).join('')}
-          </select>
+          <label class="block text-sm font-medium mb-1">Specialità</label>
+          <div class="flex items-center gap-3">
+            <img id="${spId}_select_badge" src="${slug ? `img/specialita/${slug}.png` : ''}" alt="Distintivo Specialità" class="w-10 h-10 object-contain rounded-full shadow-sm bg-white p-1 border border-gray-200 shrink-0" style="${slug ? '' : 'display:none;'}" onerror="this.style.display='none';" />
+            <select id="${spId}_nome" class="input flex-1">
+              <option value="">Seleziona specialità...</option>
+              ${specialitaList.map(spec => `<option value="${spec.nome}" ${(data?.nome === spec.nome || canonicalName === spec.nome) ? 'selected' : ''}>${spec.nome} (${spec.categoria || (spec.sfondo_colore === 'green' ? 'Verdi' : 'Gialle')}${spec.ambito ? ' - ' + spec.ambito : ''})</option>`).join('')}
+            </select>
+          </div>
         </div>
         <div class="md:col-span-2 space-y-2">
           ${prove.map((prova, idx) => `
@@ -563,13 +571,34 @@ UI.addSpecialita = async function (data = null, index = null) {
     this.renumberSpecialita();
   });
 
-  // Aggiorna titolo quando cambia la specialità selezionata
+  // Aggiorna titolo e distintivo quando cambia la specialità selezionata
   const nomeSelect = div.querySelector(`#${spId}_nome`);
   const titleSpan = div.querySelector(`#${spId}_title`);
+  const headerBadge = div.querySelector(`#${spId}_badge`);
+  const selectBadge = div.querySelector(`#${spId}_select_badge`);
+
   if (nomeSelect && titleSpan) {
     nomeSelect.addEventListener('change', async () => {
       const v = nomeSelect.value || '';
       titleSpan.textContent = v || 'Specialità';
+
+      const newSlug = v ? getSpecialitaSlug(v) : '';
+      if (headerBadge) {
+        if (newSlug) {
+          headerBadge.src = `img/specialita/${newSlug}.png`;
+          headerBadge.style.display = '';
+        } else {
+          headerBadge.style.display = 'none';
+        }
+      }
+      if (selectBadge) {
+        if (newSlug) {
+          selectBadge.src = `img/specialita/${newSlug}.png`;
+          selectBadge.style.display = '';
+        } else {
+          selectBadge.style.display = 'none';
+        }
+      }
 
       // Aggiorna i nomi e i testi delle prove quando cambia la specialità
       const specialitaList = await this.loadSpecialitaList();
