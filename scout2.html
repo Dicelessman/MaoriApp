@@ -52,41 +52,53 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-between" id="scoutHeader">
-        <h2 id="scoutTitle" class="text-2xl font-semibold text-gray-700">Scheda Esploratore</h2>
-        <div class="flex items-center gap-2">
-          <a href="esploratori.html" class="btn-secondary">← Torna alla lista</a>
-          <button type="submit" form="scoutForm" class="btn-primary">Salva</button>
-          <button type="button" id="printScoutBtn" class="btn-secondary">Stampa / Esporta PDF</button>
-          <button type="button" id="printMedicalBtn" class="btn-secondary text-rose-700 border-rose-300 hover:bg-rose-50 flex items-center gap-1.5 font-medium" title="Stampa Scheda Sanitaria Personale per la cartellina del campo">
-            <span>🏥</span><span>Scheda Sanitaria</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Barra di navigazione sticky -->
-      <nav id="sectionNav" class="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm mb-4 -mx-6 px-6 py-2">
-        <div class="flex flex-wrap gap-2 items-center justify-between">
-          <div class="flex flex-wrap gap-2">
-            <a href="#section-anagrafici" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Anagrafici</a>
-            <a href="#section-contatti" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Contatti</a>
-            <a href="#section-sanitarie" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Sanitarie</a>
-            <a href="#section-progressione" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Progressione</a>
-            <a href="#section-specialita" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Specialità</a>
-            <a href="#section-eventi" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Eventi</a>
-            <a href="#section-documenti" class="section-nav-link text-sm px-3 py-1 rounded hover:bg-green-50 hover:text-green-700 transition-colors">Documenti</a>
+      <!-- Header comune Scheda Esploratore (Sticky, dark header come da specifica) -->
+      <div id="scoutHeaderContainer" class="sticky top-0 z-30 bg-[#0B1320] text-white shadow-xl border-b border-slate-800/80 -mx-6 -mt-6 px-6 py-4 mb-6">
+        <!-- Riga 1: Nome Esploratore & Pulsanti Azione Principali -->
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 pb-3 border-b border-slate-800/60" id="scoutHeader">
+          <div class="flex items-center gap-3">
+            <h2 id="scoutTitle" class="text-2xl lg:text-3xl font-bold tracking-tight text-white select-text">Scheda Esploratore</h2>
           </div>
-          <a href="#scoutHeader" class="text-sm px-3 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors font-medium">
-            ⬆ Torna su
-          </a>
+          <div class="flex flex-wrap items-center gap-2">
+            <a href="esploratori.html" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#1e293b] hover:bg-[#334155] text-[#22c55e] border border-[#334155] font-semibold text-sm transition-all shadow-sm">
+              <span>← Torna alla lista</span>
+            </a>
+            <button type="submit" form="scoutForm" class="inline-flex items-center justify-center gap-1.5 px-5 py-1.5 rounded-lg bg-[#16a34a] hover:bg-[#22c55e] active:bg-[#15803d] text-white font-bold text-sm transition-all shadow-md">
+              Salva
+            </button>
+            <button type="button" id="printScoutBtn" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#1e293b] hover:bg-[#334155] text-white border border-[#334155] font-semibold text-sm transition-all shadow-sm">
+              Stampa / Esporta PDF
+            </button>
+            <button type="button" id="printMedicalBtn" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#1e293b] hover:bg-[#334155] text-white border border-[#334155] font-semibold text-sm transition-all shadow-sm" title="Stampa Scheda Sanitaria Personale per la cartellina del campo">
+              <span class="text-base leading-none">🎴</span><span>Scheda Sanitaria</span>
+            </button>
+          </div>
         </div>
-      </nav>
+
+        <!-- Riga 2: Barra Navigazione a Schede (Tabs) -->
+        <nav id="sectionNav" class="flex items-center justify-between pt-2.5 overflow-x-auto scrollbar-thin" aria-label="Schede Sezione Esploratore">
+          <div class="flex items-center gap-1 sm:gap-2">
+            <button type="button" class="tab-nav-btn section-nav-link active text-sm px-3.5 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all cursor-pointer whitespace-nowrap" data-tab="anagrafici">Anagrafici</button>
+            <button type="button" class="tab-nav-btn section-nav-link text-sm px-3.5 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all cursor-pointer whitespace-nowrap" data-tab="contatti">Contatti</button>
+            <button type="button" class="tab-nav-btn section-nav-link text-sm px-3.5 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all cursor-pointer whitespace-nowrap" data-tab="sanitarie">Sanitarie</button>
+            <button type="button" class="tab-nav-btn section-nav-link text-sm px-3.5 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all cursor-pointer whitespace-nowrap" data-tab="progressione">Progressione</button>
+            <button type="button" class="tab-nav-btn section-nav-link text-sm px-3.5 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all cursor-pointer whitespace-nowrap" data-tab="specialita">Specialità</button>
+            <button type="button" class="tab-nav-btn section-nav-link text-sm px-3.5 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all cursor-pointer whitespace-nowrap" data-tab="eventi">Eventi</button>
+            <button type="button" class="tab-nav-btn section-nav-link text-sm px-3.5 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all cursor-pointer whitespace-nowrap" data-tab="documenti">Documenti</button>
+          </div>
+          <div class="pl-2">
+            <button type="button" id="scrollTopBtn" class="text-sm px-3 py-1 rounded-md bg-[#062c1e] hover:bg-[#083a27] text-[#22c55e] border border-[#0d4a34] font-medium transition-colors whitespace-nowrap flex items-center gap-1 cursor-pointer">
+              ↑ Torna su
+            </button>
+          </div>
+        </nav>
+      </div>
 
       <form id="scoutForm" class="space-y-8">
         <input type="hidden" id="scoutId" />
 
-        <section id="section-anagrafici" class="bg-gray-50 p-6 rounded-lg shadow-inner scroll-mt-20">
-          <h3 class="text-xl font-semibold text-gray-700 mb-4">Dati anagrafici</h3>
+        <section id="section-anagrafici" class="scout-tab-pane tab-pane bg-gray-50 dark:bg-gray-800/80 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Dati anagrafici</h3>
           <div class="grid md:grid-cols-2 gap-4">
             <div><label class="block text-sm">Nome</label><input id="anag_nome" class="input" /></div>
             <div><label class="block text-sm">Cognome</label><input id="anag_cognome" class="input" /></div>
@@ -104,13 +116,19 @@
             <div><label class="block text-sm">Email</label><input id="anag_email" class="input" /></div>
             <div><label class="block text-sm">Telefono</label><input id="anag_telefono" type="number" class="input" /></div>
           </div>
-          <div class="mt-4 text-right">
-            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+            <a href="esploratori.html" class="btn-secondary text-sm">← Torna alla lista</a>
+            <div class="flex items-center gap-2">
+              <button type="submit" class="btn-primary text-sm shadow-sm">Salva</button>
+              <button type="button" data-tab-nav="contatti" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+                <span>Contatti</span><span>→</span>
+              </button>
+            </div>
           </div>
         </section>
 
-        <section id="section-contatti" class="bg-gray-50 p-6 rounded-lg shadow-inner scroll-mt-20">
-          <h3 class="text-xl font-semibold text-gray-700 mb-4">Contatti</h3>
+        <section id="section-contatti" class="scout-tab-pane tab-pane hidden bg-gray-50 dark:bg-gray-800/80 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Contatti</h3>
           <div class="grid md:grid-cols-3 gap-4">
             <div><label class="block text-sm">Genitore 1</label><input id="ct_g1_nome" class="input" /></div>
             <div><label class="block text-sm">Telefono</label><input id="ct_g1_tel" type="number" class="input" /></div>
@@ -119,14 +137,22 @@
             <div><label class="block text-sm">Telefono</label><input id="ct_g2_tel" type="number" class="input" /></div>
             <div><label class="block text-sm">Email</label><input id="ct_g2_email" class="input" /></div>
           </div>
-          <div class="mt-4 text-right">
-            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" data-tab-nav="anagrafici" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+              <span>←</span><span>Anagrafici</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <button type="submit" class="btn-primary text-sm shadow-sm">Salva</button>
+              <button type="button" data-tab-nav="sanitarie" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+                <span>Sanitarie</span><span>→</span>
+              </button>
+            </div>
           </div>
         </section>
 
-        <section id="section-sanitarie" class="bg-gray-50 p-6 rounded-lg shadow-inner scroll-mt-20">
+        <section id="section-sanitarie" class="scout-tab-pane tab-pane hidden bg-gray-50 dark:bg-gray-800/80 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
           <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h3 class="text-xl font-semibold text-gray-700">Informazioni Sanitarie</h3>
+            <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Informazioni Sanitarie</h3>
             <button type="button" id="printMedicalSectionBtn" class="btn-secondary text-xs px-3 py-1.5 text-rose-700 border-rose-300 hover:bg-rose-50 flex items-center gap-1.5 font-medium" title="Stampa Scheda Sanitaria Campo">
               <span>🖨️</span><span>Stampa Scheda Campo</span>
             </button>
@@ -147,9 +173,9 @@
             <div class="md:col-span-2"><label class="block text-sm">Allergie</label><textarea id="san_allergie" class="textarea w-full"></textarea></div>
             <div class="md:col-span-2"><label class="block text-sm">Farmaci</label><textarea id="san_farmaci" class="textarea w-full"></textarea></div>
             <div class="md:col-span-2"><label class="block text-sm">Vaccinazioni</label><textarea id="san_vaccinazioni" class="textarea w-full"></textarea></div>
-            <div class="md:col-span-2 bg-white/70 p-4 rounded-lg border border-amber-200/80 shadow-sm space-y-3">
+            <div class="md:col-span-2 bg-white/70 dark:bg-gray-900/60 p-4 rounded-lg border border-amber-200/80 dark:border-amber-700/60 shadow-sm space-y-3">
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <label class="block text-sm font-bold text-gray-800">Scadenza Certificato Medico</label>
+                <label class="block text-sm font-bold text-gray-800 dark:text-gray-100">Scadenza Certificato Medico</label>
                 <div id="san_cert_status_badge" class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
                   Non specificato
                 </div>
@@ -164,13 +190,21 @@
             <div class="md:col-span-2"><label class="block text-sm">Certificazioni</label><textarea id="san_cert" class="textarea w-full"></textarea></div>
             <div class="md:col-span-2"><label class="block text-sm">Altro</label><textarea id="san_altro" class="textarea w-full"></textarea></div>
           </div>
-          <div class="mt-4 text-right">
-            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" data-tab-nav="contatti" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+              <span>←</span><span>Contatti</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <button type="submit" class="btn-primary text-sm shadow-sm">Salva</button>
+              <button type="button" data-tab-nav="progressione" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+                <span>Progressione</span><span>→</span>
+              </button>
+            </div>
           </div>
         </section>
 
-        <section id="section-progressione" class="bg-green-100 p-6 rounded-lg shadow-inner scroll-mt-20">
-          <h3 class="text-xl font-semibold text-gray-700 mb-4">Progressione Verticale</h3>
+        <section id="section-progressione" class="scout-tab-pane tab-pane hidden bg-green-50 dark:bg-green-950/20 p-6 rounded-xl border border-green-200 dark:border-green-800/40 shadow-sm">
+          <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Progressione Verticale</h3>
           <div class="grid md:grid-cols-2 gap-4">
             <div>
               <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
@@ -440,26 +474,42 @@
               </div>
             </div>
           </div>
-          <div class="mt-4 text-right">
-            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-green-200 dark:border-green-800">
+            <button type="button" data-tab-nav="sanitarie" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+              <span>←</span><span>Sanitarie</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <button type="submit" class="btn-primary text-sm shadow-sm">Salva</button>
+              <button type="button" data-tab-nav="specialita" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+                <span>Specialità</span><span>→</span>
+              </button>
+            </div>
           </div>
         </section>
 
-        <section id="section-specialita" class="bg-green-100 p-6 rounded-lg shadow-inner scroll-mt-20">
+        <section id="section-specialita" class="scout-tab-pane tab-pane hidden bg-green-50 dark:bg-green-950/20 p-6 rounded-xl border border-green-200 dark:border-green-800/40 shadow-sm">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold text-gray-700">Specialità (PO)</h3>
+            <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Specialità (PO)</h3>
             <button type="button" id="addSpecialitaBtn" class="btn-primary">+ Aggiungi Specialità</button>
           </div>
           <div id="specialitaContainer" class="space-y-4">
             <!-- Le specialità verranno aggiunte dinamicamente qui -->
           </div>
-          <div class="mt-4 text-right">
-            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-green-200 dark:border-green-800">
+            <button type="button" data-tab-nav="progressione" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+              <span>←</span><span>Progressione</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <button type="submit" class="btn-primary text-sm shadow-sm">Salva</button>
+              <button type="button" data-tab-nav="eventi" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+                <span>Eventi</span><span>→</span>
+              </button>
+            </div>
           </div>
         </section>
 
-        <section id="section-eventi" class="bg-green-300 p-6 rounded-lg shadow-inner scroll-mt-20">
-          <h3 class="text-xl font-semibold text-gray-700 mb-4">Eventi</h3>
+        <section id="section-eventi" class="scout-tab-pane tab-pane hidden bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-xl border border-emerald-200 dark:border-emerald-800/40 shadow-sm">
+          <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Eventi</h3>
           <div class="space-y-4">
             <div><label class="block text-sm">Campo Estivo 1</label><div class="grid grid-cols-2 gap-2"><input id="ev_ce1_dt" type="date" class="input" /><input id="ev_ce1_tx" class="input" /></div></div>
             <div><label class="block text-sm">Campo Estivo 2</label><div class="grid grid-cols-2 gap-2"><input id="ev_ce2_dt" type="date" class="input" /><input id="ev_ce2_tx" class="input" /></div></div>
@@ -473,13 +523,21 @@
             <div><label class="block text-sm">Jamboree</label><div class="grid grid-cols-2 gap-2"><input id="ev_jam_dt" type="date" class="input" /><input id="ev_jam_tx" class="input" /></div></div>
             <div><label class="block text-sm">Note</label><textarea id="ev_note" class="textarea textarea-auto-resize"></textarea></div>
           </div>
-          <div class="mt-4 text-right">
-            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-emerald-200 dark:border-emerald-800">
+            <button type="button" data-tab-nav="specialita" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+              <span>←</span><span>Specialità</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <button type="submit" class="btn-primary text-sm shadow-sm">Salva</button>
+              <button type="button" data-tab-nav="documenti" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+                <span>Documenti</span><span>→</span>
+              </button>
+            </div>
           </div>
         </section>
 
-        <section id="section-documenti" class="bg-purple-300 p-6 rounded-lg shadow-inner scroll-mt-20">
-          <h3 class="text-xl font-semibold text-gray-700 mb-4">Documenti</h3>
+        <section id="section-documenti" class="scout-tab-pane tab-pane hidden bg-purple-50 dark:bg-purple-950/20 p-6 rounded-xl border border-purple-200 dark:border-purple-800/40 shadow-sm">
+          <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Documenti</h3>
           <div class="space-y-4">
             <div><label class="block text-sm">Quota anno</label><input id="doc_quota1" type="number" min="2022" max="2100" step="1" class="input" placeholder="Anno" /></div>
             <div><label class="block text-sm">Quota anno</label><input id="doc_quota2" type="number" min="2022" max="2100" step="1" class="input" placeholder="Anno" /></div>
@@ -503,15 +561,16 @@
             </div>
             <div><label class="block text-sm">Note</label><textarea id="doc_note" class="textarea textarea-auto-resize"></textarea></div>
           </div>
-          <div class="mt-4 text-right">
-            <a href="#scoutHeader" class="text-sm text-green-600 hover:text-green-700 hover:underline">⬆ Torna al salvataggio</a>
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-purple-200 dark:border-purple-800">
+            <button type="button" data-tab-nav="eventi" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
+              <span>←</span><span>Eventi</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <button type="button" id="btnAnnulla" class="btn-secondary text-sm">Torna alla Lista</button>
+              <button type="submit" class="btn-primary text-sm shadow-sm">Salva</button>
+            </div>
           </div>
         </section>
-
-        <div class="flex justify-end gap-2">
-          <button type="button" id="btnAnnulla" class="btn-secondary">Torna alla Lista</button>
-          <button class="btn-primary">Salva</button>
-        </div>
       </form>
     </main>
   </div>

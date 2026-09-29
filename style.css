@@ -67,35 +67,64 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Stile barra navigazione sezioni */
-#sectionNav {
-  backdrop-filter: blur(10px);
-  background-color: rgba(255, 255, 255, 0.95);
+/* Stile Header comune Scheda Esploratore & Schede (scout2.html) */
+#scoutHeaderContainer {
+  background-color: #0b1320 !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid #1e293b !important;
 }
 
-[data-theme="dark"] #sectionNav {
-  background-color: rgba(17, 24, 39, 0.95);
+#scoutHeaderContainer #scoutHeader h2,
+#scoutHeaderContainer #scoutTitle {
+  color: #ffffff !important;
 }
 
-.section-nav-link {
-  color: #374151;
+#scoutHeaderContainer #sectionNav {
+  backdrop-filter: none !important;
+  background-color: transparent !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+#scoutHeaderContainer .tab-nav-btn,
+#scoutHeaderContainer .section-nav-link {
+  color: #94a3b8 !important;
   text-decoration: none;
+  background: transparent;
+  transition: all 0.2s ease;
 }
 
-[data-theme="dark"] .section-nav-link {
-  color: #d1d5db;
+#scoutHeaderContainer .tab-nav-btn:hover,
+#scoutHeaderContainer .section-nav-link:hover {
+  color: #ffffff !important;
+  background-color: rgba(30, 41, 59, 0.8) !important;
 }
 
-.section-nav-link:hover,
-.section-nav-link:focus {
-  background-color: #dcfce7;
-  color: #15803d;
+#scoutHeaderContainer .tab-nav-btn.active,
+#scoutHeaderContainer .section-nav-link.active {
+  background-color: #16a34a !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
 }
 
-[data-theme="dark"] .section-nav-link:hover,
-[data-theme="dark"] .section-nav-link:focus {
-  background-color: #14532d;
-  color: #4ade80;
+.scout-tab-pane {
+  animation: scoutTabFadeIn 0.2s ease-out;
+}
+
+.scout-tab-pane.hidden {
+  display: none !important;
+}
+
+@keyframes scoutTabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Dark mode overrides per classi Tailwind comuni */

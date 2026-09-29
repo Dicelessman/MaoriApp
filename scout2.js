@@ -1139,71 +1139,129 @@ UI.toggleSpecialitaSection = function (specialitaIndex) {
   console.log('Classi finali icon:', icon.className);
 };
 
-// ============== Gestione Navigazione Sezioni ==============
+// ============== Gestione Schede (Tab Navigation) ==============
+
+UI.currentTab = 'anagrafici';
 
 /**
- * Inizializza la navigazione tra sezioni
+ * Passa alla scheda specificata
+ * @param {string} tabName - Nome della scheda (anagrafici, contatti, sanitarie, progressione, specialita, eventi, documenti)
+ * @param {boolean} updateHistory - Se aggiornare location.hash senza scroll
+ */
+UI.switchTab = function (tabName, updateHistory = true) {
+  if (!tabName) tabName = 'anagrafici';
+  tabName = tabName.toLowerCase().replace('#', '').replace('section-', '');
+
+  const targetSection = document.getElementById(`section-${tabName}`);
+  if (!targetSection) {
+    console.warn(`[Tabs] Sezione section-${tabName} non trovata, fallback ad anagrafici`);
+    tabName = 'anagrafici';
+  }
+
+  this.currentTab = tabName;
+
+  // Gestione visibilità sezioni
+  const sections = document.querySelectorAll('section[id^="section-"]');
+  sections.forEach(sec => {
+    if (sec.id === `section-${tabName}`) {
+      sec.classList.remove('hidden');
+      sec.classList.add('active');
+      // Trigger auto-resize su textarea presenti nella scheda visibile
+      sec.querySelectorAll('textarea').forEach(ta => {
+        if (typeof this.autoResizeTextarea === 'function') {
+          this.autoResizeTextarea(ta);
+        }
+      });
+    } else {
+      sec.classList.add('hidden');
+      sec.classList.remove('active');
+    }
+  });
+
+  // Gestione classi bottoni tab
+  const tabButtons = document.querySelectorAll('.tab-nav-btn, .section-nav-link');
+  tabButtons.forEach(btn => {
+    const btnTab = (btn.dataset.tab || btn.getAttribute('href') || '').toLowerCase().replace('#', '').replace('section-', '');
+    if (btnTab === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  // Aggiorna hash nell'URL senza saltare
+  if (updateHistory && window.history && window.history.replaceState) {
+    try {
+      history.replaceState(null, '', `#${tabName}`);
+    } catch {}
+  }
+};
+
+/**
+ * Inizializza la navigazione a schede (tabs)
  */
 UI.initSectionNavigation = function () {
-  const navLinks = document.querySelectorAll('.section-nav-link');
-  const sections = document.querySelectorAll('section[id^="section-"]');
+  const tabButtons = document.querySelectorAll('.tab-nav-btn, .section-nav-link');
+  
+  // Binding bottoni tab
+  tabButtons.forEach(btn => {
+    if (btn._tabBound) return;
+    btn._tabBound = true;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const tabName = (btn.dataset.tab || btn.getAttribute('href') || '').replace('#', '').replace('section-', '');
+      this.switchTab(tabName);
+    });
+  });
 
-  // Funzione per evidenziare la sezione corrente
-  const updateActiveSection = () => {
-    const scrollPos = window.scrollY + 150; // Offset per la navbar sticky
-
-    sections.forEach(section => {
-      const sectionTop = section.offsetTop;
-      const sectionHeight = section.offsetHeight;
-      const sectionId = section.id;
-
-      if (scrollPos >= sectionTop && scrollPos < sectionTop + sectionHeight) {
-        // Rimuovi active da tutti i link
-        navLinks.forEach(link => {
-          link.classList.remove('bg-green-100', 'text-green-700', 'font-semibold');
-          if (document.documentElement.dataset.theme === 'dark') {
-            link.classList.remove('bg-green-800', 'text-green-300');
-          }
-        });
-
-        // Aggiungi active al link corrispondente
-        const activeLink = document.querySelector(`a[href="#${sectionId}"]`);
-        if (activeLink) {
-          activeLink.classList.add('bg-green-100', 'text-green-700', 'font-semibold');
-          if (document.documentElement.dataset.theme === 'dark') {
-            activeLink.classList.add('bg-green-800', 'text-green-300');
-            activeLink.classList.remove('bg-green-100', 'text-green-700');
-          }
+  // Binding bottoni di navigazione tab (Precedente / Successiva)
+  document.querySelectorAll('[data-tab-nav]').forEach(navBtn => {
+    if (navBtn._tabNavBound) return;
+    navBtn._tabNavBound = true;
+    navBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = navBtn.dataset.tabNav;
+      if (target) {
+        this.switchTab(target);
+        // Scroll leggero verso l'inizio della scheda
+        const container = document.getElementById('scoutHeaderContainer') || document.getElementById('scoutHeader');
+        if (container && typeof container.scrollIntoView === 'function') {
+          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }
     });
-  };
-
-  // Aggiorna durante lo scroll
-  let scrollTimeout;
-  window.addEventListener('scroll', () => {
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(updateActiveSection, 50);
   });
 
-  // Aggiorna all'inizio
-  updateActiveSection();
-
-  // Smooth scroll per i link di navigazione
-  navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
+  // Binding pulsante Torna Su
+  const scrollBtn = document.getElementById('scrollTopBtn');
+  if (scrollBtn && !scrollBtn._bound) {
+    scrollBtn._bound = true;
+    scrollBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      const targetId = link.getAttribute('href').substring(1);
-      const targetElement = document.getElementById(targetId);
-      if (targetElement) {
-        const offsetTop = targetElement.offsetTop - 80; // Offset per la navbar sticky
-        window.scrollTo({
-          top: offsetTop,
-          behavior: 'smooth'
-        });
+      if (typeof window.scrollTo === 'function') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     });
-  });
+  }
+
+  // Supporto apertura scheda da hash URL (#sanitarie, #progressione, ecc.)
+  const initialHash = (window.location.hash || '').replace('#', '').replace('section-', '');
+  if (initialHash && document.getElementById(`section-${initialHash}`)) {
+    this.switchTab(initialHash, false);
+  } else {
+    this.switchTab(this.currentTab || 'anagrafici', false);
+  }
+
+  // Listener per cambio hash
+  if (!window._scoutTabHashBound) {
+    window._scoutTabHashBound = true;
+    window.addEventListener('hashchange', () => {
+      const h = (window.location.hash || '').replace('#', '').replace('section-', '');
+      if (h && document.getElementById(`section-${h}`)) {
+        this.switchTab(h, false);
+      }
+    });
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1213,7 +1271,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof UI !== 'undefined' && UI.initSectionNavigation) {
       UI.initSectionNavigation();
     }
-  }, 500);
+  }, 200);
 });
 
 // ============================================================
