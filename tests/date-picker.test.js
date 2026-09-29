@@ -125,4 +125,35 @@ describe('Universal Date Picker Widget', () => {
         await new Promise(r => setTimeout(r, 10));
         expect(textInput.value).toBe(input.value ? '01/06/2026' : '');
     });
+
+    it('should open popup when clicking calendar icon button and select a date', () => {
+        const input = document.createElement('input');
+        input.type = 'date';
+        input.value = '2026-05-10';
+        document.body.appendChild(input);
+
+        window.initDatePicker();
+
+        const wrapper = input.parentElement;
+        const iconBtn = wrapper.querySelector('.dp-icon-btn');
+        expect(iconBtn).not.toBeNull();
+
+        // Click icon button
+        iconBtn.click();
+
+        const popup = document.querySelector('.dp-popup');
+        expect(popup).not.toBeNull();
+
+        // Find a day button, say day 15
+        const dayButtons = Array.from(popup.querySelectorAll('.dp-day:not(.dp-other-month)'));
+        const day15 = dayButtons.find(b => b.textContent === '15');
+        expect(day15).not.toBeUndefined();
+
+        day15.click();
+
+        // Popup should be closed
+        expect(document.querySelector('.dp-popup')).toBeNull();
+        expect(input.value).toBe('2026-05-15');
+        expect(wrapper.querySelector('.dp-text-input').value).toBe('15/05/2026');
+    });
 });

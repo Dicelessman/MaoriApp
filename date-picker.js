@@ -40,36 +40,45 @@
   }
   .dp-icon-btn {
     position: absolute;
-    right: 0.45rem;
+    right: 0.25rem;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
-    padding: 2px 4px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
+    justify-content: center;
     color: var(--muted, #6b7280);
-    border-radius: 4px;
+    border-radius: 6px;
     transition: color .15s, background .15s;
     line-height: 1;
-    font-size: 1rem;
+    font-size: 1.1rem;
+    z-index: 2;
   }
   .dp-icon-btn:hover {
     color: var(--brand, #16a34a);
-    background: color-mix(in srgb, var(--brand, #16a34a) 10%, transparent);
+    background: color-mix(in srgb, var(--brand, #16a34a) 12%, transparent);
+  }
+  .dp-icon-btn:active {
+    transform: translateY(-50%) scale(0.95);
   }
   .dp-popup {
     position: fixed;
-    z-index: 9999;
+    z-index: 99999;
     background: var(--card-bg, #fff);
+    color: var(--text, #111827);
     border: 1px solid var(--border, #e5e7eb);
     border-radius: 14px;
-    box-shadow: 0 12px 40px rgba(0,0,0,.18);
+    box-shadow: 0 12px 40px rgba(0,0,0,.22);
     padding: 14px;
     min-width: 270px;
+    max-width: calc(100vw - 16px);
     user-select: none;
     animation: dpFadeIn .12s ease;
+    box-sizing: border-box;
   }
   @keyframes dpFadeIn {
     from { opacity: 0; transform: translateY(-6px) scale(.97); }
@@ -233,7 +242,8 @@
 
   function parseYMD(s) {
     if (!s) return null;
-    const parts = s.split('-');
+    const clean = String(s).split('T')[0].trim();
+    const parts = clean.split('-');
     if (parts.length !== 3) return null;
     const y = parseInt(parts[0], 10), m = parseInt(parts[1], 10), d = parseInt(parts[2], 10);
     if (!y || !m || !d) return null;
@@ -243,7 +253,8 @@
 
   function parseDMY(s) {
     if (!s) return null;
-    const parts = s.split(/[\/\-\.]/);
+    const clean = String(s).split('T')[0].trim();
+    const parts = clean.split(/[\/\-\.]/);
     if (parts.length !== 3) return null;
     const d = parseInt(parts[0], 10), m = parseInt(parts[1], 10), y = parseInt(parts[2], 10);
     if (!d || !m || !y || y < 1900 || y > 2100) return null;
@@ -272,6 +283,18 @@
       closeActivePopup();
     }
   }, true);
+
+  document.addEventListener('touchstart', function (e) {
+    if (!activePopup) return;
+    const wrapper = activePopup._wrapper;
+    if (!activePopup.contains(e.target) && (!wrapper || !wrapper.contains(e.target))) {
+      closeActivePopup();
+    }
+  }, { passive: true, capture: true });
+
+  window.addEventListener('scroll', function () {
+    if (activePopup) closeActivePopup();
+  }, { passive: true, capture: true });
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeActivePopup();
@@ -435,20 +458,48 @@
   }
 
   function positionPopup(popup, anchor) {
-    const rect   = anchor.getBoundingClientRect();
-    const scrollY = window.scrollY || document.documentElement.scrollTop;
-    const scrollX = window.scrollX || document.documentElement.scrollLeft;
+    const rect = anchor.getBoundingClientRect();
     const popH = popup.offsetHeight || 320;
     const popW = popup.offsetWidth  || 280;
+    const margin = 6;
+
+    // Con position: fixed, le coordinate sono SEMPRE relative al viewport (MAI aggiungere scrollY/scrollX)!
     const spaceBelow = window.innerHeight - rect.bottom;
-    let top = spaceBelow >= popH + 8 || spaceBelow >= 200
-      ? rect.bottom + scrollY + 4
-      : rect.top  + scrollY - popH - 4;
-    let left = rect.left + scrollX;
-    if (left + popW > window.innerWidth + scrollX - 8) left = window.innerWidth + scrollX - popW - 8;
-    if (left < 8) left = 8;
-    popup.style.top  = top  + 'px';
-    popup.style.left = left + 'px';
+    const spaceAbove = rect.top;
+
+    let top;
+    // Se c'è abbastanza spazio sotto oppure più spazio sotto che sopra
+    if (spaceBelow >= popH + margin || spaceBelow >= spaceAbove) {
+      top = rect.bottom + margin;
+      // Evita che sfori verso il basso
+      if (top + popH > window.innerHeight - margin) {
+        top = Math.max(margin, window.innerHeight - popH - margin);
+      }
+    } else {
+      // Posiziona sopra l'anchor
+      top = rect.top - popH - margin;
+      // Evita che sfori verso l'alto
+      if (top < margin) {
+        top = margin;
+      }
+    }
+
+    // Posizionamento orizzontale: allinea verso la destra dell'anchor (dove si trova l'icona)
+    let left = rect.right - popW;
+    // Se la larghezza è ridotta o sfora a sinistra, allinea a sinistra dell'anchor
+    if (left < margin) {
+      left = rect.left;
+    }
+    // Evita sforamenti dai bordi dello schermo
+    if (left + popW > window.innerWidth - margin) {
+      left = window.innerWidth - popW - margin;
+    }
+    if (left < margin) {
+      left = margin;
+    }
+
+    popup.style.top  = Math.round(top)  + 'px';
+    popup.style.left = Math.round(left) + 'px';
   }
 
   /* ── Inizializzazione singolo input ─────────────────────────── */
@@ -467,10 +518,13 @@
     input.parentNode.insertBefore(wrapper, input);
     wrapper.appendChild(input);
 
-    // Replica width dal parent se presente
-    const parentStyle = window.getComputedStyle(input.parentNode);
-    if (parentStyle.display === 'block' || parentStyle.display === 'flex') {
-      wrapper.style.display = 'flex';
+    // Replica display/width dal container se presente
+    const container = wrapper.parentElement;
+    if (container) {
+      const parentStyle = window.getComputedStyle(container);
+      if (parentStyle.display === 'block' || parentStyle.display === 'flex' || parentStyle.display === 'grid') {
+        wrapper.style.display = 'flex';
+      }
     }
 
     // Text input visibile
@@ -542,6 +596,7 @@
 
     /* ── Apri popup con icona ─────────────────────────── */
     iconBtn.addEventListener('click', function (e) {
+      e.preventDefault();
       e.stopPropagation();
       if (activePopup && activePopup._wrapper === wrapper) {
         closeActivePopup();
@@ -550,7 +605,11 @@
       }
     });
 
-    /* ── Apri popup con Enter o Freccia Giù sull'input testo ── */
+    /* ── Apri popup con dblclick, Enter o Freccia Giù sull'input testo ── */
+    textInput.addEventListener('dblclick', function () {
+      createPopup(wrapper, input, textInput);
+    });
+
     textInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); createPopup(wrapper, input, textInput); }
       if (e.key === 'ArrowDown') { e.preventDefault(); createPopup(wrapper, input, textInput); }
