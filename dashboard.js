@@ -1,4 +1,9 @@
 // dashboard.js - Logica unificata per Dashboard & Statistiche
+import { UI as uiInstance } from './js/ui/ui.js';
+import { cngeiService } from './js/services/cngei-service.js';
+import { collectPendingProgressioni, collectSyncedProgressioni, sendProgressioneToCngei } from './js/services/cngei-progressioni.js';
+
+const UI = (typeof window !== 'undefined' && window.UI) ? window.UI : uiInstance;
 
 // Helper conversione data
 UI.toJsDate = function (x) {
@@ -129,6 +134,7 @@ UI.renderCurrentPage = function () {
   this.renderComposizionePattuglia();
   this.renderPattuglieTable();
   this.renderRiepilogoSpecialita();
+  this.setupRepartoProgressioniEvents();
 };
 
 
@@ -786,8 +792,14 @@ UI.renderPattuglieTable = function (scoutsInput) {
     else if (scout.pv_traccia1?.done) passo = '1';
 
     let numSpecialita = 0;
+    const specialitaNames = [];
     if (scout.specialita && Array.isArray(scout.specialita)) {
-      numSpecialita = scout.specialita.filter(s => s.ottenuta).length;
+      scout.specialita.forEach(s => {
+        if (s.ottenuta && s.nome) {
+          numSpecialita++;
+          specialitaNames.push(s.nome.trim());
+        }
+      });
     }
 
     const cpVcp = scout.pv_vcp_cp || '';
@@ -798,7 +810,8 @@ UI.renderPattuglieTable = function (scoutsInput) {
       annoScout: annoScout || 'N/A',
       cpVcp: cpVcp,
       passo: passo,
-      numSpecialita: numSpecialita
+      numSpecialita: numSpecialita,
+      specialitaNames: specialitaNames
     });
   });
 
@@ -849,14 +862,30 @@ UI.renderPattuglieTable = function (scoutsInput) {
         ? `<a href="scout2.html?id=${encodeURIComponent(esp.id)}" class="text-green-700 dark:text-green-400 font-semibold hover:underline">${esp.nome}</a>`
         : `<span class="text-gray-800 dark:text-gray-200">${esp.nome}</span>`;
 
+      const specialitaContent = esp.numSpecialita > 0
+        ? `
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center gap-1.5">
+              <span class="inline-flex items-center justify-center font-bold text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-700/60" title="${esp.numSpecialita} specialità conquistate">
+                ${esp.numSpecialita}
+              </span>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">${esp.numSpecialita === 1 ? 'specialità' : 'specialità'}</span>
+            </div>
+            <div class="flex flex-wrap items-center">
+              ${esp.specialitaNames.map(name => `<span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700/80 text-[11px] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 font-normal mr-1 mb-1">${name}</span>`).join('')}
+            </div>
+          </div>
+        `
+        : `<span class="text-xs text-gray-400 dark:text-gray-500 italic">0</span>`;
+
       html += `
         <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/60 dark:hover:bg-gray-700/30">
           ${index === 0 ? `<td class="p-2.5 font-semibold text-gray-800 dark:text-gray-100 align-top" rowspan="${esploratori.length}">${pattuglia}</td>` : ''}
-          <td class="p-2.5">${link}</td>
-          <td class="p-2.5 text-gray-600 dark:text-gray-300">${esp.annoScout}</td>
-          <td class="p-2.5 text-gray-600 dark:text-gray-300 font-medium">${esp.cpVcp}</td>
-          <td class="p-2.5 text-gray-600 dark:text-gray-300">${esp.passo}</td>
-          <td class="p-2.5 text-gray-600 dark:text-gray-300 font-medium">${esp.numSpecialita}</td>
+          <td class="p-2.5 align-top">${link}</td>
+          <td class="p-2.5 align-top text-gray-600 dark:text-gray-300">${esp.annoScout}</td>
+          <td class="p-2.5 align-top text-gray-600 dark:text-gray-300 font-medium">${esp.cpVcp}</td>
+          <td class="p-2.5 align-top text-gray-600 dark:text-gray-300">${esp.passo}</td>
+          <td class="p-2.5 align-top">${specialitaContent}</td>
         </tr>
       `;
     });
@@ -968,3 +997,394 @@ UI.renderRiepilogoSpecialita = function () {
 
   container.innerHTML = top5Html + senzaHtml;
 };
+
+
+// 9. Export Cumulativo Progressioni Reparto verso Portale CNGEI (PO & PV)
+UI.setupRepartoProgressioniEvents = function () {
+  const exportBtn = document.getElementById('btnExportCngeiProgressioniReparto');
+  if (exportBtn && !exportBtn._bound) {
+    exportBtn._bound = true;
+    exportBtn.addEventListener('click', () => this.openCngeiRepartoProgressioniModal());
+  }
+
+  const closeBtn = document.getElementById('closeRepartoProgModalBtn');
+  if (closeBtn && !closeBtn._bound) {
+    closeBtn._bound = true;
+    closeBtn.addEventListener('click', () => this.closeModal('cngeiRepartoProgressioniModal'));
+  }
+
+  const cancelBtn = document.getElementById('cancelRepartoProgModalBtn');
+  if (cancelBtn && !cancelBtn._bound) {
+    cancelBtn._bound = true;
+    cancelBtn.addEventListener('click', () => this.closeModal('cngeiRepartoProgressioniModal'));
+  }
+
+  const tabPendingBtn = document.getElementById('tabPendingProgBtn');
+  const tabSyncedBtn = document.getElementById('tabSyncedProgBtn');
+  const pendingContainer = document.getElementById('repartoProgPendingContainer');
+  const syncedContainer = document.getElementById('repartoProgSyncedContainer');
+
+  if (tabPendingBtn && tabSyncedBtn && !tabPendingBtn._bound) {
+    tabPendingBtn._bound = true;
+    tabSyncedBtn._bound = true;
+
+    tabPendingBtn.addEventListener('click', () => {
+      tabPendingBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-xs transition';
+      tabSyncedBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition';
+      pendingContainer?.classList.remove('hidden');
+      syncedContainer?.classList.add('hidden');
+    });
+
+    tabSyncedBtn.addEventListener('click', () => {
+      tabSyncedBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-xs transition';
+      tabPendingBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition';
+      syncedContainer?.classList.remove('hidden');
+      pendingContainer?.classList.add('hidden');
+    });
+  }
+
+  const selectAllBtn = document.getElementById('repartoProgSelectAllBtn');
+  if (selectAllBtn && !selectAllBtn._bound) {
+    selectAllBtn._bound = true;
+    selectAllBtn.addEventListener('click', () => {
+      const chks = Array.from(document.querySelectorAll('.reparto-prog-chk:not(:disabled)'));
+      const anyUnchecked = chks.some(c => !c.checked);
+      chks.forEach(c => c.checked = anyUnchecked);
+      this.updateRepartoProgSendButtonState();
+    });
+  }
+
+  const exportCsvBtn = document.getElementById('repartoProgExportCsvBtn');
+  if (exportCsvBtn && !exportCsvBtn._bound) {
+    exportCsvBtn._bound = true;
+    exportCsvBtn.addEventListener('click', () => {
+      const allItems = [
+        ...(this._repartoPendingProgData || []).map(x => ({ ...x, isSynced: false })),
+        ...(this._repartoSyncedProgData || []).map(x => ({ ...x, isSynced: true }))
+      ];
+      this.exportRepartoProgressioniCsv(allItems);
+    });
+  }
+
+  const confirmSendBtn = document.getElementById('confirmSendRepartoProgBtn');
+  if (confirmSendBtn && !confirmSendBtn._bound) {
+    confirmSendBtn._bound = true;
+    confirmSendBtn.addEventListener('click', () => this.sendSelectedRepartoProgressioniToCngei());
+  }
+};
+
+UI.updateRepartoProgSendButtonState = function () {
+  const confirmBtn = document.getElementById('confirmSendRepartoProgBtn');
+  const confirmBtnText = document.getElementById('confirmSendRepartoProgBtnText');
+  const checked = document.querySelectorAll('.reparto-prog-chk:checked').length;
+  if (confirmBtn) {
+    confirmBtn.disabled = checked === 0;
+  }
+  if (confirmBtnText) {
+    confirmBtnText.textContent = checked > 0
+      ? `Invia ${checked} Progressioni Selezionate a CNGEI`
+      : 'Invia Progressioni a CNGEI';
+  }
+};
+
+UI.openCngeiRepartoProgressioniModal = async function () {
+  this.openModal('cngeiRepartoProgressioniModal');
+
+  const pendingContainer = document.getElementById('repartoProgPendingContainer');
+  const syncedContainer = document.getElementById('repartoProgSyncedContainer');
+  const totalCountEl = document.getElementById('repartoProgTotalCount');
+  const breakdownEl = document.getElementById('repartoProgBreakdown');
+  const scoutsCountEl = document.getElementById('repartoProgScoutsCount');
+  const syncedCountEl = document.getElementById('repartoProgSyncedCount');
+  const warningBanner = document.getElementById('repartoProgWarningBanner');
+  const confirmBtn = document.getElementById('confirmSendRepartoProgBtn');
+
+  if (pendingContainer) pendingContainer.innerHTML = '<div class="text-sm text-slate-400 py-6 text-center">Caricamento progressioni dal portale CNGEI...</div>';
+  if (syncedContainer) syncedContainer.innerHTML = '';
+  if (confirmBtn) confirmBtn.disabled = true;
+
+  try {
+    const progressioniTypes = await cngeiService.getProgressioniTypes();
+    const scouts = this.state?.scouts || [];
+
+    const pending = [];
+    const synced = [];
+    let scoutsWithMissingId = 0;
+
+    scouts.forEach(scout => {
+      const pList = collectPendingProgressioni(scout, progressioniTypes);
+      const sList = collectSyncedProgressioni(scout, progressioniTypes);
+
+      if (!scout.idCngei && pList.length > 0) {
+        scoutsWithMissingId++;
+      }
+
+      pList.forEach(item => {
+        pending.push({
+          ...item,
+          scoutId: scout.id,
+          scoutName: `${scout.nome || ''} ${scout.cognome || ''}`.trim() || 'Esploratore',
+          pattuglia: scout.pv_pattuglia || 'Non assegnata',
+          idCngei: scout.idCngei || null,
+          scout: scout
+        });
+      });
+
+      sList.forEach(item => {
+        synced.push({
+          ...item,
+          scoutId: scout.id,
+          scoutName: `${scout.nome || ''} ${scout.cognome || ''}`.trim() || 'Esploratore',
+          pattuglia: scout.pv_pattuglia || 'Non assegnata',
+          idCngei: scout.idCngei || null,
+          scout: scout
+        });
+      });
+    });
+
+    // Ordina per Pattuglia e poi per Nome
+    const sortFn = (a, b) => {
+      const pComp = (a.pattuglia || '').localeCompare(b.pattuglia || '');
+      if (pComp !== 0) return pComp;
+      return (a.scoutName || '').localeCompare(b.scoutName || '');
+    };
+    pending.sort(sortFn);
+    synced.sort(sortFn);
+
+    this._repartoPendingProgData = pending;
+    this._repartoSyncedProgData = synced;
+
+    // Aggiorna banner statistiche
+    const poCount = pending.filter(x => x.category.includes('PO')).length;
+    const pvCount = pending.filter(x => x.category.includes('PV')).length;
+    const uniquePendingScouts = new Set(pending.map(x => x.scoutId)).size;
+
+    if (totalCountEl) totalCountEl.textContent = pending.length;
+    if (breakdownEl) breakdownEl.textContent = `${poCount} PO (Specialità) • ${pvCount} PV (Tracce)`;
+    if (scoutsCountEl) scoutsCountEl.textContent = uniquePendingScouts;
+    if (syncedCountEl) syncedCountEl.textContent = synced.length;
+
+    const tabPendingCount = document.getElementById('tabPendingCount');
+    const tabSyncedCount = document.getElementById('tabSyncedCount');
+    if (tabPendingCount) tabPendingCount.textContent = pending.length;
+    if (tabSyncedCount) tabSyncedCount.textContent = synced.length;
+
+    if (warningBanner) {
+      warningBanner.classList.toggle('hidden', scoutsWithMissingId === 0);
+    }
+
+    // Renderizza lista In attesa
+    if (pending.length === 0) {
+      if (pendingContainer) {
+        pendingContainer.innerHTML = `
+          <div class="p-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+            <span class="text-3xl">🎉</span>
+            <div class="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Tutte le progressioni sono già convalidate su CNGEI!</div>
+            <div class="text-xs text-slate-400 mt-0.5">Non ci sono attualmente specialità o tracce completate in attesa di invio.</div>
+          </div>
+        `;
+      }
+      if (confirmBtn) confirmBtn.disabled = true;
+    } else {
+      if (pendingContainer) {
+        pendingContainer.innerHTML = pending.map((item, idx) => `
+          <label class="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition cursor-pointer ${!item.idCngei ? 'opacity-70 bg-amber-50/40 dark:bg-amber-950/20' : ''}">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" class="reparto-prog-chk w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer" data-index="${idx}" ${item.idCngei ? 'checked' : 'disabled'} />
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-sm text-slate-800 dark:text-slate-100">${item.scoutName}</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">${item.pattuglia}</span>
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${item.category.includes('PO') ? 'bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-300'}">
+                    ${item.category}
+                  </span>
+                </div>
+                <div class="text-xs text-slate-600 dark:text-slate-300 mt-1 flex items-center gap-2 flex-wrap">
+                  <span>Progressione: <strong class="text-slate-900 dark:text-slate-100">${item.name}</strong></span>
+                  <span>•</span>
+                  <span>Data: <strong>${item.obtainedAt}</strong></span>
+                </div>
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              ${item.idCngei
+                ? '<span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">✓ Pronto</span>'
+                : '<span class="text-[11px] font-semibold text-amber-600 dark:text-amber-400" title="Associa l\'esploratore nella pagina Esploratori">⚠️ Manca ID</span>'
+              }
+            </div>
+          </label>
+        `).join('');
+
+        // Event listener sui checkbox per aggiornare stato bottone
+        pendingContainer.querySelectorAll('.reparto-prog-chk').forEach(c => {
+          c.addEventListener('change', () => this.updateRepartoProgSendButtonState());
+        });
+      }
+      this.updateRepartoProgSendButtonState();
+    }
+
+    // Renderizza lista Già Convalidate
+    if (syncedContainer) {
+      if (synced.length === 0) {
+        syncedContainer.innerHTML = '<div class="text-center py-6 text-sm text-slate-400">Nessuna progressione ancora registrata su CNGEI.</div>';
+      } else {
+        syncedContainer.innerHTML = synced.map(item => `
+          <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+            <div class="flex items-center gap-2.5">
+              <span class="text-emerald-600 font-bold">✓</span>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-medium text-sm text-slate-800 dark:text-slate-200">${item.scoutName}</span>
+                  <span class="text-[11px] text-slate-400">(${item.pattuglia})</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full font-semibold ${item.category.includes('PO') ? 'bg-amber-100/70 text-amber-800' : 'bg-blue-100/70 text-blue-800'}">${item.category}</span>
+                </div>
+                <div class="text-xs text-slate-500 mt-0.5">
+                  <strong>${item.name}</strong> • Conseguita: ${item.obtainedAt}
+                </div>
+              </div>
+            </div>
+            <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+              ${item.cngeiId ? `ID: ${String(item.cngeiId).slice(0, 10)}...` : 'convalidata'}
+            </span>
+          </div>
+        `).join('');
+      }
+    }
+
+  } catch (err) {
+    console.error('Errore recupero tipi progressione CNGEI per reparto:', err);
+    if (pendingContainer) {
+      pendingContainer.innerHTML = `<div class="text-sm text-rose-500 py-6 text-center">Errore connessione CNGEI: ${err.message || 'Errore di rete'}</div>`;
+    }
+  }
+};
+
+UI.sendSelectedRepartoProgressioniToCngei = async function () {
+  const checkboxes = Array.from(document.querySelectorAll('.reparto-prog-chk:checked'));
+  if (checkboxes.length === 0) {
+    this.showToast('Nessuna progressione selezionata da inviare.', { type: 'info' });
+    return;
+  }
+
+  const confirmBtn = document.getElementById('confirmSendRepartoProgBtn');
+  const confirmBtnText = document.getElementById('confirmSendRepartoProgBtnText');
+  const originalText = confirmBtnText ? confirmBtnText.textContent : 'Invia Progressioni Selezionate a CNGEI';
+
+  const progressContainer = document.getElementById('repartoProgProgressContainer');
+  const progressBar = document.getElementById('repartoProgProgressBar');
+  const progressLabel = document.getElementById('repartoProgProgressLabel');
+  const progressPct = document.getElementById('repartoProgProgressPct');
+
+  if (progressContainer) progressContainer.classList.remove('hidden');
+  if (confirmBtn) confirmBtn.disabled = true;
+
+  try {
+    let successCount = 0;
+    const errors = [];
+    const modifiedScoutsMap = new Map();
+    const total = checkboxes.length;
+
+    for (let i = 0; i < total; i++) {
+      const chk = checkboxes[i];
+      const idx = parseInt(chk.dataset.index, 10);
+      const item = this._repartoPendingProgData?.[idx];
+      if (!item || !item.idCngei) continue;
+
+      const pct = Math.round(((i + 1) / total) * 100);
+      if (progressLabel) progressLabel.textContent = `Invio ${i + 1} di ${total}: ${item.name} (${item.scoutName})...`;
+      if (progressPct) progressPct.textContent = `${pct}%`;
+      if (progressBar) progressBar.style.width = `${pct}%`;
+
+      try {
+        const res = await sendProgressioneToCngei(item.idCngei, item.typeId, item.obtainedAt, cngeiService);
+        const progId = res?.id || 'synced_' + Date.now();
+
+        // Recupera o clona lo scout da aggiornare
+        let scoutToUpdate = modifiedScoutsMap.get(item.scoutId) || item.scout;
+
+        if (item.category.includes('PO') && item.indexInArray !== undefined) {
+          if (Array.isArray(scoutToUpdate.specialita) && scoutToUpdate.specialita[item.indexInArray]) {
+            scoutToUpdate.specialita[item.indexInArray].idProgressioneCngei = progId;
+          }
+        } else if (item.tracciaKey === 'pv_traccia1') {
+          scoutToUpdate.cngei_traccia1_id = progId;
+        } else if (item.tracciaKey === 'pv_traccia2') {
+          scoutToUpdate.cngei_traccia2_id = progId;
+        } else if (item.tracciaKey === 'pv_traccia3') {
+          scoutToUpdate.cngei_traccia3_id = progId;
+        }
+
+        modifiedScoutsMap.set(item.scoutId, scoutToUpdate);
+        successCount++;
+      } catch (err) {
+        console.error(`Errore invio ${item.name} per ${item.scoutName}:`, err);
+        errors.push(`${item.scoutName} (${item.name}): ${err.message}`);
+      }
+    }
+
+    // Salva tutti gli esploratori modificati su Firestore / DATA
+    if (typeof DATA !== 'undefined' && DATA.updateScout) {
+      for (const [scoutId, scoutData] of modifiedScoutsMap.entries()) {
+        await DATA.updateScout(scoutId, scoutData, this.currentUser);
+      }
+      this.state = await DATA.loadAll();
+      if (typeof this.rebuildPresenceIndex === 'function') {
+        this.rebuildPresenceIndex();
+      }
+    }
+
+    if (errors.length > 0) {
+      this.showToast(`Sincronizzazione parziale: inviate ${successCount} progressioni. Errori su: ${errors.join(', ')}`, { type: 'warning', duration: 6000 });
+    } else {
+      this.showToast(`Sincronizzazione completata! ${successCount} progressioni convalidate con successo su CNGEI.`, { type: 'success', duration: 4000 });
+    }
+
+    // Aggiorna tabella sulla dashboard
+    this.renderPattuglieTable();
+
+    // Ricarica la modale per mostrare la situazione aggiornata
+    await this.openCngeiRepartoProgressioniModal();
+
+  } catch (err) {
+    console.error('Errore durante export cumulativo:', err);
+    this.showToast('Errore durante l\'export cumulativo: ' + (err.message || 'Errore di rete'), { type: 'error' });
+  } finally {
+    if (confirmBtn) confirmBtn.disabled = false;
+    if (confirmBtnText) confirmBtnText.textContent = originalText;
+    if (progressContainer) progressContainer.classList.add('hidden');
+  }
+};
+
+UI.exportRepartoProgressioniCsv = function (items) {
+  if (!items || items.length === 0) {
+    this.showToast('Nessuna progressione disponibile da esportare in CSV.', { type: 'info' });
+    return;
+  }
+
+  const headers = ['Esploratore', 'Pattuglia', 'ID Portale CNGEI', 'Categoria', 'Tipo', 'Progressione', 'Data Conseguimento', 'Stato Convalida', 'ID Progressione CNGEI'];
+  const rows = items.map(it => [
+    `"${(it.scoutName || '').replace(/"/g, '""')}"`,
+    `"${(it.pattuglia || '').replace(/"/g, '""')}"`,
+    `"${it.idCngei || ''}"`,
+    `"${(it.category || '').replace(/"/g, '""')}"`,
+    it.category?.includes('PO') ? 'PO' : 'PV',
+    `"${(it.name || '').replace(/"/g, '""')}"`,
+    it.obtainedAt || '',
+    it.isSynced ? 'Convalidata a Portale' : 'In attesa di invio',
+    `"${it.cngeiId || it.idProgressioneCngei || ''}"`
+  ]);
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `progressioni_reparto_cngei_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  this.showToast('Report CSV progressioni scaricato con successo!');
+};
+

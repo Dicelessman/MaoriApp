@@ -22,9 +22,12 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/dashboard-fq0WZqYY.js"></script>
+  <script type="module" crossorigin src="/assets/dashboard-BJnIc68k.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/date-picker-4UQZC6Oi.js">
   <link rel="modulepreload" crossorigin href="/assets/shared-CWcRGm4L.js">
+  <link rel="modulepreload" crossorigin href="/assets/cngei-service-DZdKacRO.js">
+  <link rel="modulepreload" crossorigin href="/assets/cngei-sync-DwYf0NUJ.js">
+  <link rel="modulepreload" crossorigin href="/assets/cngei-progressioni-DygIf-W3.js">
   <link rel="stylesheet" crossorigin href="/assets/presenze-BvwRKHx7.css">
 </head>
 
@@ -144,10 +147,16 @@
 
         <!-- 7. Esploratori per Pattuglia -->
         <div class="bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl shadow-inner border border-gray-100 dark:border-gray-700">
-          <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>🏕️</span>
-            <span>Esploratori per Pattuglia</span>
-          </h3>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+              <span>🏕️</span>
+              <span>Esploratori per Pattuglia</span>
+            </h3>
+            <button type="button" id="btnExportCngeiProgressioniReparto" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-sm transition-all cursor-pointer" title="Export cumulativo progressioni (PO e PV) di tutto il reparto verso il portale associativo CNGEI">
+              <span>⚜️</span>
+              <span>Esporta PO & PV a Portale CNGEI</span>
+            </button>
+          </div>
           <div id="pattuglieTable" class="overflow-x-auto">
             <table class="min-w-full text-sm">
               <thead>
@@ -176,6 +185,106 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- Modal Export Cumulativo Progressioni a CNGEI (PO & PV) -->
+      <div id="cngeiRepartoProgressioniModal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          
+          <!-- Header -->
+          <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl font-bold shadow-md shadow-emerald-500/20">⚜️</span>
+              <div>
+                <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <span>Export Cumulativo Progressioni a CNGEI</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 font-semibold border border-emerald-300 dark:border-emerald-700">Reparto</span>
+                </h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Progressione Orizzontale (Specialità) e Verticale (Tracce) di tutto il Reparto</p>
+              </div>
+            </div>
+            <button type="button" id="closeRepartoProgModalBtn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              ✕
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 overflow-y-auto space-y-4 flex-1">
+            <!-- Summary stats banner -->
+            <div id="repartoProgStatsBanner" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-xs">
+                <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">Progressioni da inviare</div>
+                <div id="repartoProgTotalCount" class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">0</div>
+                <div id="repartoProgBreakdown" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">0 PO (Specialità) • 0 PV (Tracce)</div>
+              </div>
+              <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-xs">
+                <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">Esploratori interessati</div>
+                <div id="repartoProgScoutsCount" class="text-2xl font-black text-blue-600 dark:text-blue-400 mt-0.5">0</div>
+                <div id="repartoProgScoutsDetail" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">con progressioni da convalidare</div>
+              </div>
+              <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-xs">
+                <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">Convalidate a Portale</div>
+                <div id="repartoProgSyncedCount" class="text-2xl font-black text-purple-600 dark:text-purple-400 mt-0.5">0</div>
+                <div id="repartoProgSyncedDetail" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">già registrate ufficialmente</div>
+              </div>
+            </div>
+
+            <!-- Warning if any scouts without ID CNGEI -->
+            <div id="repartoProgWarningBanner" class="hidden p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300">
+              <span class="font-bold">⚠️ Attenzione:</span> Alcuni esploratori non sono ancora collegati al Portale CNGEI (manca ID Portale). Le loro progressioni non possono essere inviate via API fino al collegamento nella pagina <a href="esploratori.html" class="underline font-semibold hover:text-amber-900 dark:hover:text-amber-200">Esploratori</a>.
+            </div>
+
+            <!-- Progress bar during sending -->
+            <div id="repartoProgProgressContainer" class="hidden p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2">
+              <div class="flex items-center justify-between text-xs font-semibold text-emerald-800 dark:text-emerald-200">
+                <span id="repartoProgProgressLabel">Invio in corso...</span>
+                <span id="repartoProgProgressPct">0%</span>
+              </div>
+              <div class="w-full bg-emerald-200 dark:bg-emerald-900 rounded-full h-2.5 overflow-hidden">
+                <div id="repartoProgProgressBar" class="bg-emerald-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- List controls & tabs: Da Inviare / Già Sincronizzate -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div class="flex items-center gap-2">
+                <button type="button" id="tabPendingProgBtn" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-xs transition">
+                  In attesa di invio (<span id="tabPendingCount">0</span>)
+                </button>
+                <button type="button" id="tabSyncedProgBtn" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                  Già Convalidate (<span id="tabSyncedCount">0</span>)
+                </button>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" id="repartoProgSelectAllBtn" class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold hover:underline cursor-pointer">
+                  Seleziona/Deseleziona tutti
+                </button>
+                <button type="button" id="repartoProgExportCsvBtn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer" title="Scarica report CSV riepilogativo di tutte le progressioni">
+                  <span>📥</span> <span>Scarica CSV</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Container per lista Da Inviare -->
+            <div id="repartoProgPendingContainer" class="space-y-2 max-h-96 overflow-y-auto pr-1">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Container per lista Già Convalidate -->
+            <div id="repartoProgSyncedContainer" class="hidden space-y-2 max-h-96 overflow-y-auto pr-1">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="p-4 bg-slate-50 dark:bg-slate-850 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <button type="button" id="cancelRepartoProgModalBtn" class="btn-secondary text-xs px-4 py-2 font-medium">Chiudi</button>
+            <button type="button" id="confirmSendRepartoProgBtn" class="btn-primary text-xs px-5 py-2 font-semibold shadow-md flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50">
+              <span>🚀</span>
+              <span id="confirmSendRepartoProgBtnText">Invia Progressioni Selezionate a CNGEI</span>
+            </button>
+          </div>
+        </div>
       </div>
     </main>
   </div>
