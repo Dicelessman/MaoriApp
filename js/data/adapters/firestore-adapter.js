@@ -113,20 +113,31 @@ export class FirestoreAdapter {
         });
         return ref.id;
     }
-    async updateActivity({ id, tipo, data, dataFine, descrizione, costo }, currentUser) {
-        // Converti data a Timestamp se è un Date object
-        const dataTimestamp = data instanceof Date ? Timestamp.fromDate(data) : data;
-        const dataFineTimestamp = dataFine instanceof Date ? Timestamp.fromDate(dataFine) : (dataFine || null);
+    async updateActivity({ id, tipo, data, dataFine, descrizione, costo, ...extraFields }, currentUser) {
+        // Costruisce il payload filtrando i campi undefined (Firestore non li accetta)
+        const payload = {};
 
-        // Converti costo a numero (se è stringa o undefined/null)
-        const costoNum = costo !== undefined && costo !== null && costo !== '' ? Number(costo) : 0;
-        await setDoc(doc(this.db, 'activities', id), {
-            tipo,
-            data: dataTimestamp,
-            dataFine: dataFineTimestamp,
-            descrizione,
-            costo: costoNum
-        }, { merge: true });
+        // Campi standard: inclusi solo se definiti
+        if (tipo !== undefined) payload.tipo = tipo;
+        if (data !== undefined) {
+            payload.data = data instanceof Date ? Timestamp.fromDate(data) : data;
+        }
+        if (dataFine !== undefined) {
+            payload.dataFine = dataFine instanceof Date ? Timestamp.fromDate(dataFine) : (dataFine || null);
+        }
+        if (descrizione !== undefined) payload.descrizione = descrizione;
+        if (costo !== undefined && costo !== null && costo !== '') {
+            payload.costo = Number(costo);
+        } else if (costo !== undefined) {
+            payload.costo = 0;
+        }
+
+        // Campi extra (es. idMeetingCngei, cngei_sync_date): inclusi solo se definiti
+        Object.entries(extraFields).forEach(([k, v]) => {
+            if (v !== undefined) payload[k] = v;
+        });
+
+        await setDoc(doc(this.db, 'activities', id), payload, { merge: true });
     }
     async deleteActivity(id, currentUser) {
         await deleteDoc(doc(this.db, 'activities', id));

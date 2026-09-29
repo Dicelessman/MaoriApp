@@ -793,11 +793,16 @@ UI.renderPattuglieTable = function (scoutsInput) {
 
     let numSpecialita = 0;
     const specialitaNames = [];
+    const specialitaDaOttenere = [];
     if (scout.specialita && Array.isArray(scout.specialita)) {
       scout.specialita.forEach(s => {
-        if (s.ottenuta && s.nome) {
+        if (!s.nome) return;
+        if (s.ottenuta || s.brevetto || s.consegnata || s.data) {
           numSpecialita++;
           specialitaNames.push(s.nome.trim());
+        } else {
+          // In lavorazione / da conquistare
+          specialitaDaOttenere.push(s.nome.trim());
         }
       });
     }
@@ -811,7 +816,8 @@ UI.renderPattuglieTable = function (scoutsInput) {
       cpVcp: cpVcp,
       passo: passo,
       numSpecialita: numSpecialita,
-      specialitaNames: specialitaNames
+      specialitaNames: specialitaNames,
+      specialitaDaOttenere: specialitaDaOttenere
     });
   });
 
@@ -878,6 +884,22 @@ UI.renderPattuglieTable = function (scoutsInput) {
         `
         : `<span class="text-xs text-gray-400 dark:text-gray-500 italic">0</span>`;
 
+      const specialitaDaOttenereContent = esp.specialitaDaOttenere?.length > 0
+        ? `
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center gap-1.5">
+              <span class="inline-flex items-center justify-center font-bold text-xs px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-700/60" title="${esp.specialitaDaOttenere.length} specialità in lavorazione">
+                ${esp.specialitaDaOttenere.length}
+              </span>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">in lavorazione</span>
+            </div>
+            <div class="flex flex-wrap items-center">
+              ${esp.specialitaDaOttenere.map(name => `<span class="inline-block px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-900/40 text-[11px] text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-700 font-normal mr-1 mb-1">${name}</span>`).join('')}
+            </div>
+          </div>
+        `
+        : `<span class="text-xs text-gray-400 dark:text-gray-500 italic">—</span>`;
+
       html += `
         <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/60 dark:hover:bg-gray-700/30">
           ${index === 0 ? `<td class="p-2.5 font-semibold text-gray-800 dark:text-gray-100 align-top" rowspan="${esploratori.length}">${pattuglia}</td>` : ''}
@@ -886,12 +908,13 @@ UI.renderPattuglieTable = function (scoutsInput) {
           <td class="p-2.5 align-top text-gray-600 dark:text-gray-300 font-medium">${esp.cpVcp}</td>
           <td class="p-2.5 align-top text-gray-600 dark:text-gray-300">${esp.passo}</td>
           <td class="p-2.5 align-top">${specialitaContent}</td>
+          <td class="p-2.5 align-top">${specialitaDaOttenereContent}</td>
         </tr>
       `;
     });
   });
 
-  tbody.innerHTML = html || '<tr><td colspan="6" class="p-4 text-center text-gray-500">Nessun esploratore trovato</td></tr>';
+  tbody.innerHTML = html || '<tr><td colspan="7" class="p-4 text-center text-gray-500">Nessun esploratore trovato</td></tr>';
 
   if (!this._pattuglieSortListenersAdded) {
     const sortNome = document.getElementById('sortNome');
