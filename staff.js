@@ -208,8 +208,21 @@ UI.renderStaff = function() {
       <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center swipeable-item" data-id="${member.id}" data-item-id="${member.id}">
         <div class="flex-1">
           <h4 class="font-medium text-gray-900">${member.nome} ${member.cognome}</h4>
-          <p class="text-sm text-gray-600">${member.email || ''}</p>
-          <p class="text-sm text-gray-600">ID: ${member.id}</p>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span class="text-sm text-gray-600">${member.email || ''}</span>
+            ${member.email ? `
+              <button 
+                type="button" 
+                class="btn-contact-action btn-contact-email !w-6 !h-6 !p-0 rounded text-xs shadow-none" 
+                data-contact-action="email" 
+                data-value="${member.email}" 
+                title="Invia email a ${member.nome}"
+                aria-label="Invia email"
+              >
+                <svg class="!w-3 !h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z"/></svg>
+              </button>` : ''}
+          </div>
+          <p class="text-xs text-gray-400 mt-0.5">ID: ${member.id}</p>
         </div>
         <div class="flex gap-2">
           <button 

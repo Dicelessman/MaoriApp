@@ -18,7 +18,8 @@ import {
     getUpcomingActivities, getPendingPaymentsByActivity, getUpcomingBirthdays,
     getScoutMedicalStatus, generateWhatsAppReminderUrl,
     findUpcomingActivity, computeActivityDashboardKPIs,
-    generateScoutSentieroHtml, getAllScoutYearDeadlines
+    generateScoutSentieroHtml, getAllScoutYearDeadlines,
+    formatTelUri, formatWhatsAppUri, formatMailtoUri
 } from '../utils/utils.js';
 import { setupFormValidation, validateForm, validateFieldValue, checkDataIntegrity } from '../utils/validation.js';
 
@@ -44,6 +45,97 @@ export const UI = {
     computeActivityDashboardKPIs,
     generateScoutSentieroHtml,
     getAllScoutYearDeadlines,
+    formatTelUri,
+    formatWhatsAppUri,
+    formatMailtoUri,
+
+    _extractTargetValue(target: any): string {
+        if (!target) return '';
+        if (typeof target === 'string') {
+            const trimmed = target.trim();
+            if (trimmed.startsWith('#') || trimmed.startsWith('.') || trimmed.startsWith('[') || trimmed.startsWith('input')) {
+                try {
+                    const el = document.querySelector(trimmed) as HTMLInputElement;
+                    if (el) return (el.value || '').trim();
+                } catch { }
+            }
+            return trimmed;
+        }
+        if (typeof target.value !== 'undefined') {
+            return (target.value || '').trim();
+        }
+        return '';
+    },
+
+    callPhoneNumber(target: any) {
+        const val = this._extractTargetValue(target);
+        if (!val) {
+            this.showToast('Inserisci prima un numero telefonico da chiamare', { type: 'warning' });
+            return false;
+        }
+        const telUri = formatTelUri(val);
+        if (!telUri) {
+            this.showToast('Numero telefonico non valido', { type: 'error' });
+            return false;
+        }
+        window.location.href = `tel:${telUri}`;
+        return true;
+    },
+
+    openWhatsAppChat(target: any, defaultText: string = '') {
+        const val = this._extractTargetValue(target);
+        if (!val) {
+            this.showToast('Inserisci prima un numero di telefono per WhatsApp', { type: 'warning' });
+            return false;
+        }
+        const waUri = formatWhatsAppUri(val, defaultText);
+        if (!waUri) {
+            this.showToast('Numero telefonico per WhatsApp non valido', { type: 'error' });
+            return false;
+        }
+        window.open(waUri, '_blank', 'noopener,noreferrer');
+        return true;
+    },
+
+    sendEmail(target: any, subject: string = '', body: string = '') {
+        const val = this._extractTargetValue(target);
+        if (!val) {
+            this.showToast('Inserisci prima un indirizzo email', { type: 'warning' });
+            return false;
+        }
+        const mailUri = formatMailtoUri(val, subject, body);
+        if (!mailUri) {
+            this.showToast('Indirizzo email non valido', { type: 'error' });
+            return false;
+        }
+        window.location.href = mailUri;
+        return true;
+    },
+
+    initContactActionListeners() {
+        if (typeof document === 'undefined' || (document as any)._contactActionsBound) return;
+        (document as any)._contactActionsBound = true;
+        document.addEventListener('click', (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const btn = target?.closest('[data-contact-action]') as HTMLElement;
+            if (!btn) return;
+            e.preventDefault();
+            const action = btn.getAttribute('data-contact-action');
+            const targetSel = btn.getAttribute('data-for');
+            let inputEl: HTMLInputElement | null = targetSel ? document.querySelector(targetSel) : null;
+            if (!inputEl) {
+                inputEl = btn.closest('.contact-input-group')?.querySelector('input') || null;
+            }
+            const val = inputEl ? inputEl.value : (btn.getAttribute('data-value') || '');
+            if (action === 'call') {
+                this.callPhoneNumber(inputEl || val);
+            } else if (action === 'whatsapp') {
+                this.openWhatsAppChat(inputEl || val);
+            } else if (action === 'email') {
+                this.sendEmail(inputEl || val);
+            }
+        });
+    },
 
     sendMedicalWhatsAppReminder(scoutId: string) {
         const scout = (this.state.scouts || []).find((s: any) => s.id === scoutId);
@@ -331,6 +423,7 @@ export const UI = {
             if (loginModal) loginModal.classList.remove('show');
 
             this.setupEventListeners();
+            this.initContactActionListeners();
 
             try { await setPersistence(DATA.adapter.auth, browserLocalPersistence); } catch (e) { console.warn('Auth persistence set failed:', e); }
 

@@ -19,10 +19,10 @@
     <!-- CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/staff-BM2uf3EP.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/date-picker-CHOhQd12.js">
-  <link rel="modulepreload" crossorigin href="/assets/shared-DtSqqa_k.js">
-  <link rel="stylesheet" crossorigin href="/assets/presenze-D8nc6Iel.css">
+  <script type="module" crossorigin src="/assets/staff-Dap9eeq9.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-CbbhrA06.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-fiqiR7An.js">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-B20HsKUI.css">
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
   <div id="app" class="max-w-4xl mx-auto w-full bg-white shadow-lg rounded-xl overflow-hidden my-1.5">
@@ -52,7 +52,12 @@
               </div>
               <div>
                 <label for="staffEmail" class="block text-sm font-medium text-gray-700">Email</label>
-                <input id="staffEmail" type="email" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                <div class="contact-input-group mt-1">
+                  <input id="staffEmail" type="email" required class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                  <button type="button" class="btn-contact-action btn-contact-email" data-contact-action="email" data-for="#staffEmail" title="Invia email" aria-label="Invia email">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z"/></svg>
+                  </button>
+                </div>
               </div>
               <button class="btn-primary w-full">Aggiungi Staff</button>
             </form>

@@ -1143,4 +1143,43 @@ export function generateWhatsAppReminderUrl(options: {
     };
 }
 
+/**
+ * Formats and normalizes a phone number for dialing (tel:)
+ */
+export function formatTelUri(phone: string): string {
+    const raw = String(phone || '').trim();
+    if (!raw) return '';
+    const hasPlus = raw.startsWith('+');
+    const digits = raw.replace(/\D/g, '');
+    return digits ? (hasPlus ? `+${digits}` : digits) : '';
+}
+
+/**
+ * Formats and normalizes a phone number for WhatsApp Web/App click-to-chat
+ */
+export function formatWhatsAppUri(phone: string, text: string = ''): string {
+    const raw = String(phone || '').trim();
+    let digits = raw.replace(/[^\d+]/g, '');
+    if (digits.startsWith('+')) {
+        digits = digits.substring(1);
+    } else if (digits.length === 10 && digits.startsWith('3')) {
+        digits = '39' + digits; // Italian mobile prefix fallback
+    }
+    const params = text ? `?text=${encodeURIComponent(text)}` : '';
+    return digits ? `https://wa.me/${digits}${params}` : (text ? `https://wa.me/?text=${encodeURIComponent(text)}` : '');
+}
+
+/**
+ * Formats a mailto URI
+ */
+export function formatMailtoUri(email: string, subject: string = '', body: string = ''): string {
+    const raw = String(email || '').trim();
+    if (!raw) return '';
+    const q = new URLSearchParams();
+    if (subject) q.append('subject', subject);
+    if (body) q.append('body', body);
+    const qs = q.toString();
+    return `mailto:${encodeURIComponent(raw)}${qs ? `?${qs}` : ''}`;
+}
+
 
