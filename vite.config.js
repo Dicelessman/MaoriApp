@@ -1,13 +1,32 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import { resolve } from 'path';
 
-export default defineConfig({
-    // Configure root to current directory
-    root: './',
+export default defineConfig(({ mode }) => {
+    const env = loadEnv(mode, process.cwd(), '');
+    const cngeiToken = env.CNGEI_API_TOKEN || process.env.CNGEI_API_TOKEN || 'g1yFQNKt4IF-hRfDJHh7_lCU7mqDDdkNdxlcbtykYg4';
 
-    // Public directory for static assets
-    publicDir: 'public',
+    return {
+        // Configure root to current directory
+        root: './',
+
+        // Public directory for static assets
+        publicDir: 'public',
+
+        // Development server proxy for secure CNGEI API access
+        server: {
+            proxy: {
+                '/api/cngei': {
+                    target: 'https://api.cngei.it',
+                    changeOrigin: true,
+                    secure: true,
+                    rewrite: (path) => path.replace(/^\/api\/cngei/, ''),
+                    headers: {
+                        'X-Api-Token': cngeiToken
+                    }
+                }
+            }
+        },
 
     // Build configuration
     build: {
@@ -45,5 +64,6 @@ export default defineConfig({
         environment: 'jsdom',
         include: ['tests/**/*.{test,spec}.{js,mjs,cjs}'],
     },
+    };
 });
 

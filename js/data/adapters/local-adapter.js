@@ -247,9 +247,9 @@ export class LocalAdapter {
         console.log('LocalAdapter: deleteStaff', { id, currentUser: currentUser?.email });
     }
     // Scouts
-    async addScout({ nome, cognome }, currentUser) {
+    async addScout({ nome, cognome, ...rest }, currentUser) {
         const id = 's' + (Math.random().toString(36).slice(2, 8));
-        this.state.scouts.push({ id, nome, cognome });
+        this.state.scouts.push({ id, nome, cognome, ...rest });
         this.state.activities.forEach(a => this.state.presences.push({ esploratoreId: id, attivitaId: a.id, stato: 'NR', pagato: false, tipoPagamento: null }));
         this.persist();
         console.log('LocalAdapter: addScout', { nome, cognome, id, currentUser: currentUser?.email });
@@ -258,9 +258,8 @@ export class LocalAdapter {
     async updateScout({ id, nome, cognome, ...rest }, currentUser) {
         const s = this.state.scouts.find(x => x.id === id);
         if (s) {
-            // Unisci tutti i campi passati
-            Object.assign(s, { nome, cognome });
-            // Se sono stati passati altri campi nel payload originale, includili
+            if (nome !== undefined) s.nome = nome;
+            if (cognome !== undefined) s.cognome = cognome;
             Object.assign(s, rest);
             this.persist();
         }

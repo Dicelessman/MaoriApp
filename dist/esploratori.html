@@ -20,9 +20,10 @@
   <!-- CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/esploratori-DBXFQNMG.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/date-picker-CbbhrA06.js">
-  <link rel="modulepreload" crossorigin href="/assets/shared-fiqiR7An.js">
+  <script type="module" crossorigin src="/assets/esploratori-CCPz8K28.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-4UQZC6Oi.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-CWcRGm4L.js">
+  <link rel="modulepreload" crossorigin href="/assets/cngei-service-CouxiIRa.js">
   <link rel="stylesheet" crossorigin href="/assets/presenze-BvwRKHx7.css">
 </head>
 
@@ -44,9 +45,13 @@
           <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
             <div class="flex flex-wrap items-center justify-between gap-4">
               <h3 class="text-xl font-semibold text-gray-700">Aggiungi Nuovo Esploratore</h3>
-              <div class="flex gap-2 flex-wrap">
+              <div class="flex gap-2 flex-wrap items-center">
                 <button id="exportCsvBtn" type="button" class="btn-secondary">Esporta CSV</button>
                 <button id="printSchedeBtn" type="button" class="btn-secondary" title="Stampa schede sentiero">🖨️ Stampa Schede</button>
+                <button id="openCngeiSyncBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold rounded-lg shadow-sm transition" title="Sincronizza ed importa dati dal portale CNGEI">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  <span>Sincronizza CNGEI</span>
+                </button>
                 <button id="openAddScoutModal" type="button" class="btn-primary">+ Aggiungi</button>
               </div>
             </div>
@@ -157,6 +162,98 @@
         <div class="flex gap-2 justify-end mt-4">
           <button type="button" onclick="window.UI.closeModal('printSchedeModal')" class="btn-secondary">Annulla</button>
           <button id="confirmPrintSchede" type="button" class="btn-primary">🖨️ Stampa</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale Sincronizzazione Portale CNGEI -->
+  <div id="cngeiSyncModal" class="modal">
+    <div class="modal-content max-w-4xl mx-auto p-0 overflow-hidden flex flex-col max-h-[92vh]">
+      <!-- Header modale -->
+      <div class="px-6 py-4 bg-emerald-800 text-white flex items-center justify-between shadow-md">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-emerald-700/80 flex items-center justify-center text-xl shadow-inner">
+            ⚜️
+          </div>
+          <div>
+            <h3 class="text-lg font-bold">Sincronizzazione Portale Nazionale CNGEI</h3>
+            <p class="text-xs text-emerald-200">Importazione selettiva censiti, contatti, consensi e schede sanitarie</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.UI.closeModal('cngeiSyncModal')" class="text-emerald-200 hover:text-white p-1 rounded-lg text-2xl leading-none transition" aria-label="Chiudi">
+          &times;
+        </button>
+      </div>
+
+      <!-- Stato di Caricamento -->
+      <div id="cngeiSyncLoading" class="p-12 text-center space-y-4">
+        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-emerald-600 border-t-transparent"></div>
+        <div class="text-sm font-semibold text-gray-700" id="cngeiSyncLoadingText">Connessione al portale CNGEI in corso...</div>
+        <p class="text-xs text-gray-500">Recupero censiti ed elaborazione schede mediche e consensi</p>
+      </div>
+
+      <!-- Stato di Errore -->
+      <div id="cngeiSyncError" class="p-8 text-center space-y-4 hidden">
+        <div class="w-12 h-12 mx-auto rounded-full bg-red-100 text-red-600 flex items-center justify-center text-2xl">⚠️</div>
+        <div class="text-base font-semibold text-gray-800" id="cngeiSyncErrorMessage">Errore durante la comunicazione con il portale CNGEI</div>
+        <p class="text-xs text-gray-500">Verifica la connessione nelle Preferenze o riprova tra qualche istante.</p>
+        <button type="button" id="cngeiSyncRetryBtn" class="btn-primary bg-emerald-700 hover:bg-emerald-800">Riprova</button>
+      </div>
+
+      <!-- Contenuto Sincronizzazione -->
+      <div id="cngeiSyncContent" class="flex-1 overflow-hidden flex flex-col hidden">
+        <!-- Barra schede e ricerca -->
+        <div class="px-6 pt-4 pb-3 bg-gray-50 border-b border-gray-200 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="inline-flex rounded-lg p-1 bg-gray-200 gap-1 text-xs font-semibold">
+              <button type="button" id="tabBtnToImport" class="cngei-tab-btn active px-3 py-1.5 rounded-md bg-white text-emerald-800 shadow-sm transition" data-tab="toImport">
+                🆕 Da Importare (<span id="cngeiBadgeImport">0</span>)
+              </button>
+              <button type="button" id="tabBtnToUpdate" class="cngei-tab-btn px-3 py-1.5 rounded-md text-gray-600 hover:text-gray-900 transition" data-tab="toUpdate">
+                🔄 Da Aggiornare (<span id="cngeiBadgeUpdate">0</span>)
+              </button>
+              <button type="button" id="tabBtnSynced" class="cngei-tab-btn px-3 py-1.5 rounded-md text-gray-600 hover:text-gray-900 transition" data-tab="synced">
+                ✅ Allineati (<span id="cngeiBadgeSynced">0</span>)
+              </button>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <button type="button" id="cngeiSelectAllBtn" class="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline">Seleziona tutti</button>
+              <span class="text-gray-300">•</span>
+              <button type="button" id="cngeiDeselectAllBtn" class="font-medium text-gray-500 hover:text-gray-700 hover:underline">Deseleziona tutti</button>
+            </div>
+          </div>
+
+          <div class="relative">
+            <input type="search" id="cngeiSearchInput" placeholder="Cerca per nome, cognome, tessera o codice fiscale..." class="w-full text-xs py-2 px-3 pl-8 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <svg class="w-4 h-4 text-gray-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+        </div>
+
+        <!-- Avviso non frequentanti -->
+        <div id="cngeiImportNotice" class="px-6 py-2 bg-amber-50 border-b border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+          <span class="text-base shrink-0 leading-none">💡</span>
+          <div>
+            <b>Attenzione alle frequenze:</b> I censiti non ancora presenti nell'app sono deselezionati per impostazione predefinita. Spunta <b>solo</b> gli esploratori che partecipano regolarmente alle attività (escludendo chi ha interrotto la frequenza pur rimanendo censito fino a fine anno).
+          </div>
+        </div>
+
+        <!-- Lista dinamica elementi -->
+        <div id="cngeiSyncList" class="flex-1 overflow-y-auto p-6 space-y-3">
+          <!-- Popolato dinamicamente -->
+        </div>
+
+        <!-- Footer azioni -->
+        <div class="px-6 py-3.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-4">
+          <div class="text-xs text-gray-600 font-medium">
+            <span id="cngeiSelectedCountLabel">0 selezionati</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="window.UI.closeModal('cngeiSyncModal')" class="btn-secondary text-xs py-2 px-3">Annulla</button>
+            <button type="button" id="cngeiConfirmSyncBtn" class="btn-primary text-xs py-2 px-4 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed">
+              Applica Sincronizzazione
+            </button>
+          </div>
         </div>
       </div>
     </div>

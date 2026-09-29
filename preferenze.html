@@ -141,6 +141,64 @@
           </div>
         </div>
 
+        <!-- Integrazione Portale CNGEI (Sede Centrale) -->
+        <div class="bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-lg shadow-sm border-2 border-emerald-300 dark:border-emerald-700">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-2xl">⚜️</span>
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Integrazione Portale CNGEI (Sede Centrale)</h3>
+              </div>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                Collegamento ufficiale con l'API associativa nazionale per anagrafiche, presenze e progressioni
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="cngeiStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-700 border border-gray-300 dark:bg-gray-800 dark:text-gray-300">
+                <span class="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></span> Inizializzazione...
+              </span>
+              <button type="button" id="checkCngeiConnectionBtn" class="btn-secondary text-xs flex items-center gap-1 py-1.5 px-3 whitespace-nowrap">
+                <span>🔄</span> Verifica Ora
+              </button>
+            </div>
+          </div>
+
+          <!-- Box Dati Rilevati dal Portale -->
+          <div id="cngeiInfoBox" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-white dark:bg-gray-800 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800 mb-4 text-sm">
+            <div>
+              <span class="block text-xs font-medium text-gray-500 dark:text-gray-400">Capo Unità Rilevato</span>
+              <span id="cngeiUser" class="font-bold text-gray-800 dark:text-gray-100">-</span>
+            </div>
+            <div>
+              <span class="block text-xs font-medium text-gray-500 dark:text-gray-400">Incarico Associativo</span>
+              <span id="cngeiIncarico" class="font-bold text-emerald-700 dark:text-emerald-400">-</span>
+            </div>
+            <div>
+              <span class="block text-xs font-medium text-gray-500 dark:text-gray-400">Sezione & Gruppo</span>
+              <span id="cngeiSezioneGruppo" class="font-bold text-gray-800 dark:text-gray-100">-</span>
+            </div>
+            <div>
+              <span class="block text-xs font-medium text-gray-500 dark:text-gray-400">Unità Censita</span>
+              <span id="cngeiUnita" class="font-bold text-gray-800 dark:text-gray-100">-</span>
+            </div>
+          </div>
+
+          <!-- Dettaglio Sicurezza & Privacy -->
+          <div class="flex items-start gap-2.5 p-3.5 bg-white/70 dark:bg-gray-900/40 rounded border border-emerald-200/80 dark:border-emerald-800/60 text-xs text-gray-600 dark:text-gray-300">
+            <span class="text-base select-none">🔒</span>
+            <div class="space-y-1">
+              <strong class="text-gray-800 dark:text-gray-100">Sicurezza & Privacy Garantite (Serverless Proxy)</strong>
+              <p>
+                Il token di accesso API è protetto lato server nelle variabili d'ambiente di Vercel (<code class="font-mono text-emerald-700 dark:text-emerald-400">CNGEI_API_TOKEN</code>).
+                Nessuna credenziale viene mai trasmessa o salvata nel browser, garantendo la totale riservatezza verso utenti e visitatori web.
+              </p>
+              <div class="text-[11px] text-gray-500 dark:text-gray-400 pt-0.5">
+                Ultimo controllo: <span id="cngeiLastCheck" class="font-medium">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Tema -->
         <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">🎨 Aspetto</h3>

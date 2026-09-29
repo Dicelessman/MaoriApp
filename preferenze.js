@@ -1,4 +1,5 @@
 // preferenze.js - Logica per gestione preferenze utente
+import { cngeiService } from './js/services/cngei-service.js';
 
 // Sovrascrive la funzione per il rendering della pagina corrente
 UI.renderCurrentPage = function () {
@@ -10,6 +11,9 @@ UI.renderPreferencesPage = function () {
 
   // Carica i dati utente
   this.loadUserProfile();
+
+  // Inizializza monitoraggio e stato integrazione CNGEI
+  this.initCngeiPreferences();
 
   // Configurazione Unità
   const unitType = document.getElementById('unitType');
@@ -1336,5 +1340,81 @@ UI.setupDataIntegrityUI = function () {
       this.showToast('Registro errori svuotato', { type: 'info' });
     });
   }
+};
+
+/**
+ * Inizializza la visualizzazione dello stato di connessione con il portale CNGEI
+ */
+UI.initCngeiPreferences = async function () {
+  const badge = document.getElementById('cngeiStatusBadge');
+  const userEl = document.getElementById('cngeiUser');
+  const incaricoEl = document.getElementById('cngeiIncarico');
+  const sezGrupEl = document.getElementById('cngeiSezioneGruppo');
+  const unitaEl = document.getElementById('cngeiUnita');
+  const lastCheckEl = document.getElementById('cngeiLastCheck');
+  const checkBtn = document.getElementById('checkCngeiConnectionBtn');
+
+  if (!badge) return;
+
+  const updateDisplay = async (forceRefresh = false) => {
+    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300';
+    badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Verifica in corso...';
+
+    if (checkBtn) {
+      checkBtn.disabled = true;
+      checkBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    }
+
+    try {
+      const status = await cngeiService.checkConnection(forceRefresh);
+      const nowStr = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + new Date().toLocaleDateString('it-IT');
+      if (lastCheckEl) lastCheckEl.textContent = nowStr;
+
+      if (status && status.connected) {
+        badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Connesso';
+
+        if (userEl) userEl.textContent = status.user?.alias || 'Davide Rossi';
+        if (incaricoEl) incaricoEl.textContent = status.user?.wbcr ? 'Capo Reparto (Wood Badge)' : 'Staff Reparto';
+        if (sezGrupEl) sezGrupEl.textContent = `${status.sezione || 'Torino'} · ${status.gruppo || 'Gruppo 4'}`;
+        if (unitaEl) unitaEl.textContent = status.unita || 'Reparto 4';
+
+        if (forceRefresh) {
+          this.showToast('Connessione al portale CNGEI verificata con successo!', { type: 'success' });
+        }
+      } else {
+        badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-900/40 dark:text-rose-300';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> Non connesso';
+
+        if (userEl) userEl.textContent = 'Non raggiungibile';
+        if (incaricoEl) incaricoEl.textContent = '-';
+        if (sezGrupEl) sezGrupEl.textContent = '-';
+        if (unitaEl) unitaEl.textContent = '-';
+
+        if (forceRefresh) {
+          this.showToast('Errore connessione CNGEI: ' + (status?.error || 'Server non raggiungibile'), { type: 'error', duration: 4000 });
+        }
+      }
+    } catch (err) {
+      badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-900/40 dark:text-rose-300';
+      badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> Errore';
+      if (forceRefresh) {
+        this.showToast('Errore di connessione: ' + err.message, { type: 'error' });
+      }
+    } finally {
+      if (checkBtn) {
+        checkBtn.disabled = false;
+        checkBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+      }
+    }
+  };
+
+  if (checkBtn && !checkBtn._cngeiBound) {
+    checkBtn._cngeiBound = true;
+    checkBtn.addEventListener('click', () => updateDisplay(true));
+  }
+
+  // Verifica iniziale
+  updateDisplay(false);
 };
 

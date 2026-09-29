@@ -143,8 +143,8 @@ export class FirestoreAdapter {
         await deleteDoc(doc(this.db, 'staff', id));
     }
     // Scouts
-    async addScout({ nome, cognome }, currentUser) {
-        const ref = await addDoc(this.cols.scouts, { nome, cognome });
+    async addScout({ nome, cognome, ...rest }, currentUser) {
+        const ref = await addDoc(this.cols.scouts, { nome, cognome, ...rest });
         return ref.id;
     }
     async updateScout({ id, ...data }, currentUser) {

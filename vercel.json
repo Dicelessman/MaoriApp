@@ -3,6 +3,12 @@
   "outputDirectory": ".",
   "framework": null,
   "installCommand": "npm install --production=false || echo 'Install skipped'",
+  "rewrites": [
+    {
+      "source": "/api/cngei/:path*",
+      "destination": "/api/cngei?path=:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

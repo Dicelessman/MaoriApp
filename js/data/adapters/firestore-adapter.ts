@@ -179,8 +179,8 @@ export class FirestoreAdapter {
     }
 
     // Scouts
-    async addScout({ nome, cognome }: any, currentUser: any) {
-        const ref = await addDoc(this.cols.scouts, { nome, cognome });
+    async addScout({ nome, cognome, ...rest }: any, currentUser: any) {
+        const ref = await addDoc(this.cols.scouts, { nome, cognome, ...rest });
         return ref.id;
     }
 

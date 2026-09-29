@@ -2,6 +2,13 @@
 import { UI } from './js/ui/ui.js';
 import { DATA } from './js/data/data-facade.js';
 import { generateScoutSentieroHtml } from './js/utils/utils.js';
+import { cngeiService } from './js/services/cngei-service.js';
+import {
+  matchMember,
+  computeScoutDiff,
+  buildImportPayload,
+  toTitleCase
+} from './js/services/cngei-sync.js';
 
 // Assicura che UI e DATA siano disponibili globalmente per compatibilità legacy ed inline handlers
 window.UI = UI;
@@ -128,6 +135,13 @@ UI.setupScoutsEventListeners = function () {
   if (printSchedeBtn && !printSchedeBtn._bound) {
     printSchedeBtn._bound = true;
     printSchedeBtn.addEventListener('click', () => this.openPrintSchedeModal());
+  }
+
+  // Pulsante sincronizzazione CNGEI
+  const openCngeiBtn = this.qs('#openCngeiSyncBtn');
+  if (openCngeiBtn && !openCngeiBtn._bound) {
+    openCngeiBtn._bound = true;
+    openCngeiBtn.addEventListener('click', () => this.openCngeiSyncModal());
   }
 
   // Conferma stampa schede
@@ -399,10 +413,11 @@ UI.renderScouts = function (filterLetter = null) {
       return `
         <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center swipeable-item hover:shadow transition" data-id="${scout.id}" data-item-id="${scout.id}">
           <div class="flex-1 min-w-0 pr-3">
-            <div class="flex items-baseline gap-2">
+            <div class="flex items-baseline gap-2 flex-wrap">
               <h4 class="font-medium text-gray-900 truncate">
                 <a href="scout2.html?id=${scout.id}" class="hover:underline">${scout.nome} ${scout.cognome}</a>
               </h4>
+              ${scout.tesseraCngei ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200" title="Censito Portale Nazionale CNGEI">CNGEI #${scout.tesseraCngei}</span>` : ''}
             </div>
             <div class="text-sm flex flex-wrap gap-x-4 gap-y-1 mt-1">
               ${fields.join('')}
@@ -819,4 +834,470 @@ UI.executePrintSchede = async function () {
     console.error('printSentieroBatch non disponibile');
     this.showToast('Funzione di stampa schede non disponibile.', { type: 'error' });
   }
-};
+};
+
+// ==========================================
+// SINCRONIZZAZIONE PORTALE CNGEI (PASSO 2 E 3)
+// ==========================================
+
+UI.openCngeiSyncModal = async function () {
+  if (!this.currentUser) {
+    this.showToast('Devi essere autenticato per sincronizzare con il portale CNGEI.', { type: 'error' });
+    return;
+  }
+  this.showModal('cngeiSyncModal');
+  await this.loadCngeiSyncData();
+};
+
+UI.setupCngeiSyncModalEvents = function () {
+  const modal = this.qs('#cngeiSyncModal');
+  if (!modal || modal._syncEventsBound) return;
+  modal._syncEventsBound = true;
+
+  // Tabs
+  modal.querySelectorAll('.cngei-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      if (!this._cngeiSyncState || this._cngeiSyncState.activeTab === tab) return;
+      this._cngeiSyncState.activeTab = tab;
+
+      modal.querySelectorAll('.cngei-tab-btn').forEach(b => {
+        b.classList.remove('bg-white', 'text-emerald-800', 'shadow-sm');
+        b.classList.add('text-gray-600');
+      });
+      btn.classList.add('bg-white', 'text-emerald-800', 'shadow-sm');
+      btn.classList.remove('text-gray-600');
+
+      // Mostra l'avviso frequenze solo nella scheda "Da Importare"
+      const noticeEl = this.qs('#cngeiImportNotice');
+      if (noticeEl) {
+        noticeEl.classList.toggle('hidden', tab !== 'toImport');
+      }
+
+      this.renderCngeiSyncList();
+    });
+  });
+
+  // Ricerca
+  const searchInput = this.qs('#cngeiSearchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      if (!this._cngeiSyncState) return;
+      this._cngeiSyncState.searchQuery = (e.target.value || '').trim().toLowerCase();
+      this.renderCngeiSyncList();
+    });
+  }
+
+  // Seleziona / Deseleziona tutti nel tab corrente
+  this.qs('#cngeiSelectAllBtn')?.addEventListener('click', () => this.toggleAllCngeiCurrentTab(true));
+  this.qs('#cngeiDeselectAllBtn')?.addEventListener('click', () => this.toggleAllCngeiCurrentTab(false));
+
+  // Riprova su errore
+  this.qs('#cngeiSyncRetryBtn')?.addEventListener('click', () => this.loadCngeiSyncData());
+
+  // Conferma sincronizzazione
+  this.qs('#cngeiConfirmSyncBtn')?.addEventListener('click', () => this.executeCngeiSync());
+};
+
+UI.loadCngeiSyncData = async function () {
+  const loadingEl = this.qs('#cngeiSyncLoading');
+  const errorEl = this.qs('#cngeiSyncError');
+  const contentEl = this.qs('#cngeiSyncContent');
+  const loadingText = this.qs('#cngeiSyncLoadingText');
+
+  if (loadingEl) loadingEl.classList.remove('hidden');
+  if (errorEl) errorEl.classList.add('hidden');
+  if (contentEl) contentEl.classList.add('hidden');
+
+  try {
+    if (loadingText) loadingText.textContent = 'Connessione al portale CNGEI e recupero censiti...';
+    const allMembers = await cngeiService.getMembers();
+    const scoutMembers = allMembers.filter(m => m.isEsploratore);
+
+    if (loadingText) loadingText.textContent = `Analisi schede sanitarie e consensi di ${scoutMembers.length} censiti...`;
+
+    // Fetch dati medici in parallelo per tutti i censiti
+    const medicalResults = await Promise.allSettled(
+      scoutMembers.map(s => cngeiService.getMedicalData(s.idCngei))
+    );
+
+    const medicalMap = new Map();
+    scoutMembers.forEach((s, idx) => {
+      const res = medicalResults[idx];
+      medicalMap.set(s.idCngei, res.status === 'fulfilled' ? res.value : null);
+    });
+
+    // Recupera esploratori locali attuali
+    const allData = await DATA.loadAll(true);
+    const localScouts = allData.allScouts || allData.scouts || [];
+
+    const toImport = [];
+    const toUpdate = [];
+    const synced = [];
+
+    scoutMembers.forEach(member => {
+      const matched = matchMember(member, localScouts);
+      const medical = medicalMap.get(member.idCngei) || null;
+
+      if (!matched) {
+        toImport.push({
+          member,
+          medical,
+          selected: false // Default: deselezionato per scegliere solo i frequentanti reali
+        });
+      } else {
+        const diffResult = computeScoutDiff(member, matched, medical);
+        if (diffResult.hasChanges) {
+          toUpdate.push({
+            member,
+            localScout: matched,
+            medical,
+            diffResult,
+            selected: true // Default: selezionato per applicare le integrazioni
+          });
+        } else {
+          synced.push({
+            member,
+            localScout: matched,
+            medical,
+            diffResult,
+            selected: false
+          });
+        }
+      }
+    });
+
+    this._cngeiSyncState = {
+      toImport,
+      toUpdate,
+      synced,
+      activeTab: toImport.length > 0 ? 'toImport' : (toUpdate.length > 0 ? 'toUpdate' : 'synced'),
+      searchQuery: ''
+    };
+
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (contentEl) contentEl.classList.remove('hidden');
+
+    this.setupCngeiSyncModalEvents();
+
+    // Aggiorna classe tab iniziale attiva
+    const activeTab = this._cngeiSyncState.activeTab;
+    modalBtnActive: {
+      const modal = this.qs('#cngeiSyncModal');
+      if (!modal) break modalBtnActive;
+      modal.querySelectorAll('.cngei-tab-btn').forEach(b => {
+        const isCur = b.dataset.tab === activeTab;
+        b.classList.toggle('bg-white', isCur);
+        b.classList.toggle('text-emerald-800', isCur);
+        b.classList.toggle('shadow-sm', isCur);
+        b.classList.toggle('text-gray-600', !isCur);
+      });
+      const noticeEl = this.qs('#cngeiImportNotice');
+      if (noticeEl) noticeEl.classList.toggle('hidden', activeTab !== 'toImport');
+    }
+
+    this.updateCngeiSyncCounters();
+    this.renderCngeiSyncList();
+  } catch (err) {
+    console.error('Errore caricamento dati CNGEI:', err);
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (errorEl) {
+      errorEl.classList.remove('hidden');
+      const msg = this.qs('#cngeiSyncErrorMessage');
+      if (msg) msg.textContent = err.message || 'Errore di connessione al portale CNGEI';
+    }
+  }
+};
+
+UI.updateCngeiSyncCounters = function () {
+  const state = this._cngeiSyncState;
+  if (!state) return;
+
+  const badgeImport = this.qs('#cngeiBadgeImport');
+  const badgeUpdate = this.qs('#cngeiBadgeUpdate');
+  const badgeSynced = this.qs('#cngeiBadgeSynced');
+  const summaryLabel = this.qs('#cngeiSelectedCountLabel');
+  const confirmBtn = this.qs('#cngeiConfirmSyncBtn');
+
+  if (badgeImport) badgeImport.textContent = state.toImport.length;
+  if (badgeUpdate) badgeUpdate.textContent = state.toUpdate.length;
+  if (badgeSynced) badgeSynced.textContent = state.synced.length;
+
+  const importSel = state.toImport.filter(x => x.selected).length;
+  const updateSel = state.toUpdate.filter(x => x.selected).length;
+  const total = importSel + updateSel;
+
+  if (summaryLabel) {
+    if (total === 0) {
+      summaryLabel.textContent = 'Nessun esploratore selezionato';
+    } else {
+      summaryLabel.innerHTML = `Selezionati: <b>${importSel}</b> da importare • <b>${updateSel}</b> da aggiornare`;
+    }
+  }
+
+  if (confirmBtn) {
+    confirmBtn.disabled = total === 0;
+  }
+};
+
+UI.toggleAllCngeiCurrentTab = function (select) {
+  const state = this._cngeiSyncState;
+  if (!state) return;
+
+  const currentList = state[state.activeTab] || [];
+  const q = state.searchQuery;
+
+  currentList.forEach(item => {
+    if (q) {
+      const m = item.member;
+      const haystack = `${m.nome} ${m.cognome} ${m.tessera || ''} ${m.codiceFiscale || ''}`.toLowerCase();
+      if (!haystack.includes(q)) return;
+    }
+    item.selected = select;
+  });
+
+  this.updateCngeiSyncCounters();
+  this.renderCngeiSyncList();
+};
+
+UI.toggleCngeiItemSelection = function (tab, index, isChecked) {
+  const state = this._cngeiSyncState;
+  if (!state || !state[tab] || !state[tab][index]) return;
+
+  state[tab][index].selected = isChecked;
+  this.updateCngeiSyncCounters();
+};
+
+UI.renderCngeiSyncList = function () {
+  const listEl = this.qs('#cngeiSyncList');
+  const state = this._cngeiSyncState;
+  if (!listEl || !state) return;
+
+  const tab = state.activeTab;
+  const rawItems = state[tab] || [];
+  const q = state.searchQuery;
+
+  const items = rawItems.map((item, idx) => ({ ...item, originalIndex: idx })).filter(item => {
+    if (!q) return true;
+    const m = item.member;
+    const haystack = `${m.nome} ${m.cognome} ${m.tessera || ''} ${m.codiceFiscale || ''}`.toLowerCase();
+    return haystack.includes(q);
+  });
+
+  if (items.length === 0) {
+    let emptyMsg = 'Nessun elemento presente in questa sezione.';
+    if (q) emptyMsg = `Nessun risultato trovato per "${q}".`;
+    else if (tab === 'toImport') emptyMsg = 'Tutti i censiti CNGEI risultano già registrati nell\'app!';
+    else if (tab === 'toUpdate') emptyMsg = 'Nessun esploratore locale necessita di aggiornamenti dai dati del portale.';
+    else if (tab === 'synced') emptyMsg = 'Nessun esploratore è ancora completamente allineato.';
+
+    listEl.innerHTML = `
+      <div class="py-12 text-center text-gray-500">
+        <div class="text-3xl mb-2">🔍</div>
+        <p class="text-sm font-medium">${emptyMsg}</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+
+  if (tab === 'toImport') {
+    items.forEach(item => {
+      const m = item.member;
+      const med = item.medical;
+      const idx = item.originalIndex;
+      const g1 = [m.genitore1?.nome, m.genitore1?.cognome].filter(Boolean).map(toTitleCase).join(' ');
+      const g2 = [m.genitore2?.nome, m.genitore2?.cognome].filter(Boolean).map(toTitleCase).join(' ');
+
+      // Consensi badge
+      const privBadge = m.consensi?.privacy
+        ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-800" title="Consenso privacy firmato">🔒 Privacy firmata</span>'
+        : '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600">🔒 Privacy assente</span>';
+
+      const imgBadge = m.consensi?.immagini
+        ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-800" title="Liberatoria immagini concessa">📸 Liberatoria foto</span>'
+        : '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600">📸 No foto</span>';
+
+      const medBadge = m.consensi?.medico
+        ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-800" title="Consenso medico registrato">🩺 Consenso medico</span>'
+        : '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600">🩺 No consenso medico</span>';
+
+      // Info mediche (se presenti)
+      let medDetails = '';
+      const allergies = [...(med?.allergies || []), med?.otherAllergies].filter(x => x && x.toUpperCase() !== 'NESSUNA');
+      const foods = [...(med?.foodPreferences || []), med?.otherFoodPreferences].filter(x => x && x.toUpperCase() !== 'NESSUNA');
+
+      if (allergies.length > 0 || foods.length > 0 || med?.notes) {
+        medDetails = `
+          <div class="mt-2 p-2 rounded bg-amber-50/80 border border-amber-200 text-xs text-amber-900 space-y-1">
+            ${allergies.length > 0 ? `<div>⚠️ <b>Allergie:</b> ${allergies.join(', ')}</div>` : ''}
+            ${foods.length > 0 ? `<div>🍽️ <b>Intolleranze/Dieta:</b> ${foods.join(', ')}</div>` : ''}
+            ${med?.notes ? `<div>📝 <b>Note mediche:</b> ${med.notes}</div>` : ''}
+          </div>
+        `;
+      }
+
+      html += `
+        <div class="p-3.5 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-emerald-300 transition flex items-start gap-3.5">
+          <input type="checkbox" id="cngei_import_${idx}" ${item.selected ? 'checked' : ''} onchange="UI.toggleCngeiItemSelection('toImport', ${idx}, this.checked)" class="mt-1 w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer" />
+          <label for="cngei_import_${idx}" class="flex-1 min-w-0 cursor-pointer">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-base font-bold text-gray-900">${toTitleCase(m.nome)} ${toTitleCase(m.cognome)}</span>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">Tessera #${m.tessera || '—'}</span>
+              </div>
+              <div class="text-xs text-gray-500 font-mono">CF: ${m.codiceFiscale || '—'}</div>
+            </div>
+
+            <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+              ${m.dataNascita ? `<span>🎂 Nato il ${m.dataNascita}</span>` : ''}
+              ${m.comune ? `<span>📍 ${m.comune}</span>` : ''}
+              ${g1 ? `<span>👨‍👩‍👦 ${g1}${m.genitore1?.telefono ? ` (${m.genitore1.telefono})` : ''}</span>` : ''}
+              ${g2 ? `<span>👨‍👩‍👦 ${g2}${m.genitore2?.telefono ? ` (${m.genitore2.telefono})` : ''}</span>` : ''}
+            </div>
+
+            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+              ${privBadge}
+              ${imgBadge}
+              ${medBadge}
+            </div>
+
+            ${medDetails}
+          </label>
+        </div>
+      `;
+    });
+  } else if (tab === 'toUpdate') {
+    items.forEach(item => {
+      const m = item.member;
+      const s = item.localScout;
+      const diffs = item.diffResult?.diffs || [];
+      const idx = item.originalIndex;
+
+      let diffRows = '';
+      diffs.forEach(d => {
+        diffRows += `
+          <div class="flex items-center justify-between text-xs py-1 border-b border-gray-100 last:border-0">
+            <span class="font-medium text-gray-700">${d.label}:</span>
+            <div class="flex items-center gap-2">
+              <span class="text-gray-400 line-through">${d.oldValue}</span>
+              <span class="text-emerald-500 font-bold">➔</span>
+              <span class="text-emerald-700 font-semibold">${d.newValue}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+        <div class="p-3.5 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-emerald-300 transition flex items-start gap-3.5">
+          <input type="checkbox" id="cngei_update_${idx}" ${item.selected ? 'checked' : ''} onchange="UI.toggleCngeiItemSelection('toUpdate', ${idx}, this.checked)" class="mt-1 w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer" />
+          <label for="cngei_update_${idx}" class="flex-1 min-w-0 cursor-pointer">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-base font-bold text-gray-900">${s.nome} ${s.cognome}</span>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800">${diffs.length} aggiornamenti</span>
+              </div>
+              <div class="text-xs text-gray-500 font-mono">Tessera #${m.tessera || '—'}</div>
+            </div>
+
+            <div class="mt-2.5 p-2.5 rounded-lg bg-gray-50 border border-gray-200 space-y-0.5">
+              ${diffRows}
+            </div>
+          </label>
+        </div>
+      `;
+    });
+  } else if (tab === 'synced') {
+    items.forEach(item => {
+      const s = item.localScout;
+      const m = item.member;
+
+      html += `
+        <div class="p-3 bg-white border border-gray-200 rounded-xl shadow-sm flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
+              ✓
+            </div>
+            <div>
+              <div class="font-bold text-gray-900 text-sm">${s.nome} ${s.cognome}</div>
+              <div class="text-xs text-gray-500">Tessera CNGEI #${m.tessera || s.tesseraCngei || '—'} • Dati completi e allineati</div>
+            </div>
+          </div>
+          <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Allineato ✅
+          </span>
+        </div>
+      `;
+    });
+  }
+
+  listEl.innerHTML = html;
+};
+
+UI.executeCngeiSync = async function () {
+  if (!this.currentUser) return;
+  const state = this._cngeiSyncState;
+  if (!state) return;
+
+  const importSelected = state.toImport.filter(x => x.selected);
+  const updateSelected = state.toUpdate.filter(x => x.selected);
+  const total = importSelected.length + updateSelected.length;
+
+  if (total === 0) {
+    this.showToast('Nessun esploratore selezionato per la sincronizzazione.', { type: 'warning' });
+    return;
+  }
+
+  const confirmBtn = this.qs('#cngeiConfirmSyncBtn');
+  const originalText = confirmBtn?.textContent;
+  this.setButtonLoading(confirmBtn, true, 'Sincronizzazione in corso...');
+
+  let addedCount = 0;
+  let updatedCount = 0;
+  const errors = [];
+
+  try {
+    // 1. Importa nuovi esploratori selezionati
+    for (const item of importSelected) {
+      try {
+        const payload = buildImportPayload(item.member, item.medical);
+        await DATA.addScout(payload, this.currentUser);
+        addedCount++;
+      } catch (e) {
+        console.error('Errore import scout', item.member.nome, e);
+        errors.push(`${item.member.nome}: ${e.message}`);
+      }
+    }
+
+    // 2. Aggiorna esploratori esistenti selezionati
+    for (const item of updateSelected) {
+      try {
+        const payload = item.diffResult.payload;
+        await DATA.updateScout(item.localScout.id, payload, this.currentUser);
+        updatedCount++;
+      } catch (e) {
+        console.error('Errore update scout', item.localScout.nome, e);
+        errors.push(`${item.localScout.nome}: ${e.message}`);
+      }
+    }
+
+    // Ricarica stato globale e rinfresca UI
+    this.state = await DATA.loadAll(true);
+    this.rebuildPresenceIndex();
+    this.renderScouts();
+    this.closeModal('cngeiSyncModal');
+
+    if (errors.length > 0) {
+      this.showToast(`Sincronizzati ${addedCount + updatedCount} esploratori (${errors.length} errori)`, { type: 'warning', duration: 4000 });
+    } else {
+      this.showToast(`Sincronizzazione completata: ${addedCount} importati, ${updatedCount} aggiornati!`, { type: 'success', duration: 4000 });
+    }
+  } catch (err) {
+    console.error('Errore fatale sincronizzazione:', err);
+    this.showToast('Errore durante la sincronizzazione: ' + (err.message || 'Errore sconosciuto'), { type: 'error', duration: 4000 });
+  } finally {
+    this.setButtonLoading(confirmBtn, false, originalText || 'Applica Sincronizzazione');
+  }
+};
+
