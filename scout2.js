@@ -454,12 +454,27 @@ UI.applySpecialitaColors = function (containerDiv, specialita) {
   const defaultBordo = 'gray';
 
   // Ottieni i colori dalla specialità o usa i default
-  const sfondoColore = specialita?.sfondo_colore || defaultSfondo;
-  const bordoColore = specialita?.bordo_colore || defaultBordo;
+  const rawSfondo = (specialita?.sfondo_colore || defaultSfondo).toLowerCase();
+  const rawBordo = (specialita?.bordo_colore || defaultBordo).toLowerCase();
+
+  // Applica classi e attributi semantici per garantire il corretto contrasto e il supporto Dark Mode
+  containerDiv.classList.add('specialita-card');
+  containerDiv.setAttribute('data-sfondo', rawSfondo);
+  containerDiv.setAttribute('data-bordo', rawBordo);
+
+  if (rawSfondo === 'yellow') {
+    containerDiv.classList.add('specialita-sfondo-yellow');
+    containerDiv.classList.remove('specialita-sfondo-green');
+  } else if (rawSfondo === 'green') {
+    containerDiv.classList.add('specialita-sfondo-green');
+    containerDiv.classList.remove('specialita-sfondo-yellow');
+  } else {
+    containerDiv.classList.remove('specialita-sfondo-yellow', 'specialita-sfondo-green');
+  }
 
   // Applica gli stili inline
-  containerDiv.style.backgroundColor = sfondoColore;
-  containerDiv.style.border = `3px solid ${bordoColore}`;
+  containerDiv.style.backgroundColor = specialita?.sfondo_colore || defaultSfondo;
+  containerDiv.style.border = `3px solid ${specialita?.bordo_colore || defaultBordo}`;
   containerDiv.style.borderRadius = '0.5rem'; // rounded-lg
   containerDiv.style.overflow = 'hidden';
 };
@@ -488,7 +503,7 @@ UI.addSpecialita = async function (data = null, index = null) {
   const div = document.createElement('div');
   div.className = 'rounded-lg overflow-hidden';
   // Applica i colori dinamicamente
-  this.applySpecialitaColors(div, selectedSpec);
+  this.applySpecialitaColors(div, selectedSpec || (data && (data.sfondo_colore || data.bordo_colore) ? data : null));
   div.innerHTML = `
     <!-- Header compatto -->
     <div class="specialita-header p-4 cursor-pointer hover:bg-gray-50 transition-colors" data-specialita="${realIndex}">

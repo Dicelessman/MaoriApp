@@ -1469,6 +1469,202 @@ select {
   display: block !important;
 }
 
+/* ==========================================================================
+   Specialità a sfondo giallo - Risoluzione contrasto e leggibilità in Dark Mode
+   ========================================================================== */
+
+.specialita-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Forza testo scuro ad altissimo contrasto (#0f172a / slate-900) su sfondo giallo */
+.specialita-sfondo-yellow,
+.specialita-card[data-sfondo="yellow"],
+div[data-sfondo="yellow"],
+[data-theme="dark"] .specialita-sfondo-yellow,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"],
+[data-theme="dark"] div[data-sfondo="yellow"] {
+  color: #0f172a !important;
+}
+
+/* In Dark Mode, ottimizza lo sfondo giallo per evitare l'abbagliamento da giallo puro neon */
+[data-theme="dark"] .specialita-sfondo-yellow,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"],
+[data-theme="dark"] div[data-sfondo="yellow"] {
+  background-color: #facc15 !important; /* Giallo dorato scout (amber-400), caldo e ad alto contrasto */
+}
+
+/* Header e contenuti interni per specialità a sfondo giallo */
+.specialita-sfondo-yellow .specialita-header,
+.specialita-card[data-sfondo="yellow"] .specialita-header,
+div[data-sfondo="yellow"] .specialita-header,
+.specialita-sfondo-yellow .specialita-content,
+.specialita-card[data-sfondo="yellow"] .specialita-content,
+div[data-sfondo="yellow"] .specialita-content,
+[data-theme="dark"] .specialita-sfondo-yellow .specialita-header,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] .specialita-header,
+[data-theme="dark"] div[data-sfondo="yellow"] .specialita-header,
+[data-theme="dark"] .specialita-sfondo-yellow .specialita-content,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] .specialita-content,
+[data-theme="dark"] div[data-sfondo="yellow"] .specialita-content {
+  color: #0f172a !important;
+}
+
+/* Tutte le scritte su sfondo giallo (titoli, etichette prove, checkbox, icone espandi) */
+.specialita-sfondo-yellow h4,
+.specialita-sfondo-yellow h4 *,
+.specialita-sfondo-yellow label,
+.specialita-sfondo-yellow label *,
+.specialita-sfondo-yellow .block.text-sm,
+.specialita-sfondo-yellow .font-medium,
+.specialita-sfondo-yellow .font-semibold,
+.specialita-sfondo-yellow .expand-icon,
+.specialita-card[data-sfondo="yellow"] h4,
+.specialita-card[data-sfondo="yellow"] h4 *,
+.specialita-card[data-sfondo="yellow"] label,
+.specialita-card[data-sfondo="yellow"] label *,
+.specialita-card[data-sfondo="yellow"] .block.text-sm,
+.specialita-card[data-sfondo="yellow"] .font-medium,
+.specialita-card[data-sfondo="yellow"] .font-semibold,
+.specialita-card[data-sfondo="yellow"] .expand-icon,
+div[data-sfondo="yellow"] h4,
+div[data-sfondo="yellow"] h4 *,
+div[data-sfondo="yellow"] label,
+div[data-sfondo="yellow"] label *,
+div[data-sfondo="yellow"] .block.text-sm,
+div[data-sfondo="yellow"] .font-medium,
+div[data-sfondo="yellow"] .font-semibold,
+div[data-sfondo="yellow"] .expand-icon,
+[data-theme="dark"] .specialita-sfondo-yellow h4,
+[data-theme="dark"] .specialita-sfondo-yellow h4 *,
+[data-theme="dark"] .specialita-sfondo-yellow label,
+[data-theme="dark"] .specialita-sfondo-yellow label *,
+[data-theme="dark"] .specialita-sfondo-yellow .block.text-sm,
+[data-theme="dark"] .specialita-sfondo-yellow .font-medium,
+[data-theme="dark"] .specialita-sfondo-yellow .font-semibold,
+[data-theme="dark"] .specialita-sfondo-yellow .expand-icon,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] h4,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] h4 *,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] label,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] label *,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] .block.text-sm,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] .font-medium,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] .font-semibold,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] .expand-icon,
+[data-theme="dark"] div[data-sfondo="yellow"] h4,
+[data-theme="dark"] div[data-sfondo="yellow"] h4 *,
+[data-theme="dark"] div[data-sfondo="yellow"] label,
+[data-theme="dark"] div[data-sfondo="yellow"] label *,
+[data-theme="dark"] div[data-sfondo="yellow"] .block.text-sm,
+[data-theme="dark"] div[data-sfondo="yellow"] .font-medium,
+[data-theme="dark"] div[data-sfondo="yellow"] .font-semibold,
+[data-theme="dark"] div[data-sfondo="yellow"] .expand-icon {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+/* Hover sull'header in sfondi gialli */
+.specialita-sfondo-yellow .specialita-header:hover,
+.specialita-card[data-sfondo="yellow"] .specialita-header:hover,
+div[data-sfondo="yellow"] .specialita-header:hover,
+[data-theme="dark"] .specialita-sfondo-yellow .specialita-header:hover,
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] .specialita-header:hover,
+[data-theme="dark"] div[data-sfondo="yellow"] .specialita-header:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Checkbox con bordo scuro ben definito su sfondo giallo */
+.specialita-sfondo-yellow input[type="checkbox"],
+.specialita-card[data-sfondo="yellow"] input[type="checkbox"],
+div[data-sfondo="yellow"] input[type="checkbox"],
+[data-theme="dark"] .specialita-sfondo-yellow input[type="checkbox"],
+[data-theme="dark"] .specialita-card[data-sfondo="yellow"] input[type="checkbox"],
+[data-theme="dark"] div[data-sfondo="yellow"] input[type="checkbox"] {
+  border-color: #1e293b !important;
+  accent-color: #15803d !important;
+}
+
+/* ==========================================================================
+   Specialità a sfondo verde - Testo chiaro nitido sempre leggibile
+   ========================================================================== */
+
+.specialita-sfondo-green,
+.specialita-card[data-sfondo="green"],
+div[data-sfondo="green"],
+[data-theme="dark"] .specialita-sfondo-green,
+[data-theme="dark"] .specialita-card[data-sfondo="green"],
+[data-theme="dark"] div[data-sfondo="green"] {
+  color: #ffffff !important;
+}
+
+.specialita-sfondo-green .specialita-header,
+.specialita-card[data-sfondo="green"] .specialita-header,
+div[data-sfondo="green"] .specialita-header,
+.specialita-sfondo-green .specialita-content,
+.specialita-card[data-sfondo="green"] .specialita-content,
+div[data-sfondo="green"] .specialita-content,
+.specialita-sfondo-green h4,
+.specialita-sfondo-green h4 *,
+.specialita-sfondo-green label,
+.specialita-sfondo-green label *,
+.specialita-sfondo-green .block.text-sm,
+.specialita-sfondo-green .font-medium,
+.specialita-sfondo-green .font-semibold,
+.specialita-sfondo-green .expand-icon,
+.specialita-card[data-sfondo="green"] h4,
+.specialita-card[data-sfondo="green"] h4 *,
+.specialita-card[data-sfondo="green"] label,
+.specialita-card[data-sfondo="green"] label *,
+.specialita-card[data-sfondo="green"] .block.text-sm,
+.specialita-card[data-sfondo="green"] .font-medium,
+.specialita-card[data-sfondo="green"] .font-semibold,
+.specialita-card[data-sfondo="green"] .expand-icon,
+div[data-sfondo="green"] h4,
+div[data-sfondo="green"] h4 *,
+div[data-sfondo="green"] label,
+div[data-sfondo="green"] label *,
+div[data-sfondo="green"] .block.text-sm,
+div[data-sfondo="green"] .font-medium,
+div[data-sfondo="green"] .font-semibold,
+div[data-sfondo="green"] .expand-icon,
+[data-theme="dark"] .specialita-sfondo-green h4,
+[data-theme="dark"] .specialita-sfondo-green h4 *,
+[data-theme="dark"] .specialita-sfondo-green label,
+[data-theme="dark"] .specialita-sfondo-green label *,
+[data-theme="dark"] .specialita-sfondo-green .block.text-sm,
+[data-theme="dark"] .specialita-sfondo-green .font-medium,
+[data-theme="dark"] .specialita-sfondo-green .font-semibold,
+[data-theme="dark"] .specialita-sfondo-green .expand-icon,
+[data-theme="dark"] .specialita-card[data-sfondo="green"] h4,
+[data-theme="dark"] .specialita-card[data-sfondo="green"] h4 *,
+[data-theme="dark"] .specialita-card[data-sfondo="green"] label,
+[data-theme="dark"] .specialita-card[data-sfondo="green"] label *,
+[data-theme="dark"] .specialita-card[data-sfondo="green"] .block.text-sm,
+[data-theme="dark"] .specialita-card[data-sfondo="green"] .font-medium,
+[data-theme="dark"] .specialita-card[data-sfondo="green"] .font-semibold,
+[data-theme="dark"] .specialita-card[data-sfondo="green"] .expand-icon,
+[data-theme="dark"] div[data-sfondo="green"] h4,
+[data-theme="dark"] div[data-sfondo="green"] h4 *,
+[data-theme="dark"] div[data-sfondo="green"] label,
+[data-theme="dark"] div[data-sfondo="green"] label *,
+[data-theme="dark"] div[data-sfondo="green"] .block.text-sm,
+[data-theme="dark"] div[data-sfondo="green"] .font-medium,
+[data-theme="dark"] div[data-sfondo="green"] .font-semibold,
+[data-theme="dark"] div[data-sfondo="green"] .expand-icon {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.specialita-sfondo-green .specialita-header:hover,
+.specialita-card[data-sfondo="green"] .specialita-header:hover,
+div[data-sfondo="green"] .specialita-header:hover,
+[data-theme="dark"] .specialita-sfondo-green .specialita-header:hover,
+[data-theme="dark"] .specialita-card[data-sfondo="green"] .specialita-header:hover,
+[data-theme="dark"] div[data-sfondo="green"] .specialita-header:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
 /* Auto-resize textarea per descrizioni */
 .textarea-auto-resize {
   resize: none;
