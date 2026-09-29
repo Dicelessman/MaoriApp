@@ -961,7 +961,7 @@ export const UI = {
             this.runConnectivityProbe();
             await this.loadSharedComponents();
             try {
-                const links = ['presenze.html', 'storico-presenze.html', 'dashboard.html', 'calendario.html', 'esploratori.html', 'staff.html', 'audit-logs.html', 'preventivo.html', 'scadenze.html', 'scorte.html'];
+                const links = ['presenze.html', 'storico-presenze.html', 'dashboard.html', 'calendario.html', 'esploratori.html', 'staff.html', 'preventivo.html', 'scadenze.html', 'scorte.html'];
                 links.forEach(href => {
                     const l = document.createElement('link');
                     l.rel = 'prefetch';
@@ -1191,8 +1191,7 @@ export const UI = {
             'gara.html': 'Gara di Reparto',
             'scout2.html': 'Scheda Esploratore',
             'liste.html': 'Progressione Verticale e Orizzontale',
-            'archivio.html': 'Archivio Storico',
-            'audit-logs.html': 'Audit Log'
+            'archivio.html': 'Archivio Storico'
         };
         navItems.forEach(item => {
             const href = item.getAttribute('href');

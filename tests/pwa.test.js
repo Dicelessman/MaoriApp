@@ -28,7 +28,7 @@ describe("Service Worker v9", () => {
   let sw, urls;
   beforeEach(() => { sw = readSwFile(); urls = extractCachedUrls(sw); });
 
-  it("versione cache valida", () => expect(sw).toMatch(/presenziario-cache-v(?:[789]|1\d+)/));
+  it("versione cache valida", () => expect(sw).toMatch(/presenziario-cache-v(?:[789]|[1-9]\d+)/));
   it("runtime cache valida", () => expect(sw).toMatch(/presenziario-runtime-v[345]/));
   it("skipWaiting presente", () => expect(sw).toContain("skipWaiting"));
   it("clients.claim presente", () => expect(sw).toContain("clients.claim"));

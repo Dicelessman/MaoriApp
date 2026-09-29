@@ -41,7 +41,6 @@ export default defineConfig(({ mode }) => {
                 calendario: resolve(__dirname, 'calendario.html'),
                 esploratori: resolve(__dirname, 'esploratori.html'),
                 staff: resolve(__dirname, 'staff.html'),
-                auditLogs: resolve(__dirname, 'audit-logs.html'),
                 statistiche: resolve(__dirname, 'statistiche.html'),
                 liste: resolve(__dirname, 'liste.html'),
                 pagamenti: resolve(__dirname, 'pagamenti.html'),

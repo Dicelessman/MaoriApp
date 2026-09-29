@@ -17,8 +17,7 @@ export const COLLECTIONS = {
     COMMENTS: 'comments',
     USER_PREFERENCES: 'user-preferences',
     FCM_TOKENS: 'fcm-tokens',
-    NOTIFICATIONS: 'in-app-notifications',
-    AUDIT_LOGS: 'audit-logs'
+    NOTIFICATIONS: 'in-app-notifications'
 };
 export const NOTIFICATION_TYPES = {
     INFO: 'info',
