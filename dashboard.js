@@ -1,7 +1,7 @@
 // dashboard.js - Logica unificata per Dashboard & Statistiche
 import { UI as uiInstance } from './js/ui/ui.js';
 import { cngeiService } from './js/services/cngei-service.js';
-import { collectPendingProgressioni, collectSyncedProgressioni, sendProgressioneToCngei } from './js/services/cngei-progressioni.js';
+import { collectPendingProgressioni, collectSyncedProgressioni, sendProgressioneToCngei, reconcileWithCngeiBrevetti } from './js/services/cngei-progressioni.js';
 
 const UI = (typeof window !== 'undefined' && window.UI) ? window.UI : uiInstance;
 
@@ -1099,13 +1099,55 @@ UI.openCngeiRepartoProgressioniModal = async function () {
   const warningBanner = document.getElementById('repartoProgWarningBanner');
   const confirmBtn = document.getElementById('confirmSendRepartoProgBtn');
 
-  if (pendingContainer) pendingContainer.innerHTML = '<div class="text-sm text-slate-400 py-6 text-center">Caricamento progressioni dal portale CNGEI...</div>';
+  if (pendingContainer) pendingContainer.innerHTML = '<div class="text-sm text-slate-400 py-6 text-center">Riconciliazione con il portale CNGEI...</div>';
   if (syncedContainer) syncedContainer.innerHTML = '';
   if (confirmBtn) confirmBtn.disabled = true;
 
   try {
     const progressioniTypes = await cngeiService.getProgressioniTypes();
-    const scouts = this.state?.scouts || [];
+    let scouts = this.state?.scouts || [];
+
+    // Pre-riconciliazione: per ogni esploratore con idCngei, allinea i dati locali
+    // con quelli già presenti a portale (previene 409 su progressioni già registrate)
+    const scoutsWithCngei = scouts.filter(s => s.idCngei);
+    if (scoutsWithCngei.length > 0) {
+      const reconcileResults = await Promise.allSettled(
+        scoutsWithCngei.map(async scout => {
+          try {
+            const persona = await cngeiService.getPersona(scout.idCngei);
+            const portalBrevetti = persona?.brevetti || persona?.progressioni || [];
+            if (portalBrevetti.length === 0) return null;
+            const { scout: updated, changed } = reconcileWithCngeiBrevetti({ ...scout }, portalBrevetti);
+            if (changed && typeof DATA !== 'undefined' && DATA.updateScout) {
+              await DATA.updateScout(scout.id, updated, this.currentUser);
+              return { id: scout.id, updated };
+            }
+            return null;
+          } catch (e) {
+            // Ignora errori di riconciliazione per singolo scout, non blocca il flusso
+            console.warn(`Riconciliazione CNGEI fallita per ${scout.nome} ${scout.cognome}:`, e.message);
+            return null;
+          }
+        })
+      );
+
+      // Aggiorna lo state locale con i dati riconciliati
+      const updatedMap = new Map();
+      reconcileResults.forEach(r => {
+        if (r.status === 'fulfilled' && r.value) {
+          updatedMap.set(r.value.id, r.value.updated);
+        }
+      });
+      if (updatedMap.size > 0) {
+        scouts = scouts.map(s => updatedMap.has(s.id) ? updatedMap.get(s.id) : s);
+        // Aggiorna state globale
+        if (this.state) {
+          this.state = { ...this.state, scouts };
+        }
+      }
+    }
+
+    if (pendingContainer) pendingContainer.innerHTML = '<div class="text-sm text-slate-400 py-6 text-center">Calcolo progressioni...</div>';
 
     const pending = [];
     const synced = [];
