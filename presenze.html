@@ -52,6 +52,10 @@
               <span>📊</span>
               <span>Esporta CSV / Excel</span>
             </button>
+            <button id="openCngeiPresencesModalBtn" onclick="UI.openCngeiPresencesModal()" class="btn-primary px-3.5 py-2 text-sm flex items-center gap-1.5 shadow-sm bg-emerald-700 hover:bg-emerald-800 text-white" title="Invia attività e presenze al portale CNGEI">
+              <span>⚜️</span>
+              <span>Invia a Portale CNGEI</span>
+            </button>
           </div>
         </div>
 
@@ -331,6 +335,49 @@
             <button type="button" onclick="UI.closeModal('exportPresenzeModal')" class="btn-secondary px-4 py-2 text-xs font-semibold">Annulla</button>
             <button type="button" onclick="UI.executeAdvancedPresenzeExport()" class="btn-primary px-4 py-2 text-xs font-semibold flex items-center gap-1.5">
               <span>💾</span> Scarica File
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modale Invio Presenze al Portale CNGEI -->
+      <div id="cngeiPresencesModal" class="modal">
+        <div class="modal-content max-w-xl mx-auto p-0 overflow-hidden flex flex-col">
+          <div class="px-6 py-4 bg-emerald-800 text-white flex items-center justify-between shadow-md">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">⚜️</span>
+              <div>
+                <h3 class="text-base font-bold">Invia Presenze a Portale CNGEI</h3>
+                <p class="text-xs text-emerald-200">Registra riunioni, uscite ed elenchi presenti/assenti sul portale nazionale</p>
+              </div>
+            </div>
+            <button type="button" onclick="UI.closeModal('cngeiPresencesModal')" class="text-emerald-200 hover:text-white p-1 text-2xl leading-none">&times;</button>
+          </div>
+
+          <div class="p-6 space-y-4">
+            <div>
+              <label for="cngeiPresencesActivitySelect" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+                Seleziona Attività da sincronizzare
+              </label>
+              <select id="cngeiPresencesActivitySelect" class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <!-- Popolato da JS -->
+              </select>
+            </div>
+
+            <!-- Dettaglio anteprima attività selezionata -->
+            <div id="cngeiPresencesPreview" class="p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 space-y-3 text-xs">
+              <!-- Popolato dinamicamente -->
+            </div>
+
+            <!-- Avviso esploratori non censiti se presenti -->
+            <div id="cngeiPresencesUnlinkedNotice" class="hidden p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200"></div>
+          </div>
+
+          <div class="px-6 py-3.5 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+            <button type="button" onclick="UI.closeModal('cngeiPresencesModal')" class="btn-secondary px-4 py-2 text-xs font-semibold">Annulla</button>
+            <button type="button" id="confirmCngeiPresenceSyncBtn" class="btn-primary px-4 py-2 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white flex items-center gap-1.5">
+              <span>⚜️</span>
+              <span id="confirmCngeiPresenceSyncBtnText">Invia al Portale</span>
             </button>
           </div>
         </div>

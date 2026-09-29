@@ -1,5 +1,7 @@
 // scout2.js - pagina scheda personale esploratore (versione refactored)
 import { generateScoutSentieroHtml, normalizeSpecialitaName, getSpecialitaSlug } from './js/utils/utils.js';
+import { cngeiService } from './js/services/cngei-service.js';
+import { collectPendingProgressioni, collectSyncedProgressioni, sendProgressioneToCngei } from './js/services/cngei-progressioni.js';
 
 // Cache per i dati JSON statici (permanente, questi file non cambiano mai)
 UI.challengesData = null;
@@ -324,6 +326,60 @@ UI.renderScoutPage = async function () {
     // Inizializza gestione sezioni specialità espandibili
     this.initSpecialitaSections();
 
+    // Badge CNGEI per Tracce convalidate
+    ['1', '2', '3'].forEach(num => {
+      const tracciaId = s[`cngei_traccia${num}_id`];
+      const header = this.qs(`.traccia-header[data-traccia="${num}"]`);
+      if (header) {
+        const existingBadge = header.querySelector('.cngei-traccia-badge');
+        if (existingBadge) existingBadge.remove();
+        if (tracciaId) {
+          const badge = document.createElement('span');
+          badge.className = 'cngei-traccia-badge inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 font-semibold border border-emerald-300 dark:border-emerald-700 shadow-xs ml-2';
+          badge.title = 'Convalidata su Portale CNGEI';
+          badge.textContent = '✓ CNGEI';
+          const titleContainer = header.querySelector('h4');
+          if (titleContainer) titleContainer.appendChild(badge);
+        }
+      }
+    });
+
+    // Event listener per i pulsanti invio progressioni CNGEI
+    document.querySelectorAll('.openCngeiProgModalBtn').forEach(btn => {
+      if (!btn._bound) {
+        btn._bound = true;
+        btn.addEventListener('click', () => this.openCngeiProgressioniModal());
+      }
+    });
+
+    const closeProgModalBtn = this.qs('#closeCngeiProgModalBtn');
+    if (closeProgModalBtn && !closeProgModalBtn._bound) {
+      closeProgModalBtn._bound = true;
+      closeProgModalBtn.addEventListener('click', () => this.closeModal('cngeiProgressioniModal'));
+    }
+
+    const cancelProgModalBtn = this.qs('#cancelCngeiProgModalBtn');
+    if (cancelProgModalBtn && !cancelProgModalBtn._bound) {
+      cancelProgModalBtn._bound = true;
+      cancelProgModalBtn.addEventListener('click', () => this.closeModal('cngeiProgressioniModal'));
+    }
+
+    const selectAllProgBtn = this.qs('#cngeiProgSelectAllBtn');
+    if (selectAllProgBtn && !selectAllProgBtn._bound) {
+      selectAllProgBtn._bound = true;
+      selectAllProgBtn.addEventListener('click', () => {
+        const chks = document.querySelectorAll('.cngei-prog-chk');
+        const anyUnchecked = Array.from(chks).some(c => !c.checked);
+        chks.forEach(c => { c.checked = anyUnchecked; });
+      });
+    }
+
+    const confirmSendProgBtn = this.qs('#confirmSendProgBtn');
+    if (confirmSendProgBtn && !confirmSendProgBtn._bound) {
+      confirmSendProgBtn._bound = true;
+      confirmSendProgBtn.addEventListener('click', () => this.sendSelectedProgressioniToCngei());
+    }
+
     // Inizializza navigazione tra sezioni
     setTimeout(() => {
       if (this.initSectionNavigation) {
@@ -332,6 +388,196 @@ UI.renderScoutPage = async function () {
     }, 100);
   } finally {
     this._isRenderingScoutPage = false;
+  }
+};
+
+/**
+ * Apre il modal di invio progressioni e specialità al Portale CNGEI (Passo 5)
+ */
+UI.openCngeiProgressioniModal = async function () {
+  const s = this.currentScout;
+  if (!s) return;
+
+  const modal = this.qs('#cngeiProgressioniModal');
+  if (!modal) return;
+
+  const nameEl = this.qs('#cngeiProgScoutName');
+  if (nameEl) {
+    const fullName = `${s.nome || ''} ${s.cognome || ''}`.trim() || 'Esploratore';
+    nameEl.textContent = `Esploratore: ${fullName}${s.tesseraCngei ? ` (Tessera #${s.tesseraCngei})` : ''}`;
+  }
+
+  const noIdWarning = this.qs('#cngeiProgNoIdWarning');
+  const confirmBtn = this.qs('#confirmSendProgBtn');
+  if (!s.idCngei) {
+    noIdWarning?.classList.remove('hidden');
+    if (confirmBtn) confirmBtn.disabled = true;
+  } else {
+    noIdWarning?.classList.add('hidden');
+    if (confirmBtn) confirmBtn.disabled = false;
+  }
+
+  const pendingList = this.qs('#cngeiProgPendingList');
+  const syncedList = this.qs('#cngeiProgSyncedList');
+  const pendingCount = this.qs('#cngeiProgPendingCount');
+  const syncedCount = this.qs('#cngeiProgSyncedCount');
+
+  if (pendingList) pendingList.innerHTML = '<div class="text-sm text-slate-500 py-3 text-center">Caricamento progressioni da portale CNGEI...</div>';
+  if (syncedList) syncedList.innerHTML = '';
+
+  modal.classList.remove('hidden');
+
+  try {
+    const progressioniTypes = await cngeiService.getProgressioniTypes();
+
+    // Includi anche eventuali modifiche recenti a video prima del submit del form
+    const latestSpecialita = this.collectSpecialita();
+    const scoutWithLatest = {
+      ...s,
+      specialita: latestSpecialita,
+      pv_traccia1: {
+        done: !!this.qs('#pv_traccia1_chk')?.checked,
+        data: this.qs('#pv_traccia1_dt')?.value || s.pv_traccia1?.data
+      },
+      pv_traccia2: {
+        done: !!this.qs('#pv_traccia2_chk')?.checked,
+        data: this.qs('#pv_traccia2_dt')?.value || s.pv_traccia2?.data
+      },
+      pv_traccia3: {
+        done: !!this.qs('#pv_traccia3_chk')?.checked,
+        data: this.qs('#pv_traccia3_dt')?.value || s.pv_traccia3?.data
+      }
+    };
+
+    const pending = collectPendingProgressioni(scoutWithLatest, progressioniTypes);
+    const synced = collectSyncedProgressioni(scoutWithLatest, progressioniTypes);
+
+    if (pendingCount) pendingCount.textContent = pending.length;
+    if (syncedCount) syncedCount.textContent = synced.length;
+
+    if (pending.length === 0) {
+      if (pendingList) {
+        pendingList.innerHTML = '<div class="text-sm text-slate-500 py-4 text-center">Nessuna progressione o specialità conseguita in attesa di invio.</div>';
+      }
+      if (confirmBtn) confirmBtn.disabled = true;
+    } else {
+      if (confirmBtn && s.idCngei) confirmBtn.disabled = false;
+      if (pendingList) {
+        pendingList.innerHTML = pending.map((item, idx) => `
+          <label class="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors cursor-pointer">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" class="cngei-prog-chk w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer" data-index="${idx}" checked />
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${item.category.includes('PO') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-blue-100 text-blue-800 border border-blue-200'}">${item.category}</span>
+                  <span class="font-bold text-sm text-slate-800 dark:text-slate-100">${item.name}</span>
+                </div>
+                <div class="text-xs text-slate-500 mt-0.5">Conseguita il: <strong>${item.obtainedAt}</strong></div>
+              </div>
+            </div>
+            <div class="text-xs text-emerald-600 dark:text-emerald-400 font-medium text-right">
+              ✓ Pronto per invio
+            </div>
+          </label>
+        `).join('');
+      }
+    }
+
+    if (synced.length === 0) {
+      if (syncedList) syncedList.innerHTML = '<div class="text-center py-2 text-slate-400">Nessuna progressione ancora registrata a portale.</div>';
+    } else {
+      if (syncedList) {
+        syncedList.innerHTML = synced.map(item => `
+          <div class="flex items-center justify-between py-1 border-b border-slate-100 dark:border-slate-800 last:border-none">
+            <span class="flex items-center gap-1.5 font-medium">
+              <span class="text-emerald-600">✓</span>
+              <span>${item.name} (${item.category})</span>
+            </span>
+            <span class="text-slate-400 text-[11px]">${item.obtainedAt}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    this._pendingProgressioniData = pending;
+  } catch (err) {
+    console.error('Errore recupero tipi progressione CNGEI:', err);
+    if (pendingList) pendingList.innerHTML = `<div class="text-sm text-rose-500 py-3 text-center">Errore connessione CNGEI: ${err.message || 'Errore di rete'}</div>`;
+  }
+};
+
+/**
+ * Invia le progressioni selezionate al portale CNGEI e aggiorna lo scout locale
+ */
+UI.sendSelectedProgressioniToCngei = async function () {
+  const s = this.currentScout;
+  if (!s || !s.idCngei) {
+    this.showToast('Esploratore non associato a un ID del portale CNGEI.', { type: 'error' });
+    return;
+  }
+
+  const checkboxes = Array.from(document.querySelectorAll('.cngei-prog-chk:checked'));
+  if (checkboxes.length === 0) {
+    this.showToast('Nessuna progressione selezionata da inviare.', { type: 'info' });
+    return;
+  }
+
+  const confirmBtn = this.qs('#confirmSendProgBtn');
+  const originalText = confirmBtn?.innerHTML;
+  this.setButtonLoading(confirmBtn, true, 'Invio in corso...');
+
+  try {
+    let successCount = 0;
+    const errors = [];
+
+    // Clona l'array di specialità salvate per aggiornare i campi
+    const currentSpecialita = Array.isArray(s.specialita) ? [...s.specialita] : [];
+
+    for (const chk of checkboxes) {
+      const idx = parseInt(chk.dataset.index, 10);
+      const item = this._pendingProgressioniData?.[idx];
+      if (!item) continue;
+
+      try {
+        const res = await sendProgressioneToCngei(s.idCngei, item.typeId, item.obtainedAt, cngeiService);
+        const progId = res?.id || 'synced_' + Date.now();
+
+        if (item.indexInArray !== undefined && currentSpecialita[item.indexInArray]) {
+          currentSpecialita[item.indexInArray].idProgressioneCngei = progId;
+        } else if (item.tracciaKey === 'pv_traccia1') {
+          s.cngei_traccia1_id = progId;
+        } else if (item.tracciaKey === 'pv_traccia2') {
+          s.cngei_traccia2_id = progId;
+        } else if (item.tracciaKey === 'pv_traccia3') {
+          s.cngei_traccia3_id = progId;
+        }
+
+        successCount++;
+      } catch (e) {
+        console.error(`Errore invio ${item.name}:`, e);
+        errors.push(`${item.name}: ${e.message}`);
+      }
+    }
+
+    s.specialita = currentSpecialita;
+    await DATA.updateScout(s.id, s, this.currentUser);
+    this.state = await DATA.loadAll();
+    this.rebuildPresenceIndex();
+
+    if (errors.length > 0) {
+      this.showToast(`Inviate ${successCount} progressioni. Errori su: ${errors.join(', ')}`, { type: 'warning', duration: 5000 });
+    } else {
+      this.showToast(`Sincronizzazione completata (${successCount} progressioni convalidate su CNGEI)!`);
+    }
+
+    this.closeModal('cngeiProgressioniModal');
+    // Ricarica la scheda per visualizzare i badge aggiornati
+    await this.renderScoutPage();
+  } catch (err) {
+    console.error('Errore sincronizzazione progressioni:', err);
+    this.showToast('Errore durante la sincronizzazione: ' + (err.message || 'Errore server'), { type: 'error' });
+  } finally {
+    this.setButtonLoading(confirmBtn, false, originalText);
   }
 };
 
@@ -502,6 +748,7 @@ UI.addSpecialita = async function (data = null, index = null) {
 
   const div = document.createElement('div');
   div.className = 'rounded-lg overflow-hidden';
+  div.dataset.idProgressioneCngei = data?.idProgressioneCngei || '';
   // Applica i colori dinamicamente
   this.applySpecialitaColors(div, selectedSpec || (data && (data.sfondo_colore || data.bordo_colore) ? data : null));
   div.innerHTML = `
@@ -511,7 +758,10 @@ UI.addSpecialita = async function (data = null, index = null) {
         <div class="flex items-center gap-4 flex-wrap">
           <div class="flex items-center gap-2">
             <img id="${spId}_badge" src="${slug ? `img/specialita/${slug}.png` : ''}" alt="Distintivo Specialità" class="w-8 h-8 object-contain rounded-full shadow-sm bg-white p-0.5 border border-gray-200" style="${slug ? '' : 'display:none;'}" onerror="this.style.display='none';" />
-            <h4 class="font-semibold text-lg"><span id="${spId}_title">${(selectedSpec?.nome || data?.nome && String(data.nome).trim()) || 'Specialità'}</span></h4>
+            <h4 class="font-semibold text-lg flex items-center gap-2">
+              <span id="${spId}_title">${(selectedSpec?.nome || data?.nome && String(data.nome).trim()) || 'Specialità'}</span>
+              ${data?.idProgressioneCngei ? '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 font-semibold border border-emerald-300 dark:border-emerald-700 shadow-xs" title="Sincronizzata con portale CNGEI">✓ CNGEI</span>' : ''}
+            </h4>
           </div>
           <label class="flex items-center gap-2">
             <input type="checkbox" id="${spId}_ott_chk" ${data?.ottenuta ? 'checked' : ''} />
@@ -687,7 +937,8 @@ UI.collectSpecialita = function () {
       p3_data: get('_p3_data'),
       cr_text: get('_cr_text') || '',
       cr_data: get('_cr_data'),
-      note: get('_note') || ''
+      note: get('_note') || '',
+      idProgressioneCngei: div.dataset.idProgressioneCngei || null
     };
 
     // Calcola se questa specialità ha dati
@@ -856,6 +1107,13 @@ UI.collectForm = function () {
       payload[dataKey] = get(`#pv_sfida_${dir}_${passo}_data`) || null;
     });
   });
+
+  // Preserva proprietà e tracciamento portale CNGEI
+  if (this.currentScout?.idCngei) payload.idCngei = this.currentScout.idCngei;
+  if (this.currentScout?.tesseraCngei) payload.tesseraCngei = this.currentScout.tesseraCngei;
+  if (this.currentScout?.cngei_traccia1_id) payload.cngei_traccia1_id = this.currentScout.cngei_traccia1_id;
+  if (this.currentScout?.cngei_traccia2_id) payload.cngei_traccia2_id = this.currentScout.cngei_traccia2_id;
+  if (this.currentScout?.cngei_traccia3_id) payload.cngei_traccia3_id = this.currentScout.cngei_traccia3_id;
 
   return payload;
 };

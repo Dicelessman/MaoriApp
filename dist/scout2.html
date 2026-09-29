@@ -12,9 +12,11 @@
   <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/scout2-CXjwxQUU.js"></script>
+  <script type="module" crossorigin src="/assets/scout2-BU_pyd3-.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/date-picker-4UQZC6Oi.js">
   <link rel="modulepreload" crossorigin href="/assets/shared-CWcRGm4L.js">
+  <link rel="modulepreload" crossorigin href="/assets/cngei-service-CouxiIRa.js">
+  <link rel="modulepreload" crossorigin href="/assets/cngei-sync-DwYf0NUJ.js">
   <link rel="stylesheet" crossorigin href="/assets/presenze-BvwRKHx7.css">
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -264,7 +266,12 @@
         </section>
 
         <section id="section-progressione" class="scout-tab-pane tab-pane hidden bg-green-50 dark:bg-green-950/20 p-6 rounded-xl border border-green-200 dark:border-green-800/40 shadow-sm">
-          <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Progressione Verticale</h3>
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Progressione Verticale</h3>
+            <button type="button" class="openCngeiProgModalBtn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs transition-all shadow-sm" title="Invia Tracce e Specialità al Portale CNGEI">
+              <span>⚜️</span><span>Invia a Portale CNGEI</span>
+            </button>
+          </div>
           <div class="grid md:grid-cols-2 gap-4">
             <div>
               <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
@@ -548,9 +555,14 @@
         </section>
 
         <section id="section-specialita" class="scout-tab-pane tab-pane hidden bg-green-50 dark:bg-green-950/20 p-6 rounded-xl border border-green-200 dark:border-green-800/40 shadow-sm">
-          <div class="flex justify-between items-center mb-4">
+          <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
             <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Specialità (PO)</h3>
-            <button type="button" id="addSpecialitaBtn" class="btn-primary">+ Aggiungi Specialità</button>
+            <div class="flex items-center gap-2">
+              <button type="button" class="openCngeiProgModalBtn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs transition-all shadow-sm" title="Invia Specialità al Portale CNGEI">
+                <span>⚜️</span><span>Invia a Portale CNGEI</span>
+              </button>
+              <button type="button" id="addSpecialitaBtn" class="btn-primary">+ Aggiungi Specialità</button>
+            </div>
           </div>
           <div id="specialitaContainer" class="space-y-4">
             <!-- Le specialità verranno aggiunte dinamicamente qui -->
@@ -632,6 +644,65 @@
           </div>
         </section>
       </form>
+      
+      <!-- Modal Sincronizzazione Progressioni CNGEI (Passo 5) -->
+      <div id="cngeiProgressioniModal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800">
+          <div class="px-6 py-4 bg-gradient-to-r from-emerald-800 to-teal-900 text-white flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-2.5">
+              <span class="text-2xl">⚜️</span>
+              <div>
+                <h3 class="text-lg font-bold">Invia Progressioni al Portale CNGEI</h3>
+                <p id="cngeiProgScoutName" class="text-xs text-emerald-200">Esploratore: -</p>
+              </div>
+            </div>
+            <button type="button" id="closeCngeiProgModalBtn" class="text-emerald-100 hover:text-white text-xl font-bold p-1">✕</button>
+          </div>
+
+          <div class="p-6 overflow-y-auto space-y-5 flex-1">
+            <!-- Avviso collegamento CNGEI -->
+            <div id="cngeiProgNoIdWarning" class="hidden p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg text-amber-800 dark:text-amber-200 text-sm flex items-start gap-2">
+              <span class="text-base">⚠️</span>
+              <div>
+                <strong>Attenzione:</strong> Questo esploratore non è ancora associato a un ID del portale nazionale CNGEI.
+                Esegui prima la sincronizzazione anagrafica dalla pagina <a href="esploratori.html" class="underline font-bold text-amber-900 dark:text-amber-100">Esploratori</a>.
+              </div>
+            </div>
+
+            <!-- Elenco progressioni in attesa di invio -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <span>Progressioni Conseguite da Inviare</span>
+                  <span id="cngeiProgPendingCount" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">0</span>
+                </h4>
+                <button type="button" id="cngeiProgSelectAllBtn" class="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline">Seleziona tutte</button>
+              </div>
+              <div id="cngeiProgPendingList" class="space-y-2 border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-slate-50 dark:bg-slate-800/40 min-h-[80px]">
+                <!-- Verrà popolato dinamicamente -->
+              </div>
+            </div>
+
+            <!-- Elenco progressioni già convalidate a portale -->
+            <div>
+              <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2">
+                <span>Già Convalidate sul Portale</span>
+                <span id="cngeiProgSyncedCount" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">0</span>
+              </h4>
+              <div id="cngeiProgSyncedList" class="space-y-1.5 border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-slate-50 dark:bg-slate-800/40 max-h-40 overflow-y-auto text-xs text-slate-600 dark:text-slate-400">
+                <!-- Verrà popolato dinamicamente -->
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center shrink-0">
+            <button type="button" id="cancelCngeiProgModalBtn" class="btn-secondary text-sm">Chiudi</button>
+            <button type="button" id="confirmSendProgBtn" class="btn-primary text-sm flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 py-2 rounded-lg shadow-sm">
+              <span>Invia Selezionate al Portale</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
   <div id="printArea" style="display:none"></div>

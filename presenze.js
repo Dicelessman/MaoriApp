@@ -1,6 +1,8 @@
 // presenze.js - Logica specifica per la pagina Presenze
 import { DATA } from './js/data/data-facade.js';
 import { UI } from './js/ui/ui.js';
+import { cngeiService } from './js/services/cngei-service.js';
+import { syncActivityToCngei } from './js/services/cngei-meeting-sync.js';
 
 // Assicura la disponibilità globale per inline event handlers
 if (typeof window !== 'undefined') {
@@ -1818,6 +1820,183 @@ UI.updateBatchActivitySelect = function () {
  */
 UI.exportToCSV = function () {
   this.openExportModal();
+};
+
+// ==========================================
+// SINCRONIZZAZIONE ATTIVITÀ E PRESENZE CNGEI (PASSO 4)
+// ==========================================
+
+UI.openCngeiPresencesModal = async function () {
+  if (!this.currentUser) {
+    this.showToast('Devi essere autenticato per inviare i dati al portale CNGEI.', { type: 'error' });
+    return;
+  }
+
+  const select = this.qs('#cngeiPresencesActivitySelect');
+  if (!select) return;
+
+  const currentYear = this.currentScoutYear || (this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026');
+  const allActs = this.state.activities || [];
+  const acts = allActs
+    .filter(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, currentYear) : true)
+    .sort((a, b) => this.toJsDate(b.data) - this.toJsDate(a.data));
+
+  if (acts.length === 0) {
+    this.showToast('Nessuna attività registrata per l\'anno scout corrente.', { type: 'warning' });
+    return;
+  }
+
+  select.innerHTML = acts.map(a => {
+    const d = this.toJsDate(a.data);
+    const ds = isNaN(d) ? '??/??' : d.toLocaleDateString('it-IT');
+    const syncedBadge = a.idMeetingCngei ? ' [CNGEI ✓]' : '';
+    return `<option value="${a.id}">${ds} - ${a.tipo || 'Attività'}${a.descrizione ? ' (' + a.descrizione + ')' : ''}${syncedBadge}</option>`;
+  }).join('');
+
+  if (!select._bound) {
+    select._bound = true;
+    select.addEventListener('change', () => this.renderCngeiPresencesPreview());
+  }
+
+  const confirmBtn = this.qs('#confirmCngeiPresenceSyncBtn');
+  if (confirmBtn && !confirmBtn._bound) {
+    confirmBtn._bound = true;
+    confirmBtn.addEventListener('click', () => this.executeCngeiPresencesSync());
+  }
+
+  this.renderCngeiPresencesPreview();
+  this.showModal('cngeiPresencesModal');
+};
+
+UI.renderCngeiPresencesPreview = function () {
+  const select = this.qs('#cngeiPresencesActivitySelect');
+  const preview = this.qs('#cngeiPresencesPreview');
+  const unlinkedNotice = this.qs('#cngeiPresencesUnlinkedNotice');
+  const confirmBtnText = this.qs('#confirmCngeiPresenceSyncBtnText');
+
+  if (!select || !preview) return;
+
+  const actId = select.value;
+  const activity = (this.state.activities || []).find(a => a.id === actId);
+  if (!activity) {
+    preview.innerHTML = '<div class="text-gray-500">Seleziona un\'attività valida.</div>';
+    return;
+  }
+
+  const d = this.toJsDate(activity.data);
+  const ds = isNaN(d) ? '' : d.toLocaleDateString('it-IT');
+  const presences = (this.state.presences || []).filter(p => p.attivitaId === actId);
+  const scouts = this.state.scouts || [];
+  const scoutMap = new Map(scouts.map(s => [s.id, s]));
+
+  let presentLinked = 0;
+  let absentLinked = 0;
+  const unlinkedScouts = [];
+
+  presences.forEach(p => {
+    const s = scoutMap.get(p.esploratoreId);
+    if (!s) return;
+    if (s.idCngei) {
+      if (p.stato === 'Presente') presentLinked++;
+      else if (p.stato === 'Assente') absentLinked++;
+    } else {
+      if (p.stato === 'Presente' || p.stato === 'Assente') {
+        unlinkedScouts.push(s);
+      }
+    }
+  });
+
+  const isSynced = !!activity.idMeetingCngei;
+  if (confirmBtnText) {
+    confirmBtnText.textContent = isSynced ? 'Aggiorna Presenze a Portale' : 'Invia Riunione e Presenze';
+  }
+
+  preview.innerHTML = `
+    <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2.5">
+      <div>
+        <div class="font-bold text-sm text-gray-900 dark:text-white">${activity.tipo || 'Attività'}${activity.descrizione ? ' — ' + activity.descrizione : ''}</div>
+        <div class="text-gray-500 dark:text-gray-400 mt-0.5">📅 Data: ${ds}</div>
+      </div>
+      <div>
+        ${isSynced
+          ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Registrato su CNGEI ✅</span>'
+          : '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-700 border border-gray-300">Non ancora inviato</span>'
+        }
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 pt-1 text-center">
+      <div class="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+        <div class="text-xl font-bold text-emerald-700 dark:text-emerald-400">${presentLinked}</div>
+        <div class="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">Presenti censiti CNGEI</div>
+      </div>
+      <div class="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800">
+        <div class="text-xl font-bold text-rose-700 dark:text-rose-400">${absentLinked}</div>
+        <div class="text-[11px] font-semibold text-rose-800 dark:text-rose-300">Assenti censiti CNGEI</div>
+      </div>
+    </div>
+  `;
+
+  if (unlinkedNotice) {
+    if (unlinkedScouts.length > 0) {
+      unlinkedNotice.classList.remove('hidden');
+      unlinkedNotice.innerHTML = `
+        <b>Nota:</b> ${unlinkedScouts.length} esploratori registrati in questa attività non risultano ancora collegati alla matricola CNGEI (${unlinkedScouts.slice(0, 3).map(s => s.nome).join(', ')}${unlinkedScouts.length > 3 ? '...' : ''}). Puoi collegarli dalla pagina <b>Esploratori ➔ Sincronizza CNGEI</b>.
+      `;
+    } else {
+      unlinkedNotice.classList.add('hidden');
+    }
+  }
+};
+
+UI.executeCngeiPresencesSync = async function () {
+  const select = this.qs('#cngeiPresencesActivitySelect');
+  if (!select) return;
+
+  const actId = select.value;
+  const activity = (this.state.activities || []).find(a => a.id === actId);
+  if (!activity) return;
+
+  const confirmBtn = this.qs('#confirmCngeiPresenceSyncBtn');
+  const origText = confirmBtn?.innerHTML;
+  this.setButtonLoading(confirmBtn, true, 'Invio a CNGEI...');
+
+  try {
+    const conn = await cngeiService.checkConnection();
+    if (!conn.connected || !conn.idUnita) {
+      throw new Error('Connessione al portale CNGEI non attiva o identificativo unità Reparto mancante.');
+    }
+
+    const res = await syncActivityToCngei(
+      activity,
+      this.state.presences,
+      this.state.scouts,
+      conn.idUnita,
+      cngeiService
+    );
+
+    // Salva identificativo meeting e data
+    await DATA.updateActivity({
+      id: activity.id,
+      idMeetingCngei: res.meetingId,
+      cngei_sync_date: new Date().toISOString()
+    }, this.currentUser);
+
+    activity.idMeetingCngei = res.meetingId;
+    activity.cngei_sync_date = new Date().toISOString();
+
+    this.closeModal('cngeiPresencesModal');
+    let msg = `Presenze sincronizzate su CNGEI! (${res.presentCount} presenti, ${res.absentCount} assenti)`;
+    if (res.unlinkedCount > 0) {
+      msg += ` • ${res.unlinkedCount} non censiti saltati.`;
+    }
+    this.showToast(msg, { type: 'success', duration: 4000 });
+  } catch (err) {
+    console.error('Errore invio presenze CNGEI:', err);
+    this.showToast('Errore durante l\'invio a CNGEI: ' + (err.message || 'Errore sconosciuto'), { type: 'error', duration: 4500 });
+  } finally {
+    this.setButtonLoading(confirmBtn, false, origText);
+  }
 };
 
 // Inizializza la pagina presenze

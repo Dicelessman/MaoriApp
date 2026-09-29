@@ -1,4 +1,11 @@
 // calendario.js - Logica specifica per la pagina Calendario
+import { cngeiService } from './js/services/cngei-service.js';
+import {
+  classifyCngeiEventType,
+  findMatchingExistingActivity,
+  prepareEventActivityPayload,
+  filterAndSortCngeiEvents
+} from './js/services/cngei-eventi-sync.js';
 
 UI.renderCurrentPage = function () {
   this.setupScoutYearSelector();
@@ -6,6 +13,7 @@ UI.renderCurrentPage = function () {
   this.setupCalendarEvents();
   this.setupCalendarViewToggle();
   this.setupCalendarExport();
+  this.setupCngeiEventsSync();
 };
 
 UI.setupScoutYearSelector = function () {
@@ -669,9 +677,10 @@ UI.renderCalendarList = function () {
         <div class="flex items-center gap-2 flex-1">
           ${this.currentUser ? '<span class="drag-handle text-gray-400 cursor-grab select-none text-xl opacity-50 hover:opacity-100" draggable="true">☰</span>' : ''}
           <div class="flex-1">
-            <div class="flex items-center flex-wrap">
+            <div class="flex items-center flex-wrap gap-2">
                 <h3 class="font-bold text-lg ${finalTextClass}">${a.tipo}</h3>
                 ${nextLabel}
+                ${a.idEventoCngei ? '<span class="text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 px-2 py-0.5 rounded-full" title="Evento Nazionale CNGEI sincronizzato">⛺ Portale CNGEI</span>' : ''}
             </div>
             <p class="font-medium text-gray-900 dark:text-gray-100 mt-1">📅 ${fullDateStr}</p>
             <p class="text-gray-700 dark:text-gray-300 mt-1">${a.descrizione}${costoLabel}</p>
@@ -1192,5 +1201,164 @@ UI.validateActivityDateRange = function (date) {
 
   return { valid: true };
 };
+
+// ============== Sincronizzazione Eventi e Campi Nazionali CNGEI (Passo 6) ==============
+
+UI.setupCngeiEventsSync = function () {
+  const openBtn = this.qs('#openCngeiEventsModalBtn');
+  if (openBtn && !openBtn._bound) {
+    openBtn._bound = true;
+    openBtn.addEventListener('click', () => this.openCngeiEventsModal());
+  }
+
+  const closeBtn = this.qs('#closeCngeiEventsModalBtn');
+  if (closeBtn && !closeBtn._bound) {
+    closeBtn._bound = true;
+    closeBtn.addEventListener('click', () => this.closeModal('cngeiEventsModal'));
+  }
+
+  const cancelBtn = this.qs('#cancelCngeiEventsModalBtn');
+  if (cancelBtn && !cancelBtn._bound) {
+    cancelBtn._bound = true;
+    cancelBtn.addEventListener('click', () => this.closeModal('cngeiEventsModal'));
+  }
+
+  const filterSelect = this.qs('#cngeiEventFilterType');
+  if (filterSelect && !filterSelect._bound) {
+    filterSelect._bound = true;
+    filterSelect.addEventListener('change', () => this.renderCngeiEventsList());
+  }
+
+  const selectAllBtn = this.qs('#cngeiEventSelectAllBtn');
+  if (selectAllBtn && !selectAllBtn._bound) {
+    selectAllBtn._bound = true;
+    selectAllBtn.addEventListener('click', () => {
+      const chks = document.querySelectorAll('.cngei-event-chk:not(:disabled)');
+      const anyUnchecked = Array.from(chks).some(c => !c.checked);
+      chks.forEach(c => { c.checked = anyUnchecked; });
+    });
+  }
+
+  const confirmBtn = this.qs('#confirmImportCngeiEventsBtn');
+  if (confirmBtn && !confirmBtn._bound) {
+    confirmBtn._bound = true;
+    confirmBtn.addEventListener('click', () => this.importSelectedCngeiEvents());
+  }
+};
+
+UI.openCngeiEventsModal = async function () {
+  const modal = this.qs('#cngeiEventsModal');
+  if (!modal) return;
+
+  const listEl = this.qs('#cngeiEventsList');
+  if (listEl) listEl.innerHTML = '<div class="text-sm text-slate-500 py-6 text-center">Caricamento eventi dal portale CNGEI...</div>';
+
+  modal.classList.remove('hidden');
+
+  try {
+    const rawEvents = await cngeiService.getEventi();
+    this._cngeiRawEvents = Array.isArray(rawEvents) ? rawEvents : [];
+    this.renderCngeiEventsList();
+  } catch (err) {
+    console.error('Errore caricamento eventi CNGEI:', err);
+    if (listEl) {
+      listEl.innerHTML = `<div class="text-sm text-rose-500 py-6 text-center">Errore durante il recupero degli eventi: ${err.message || 'Errore server'}</div>`;
+    }
+  }
+};
+
+UI.renderCngeiEventsList = function () {
+  const listEl = this.qs('#cngeiEventsList');
+  if (!listEl) return;
+
+  const filterType = this.qs('#cngeiEventFilterType')?.value || 'ALL';
+  const existingActivities = this.state.activities || [];
+
+  const filteredEvents = filterAndSortCngeiEvents(this._cngeiRawEvents || [], { tipoFilter: filterType });
+
+  if (filteredEvents.length === 0) {
+    listEl.innerHTML = '<div class="text-sm text-slate-500 py-6 text-center">Nessun evento registrato trovato per questo filtro.</div>';
+    return;
+  }
+
+  listEl.innerHTML = filteredEvents.map(ev => {
+    const match = findMatchingExistingActivity(ev, existingActivities);
+    const isAlreadyImported = !!match;
+    const classifiedType = classifyCngeiEventType(ev);
+
+    let dateStr = ev.inizioEvento || '';
+    if (ev.fineEvento && ev.fineEvento !== ev.inizioEvento) {
+      dateStr += ` — ${ev.fineEvento}`;
+    }
+
+    return `
+      <label class="block p-3.5 rounded-lg border transition-all ${isAlreadyImported ? 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 opacity-70' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-emerald-500 cursor-pointer shadow-xs'}">
+        <div class="flex items-start gap-3">
+          <input type="checkbox" class="cngei-event-chk w-4 h-4 rounded mt-1 text-emerald-600 focus:ring-emerald-500 cursor-pointer" data-id="${ev.id}" ${isAlreadyImported ? 'disabled' : 'checked'} />
+          <div class="flex-1">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${ev.tipo === 'ADULTI' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200'}">${ev.tipo || 'GIOVANI'}</span>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">Tipo: ${classifiedType}</span>
+                <span class="font-bold text-sm text-slate-800 dark:text-slate-100">${ev.nome}</span>
+              </div>
+              ${isAlreadyImported ? '<span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">✓ Già nel Calendario</span>' : '<span class="text-xs font-semibold text-slate-500">Nuovo</span>'}
+            </div>
+            <div class="text-xs text-slate-600 dark:text-slate-400 mt-1 flex items-center gap-1.5 font-medium">
+              <span>📅 ${dateStr}</span>
+              ${ev.iscrizioniCount !== undefined ? `<span>• Iscritti: ${ev.iscrizioniCount}${ev.maxPartecipanti ? `/${ev.maxPartecipanti}` : ''}</span>` : ''}
+            </div>
+            ${ev.descrizione ? `<p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">${ev.descrizione}</p>` : ''}
+          </div>
+        </div>
+      </label>
+    `;
+  }).join('');
+};
+
+UI.importSelectedCngeiEvents = async function () {
+  if (!this.currentUser) {
+    this.showToast('Devi essere autenticato per aggiungere attività al calendario.', { type: 'error' });
+    return;
+  }
+
+  const chks = Array.from(document.querySelectorAll('.cngei-event-chk:checked:not(:disabled)'));
+  if (chks.length === 0) {
+    this.showToast('Nessun nuovo evento selezionato da importare.', { type: 'info' });
+    return;
+  }
+
+  const confirmBtn = this.qs('#confirmImportCngeiEventsBtn');
+  const originalText = confirmBtn?.innerHTML;
+  this.setButtonLoading(confirmBtn, true, 'Importazione in corso...');
+
+  try {
+    let count = 0;
+    for (const chk of chks) {
+      const eventId = chk.dataset.id;
+      const ev = (this._cngeiRawEvents || []).find(e => e.id === eventId);
+      if (!ev) continue;
+
+      const payload = prepareEventActivityPayload(ev);
+      await DATA.addActivity(payload, this.currentUser);
+      count++;
+    }
+
+    this.state = await DATA.loadAll();
+    this.renderCalendarList();
+    if (this.currentCalendarView === 'month') {
+      this.renderMonthlyCalendar();
+    }
+
+    this.showToast(`Importati ${count} eventi dal portale CNGEI con successo!`);
+    this.closeModal('cngeiEventsModal');
+  } catch (err) {
+    console.error('Errore importazione eventi CNGEI:', err);
+    this.showToast('Errore durante l\'importazione degli eventi: ' + (err.message || 'Errore server'), { type: 'error' });
+  } finally {
+    this.setButtonLoading(confirmBtn, false, originalText);
+  }
+};
+
 
 

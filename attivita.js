@@ -1,4 +1,6 @@
 // attivita.js - pagina dettaglio attività
+import { cngeiService } from './js/services/cngei-service.js';
+import { syncActivityToCngei } from './js/services/cngei-meeting-sync.js';
 
 UI.renderCurrentPage = function() {
   this.renderActivityPage();
@@ -32,6 +34,20 @@ UI.renderActivityPage = async function() {
   const metaEl = this.qs('#activityMeta');
   if (titleEl) titleEl.textContent = `${activity.tipo || 'Attività'}${activity.descrizione ? ' — ' + activity.descrizione : ''}`;
   if (metaEl) metaEl.textContent = `${ds}${activity.costo ? ` — Costo: €${activity.costo}` : ''}`;
+
+  // Badge e testo bottone CNGEI
+  const cngeiBadge = this.qs('#activityCngeiBadge');
+  const syncBtnText = this.qs('#syncCngeiMeetingBtnText');
+  if (activity.idMeetingCngei) {
+    if (cngeiBadge) {
+      cngeiBadge.classList.remove('hidden');
+      cngeiBadge.innerHTML = `⚜️ Sincronizzato con Portale CNGEI`;
+    }
+    if (syncBtnText) syncBtnText.textContent = 'Aggiorna Presenze su CNGEI';
+  } else {
+    if (cngeiBadge) cngeiBadge.classList.add('hidden');
+    if (syncBtnText) syncBtnText.textContent = 'Invia a Portale CNGEI';
+  }
 
   // Prepara indici
   const presenze = this.getDedupedPresences().filter(p => p.attivitaId === activityId);
@@ -144,6 +160,63 @@ UI.renderActivityPage = async function() {
     copyPagamentiBtn.addEventListener('click', () => {
       const txt = joinLines(pagamenti, x => `${x.nome} — ${x.metodo}`);
       copy(txt);
+    });
+  }
+
+  // Bottone sincronizzazione meeting e presenze CNGEI
+  const syncCngeiBtn = this.qs('#syncCngeiMeetingBtn');
+  if (syncCngeiBtn && !syncCngeiBtn._bound) {
+    syncCngeiBtn._bound = true;
+    syncCngeiBtn.addEventListener('click', async () => {
+      if (!this.currentUser) {
+        this.showToast('Devi essere autenticato per inviare i dati a portale.', { type: 'error' });
+        return;
+      }
+
+      const origText = syncCngeiBtn.innerHTML;
+      this.setButtonLoading(syncCngeiBtn, true, 'Sincronizzazione...');
+
+      try {
+        const conn = await cngeiService.checkConnection();
+        if (!conn.connected || !conn.idUnita) {
+          throw new Error('Connessione al portale CNGEI non attiva o identificativo unità Reparto non trovato.');
+        }
+
+        const res = await syncActivityToCngei(
+          activity,
+          this.state.presences,
+          this.state.scouts,
+          conn.idUnita,
+          cngeiService
+        );
+
+        // Salva idMeetingCngei e data sync
+        await DATA.updateActivity({
+          id: activity.id,
+          idMeetingCngei: res.meetingId,
+          cngei_sync_date: new Date().toISOString()
+        }, this.currentUser);
+
+        activity.idMeetingCngei = res.meetingId;
+        activity.cngei_sync_date = new Date().toISOString();
+
+        if (cngeiBadge) {
+          cngeiBadge.classList.remove('hidden');
+          cngeiBadge.innerHTML = `⚜️ Sincronizzato con Portale CNGEI`;
+        }
+        if (syncBtnText) syncBtnText.textContent = 'Aggiorna Presenze su CNGEI';
+
+        let msg = `Attività e presenze inviate a CNGEI! (${res.presentCount} presenti, ${res.absentCount} assenti)`;
+        if (res.unlinkedCount > 0) {
+          msg += ` • ${res.unlinkedCount} esploratori non censiti su CNGEI saltati.`;
+        }
+        this.showToast(msg, { type: 'success', duration: 4000 });
+      } catch (err) {
+        console.error('Errore sincronizzazione meeting CNGEI:', err);
+        this.showToast('Errore durante l\'invio a CNGEI: ' + (err.message || 'Errore sconosciuto'), { type: 'error', duration: 4500 });
+      } finally {
+        this.setButtonLoading(syncCngeiBtn, false, origText);
+      }
     });
   }
   
