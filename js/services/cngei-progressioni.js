@@ -172,16 +172,104 @@ export function collectSyncedProgressioni(scout, progressioniTypes = []) {
 }
 
 /**
+ * Riconcilia lo scout locale con i brevetti/progressioni già registrati a portale CNGEI
+ * Identifica le progressioni già presenti sul portale e ne memorizza gli ID di convalida
+ */
+export function reconcileWithCngeiBrevetti(scout, portalBrevetti = []) {
+  if (!scout || !Array.isArray(portalBrevetti)) return { scout, changed: false };
+
+  let changed = false;
+  const specialitaList = Array.isArray(scout.specialita) ? [...scout.specialita] : [];
+
+  portalBrevetti.forEach(b => {
+    const typeName = b.progressioneType?.name || b.tipo || '';
+    if (!typeName) return;
+    const normTypeName = normalizeString(typeName);
+    const kind = b.progressioneType?.kind || '';
+
+    if (normTypeName.includes('traccia 1') || typeName === 'Traccia 1') {
+      if (scout.cngei_traccia1_id !== b.id) {
+        scout.cngei_traccia1_id = b.id;
+        changed = true;
+      }
+      if (!scout.pv_traccia1 || !scout.pv_traccia1.done) {
+        scout.pv_traccia1 = { ...(scout.pv_traccia1 || {}), done: true, data: b.obtainedAt || scout.pv_traccia1?.data };
+        changed = true;
+      }
+    } else if (normTypeName.includes('traccia 2') || typeName === 'Traccia 2') {
+      if (scout.cngei_traccia2_id !== b.id) {
+        scout.cngei_traccia2_id = b.id;
+        changed = true;
+      }
+      if (!scout.pv_traccia2 || !scout.pv_traccia2.done) {
+        scout.pv_traccia2 = { ...(scout.pv_traccia2 || {}), done: true, data: b.obtainedAt || scout.pv_traccia2?.data };
+        changed = true;
+      }
+    } else if (normTypeName.includes('traccia 3') || typeName === 'Traccia 3') {
+      if (scout.cngei_traccia3_id !== b.id) {
+        scout.cngei_traccia3_id = b.id;
+        changed = true;
+      }
+      if (!scout.pv_traccia3 || !scout.pv_traccia3.done) {
+        scout.pv_traccia3 = { ...(scout.pv_traccia3 || {}), done: true, data: b.obtainedAt || scout.pv_traccia3?.data };
+        changed = true;
+      }
+    } else {
+      // Specialità (PO) o altro brevetto
+      const existingIndex = specialitaList.findIndex(s => normalizeString(s.nome) === normTypeName);
+      if (existingIndex >= 0) {
+        const existing = specialitaList[existingIndex];
+        if (existing.idProgressioneCngei !== b.id || !existing.ottenuta) {
+          existing.idProgressioneCngei = b.id;
+          existing.ottenuta = true;
+          if (!existing.data && b.obtainedAt) existing.data = b.obtainedAt;
+          changed = true;
+        }
+      } else if (b.progressioneType?.branca === 'E' || kind === 'PO') {
+        // Se a portale è presente una specialità non ancora censita in locale, la integriamo
+        specialitaList.push({
+          nome: typeName,
+          ottenuta: true,
+          brevetto: true,
+          data: b.obtainedAt,
+          idProgressioneCngei: b.id
+        });
+        changed = true;
+      }
+    }
+  });
+
+  scout.specialita = specialitaList;
+  return { scout, changed };
+}
+
+/**
  * Invia una progressione conseguita al portale CNGEI
+ * Gestisce in modo trasparente il caso di 409 Conflict (Check failed),
+ * che indica che la progressione è già registrata sul portale per questa persona.
  */
 export async function sendProgressioneToCngei(idPersona, idProgressioneType, obtainedAt, cngeiServiceInstance) {
   if (!idPersona) throw new Error('Identificativo persona CNGEI mancante');
   if (!idProgressioneType) throw new Error('Identificativo tipo progressione mancante');
 
-  return await cngeiServiceInstance.createProgressione(
-    idPersona,
-    idProgressioneType,
-    obtainedAt
-  );
+  try {
+    return await cngeiServiceInstance.createProgressione(
+      idPersona,
+      idProgressioneType,
+      obtainedAt
+    );
+  } catch (err) {
+    const msg = (err.message || '').toLowerCase();
+    // 409 Conflict o Check failed = già registrata su portale per questo esploratore
+    if (msg.includes('409') || msg.includes('conflict') || msg.includes('check failed')) {
+      return {
+        id: 'cngei_existing_' + idProgressioneType,
+        alreadyExisted: true,
+        message: 'Progressione già convalidata sul portale CNGEI'
+      };
+    }
+    throw err;
+  }
 }
+
 

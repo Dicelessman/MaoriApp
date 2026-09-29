@@ -171,6 +171,14 @@ export class CngeiService {
   }
 
   /**
+   * Recupera il profilo completo di una persona (inclusi i brevetti/progressioni già registrati a portale)
+   */
+  async getPersona(idPersona) {
+    if (!idPersona) throw new Error('idPersona obbligatorio');
+    return await this._request(`/persona/${idPersona}`);
+  }
+
+  /**
    * Recupera i dati medici ufficiali di una persona dal portale CNGEI
    */
   async getMedicalData(idPersona) {

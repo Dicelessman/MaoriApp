@@ -1,7 +1,7 @@
 // scout2.js - pagina scheda personale esploratore (versione refactored)
 import { generateScoutSentieroHtml, normalizeSpecialitaName, getSpecialitaSlug } from './js/utils/utils.js';
 import { cngeiService } from './js/services/cngei-service.js';
-import { collectPendingProgressioni, collectSyncedProgressioni, sendProgressioneToCngei } from './js/services/cngei-progressioni.js';
+import { collectPendingProgressioni, collectSyncedProgressioni, sendProgressioneToCngei, reconcileWithCngeiBrevetti } from './js/services/cngei-progressioni.js';
 
 // Cache per i dati JSON statici (permanente, questi file non cambiano mai)
 UI.challengesData = null;
@@ -448,6 +448,26 @@ UI.openCngeiProgressioniModal = async function () {
         data: this.qs('#pv_traccia3_dt')?.value || s.pv_traccia3?.data
       }
     };
+
+    // Se lo scout è collegato a CNGEI, riconcilia prima le progressioni già presenti a portale
+    if (s.idCngei) {
+      try {
+        const portalPersona = await cngeiService.getPersona(s.idCngei);
+        if (portalPersona?.brevetti && Array.isArray(portalPersona.brevetti)) {
+          const { changed } = reconcileWithCngeiBrevetti(scoutWithLatest, portalPersona.brevetti);
+          if (changed) {
+            s.specialita = scoutWithLatest.specialita;
+            if (scoutWithLatest.cngei_traccia1_id) s.cngei_traccia1_id = scoutWithLatest.cngei_traccia1_id;
+            if (scoutWithLatest.cngei_traccia2_id) s.cngei_traccia2_id = scoutWithLatest.cngei_traccia2_id;
+            if (scoutWithLatest.cngei_traccia3_id) s.cngei_traccia3_id = scoutWithLatest.cngei_traccia3_id;
+            await DATA.updateScout(s.id, s, this.currentUser);
+            try { this.showToast('Progressioni già registrate su CNGEI allineate!', { type: 'info', duration: 2500 }); } catch (_) {}
+          }
+        }
+      } catch (personaErr) {
+        console.warn('Avviso recupero dati persona CNGEI:', personaErr);
+      }
+    }
 
     const pending = collectPendingProgressioni(scoutWithLatest, progressioniTypes);
     const synced = collectSyncedProgressioni(scoutWithLatest, progressioniTypes);
