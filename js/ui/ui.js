@@ -1915,27 +1915,51 @@ export const UI = {
     async loadInAppNotifications(limitCount = 50) {
         if (!this.currentUser?.uid)
             return [];
-        const q = query(collection(DATA.adapter.db, 'in-app-notifications'), where('userId', '==', this.currentUser.uid), orderBy('createdAt', 'desc'), limit(limitCount));
-        const s = await getDocs(q);
-        return s.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() }));
+        try {
+            // Interroga per userId senza orderBy combinato per non richiedere indici compositi Firestore
+            const q = query(
+                collection(DATA.adapter.db, 'in-app-notifications'),
+                where('userId', '==', this.currentUser.uid)
+            );
+            const s = await getDocs(q);
+            const items = s.docs.map(d => ({
+                id: d.id,
+                ...d.data(),
+                createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : (d.data().createdAt ? new Date(d.data().createdAt) : new Date(0))
+            }));
+            // Ordinamento decrescente in memoria
+            items.sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0));
+            return items.slice(0, limitCount);
+        } catch (err) {
+            console.warn('[Notifications] Errore caricamento notifiche:', err);
+            return [];
+        }
     },
     async markAllNotificationsAsRead() {
         if (!this.currentUser)
             return;
-        const unread = (await this.loadInAppNotifications(100)).filter(n => !n.read);
-        for (const n of unread)
-            await updateDoc(doc(DATA.adapter.db, 'in-app-notifications', n.id), { read: true });
-        this.updateNotificationsBadge();
-        this.renderNotificationsList();
+        try {
+            const unread = (await this.loadInAppNotifications(100)).filter(n => !n.read);
+            for (const n of unread)
+                await updateDoc(doc(DATA.adapter.db, 'in-app-notifications', n.id), { read: true });
+            this.updateNotificationsBadge();
+            this.renderNotificationsList();
+        } catch (err) {
+            console.warn('[Notifications] Errore markAllNotificationsAsRead:', err);
+        }
     },
     async updateNotificationsBadge() {
         if (!this.currentUser)
             return;
-        const unread = (await this.loadInAppNotifications(100)).filter(n => !n.read).length;
-        const badge = this.qs('#notificationsBadge');
-        if (badge) {
-            badge.textContent = unread > 99 ? '99+' : unread;
-            badge.style.display = unread > 0 ? 'flex' : 'none';
+        try {
+            const unread = (await this.loadInAppNotifications(100)).filter(n => !n.read).length;
+            const badge = this.qs('#notificationsBadge');
+            if (badge) {
+                badge.textContent = unread > 99 ? '99+' : unread;
+                badge.style.display = unread > 0 ? 'flex' : 'none';
+            }
+        } catch (err) {
+            console.warn('[Notifications] Errore updateNotificationsBadge:', err);
         }
     },
     async handleNotificationClick(id, url) {
