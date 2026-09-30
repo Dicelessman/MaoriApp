@@ -830,6 +830,7 @@ export const UI = {
                 const nome = this.qs('#editStaffNome').value.trim();
                 const cognome = this.qs('#editStaffCognome').value.trim();
                 const email = this.qs('#editStaffEmail').value.trim().toLowerCase();
+                const ruolo = (this.qs('#editStaffRuolo') as HTMLSelectElement)?.value || 'CR';
                 if (this.checkDuplicateStaffEmail(email, id)) {
                     this.showToast('Email già in uso.', { type: 'error' }); return;
                 }
@@ -837,7 +838,7 @@ export const UI = {
                 const originalText = submitBtn?.textContent;
                 this.setButtonLoading(submitBtn, true, originalText);
                 try {
-                    await DATA.updateStaff(id, { id, nome, cognome, email }, this.currentUser);
+                    await DATA.updateStaff({ id, nome, cognome, email, ruolo }, this.currentUser);
                     this.closeModal('editStaffModal');
                     this.state = await DATA.loadAll();
                     this.renderCurrentPage();

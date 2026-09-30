@@ -1468,7 +1468,7 @@ export const UI = {
                 const originalText = submitBtn?.textContent;
                 this.setButtonLoading(submitBtn, true, originalText);
                 try {
-                    await DATA.updateStaff(id, { id, nome, cognome, email, ruolo }, this.currentUser);
+                    await DATA.updateStaff({ id, nome, cognome, email, ruolo }, this.currentUser);
                     this.closeModal('editStaffModal');
                     this.state = await DATA.loadAll();
                     this.renderCurrentPage();
