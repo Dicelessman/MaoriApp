@@ -1313,18 +1313,20 @@ export const UI = {
                 catch (error) {
                     console.error('Login error:', error.code, error.message);
                     let msg = 'Accesso non riuscito.';
-                    if (error.code === 'auth/invalid-email')
+                    if (error.code === 'auth/invalid-credential')
+                        msg = 'Email o password non validi. Verifica le credenziali o registrati nel tab "Crea account".';
+                    else if (error.code === 'auth/invalid-email')
                         msg = 'Email non valida.';
                     else if (error.code === 'auth/user-disabled')
                         msg = 'Utente disabilitato.';
                     else if (error.code === 'auth/user-not-found')
-                        msg = 'Utente non trovato.';
+                        msg = 'Utente non trovato. Crea prima un account dal tab "Crea account".';
                     else if (error.code === 'auth/wrong-password')
                         msg = 'Password errata.';
                     else if (error.code === 'auth/too-many-requests')
-                        msg = 'Troppi tentativi, riprova più tardi.';
+                        msg = 'Troppi tentativi errati, riprova più tardi.';
                     loginError.textContent = msg;
-                    this.showToast(msg, { type: 'error' });
+                    this.showToast(msg, { type: 'error', duration: 5000 });
                 }
                 finally {
                     this.setButtonLoading(submitBtn, false, originalText);
@@ -2995,9 +2997,10 @@ export const UI = {
             }
         }
 
-        // Se esploratore: redirige alla propria scheda in sola lettura
-        if (type === 'esploratore' && record) {
-            this._redirectEsploratore(record.id);
+        // Se esploratore: redirige sempre alla propria scheda in sola lettura
+        if (type === 'esploratore' || ruolo === 'esploratore') {
+            const scoutId = record?.id || '';
+            this._redirectEsploratore(scoutId);
             return;
         }
 
@@ -3019,6 +3022,15 @@ export const UI = {
 
             // Protegge la pagina corrente: se non autorizzato, redirige a index
             this._enforcePageAccess(ruolo);
+        } else if (!this.currentUser) {
+            // Utente non autenticato: nasconde tutte le pagine protette riservate
+            const navItems = document.querySelectorAll('[data-roles]');
+            navItems.forEach(item => {
+                item.style.display = 'none';
+            });
+            document.querySelectorAll('[data-nav-section]').forEach(section => {
+                section.style.display = 'none';
+            });
         }
     },
 
