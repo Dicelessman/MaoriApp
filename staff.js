@@ -311,16 +311,18 @@ UI.initAccessRequestsSection = function() {
   const section = document.getElementById('accessRequestsSection');
   if (!section) return;
 
-  // Determina se l'utente loggato è admin
-  const userEmail = this.currentUser?.email?.toLowerCase();
-  const staffMember = userEmail
-    ? (this.state?.staff || []).find(s => s.email && s.email.toLowerCase() === userEmail)
-    : null;
-  const userRole = staffMember?.ruolo || (userEmail === 'demo@scoutmaori.it' ? 'CR' : '');
-  const isAdmin = ADMIN_ROLES_STAFF.some(r => userRole.includes(r));
+  // Determina se l'utente loggato è admin (CR o VCR) tramite getUserRole centralizzato
+  const roleInfo = typeof this.getUserRole === 'function' ? this.getUserRole() : { ruolo: null };
+  const isAdmin = roleInfo.ruolo === 'CR' || roleInfo.ruolo === 'VCR';
 
   const authNotice = document.getElementById('accessRequestsAuthNotice');
   const adminContent = document.getElementById('accessRequestsAdminContent');
+
+  // Nascondi anche il form di aggiunta staff se non è admin
+  const addStaffFormCard = document.querySelector('#addStaffForm')?.closest('.bg-white, .rounded-xl, .shadow-sm') || document.querySelector('#addStaffForm');
+  if (addStaffFormCard) {
+    addStaffFormCard.style.display = isAdmin ? '' : 'none';
+  }
 
   section.classList.remove('hidden');
 
@@ -333,6 +335,8 @@ UI.initAccessRequestsSection = function() {
   if (authNotice) authNotice.classList.add('hidden');
   if (adminContent) adminContent.classList.remove('hidden');
   this.loadAccessRequests();
+  // Verifica se ci sono esploratori legacy nella collezione staff
+  this.detectAndMigrateLegacyEsploratori();
 };
 
 UI.loadAccessRequests = async function() {
@@ -342,7 +346,10 @@ UI.loadAccessRequests = async function() {
 
   list.innerHTML = '<p class="text-sm text-gray-500 italic py-2">Caricamento elenco utenti e richieste...</p>';
   try {
-    const requests = await DATA.getAccessRequests();
+    let requests = await DATA.getAccessRequests();
+    if (!requests || requests.length === 0) {
+      requests = this.state?.accessRequests || [];
+    }
     this._accessRequests = Array.isArray(requests) ? requests : [];
 
     // Aggiorna contatori filtri
@@ -565,7 +572,90 @@ if (typeof window !== 'undefined' && window.UI && UI.state && UI.state.staff) {
   UI.renderCurrentPage();
 }
 
+// ── Migrazione Esploratori Legacy (da staff a scouts) ────────────────────────
 
+/**
+ * Cerca nella collezione staff eventuali record con ruolo 'Esploratore'
+ * e li sposta nella collezione scouts (solo CR/VCR).
+ */
+UI.detectAndMigrateLegacyEsploratori = async function() {
+  const roleInfo = typeof this.getUserRole === 'function' ? this.getUserRole() : { ruolo: null };
+  if (roleInfo.ruolo !== 'CR' && roleInfo.ruolo !== 'VCR') return;
 
+  const legacyStaff = (this.state.staff || []).filter(s => {
+    const r = (s.ruolo || '').toLowerCase().trim();
+    return r.includes('esplorator') || r.includes('ragazzo') || r.includes('scout');
+  });
 
+  if (legacyStaff.length === 0) return;
+
+  const migrationBanner = document.getElementById('legacyMigrationBanner');
+  const migrationCount = document.getElementById('legacyMigrationCount');
+  const migrationList = document.getElementById('legacyMigrationList');
+
+  if (migrationBanner) {
+    migrationBanner.style.display = '';
+    if (migrationCount) migrationCount.textContent = legacyStaff.length;
+    if (migrationList) {
+      migrationList.innerHTML = legacyStaff.map(s =>
+        `<li class="text-xs text-amber-800">• ${s.nome || ''} ${s.cognome || ''} &lt;${s.email || ''}&gt;</li>`
+      ).join('');
+    }
+  }
+};
+
+UI.runLegacyEsploratoriMigration = async function() {
+  const roleInfo = typeof this.getUserRole === 'function' ? this.getUserRole() : { ruolo: null };
+  if (roleInfo.ruolo !== 'CR' && roleInfo.ruolo !== 'VCR') {
+    this.showToast('Solo CR o VCR possono eseguire la migrazione.', { type: 'error' });
+    return;
+  }
+
+  const legacyStaff = (this.state.staff || []).filter(s => {
+    const r = (s.ruolo || '').toLowerCase().trim();
+    return r.includes('esplorator') || r.includes('ragazzo') || r.includes('scout');
+  });
+
+  if (legacyStaff.length === 0) {
+    this.showToast('Nessun esploratore legacy da migrare.', { type: 'info' });
+    return;
+  }
+
+  this.showConfirmModal({
+    title: 'Migrazione Esploratori',
+    message: `Spostare ${legacyStaff.length} esploratore/i dalla collezione staff a scouts?`,
+    confirmText: 'Migra',
+    onConfirm: async () => {
+      let migrated = 0;
+      let errors = 0;
+      for (const s of legacyStaff) {
+        try {
+          // Aggiungi a scouts
+          await DATA.addScout({
+            nome: s.nome,
+            cognome: s.cognome,
+            anag_email: s.email || '',
+            uid: s.uid || null,
+            migrationSource: 'staff_legacy',
+          }, this.currentUser);
+          // Rimuovi da staff
+          await DATA.deleteStaff(s.id, this.currentUser);
+          migrated++;
+        } catch (e) {
+          console.error('[Migration] Error migrating:', s.email, e);
+          errors++;
+        }
+      }
+      // Ricarica dati
+      this.state = await DATA.loadAll(true);
+      this.renderCurrentPage();
+      const migrationBanner = document.getElementById('legacyMigrationBanner');
+      if (migrationBanner) migrationBanner.style.display = 'none';
+      this.showToast(
+        `Migrazione completata: ${migrated} migrati${errors > 0 ? `, ${errors} errori` : ''}.`,
+        { type: migrated > 0 ? 'success' : 'error', duration: 5000 }
+      );
+    }
+  });
+};
 

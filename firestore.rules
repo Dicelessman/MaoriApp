@@ -48,8 +48,8 @@ service cloud.firestore {
       // Lettura: tutti gli utenti autenticati possono leggere
       allow read: if isAuthenticated();
       
-      // Creazione: solo staff autenticato
-      allow create: if isStaff() 
+      // Creazione: staff autenticato o nuovo utente registrato
+      allow create: if isAuthenticated() 
         && request.resource.data.keys().hasAll(['nome', 'cognome'])
         && request.resource.data.nome is string
         && request.resource.data.nome.size() > 0
@@ -436,6 +436,23 @@ service cloud.firestore {
 
       // Eliminazione: solo staff autenticato
       allow delete: if isStaff();
+    }
+
+    // ============== COLLEZIONE: access_requests ==============
+    match /access_requests/{requestId} {
+      // Lettura: consentita a tutti gli utenti autenticati (inclusi admin che devono visualizzarli)
+      allow read: if isAuthenticated();
+
+      // Creazione: qualsiasi utente autenticato può registrare la propria richiesta di accesso
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['nome', 'cognome', 'email', 'ruoloRichiesto'])
+        && request.resource.data.nome is string
+        && request.resource.data.cognome is string
+        && request.resource.data.email is string
+        && isValidEmail(request.resource.data.email);
+
+      // Aggiornamento ed eliminazione: solo staff autenticato
+      allow update, delete: if isStaff();
     }
 
     // ============== Default: nega tutto il resto ==============

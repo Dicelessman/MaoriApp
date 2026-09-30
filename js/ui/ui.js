@@ -1038,14 +1038,13 @@ export const UI = {
                             }
                             this.applyRoleBasedUI();
                         } else {
-                            // Ruolo non riconosciuto / ospite generico
-                            if (roleInfo.record && roleInfo.record.id) {
-                                this.selectStaff(roleInfo.record.id);
-                            }
-                            if (typeof this.renderCurrentPage === 'function') {
-                                this.renderCurrentPage();
-                            }
-                            this.applyRoleBasedUI();
+                            // Ruolo non riconosciuto: utente autenticato ma non ancora approvato
+                            // Per sicurezza, mostra messaggio e fa logout
+                            console.warn('[RBAC] Utente loggato senza ruolo riconosciuto — logout forzato', user.email);
+                            this.showToast('Accesso non ancora approvato. Contatta un Capo Reparto.', { type: 'warning', duration: 6000 });
+                            setTimeout(async () => {
+                                try { await signOut(DATA.adapter.auth); } catch(e) {}
+                            }, 3000);
                         }
                     }
                     finally {
@@ -2886,8 +2885,9 @@ export const UI = {
      * @returns {string}
      */
     normalizeRole(r) {
-        if (!r) return 'CR';
+        if (!r) return null;
         const str = String(r).trim().toLowerCase();
+        if (!str) return null;
         if (str === 'cr' || str.includes('capo reparto') || str.includes('caporeparto')) return 'CR';
         if (str === 'vcr' || str.includes('vice')) return 'VCR';
         if (str === 'sisr' || str.includes('sostitut') || str.includes('sisr')) return 'SiSR';
@@ -2904,46 +2904,58 @@ export const UI = {
     getUserRole() {
         if (!this.currentUser) return { type: null, ruolo: null, record: null };
         const email = (this.currentUser.email || '').toLowerCase().trim();
+        const uid = this.currentUser.uid || null;
 
         // Cerca PRIMA negli esploratori (scouts collection ha priorità assoluta)
+        // Match per email O per uid
         const scoutMatch = (this.state.scouts || []).find(
             s => (s.anag_email || '').toLowerCase().trim() === email
+               || (uid && s.uid && s.uid === uid)
         );
         if (scoutMatch) {
             return { type: 'esploratore', ruolo: 'esploratore', record: scoutMatch };
         }
 
-        // Cerca nello staff
+        // Cerca nello staff (per email O uid)
         const staffMatch = (this.state.staff || []).find(
             s => (s.email || '').toLowerCase().trim() === email
+               || (uid && s.uid && s.uid === uid)
         );
         if (staffMatch) {
-            const normalizedRuolo = this.normalizeRole(staffMatch.ruolo);
+            const normalizedRuolo = this.normalizeRole(staffMatch.ruolo || '');
             // Se un record staff ha ruolo Esploratore (migrazione legacy), trattalo come esploratore
             if (normalizedRuolo === 'esploratore') {
                 const linkedScout = (this.state.scouts || []).find(
                     s => (s.anag_email || '').toLowerCase().trim() === email
-                ) || { id: staffMatch.id, nome: staffMatch.nome, cognome: staffMatch.cognome, anag_email: email };
+                       || (uid && s.uid && s.uid === uid)
+                ) || { id: staffMatch.id, nome: staffMatch.nome, cognome: staffMatch.cognome, anag_email: email, uid };
                 return { type: 'esploratore', ruolo: 'esploratore', record: linkedScout };
             }
+            // Staff con ruolo non riconosciuto/vuoto: privilegio minimo SiSR
             return {
                 type: 'staff',
-                ruolo: normalizedRuolo,
+                ruolo: normalizedRuolo || 'SiSR',
                 record: staffMatch
             };
         }
 
-        // Cerca nelle richieste di accesso (es. utente appena registrato)
+        // Cerca nelle richieste di accesso (es. utente appena registrato, in attesa o auto-approvato)
         const accessReq = (this.state.accessRequests || []).find(
             r => (r.email || '').toLowerCase().trim() === email
+               || (uid && r.uid && r.uid === uid)
         );
         if (accessReq) {
-            const reqRuolo = this.normalizeRole(accessReq.ruoloRichiesto);
+            const reqRuolo = this.normalizeRole(accessReq.ruoloRichiesto || '');
             if (reqRuolo === 'esploratore') {
                 const linkedScout = (this.state.scouts || []).find(
                     s => (s.anag_email || '').toLowerCase().trim() === email
-                ) || { id: accessReq.id, nome: accessReq.nome, cognome: accessReq.cognome, anag_email: email };
+                       || (uid && s.uid && s.uid === uid)
+                ) || { id: accessReq.id, nome: accessReq.nome, cognome: accessReq.cognome, anag_email: email, uid };
                 return { type: 'esploratore', ruolo: 'esploratore', record: linkedScout };
+            }
+            // Ruoli staff in attesa di approvazione: consenti accesso limitato
+            if (accessReq.status === 'pending') {
+                return { type: 'pending', ruolo: reqRuolo, record: accessReq };
             }
             return {
                 type: 'staff',
@@ -2952,9 +2964,9 @@ export const UI = {
             };
         }
 
-        // Utente autenticato ma non ancora registrato nelle collezioni note:
-        // Se email contiene admin o cr, assegna CR per sicurezza amministrativa
-        if (email.includes('admin') || email.includes('cr@') || email.startsWith('cr.')) {
+        // Utente autenticato ma non registrato in nessuna collezione
+        // Fallback admin solo per email esplicita CR
+        if (email.includes('cr@') || email.startsWith('cr.')) {
             return { type: 'staff', ruolo: 'CR', record: { id: 'cr_admin', nome: this.currentUser.displayName || 'Capo Reparto', email } };
         }
 
@@ -3001,6 +3013,20 @@ export const UI = {
         if (type === 'esploratore' || ruolo === 'esploratore') {
             const scoutId = record?.id || '';
             this._redirectEsploratore(scoutId);
+            return;
+        }
+
+        // Se pending o guest: nasconde la nav e fa logout forzato
+        if (type === 'pending' || type === 'guest') {
+            document.querySelectorAll('[data-roles], [data-nav-section]').forEach(el => { el.style.display = 'none'; });
+            const sidebar = this.qs('#mainSidebar');
+            if (sidebar) sidebar.style.display = 'none';
+            if (type === 'guest') {
+                this.showToast('Accesso non autorizzato. Verrai disconnesso.', { type: 'error', duration: 4000 });
+                setTimeout(async () => { try { await signOut(DATA.adapter.auth); } catch(e) {} }, 2500);
+            } else {
+                this.showToast('Richiesta in attesa di approvazione. Contatta un Capo Reparto.', { type: 'warning', duration: 6000 });
+            }
             return;
         }
 

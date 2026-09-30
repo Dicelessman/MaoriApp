@@ -19,7 +19,8 @@ export class FirestoreAdapter {
             scouts: collection(db, COLLECTIONS.SCOUTS),
             staff: collection(db, COLLECTIONS.STAFF),
             activities: collection(db, COLLECTIONS.ACTIVITIES),
-            presences: collection(db, COLLECTIONS.PRESENCES)
+            presences: collection(db, COLLECTIONS.PRESENCES),
+            accessRequests: collection(db, 'access_requests')
         };
     }
     async loadAll(options = {}) {
@@ -32,14 +33,26 @@ export class FirestoreAdapter {
             timers[label] = Math.round(t1 - t0);
             return res;
         };
-        // Query ottimizzate: usa .select() solo per campi necessari se richiesto
-        // Nota: per ora manteniamo tutti i campi per retrocompatibilità
         const [scoutsSnap, staffSnap, actsSnap, presSnap] = await Promise.all([
             timed('scouts', getDocs(this.cols.scouts)),
             timed('staff', getDocs(this.cols.staff)),
             timed('activities', getDocs(this.cols.activities)),
             timed('presences', getDocs(this.cols.presences))
         ]);
+
+        let accessRequests = [];
+        try {
+            const reqSnap = await timed('accessRequests', getDocs(this.cols.accessRequests));
+            accessRequests = reqSnap.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : doc.data().createdAt,
+                updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : doc.data().updatedAt,
+            }));
+        } catch (e) {
+            console.warn('[Firestore] Could not load access_requests in loadAll:', e?.message || e);
+        }
+
         const tEnd = (typeof performance !== 'undefined' ? performance.now() : Date.now());
         timers.total = Math.round(tEnd - timers.start);
         try {
@@ -50,7 +63,8 @@ export class FirestoreAdapter {
             scouts: scoutsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
             staff: staffSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
             activities: actsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
-            presences: presSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+            presences: presSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+            accessRequests
         };
     }
     /**
