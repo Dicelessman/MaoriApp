@@ -1071,6 +1071,8 @@ export const UI = {
             // Inizializza la sidebar
             this.setupSidebar();
             this.highlightActiveNavItem();
+            // Applica subito il controllo ruoli sui link appena iniettati
+            this.applyRoleBasedUI();
         }
         catch (error) {
             console.error('Errore nel caricamento componenti condivisi:', error);
@@ -2738,35 +2740,53 @@ export const UI = {
     // ── RBAC — Role Based Access Control ─────────────────────────────────────
 
     /**
+     * Normalizza il ruolo (gestisce sia sigle CR/VCR che descrizioni estese "Capo Reparto", ecc.)
+     * @param {string} r
+     * @returns {string}
+     */
+    normalizeRole(r) {
+        if (!r) return 'CR';
+        const str = String(r).trim().toLowerCase();
+        if (str === 'cr' || str.includes('capo reparto') || str.includes('caporeparto')) return 'CR';
+        if (str === 'vcr' || str.includes('vice')) return 'VCR';
+        if (str === 'sisr' || str.includes('sostitut') || str.includes('sisr')) return 'SiSR';
+        if (str === 'ris' || str.includes('rover') || str.includes('scolta') || str.includes('servizio') || str.includes('ris')) return 'RiS';
+        if (str.includes('esplorator') || str.includes('ragazzo') || str.includes('scout')) return 'esploratore';
+        return r.toUpperCase();
+    },
+
+    /**
      * Determina il ruolo corrente dell'utente loggato.
      * Controlla prima lo staff, poi gli esploratori.
      * @returns {{ type: 'staff'|'esploratore'|null, ruolo: string|null, record: object|null }}
      */
     getUserRole() {
         if (!this.currentUser) return { type: null, ruolo: null, record: null };
-        const email = (this.currentUser.email || '').toLowerCase();
+        const email = (this.currentUser.email || '').toLowerCase().trim();
 
         // Cerca nello staff
         const staffMatch = (this.state.staff || []).find(
-            s => (s.email || '').toLowerCase() === email
+            s => (s.email || '').toLowerCase().trim() === email
         );
         if (staffMatch) {
             return {
                 type: 'staff',
-                ruolo: staffMatch.ruolo || 'CR',   // default CR per staff senza ruolo
+                ruolo: this.normalizeRole(staffMatch.ruolo),
                 record: staffMatch
             };
         }
 
         // Cerca negli esploratori
         const scoutMatch = (this.state.scouts || []).find(
-            s => (s.anag_email || '').toLowerCase() === email
+            s => (s.anag_email || '').toLowerCase().trim() === email
         );
         if (scoutMatch) {
             return { type: 'esploratore', ruolo: 'esploratore', record: scoutMatch };
         }
 
-        return { type: null, ruolo: null, record: null };
+        // Se è loggato con Firebase Auth ma non trovato in tabella staff (es. admin o primo login),
+        // fallback di sicurezza a CR per non bloccare l'amministratore
+        return { type: 'staff', ruolo: 'CR', record: { nome: this.currentUser.displayName || 'Capo Reparto', email } };
     },
 
     /**
@@ -2822,8 +2842,8 @@ export const UI = {
 
             // Nascondi sezioni di menu che risultano vuote dopo il filtraggio
             document.querySelectorAll('[data-nav-section]').forEach(section => {
-                const visibleItems = section.querySelectorAll('a[data-roles]:not([style*="display: none"])');
-                const hasVisible = Array.from(visibleItems).some(el => el.style.display !== 'none');
+                const links = Array.from(section.querySelectorAll('a[data-roles]'));
+                const hasVisible = links.length === 0 || links.some(el => el.style.display !== 'none');
                 section.style.display = hasVisible ? '' : 'none';
             });
 

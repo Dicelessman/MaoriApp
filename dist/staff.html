@@ -19,9 +19,9 @@
     <!-- CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/staff-DfKHQ_ch.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/date-picker-DsbPVXqx.js">
-  <link rel="modulepreload" crossorigin href="/assets/shared-zcgZaTD4.js">
+  <script type="module" crossorigin src="/assets/staff-DjzSUjRt.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-BTKzc1qv.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-BrQJEBhv.js">
   <link rel="stylesheet" crossorigin href="/assets/presenze-BvwRKHx7.css">
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -58,6 +58,16 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z"/></svg>
                   </button>
                 </div>
+              </div>
+              <div>
+                <label for="staffRuolo" class="block text-sm font-medium text-gray-700">Ruolo</label>
+                <select id="staffRuolo" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200">
+                  <option value="CR">CR — Capo Reparto (Admin)</option>
+                  <option value="VCR">VCR — Vice Capo Reparto (Admin)</option>
+                  <option value="SiSR">SiSR — Sostituto/a in Servizio di Reparto</option>
+                  <option value="RiS">RiS — Rover/Scolta in Servizio</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-400">CR e VCR hanno accesso completo. SiSR e RiS hanno accesso limitato a Presenze, Preventivo e Gara.</p>
               </div>
               <button class="btn-primary w-full">Aggiungi Staff</button>
             </form>
