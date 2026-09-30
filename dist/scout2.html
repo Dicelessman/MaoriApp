@@ -12,12 +12,12 @@
   <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/scout2-DL2WuqaG.js"></script>
+  <script type="module" crossorigin src="/assets/scout2-D8ffgaeX.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/date-picker-DsbPVXqx.js">
   <link rel="modulepreload" crossorigin href="/assets/shared-zcgZaTD4.js">
   <link rel="modulepreload" crossorigin href="/assets/cngei-service-DZdKacRO.js">
-  <link rel="modulepreload" crossorigin href="/assets/cngei-sync-DwYf0NUJ.js">
-  <link rel="modulepreload" crossorigin href="/assets/cngei-progressioni-DygIf-W3.js">
+  <link rel="modulepreload" crossorigin href="/assets/cngei-sync-Dll_EPIb.js">
+  <link rel="modulepreload" crossorigin href="/assets/cngei-progressioni-B6r5KadV.js">
   <link rel="stylesheet" crossorigin href="/assets/presenze-BvwRKHx7.css">
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -221,24 +221,91 @@
             </button>
           </div>
           <div class="grid md:grid-cols-2 gap-4">
-            <div class="md:col-span-2"><label class="block text-sm">Gruppo Sanguigno</label><select id="san_gruppo" class="input">
-              <option value="">Seleziona gruppo sanguigno...</option>
-              <option value="A+">A+</option>
-              <option value="A-">A-</option>
-              <option value="B+">B+</option>
-              <option value="B-">B-</option>
-              <option value="0+">0+</option>
-              <option value="0-">0-</option>
-              <option value="AB+">AB+</option>
-              <option value="AB-">AB-</option>
-            </select></div>
-            <div class="md:col-span-2"><label class="block text-sm">Intolleranze e Esigenze Alimentari</label><textarea id="san_intolleranze" class="textarea w-full"></textarea></div>
-            <div class="md:col-span-2"><label class="block text-sm">Allergie</label><textarea id="san_allergie" class="textarea w-full"></textarea></div>
-            <div class="md:col-span-2"><label class="block text-sm">Farmaci</label><textarea id="san_farmaci" class="textarea w-full"></textarea></div>
-            <div class="md:col-span-2"><label class="block text-sm">Vaccinazioni</label><textarea id="san_vaccinazioni" class="textarea w-full"></textarea></div>
+
+            <!-- Gruppo Sanguigno -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Gruppo Sanguigno</label>
+              <select id="san_gruppo" class="input mt-1">
+                <option value="">Seleziona gruppo sanguigno...</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="0+">0+</option>
+                <option value="0-">0-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+              </select>
+            </div>
+
+            <!-- Allergie -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                ⚠️ Allergie <span class="text-xs text-gray-400 font-normal">(farmaci, alimenti, insetti, altro — sincronizzato dal portale CNGEI)</span>
+              </label>
+              <textarea id="san_allergie" class="textarea w-full mt-1" rows="2" placeholder="Es. Penicillina, fragole, veleno di api..."></textarea>
+            </div>
+
+            <!-- Intolleranze/Dieta -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                🍽️ Intolleranze e Esigenze Alimentari <span class="text-xs text-gray-400 font-normal">(sincronizzato dal portale CNGEI)</span>
+              </label>
+              <textarea id="san_intolleranze" class="textarea w-full mt-1" rows="2" placeholder="Es. Intolleranza al lattosio, celiachia, dieta vegetariana..."></textarea>
+            </div>
+
+            <!-- Patologie croniche — NUOVO campo portale CNGEI -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                🩺 Patologie Croniche <span class="text-xs text-gray-400 font-normal">(sincronizzato dal portale CNGEI)</span>
+              </label>
+              <textarea id="san_patologie" class="textarea w-full mt-1" rows="2" placeholder="Es. Asma, diabete tipo 1, epilessia..."></textarea>
+            </div>
+
+            <!-- Disabilità/BSE — NUOVO campo portale CNGEI -->
+            <div class="md:col-span-2 bg-white/70 dark:bg-gray-900/60 p-4 rounded-lg border border-blue-200/80 dark:border-blue-700/60 shadow-sm space-y-3">
+              <div class="flex items-center gap-3">
+                <input type="checkbox" id="san_disabilita" class="w-4 h-4 accent-blue-600" />
+                <label for="san_disabilita" class="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  Bisogni Speciali / BSE / Disabilità <span class="text-xs text-blue-600 font-normal ml-1">(sincronizzato dal portale CNGEI)</span>
+                </label>
+              </div>
+              <div id="san_disabilita_note_wrapper" class="hidden">
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descrizione bisogni speciali / note per i capi</label>
+                <textarea id="san_disabilita_note" class="textarea w-full" rows="2" placeholder="Descrivi i bisogni specifici, adattamenti necessari al campo o in attività..."></textarea>
+              </div>
+            </div>
+
+            <!-- Farmaci -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                💊 Terapie Farmacologiche in Corso <span class="text-xs text-gray-400 font-normal">(nome farmaco, dosaggio, frequenza)</span>
+              </label>
+              <textarea id="san_farmaci" class="textarea w-full mt-1" rows="2" placeholder="Es. Ventolin 2 puff al bisogno, Insulina 10 UI a colazione..."></textarea>
+            </div>
+
+            <!-- Vaccinazioni -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                💉 Vaccinazioni <span class="text-xs text-gray-400 font-normal">(stato vaccinale, data ultimo richiamo antitetanica)</span>
+              </label>
+              <textarea id="san_vaccinazioni" class="textarea w-full mt-1" rows="2" placeholder="Es. Regolari. Antitetanica: maggio 2022..."></textarea>
+            </div>
+
+            <!-- Medico Curante — NUOVO campo portale CNGEI -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">👨‍⚕️ Medico Curante / Pediatra</label>
+              <input id="ct_med_nome" type="text" class="input mt-1" placeholder="Dott. Mario Rossi" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">📞 Telefono Medico Curante</label>
+              <input id="ct_med_tel" type="tel" class="input mt-1" placeholder="0110123456" />
+            </div>
+
+            <!-- Certificato Medico -->
             <div class="md:col-span-2 bg-white/70 dark:bg-gray-900/60 p-4 rounded-lg border border-amber-200/80 dark:border-amber-700/60 shadow-sm space-y-3">
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <label class="block text-sm font-bold text-gray-800 dark:text-gray-100">Scadenza Certificato Medico</label>
+                <label class="block text-sm font-bold text-gray-800 dark:text-gray-100">📋 Scadenza Certificato Medico Non Agonistico</label>
                 <div id="san_cert_status_badge" class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
                   Non specificato
                 </div>
@@ -249,9 +316,20 @@
                   <span>💬</span> <span>Invia Promemoria WhatsApp Genitore</span>
                 </button>
               </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Note certificato</label>
+                <textarea id="san_cert" class="textarea w-full" rows="1" placeholder="Note aggiuntive sul certificato..."></textarea>
+              </div>
             </div>
-            <div class="md:col-span-2"><label class="block text-sm">Certificazioni</label><textarea id="san_cert" class="textarea w-full"></textarea></div>
-            <div class="md:col-span-2"><label class="block text-sm">Altro</label><textarea id="san_altro" class="textarea w-full"></textarea></div>
+
+            <!-- Altro / Note aggiuntive -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                📝 Note Sanitarie Aggiuntive <span class="text-xs text-gray-400 font-normal">(sincronizzato dal portale CNGEI)</span>
+              </label>
+              <textarea id="san_altro" class="textarea w-full mt-1" rows="2" placeholder="Altre informazioni sanitarie utili per i capi..."></textarea>
+            </div>
+
           </div>
           <div class="flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
             <button type="button" data-tab-nav="contatti" class="btn-secondary text-sm font-semibold flex items-center gap-1.5">
@@ -265,6 +343,7 @@
             </div>
           </div>
         </section>
+
 
         <section id="section-progressione" class="scout-tab-pane tab-pane hidden bg-green-50 dark:bg-green-950/20 p-6 rounded-xl border border-green-200 dark:border-green-800/40 shadow-sm">
           <div class="flex items-center justify-between mb-4 flex-wrap gap-2">

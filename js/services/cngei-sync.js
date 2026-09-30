@@ -124,14 +124,21 @@ export function normalizeSesso(sesso) {
  */
 export function parseMedicalData(medical) {
   if (!medical) {
-    return { allergies: [], otherAllergies: '', foodPreferences: [], otherFoodPreferences: '', notes: '' };
+    return { allergies: [], otherAllergies: '', foodPreferences: [], otherFoodPreferences: '', notes: '', chronicConditions: [], hasDisability: false, disabilityNotes: '', doctorName: '', doctorPhone: '' };
   }
   return {
     allergies: Array.isArray(medical.allergies) ? medical.allergies : [],
     otherAllergies: medical.otherAllergies || '',
     foodPreferences: Array.isArray(medical.foodPreferences) ? medical.foodPreferences : [],
     otherFoodPreferences: medical.otherFoodPreferences || '',
-    notes: medical.notes || ''
+    notes: medical.notes || '',
+    // Nuovi campi CNGEI portale
+    chronicConditions: Array.isArray(medical.chronicConditions) ? medical.chronicConditions
+      : (medical.chronicCondition ? [medical.chronicCondition] : []),
+    hasDisability: !!(medical.hasDisability || medical.isDisabled || medical.bse),
+    disabilityNotes: medical.disabilityNotes || medical.bseNotes || '',
+    doctorName: medical.doctorName || medical.medicoCurante || '',
+    doctorPhone: medical.doctorPhone || medical.telefonoMedico || ''
   };
 }
 
@@ -260,6 +267,39 @@ export function computeScoutDiff(cngeiMember, localScout, rawMedical = null) {
       diffs.push({ field: 'san_altro', label: 'Note Mediche Portale', oldValue: localScout.san_altro || '—', newValue: mergedNotes, category: 'medico' });
     }
   }
+
+  // Patologie croniche (merge non-distruttivo)
+  if (med.chronicConditions && med.chronicConditions.length > 0) {
+    const mergedPatologie = mergeMedicalField(localScout.san_patologie, med.chronicConditions);
+    if (mergedPatologie !== (localScout.san_patologie || '')) {
+      payload.san_patologie = mergedPatologie;
+      diffs.push({ field: 'san_patologie', label: 'Patologie Croniche (integrate)', oldValue: localScout.san_patologie || '—', newValue: mergedPatologie, category: 'medico' });
+    }
+  }
+
+  // BSE / Disabilità
+  if (med.hasDisability && !localScout.san_disabilita) {
+    payload.san_disabilita = true;
+    diffs.push({ field: 'san_disabilita', label: 'BSE / Disabilità Portale', oldValue: 'No', newValue: 'Sì ✅', category: 'medico' });
+  }
+  if (med.disabilityNotes) {
+    const mergedDisNote = mergeMedicalField(localScout.san_disabilita_note, [med.disabilityNotes]);
+    if (mergedDisNote !== (localScout.san_disabilita_note || '')) {
+      payload.san_disabilita_note = mergedDisNote;
+      diffs.push({ field: 'san_disabilita_note', label: 'Note BSE/Disabilità Portale', oldValue: localScout.san_disabilita_note || '—', newValue: mergedDisNote, category: 'medico' });
+    }
+  }
+
+  // Medico Curante (solo se non già presente localmente)
+  if (med.doctorName && !localScout.ct_med_nome) {
+    payload.ct_med_nome = med.doctorName;
+    diffs.push({ field: 'ct_med_nome', label: 'Medico Curante (dal portale)', oldValue: '—', newValue: med.doctorName, category: 'medico' });
+  }
+  if (med.doctorPhone && !localScout.ct_med_tel) {
+    payload.ct_med_tel = med.doctorPhone;
+    diffs.push({ field: 'ct_med_tel', label: 'Tel. Medico Curante (dal portale)', oldValue: '—', newValue: med.doctorPhone, category: 'medico' });
+  }
+
   payload.cngei_medico = med;
   payload.cngei_sync_date = new Date().toISOString();
 
@@ -281,7 +321,12 @@ export function buildImportPayload(cngeiMember, rawMedical = null) {
 
   const san_allergie = mergeMedicalField('', allergiesList) || null;
   const san_intolleranze = mergeMedicalField('', foodList) || null;
+  const san_patologie = mergeMedicalField('', med.chronicConditions) || null;
   const san_altro = med.notes ? med.notes.trim() : null;
+  const san_disabilita = med.hasDisability || false;
+  const san_disabilita_note = med.disabilityNotes || null;
+  const ct_med_nome = med.doctorName || null;
+  const ct_med_tel = med.doctorPhone || null;
 
   const g1Nome = [cngeiMember.genitore1?.nome, cngeiMember.genitore1?.cognome].filter(Boolean).map(toTitleCase).join(' ') || null;
   const g2Nome = [cngeiMember.genitore2?.nome, cngeiMember.genitore2?.cognome].filter(Boolean).map(toTitleCase).join(' ') || null;
@@ -306,6 +351,9 @@ export function buildImportPayload(cngeiMember, rawMedical = null) {
     ct_g2_nome: g2Nome,
     ct_g2_tel: cngeiMember.genitore2?.telefono || null,
     ct_g2_email: cngeiMember.genitore2?.email || null,
+    // Medico curante
+    ct_med_nome,
+    ct_med_tel,
     // Consensi e Documenti
     doc_priv: cngeiMember.consensi?.privacy ? true : null,
     doc_san: cngeiMember.consensi?.medico ? true : null,
@@ -314,6 +362,9 @@ export function buildImportPayload(cngeiMember, rawMedical = null) {
     // Dati Medici integrati
     san_allergie,
     san_intolleranze,
+    san_patologie,
+    san_disabilita,
+    san_disabilita_note,
     san_altro,
     cngei_medico: med,
     cngei_sync_date: new Date().toISOString()

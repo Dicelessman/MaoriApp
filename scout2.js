@@ -143,13 +143,24 @@ UI.renderScoutPage = async function () {
     setVal('#ct_g2_email', s.ct_g2_email);
 
     setVal('#san_gruppo', s.san_gruppo);
-    setVal('#san_intolleranze', s.san_intolleranze);
     setVal('#san_allergie', s.san_allergie);
+    setVal('#san_intolleranze', s.san_intolleranze);
+    setVal('#san_patologie', s.san_patologie);
     setVal('#san_farmaci', s.san_farmaci);
     setVal('#san_vaccinazioni', s.san_vaccinazioni);
+    setVal('#ct_med_nome', s.ct_med_nome);
+    setVal('#ct_med_tel', s.ct_med_tel);
     setVal('#san_cert', s.san_cert);
     setVal('#san_cert_scadenza', this.toYyyyMmDd(s.san_cert_scadenza));
     setVal('#san_altro', s.san_altro);
+    // Disabilità/BSE
+    const disabilitaChk = this.qs('#san_disabilita');
+    if (disabilitaChk) {
+      disabilitaChk.checked = !!s.san_disabilita;
+      const wrapper = this.qs('#san_disabilita_note_wrapper');
+      if (wrapper) wrapper.classList.toggle('hidden', !s.san_disabilita);
+    }
+    setVal('#san_disabilita_note', s.san_disabilita_note);
 
     setVal('#pv_promessa', this.toYyyyMmDd(s.pv_promessa));
     const vcp = this.qs(`input[name="pv_vcp_cp"][value="${s.pv_vcp_cp}"]`);
@@ -317,8 +328,15 @@ UI.renderScoutPage = async function () {
     this.qs('#printMedicalBtn')?.addEventListener('click', handleMedicalPrint);
     this.qs('#printMedicalSectionBtn')?.addEventListener('click', handleMedicalPrint);
 
+    // Toggle pannello note disabilità/BSE
+    this.qs('#san_disabilita')?.addEventListener('change', (e) => {
+      const wrapper = this.qs('#san_disabilita_note_wrapper');
+      if (wrapper) wrapper.classList.toggle('hidden', !e.target.checked);
+    });
+
     // Inizializza gestione pattuglie (sempre, non solo se il form è bound)
     this.initPattugliaManagement();
+
 
     // Inizializza gestione sezioni tracce espandibili
     this.initTracciaSections();
@@ -1066,10 +1084,15 @@ UI.collectForm = function () {
     ct_g2_tel: getNum('#ct_g2_tel') || '',
     ct_g2_email: get('#ct_g2_email'),
     san_gruppo: get('#san_gruppo'),
-    san_intolleranze: get('#san_intolleranze'),
     san_allergie: get('#san_allergie'),
+    san_intolleranze: get('#san_intolleranze'),
+    san_patologie: get('#san_patologie'),
+    san_disabilita: !!(this.qs('#san_disabilita')?.checked),
+    san_disabilita_note: get('#san_disabilita_note'),
     san_farmaci: get('#san_farmaci'),
     san_vaccinazioni: get('#san_vaccinazioni'),
+    ct_med_nome: get('#ct_med_nome'),
+    ct_med_tel: get('#ct_med_tel'),
     san_cert: get('#san_cert'),
     san_cert_scadenza: get('#san_cert_scadenza') || null,
     san_altro: get('#san_altro'),
@@ -1846,8 +1869,11 @@ UI.generateScoutMedicalSheetHtml = function (data) {
 
   // Stato sanitario
   const gruppoSangue = d.san_gruppo || 'N.D.';
-  const intolleranze = (d.san_intolleranze || '').trim();
   const allergie = (d.san_allergie || '').trim();
+  const intolleranze = (d.san_intolleranze || '').trim();
+  const patologie = (d.san_patologie || '').trim();
+  const disabilita = !!d.san_disabilita;
+  const disabilitaNote = (d.san_disabilita_note || '').trim();
   const farmaci = (d.san_farmaci || '').trim();
   const vaccinazioni = (d.san_vaccinazioni || '').trim();
   const certScadenza = d.san_cert_scadenza ? (this.toJsDate ? this.toJsDate(d.san_cert_scadenza).toLocaleDateString('it-IT') : d.san_cert_scadenza) : 'Non specificata';
@@ -1871,7 +1897,7 @@ UI.generateScoutMedicalSheetHtml = function (data) {
       <div style="border-bottom: 2.5px solid #b91c1c; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
         <div>
           <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #b91c1c;">
-            ⚜️ AGESCI • Reparto Maori • Cartellina Sanitaria Campo
+            ⚜️ CNGEI • Reparto Maori • Cartellina Sanitaria Campo
           </div>
           <h1 style="font-size: 22px; font-weight: 900; margin: 2px 0 0 0; color: #111827; text-transform: uppercase; letter-spacing: -0.5px;">
             Scheda Sanitaria & di Emergenza
@@ -1972,6 +1998,31 @@ UI.generateScoutMedicalSheetHtml = function (data) {
           </div>
           <div style="font-size: 12px; font-weight: ${intolleranze ? '700' : '400'}; color: ${intolleranze ? '#92400e' : '#6b7280'}; margin-top: 4px; min-height: 38px;">
             ${intolleranze || 'Nessuna esigenza alimentare specifica.'}
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PATOLOGIE CRONICHE & BSE/DISABILITÀ -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+        <!-- Patologie croniche -->
+        <div style="border: 1.5px solid ${patologie ? '#7c3aed' : '#e5e7eb'}; background: ${patologie ? '#f5f3ff' : '#ffffff'}; border-radius: 8px; padding: 8px 12px;">
+          <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: ${patologie ? '#6d28d9' : '#4b5563'}; margin-bottom: 4px;">
+            🩺 Patologie Croniche
+          </div>
+          <div style="font-size: 11px; font-weight: ${patologie ? '600' : '400'}; color: ${patologie ? '#4c1d95' : '#6b7280'}; min-height: 36px;">
+            ${patologie || 'Nessuna patologia cronica segnalata.'}
+          </div>
+        </div>
+
+        <!-- BSE / Disabilità -->
+        <div style="border: 2px solid ${disabilita ? '#2563eb' : '#e5e7eb'}; background: ${disabilita ? '#eff6ff' : '#ffffff'}; border-radius: 8px; padding: 8px 12px;">
+          <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: ${disabilita ? '#1d4ed8' : '#4b5563'}; display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>♿ Bisogni Speciali / BSE</span>
+            ${disabilita ? '<span style="color:#1d4ed8; font-weight:900;">PRESENTE</span>' : ''}
+          </div>
+          <div style="font-size: 11px; font-weight: ${disabilita ? '600' : '400'}; color: ${disabilita ? '#1e3a8a' : '#6b7280'}; min-height: 36px;">
+            ${disabilita ? (disabilitaNote || 'Presenti bisogni speciali — vedi capi reparto per dettagli.') : 'Nessun bisogno speciale segnalato.'}
           </div>
         </div>
       </div>
