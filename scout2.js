@@ -398,6 +398,12 @@ UI.renderScoutPage = async function () {
       confirmSendProgBtn.addEventListener('click', () => this.sendSelectedProgressioniToCngei());
     }
 
+    // Modalità sola lettura (per esploratori o parametro ?readonly=1)
+    const isReadOnly = params.get('readonly') === '1' || this.getUserRole?.().ruolo === 'esploratore';
+    if (isReadOnly) {
+      this.applyReadOnlyMode();
+    }
+
     // Inizializza navigazione tra sezioni
     setTimeout(() => {
       if (this.initSectionNavigation) {
@@ -406,6 +412,59 @@ UI.renderScoutPage = async function () {
     }, 100);
   } finally {
     this._isRenderingScoutPage = false;
+  }
+};
+
+/**
+ * Applica la modalità sola lettura alla scheda scout2:
+ * Disabilita tutti gli input, nasconde il tasto Salva, gestione pattuglie e bottoni CNGEI,
+ * e mostra un banner informativo.
+ */
+UI.applyReadOnlyMode = function () {
+  const form = this.qs('#scoutForm');
+  if (form) {
+    const inputs = form.querySelectorAll('input, select, textarea, button');
+    inputs.forEach(el => {
+      if (el.tagName === 'BUTTON') {
+        // Non disabilitare i tab o pulsanti di navigazione/stampa
+        if (!el.classList.contains('tab-nav-btn') && el.id !== 'printScoutBtn' && el.id !== 'printMedicalBtn') {
+          el.disabled = true;
+          el.style.display = 'none';
+        }
+      } else {
+        el.disabled = true;
+        el.setAttribute('readonly', 'true');
+        el.classList.add('bg-gray-100', 'cursor-not-allowed', 'opacity-80');
+      }
+    });
+  }
+
+  // Nascondi pulsante "Salva" e "Torna alla lista"
+  const saveBtn = document.querySelector('button[form="scoutForm"]');
+  if (saveBtn) saveBtn.style.display = 'none';
+
+  const backLink = document.querySelector('a[href="esploratori.html"]');
+  if (backLink) backLink.style.display = 'none';
+
+  // Nascondi pulsante gestione pattuglie e aggiunta specialità
+  const managePattuglieBtn = this.qs('#managePattuglieBtn');
+  if (managePattuglieBtn) managePattuglieBtn.style.display = 'none';
+  const addSpecialitaBtn = this.qs('#addSpecialitaBtn');
+  if (addSpecialitaBtn) addSpecialitaBtn.style.display = 'none';
+
+  // Nascondi bottoni invio progressioni CNGEI
+  document.querySelectorAll('.openCngeiProgModalBtn').forEach(b => { b.style.display = 'none'; });
+
+  // Mostra banner informativo modalità sola lettura se non presente
+  if (!this.qs('#readonlyBanner')) {
+    const headerContainer = this.qs('#scoutHeaderContainer');
+    if (headerContainer) {
+      const banner = document.createElement('div');
+      banner.id = 'readonlyBanner';
+      banner.className = 'mt-3 p-2.5 bg-blue-900/60 border border-blue-500/40 rounded-lg text-blue-200 text-xs flex items-center gap-2';
+      banner.innerHTML = '<span>ℹ️</span> <span>Sei in modalità <strong>visualizzazione</strong> della tua scheda personale (sola lettura).</span>';
+      headerContainer.appendChild(banner);
+    }
   }
 };
 

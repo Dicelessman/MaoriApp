@@ -32,6 +32,15 @@
           </button>
         </div>
       </div>
+      <div>
+        <label for="editStaffRuolo" class="block text-sm font-medium text-gray-700">Ruolo</label>
+        <select id="editStaffRuolo" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200">
+          <option value="CR">CR — Capo Reparto (Admin)</option>
+          <option value="VCR">VCR — Vice Capo Reparto (Admin)</option>
+          <option value="SiSR">SiSR — Sostituto/a in Servizio di Reparto</option>
+          <option value="RiS">RiS — Rover/Scolta in Servizio</option>
+        </select>
+      </div>
       <div class="flex gap-2 justify-end">
         <button type="button" onclick="window.UI.closeModal('editStaffModal')" class="btn-secondary" aria-label="Annulla modifica staff">Annulla</button>
         <button type="submit" class="btn-primary" aria-label="Salva modifiche staff">Salva</button>

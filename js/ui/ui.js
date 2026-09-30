@@ -1021,6 +1021,7 @@ export const UI = {
                         if (typeof this.renderCurrentPage === 'function') {
                             this.renderCurrentPage();
                         }
+                        this.applyRoleBasedUI();
                     }
                     finally {
                         this.hideLoadingOverlay();
@@ -1456,6 +1457,7 @@ export const UI = {
                 const nome = this.qs('#editStaffNome').value.trim();
                 const cognome = this.qs('#editStaffCognome').value.trim();
                 const email = this.qs('#editStaffEmail').value.trim().toLowerCase();
+                const ruolo = this.qs('#editStaffRuolo')?.value || 'CR';
                 if (this.checkDuplicateStaffEmail(email, id)) {
                     this.showToast('Email già in uso.', { type: 'error' });
                     return;
@@ -1464,7 +1466,7 @@ export const UI = {
                 const originalText = submitBtn?.textContent;
                 this.setButtonLoading(submitBtn, true, originalText);
                 try {
-                    await DATA.updateStaff(id, { id, nome, cognome, email }, this.currentUser);
+                    await DATA.updateStaff(id, { id, nome, cognome, email, ruolo }, this.currentUser);
                     this.closeModal('editStaffModal');
                     this.state = await DATA.loadAll();
                     this.renderCurrentPage();
@@ -2704,8 +2706,146 @@ export const UI = {
         if (this.qs('#selectedStaffName'))
             this.qs('#selectedStaffName').textContent = m ? `${m.nome} ${m.cognome}` : 'Nessuno';
         this.closeModal('staffSelectionModal');
+        // Applica RBAC dopo selezione staff
+        this.applyRoleBasedUI();
         this.renderCurrentPage();
     },
+
+    // ── RBAC — Role Based Access Control ─────────────────────────────────────
+
+    /**
+     * Determina il ruolo corrente dell'utente loggato.
+     * Controlla prima lo staff, poi gli esploratori.
+     * @returns {{ type: 'staff'|'esploratore'|null, ruolo: string|null, record: object|null }}
+     */
+    getUserRole() {
+        if (!this.currentUser) return { type: null, ruolo: null, record: null };
+        const email = (this.currentUser.email || '').toLowerCase();
+
+        // Cerca nello staff
+        const staffMatch = (this.state.staff || []).find(
+            s => (s.email || '').toLowerCase() === email
+        );
+        if (staffMatch) {
+            return {
+                type: 'staff',
+                ruolo: staffMatch.ruolo || 'CR',   // default CR per staff senza ruolo
+                record: staffMatch
+            };
+        }
+
+        // Cerca negli esploratori
+        const scoutMatch = (this.state.scouts || []).find(
+            s => (s.anag_email || '').toLowerCase() === email
+        );
+        if (scoutMatch) {
+            return { type: 'esploratore', ruolo: 'esploratore', record: scoutMatch };
+        }
+
+        return { type: null, ruolo: null, record: null };
+    },
+
+    /**
+     * Filtra le voci di navigazione in base al ruolo dell'utente corrente.
+     * Aggiorna anche il badge ruolo nella sidebar.
+     * Redirige gli esploratori alla propria scheda in sola lettura.
+     */
+    applyRoleBasedUI() {
+        const { type, ruolo, record } = this.getUserRole();
+
+        // Aggiorna badge ruolo nella sidebar
+        const badge = this.qs('#sidebarRoleBadge');
+        if (badge) {
+            if (ruolo) {
+                badge.textContent = ruolo;
+                badge.classList.remove('hidden');
+                const badgeColors = {
+                    'CR':          'bg-green-100 text-green-800',
+                    'VCR':         'bg-blue-100 text-blue-800',
+                    'SiSR':        'bg-amber-100 text-amber-800',
+                    'RiS':         'bg-purple-100 text-purple-800',
+                    'esploratore': 'bg-gray-100 text-gray-700'
+                };
+                badge.className = `text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${badgeColors[ruolo] || 'bg-gray-100 text-gray-600'}`;
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // Aggiorna nome in header
+        if (record) {
+            const nameEl = this.qs('#selectedStaffName');
+            if (nameEl) {
+                const nome = `${record.nome || ''} ${record.cognome || ''}`.trim();
+                nameEl.textContent = nome || (ruolo === 'esploratore' ? 'Esploratore' : 'Nessuno');
+            }
+        }
+
+        // Se esploratore: redirige alla propria scheda in sola lettura
+        if (type === 'esploratore' && record) {
+            this._redirectEsploratore(record.id);
+            return;
+        }
+
+        // Filtra nav items in base al ruolo staff
+        if (ruolo) {
+            const navItems = document.querySelectorAll('[data-roles]');
+            navItems.forEach(item => {
+                const allowedRoles = (item.dataset.roles || '').split(',').map(r => r.trim());
+                const allowed = allowedRoles.includes(ruolo);
+                item.style.display = allowed ? '' : 'none';
+            });
+
+            // Nascondi sezioni di menu che risultano vuote dopo il filtraggio
+            document.querySelectorAll('[data-nav-section]').forEach(section => {
+                const visibleItems = section.querySelectorAll('a[data-roles]:not([style*="display: none"])');
+                const hasVisible = Array.from(visibleItems).some(el => el.style.display !== 'none');
+                section.style.display = hasVisible ? '' : 'none';
+            });
+
+            // Protegge la pagina corrente: se non autorizzato, redirige a index
+            this._enforcePageAccess(ruolo);
+        }
+    },
+
+    /**
+     * Verifica se la pagina corrente è accessibile per il ruolo dato.
+     * Se non lo è, redirige a index.html.
+     */
+    _enforcePageAccess(ruolo) {
+        const page = window.location.pathname.split('/').pop() || 'index.html';
+        if (!page || page === 'index.html') return;   // Home sempre accessibile
+
+        // Trova il nav item corrispondente alla pagina corrente
+        const link = document.querySelector(`[data-roles][href="${page}"]`);
+        if (!link) return;   // Pagina non in nav, lascia passare
+
+        const allowedRoles = (link.dataset.roles || '').split(',').map(r => r.trim());
+        if (!allowedRoles.includes(ruolo)) {
+            console.warn(`[RBAC] Accesso negato a ${page} per ruolo ${ruolo}. Redirect a index.html`);
+            window.location.replace('index.html');
+        }
+    },
+
+    /**
+     * Redirige un esploratore alla propria scheda in sola lettura.
+     */
+    _redirectEsploratore(scoutId) {
+        const page = window.location.pathname.split('/').pop() || 'index.html';
+        const targetPage = `scout2.html?id=${scoutId}&readonly=1`;
+
+        // Se già sulla pagina corretta, non fare altro
+        if (page === 'scout2.html') return;
+
+        // Nascondi tutta la navigazione per gli esploratori
+        const sidebar = this.qs('#mainSidebar');
+        if (sidebar) sidebar.style.display = 'none';
+        const sidebarToggle = this.qs('#sidebarToggle');
+        if (sidebarToggle) sidebarToggle.style.display = 'none';
+
+        window.location.replace(targetPage);
+    },
+
     checkRateLimit(key) { return true; },
     debounceWithRateLimit(key, fn, ms) { setTimeout(fn, ms); },
 

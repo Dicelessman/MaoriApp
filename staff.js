@@ -60,6 +60,7 @@ UI.setupStaffEventListeners = function() {
     const nome = this.qs('#staffNome').value.trim();
     const cognome = this.qs('#staffCognome').value.trim();
     const email = this.qs('#staffEmail').value.trim().toLowerCase();
+    const ruolo = this.qs('#staffRuolo')?.value || 'CR';
     
     // Check duplicati email
     if (this.checkDuplicateStaffEmail(email)) {
@@ -72,7 +73,7 @@ UI.setupStaffEventListeners = function() {
     const originalText = submitBtn?.textContent;
     this.setButtonLoading(submitBtn, true, originalText);
     try {
-      await DATA.addStaff({ nome, cognome, email }, this.currentUser);
+      await DATA.addStaff({ nome, cognome, email, ruolo }, this.currentUser);
       this.state = await DATA.loadAll();
       this.rebuildPresenceIndex();
       this.renderStaff();
@@ -204,10 +205,21 @@ UI.renderStaff = function() {
         }
       }
     },
-    renderItem: (member) => `
+    renderItem: (member) => {
+      const ruoloBadgeColor = {
+        'CR':   'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+        'VCR':  'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+        'SiSR': 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300',
+        'RiS':  'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300'
+      }[member.ruolo] || 'bg-gray-100 text-gray-600';
+      const ruoloLabel = member.ruolo || '—';
+      return `
       <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center swipeable-item" data-id="${member.id}" data-item-id="${member.id}">
         <div class="flex-1">
-          <h4 class="font-medium text-gray-900">${member.nome} ${member.cognome}</h4>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h4 class="font-medium text-gray-900">${member.nome} ${member.cognome}</h4>
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${ruoloBadgeColor}">${ruoloLabel}</span>
+          </div>
           <div class="flex items-center gap-2 mt-0.5">
             <span class="text-sm text-gray-600">${member.email || ''}</span>
             ${member.email ? `
@@ -241,7 +253,8 @@ UI.renderStaff = function() {
           </button>
         </div>
       </div>
-    `
+    `;
+    }
   });
 };
 
@@ -258,6 +271,8 @@ UI.openEditStaffModal = function(id) {
   this.qs('#editStaffNome').value = member.nome || '';
   this.qs('#editStaffCognome').value = member.cognome || '';
   this.qs('#editStaffEmail').value = member.email || '';
+  const ruoloSel = this.qs('#editStaffRuolo');
+  if (ruoloSel) ruoloSel.value = member.ruolo || 'CR';
 
   this.showModal('editStaffModal');
 };

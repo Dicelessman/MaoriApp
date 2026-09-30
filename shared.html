@@ -88,7 +88,10 @@
         <span class="text-lg">⚜️</span>
         <span class="font-bold text-green-700 dark:text-green-500">Menu</span>
       </div>
-      <button id="closeSidebar" class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer" aria-label="Chiudi menu">✕</button>
+      <div class="flex items-center gap-2">
+        <span id="sidebarRoleBadge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 uppercase tracking-wide"></span>
+        <button id="closeSidebar" class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer" aria-label="Chiudi menu">✕</button>
+      </div>
     </div>
 
     <!-- Sezioni Menu -->
@@ -97,6 +100,7 @@
       <div>
         <div class="space-y-1">
           <a href="index.html"
+            data-roles="CR,VCR,SiSR,RiS"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>🏠</span> Home
           </a>
@@ -104,23 +108,27 @@
       </div>
 
       <!-- 1. Persone -->
-      <div>
+      <div data-nav-section="persone">
         <h3 class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Persone
         </h3>
         <div class="space-y-1">
           <a href="esploratori.html"
+            data-roles="CR,VCR"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>👥</span> Esploratori
           </a>
           <a href="liste.html"
+            data-roles="CR,VCR"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>⚜️</span> Sentiero & Specialità
           </a>
           <a href="staff.html"
+            data-roles="CR,VCR"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>👔</span> Staff
           </a>
           <a href="archivio.html"
+            data-roles="CR,VCR"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>🗂️</span> Archivio
           </a>
@@ -128,19 +136,22 @@
       </div>
 
       <!-- 2. Calendario -->
-      <div>
+      <div data-nav-section="calendario">
         <h3 class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
           Calendario</h3>
         <div class="space-y-1">
           <a href="presenze.html"
+            data-roles="CR,VCR,SiSR,RiS"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>✅</span> Presenze
           </a>
           <a href="calendario.html"
+            data-roles="CR,VCR,SiSR,RiS"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>📅</span> Eventi
           </a>
           <a href="storico-presenze.html"
+            data-roles="CR,VCR"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>📚</span> Storico Presenze
           </a>
@@ -148,15 +159,17 @@
       </div>
 
       <!-- 3. Gestione -->
-      <div>
+      <div data-nav-section="gestione">
         <h3 class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Gestione
         </h3>
         <div class="space-y-1">
           <a href="pagamenti.html"
+            data-roles="CR,VCR"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>💰</span> Pagamenti
           </a>
           <a href="documenti.html"
+            data-roles="CR,VCR"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>📄</span> Documenti
           </a>
@@ -165,10 +178,11 @@
       </div>
 
       <!-- 4. Dati -->
-      <div>
+      <div data-nav-section="dati">
         <h3 class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Dati</h3>
         <div class="space-y-1">
           <a href="dashboard.html"
+            data-roles="CR,VCR"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>📊</span> Dashboard
           </a>
@@ -176,23 +190,27 @@
       </div>
 
       <!-- 5. Utilità -->
-      <div>
+      <div data-nav-section="utilita">
         <h3 class="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Utilità
         </h3>
         <div class="space-y-1">
           <a href="preventivo.html"
+            data-roles="CR,VCR,SiSR,RiS"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>💰</span> Preventivo
           </a>
           <a href="scadenze.html"
+            data-roles="CR,VCR"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>⏰</span> Scadenze
           </a>
           <a href="scorte.html"
+            data-roles="CR,VCR"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>📦</span> Scorte
           </a>
           <a href="gara.html"
+            data-roles="CR,VCR,SiSR,RiS"
             class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 transition-all">
             <span>🏆</span> Gara di Reparto
           </a>
@@ -203,6 +221,7 @@
     <!-- Footer Sidebar -->
     <div class="p-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
       <a href="preferenze.html"
+        data-roles="CR,VCR"
         class="nav-item flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
         <span>⚙️</span> Preferenze
       </a>
@@ -213,4 +232,4 @@
       </button>
     </div>
   </div>
-</aside>
+</aside>
