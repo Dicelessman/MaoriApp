@@ -623,7 +623,9 @@ export class FirestoreAdapter {
      */
     async addAccessRequest({ nome, cognome, email, ruoloRichiesto, uid }) {
         const ADMIN_ROLES = ['CR', 'VCR'];
+        const SCOUT_ROLES = ['Esploratore', 'esploratore'];
         const needsApproval = ADMIN_ROLES.includes(ruoloRichiesto);
+        const isScout = SCOUT_ROLES.includes(ruoloRichiesto);
         const docData = {
             nome: (nome || '').trim(),
             cognome: (cognome || '').trim(),
@@ -635,16 +637,27 @@ export class FirestoreAdapter {
             updatedAt: Timestamp.now(),
         };
         const ref = await addDoc(collection(this.db, 'access_requests'), docData);
-        // Se non necessita approvazione (Esploratore, SiSR, RiS), aggiunge subito lo staff record
         if (!needsApproval) {
-            await addDoc(this.cols.staff, {
-                nome: docData.nome,
-                cognome: docData.cognome,
-                email: docData.email,
-                ruolo: docData.ruoloRichiesto,
-                uid: uid || null,
-                autoApproved: true,
-            });
+            if (isScout) {
+                // Gli esploratori vanno nella collezione scouts, NON nello staff
+                await addDoc(this.cols.scouts, {
+                    nome: docData.nome,
+                    cognome: docData.cognome,
+                    anag_email: docData.email,
+                    uid: uid || null,
+                    autoApproved: true,
+                });
+            } else {
+                // SiSR, RiS: vanno nello staff
+                await addDoc(this.cols.staff, {
+                    nome: docData.nome,
+                    cognome: docData.cognome,
+                    email: docData.email,
+                    ruolo: docData.ruoloRichiesto,
+                    uid: uid || null,
+                    autoApproved: true,
+                });
+            }
         }
         return ref.id;
     }

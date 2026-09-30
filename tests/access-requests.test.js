@@ -44,12 +44,12 @@ describe('Flusso Registrazione Utenti & Richieste di Accesso', () => {
       expect(createdReq.status).toBe('approved');
       expect(createdReq.ruoloRichiesto).toBe('Esploratore');
 
-      // Verifica che sia stato aggiunto immediatamente a staff
-      expect(adapter.state.staff.length).toBe(initialStaffCount + 1);
-      const newStaff = adapter.state.staff.find(s => s.email === 'marco.verdi@scout.it');
-      expect(newStaff).toBeDefined();
-      expect(newStaff.ruolo).toBe('Esploratore');
-      expect(newStaff.autoApproved).toBe(true);
+      // Verifica che sia stato aggiunto immediatamente a scouts (e NON a staff)
+      expect(adapter.state.staff.length).toBe(initialStaffCount);
+      const newScout = (adapter.state.scouts || []).find(s => s.anag_email === 'marco.verdi@scout.it');
+      expect(newScout).toBeDefined();
+      expect(newScout.nome).toBe('Marco');
+      expect(newScout.autoApproved).toBe(true);
     });
 
     it('dovrebbe impostare status "pending" per registrazioni con ruolo CR (soggetto ad approvazione Admin)', async () => {

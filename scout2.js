@@ -94,7 +94,24 @@ UI.renderScoutPage = async function () {
 
   try {
     const params = new URLSearchParams(location.search);
-    const id = params.get('id');
+    let id = params.get('id');
+
+    // Controllo di accesso per il ruolo Esploratore: può accedere solo alla propria scheda
+    const userRole = typeof this.getUserRole === 'function' ? this.getUserRole() : null;
+    if (userRole && userRole.ruolo === 'esploratore' && userRole.record) {
+      const ownId = userRole.record.id;
+      if (ownId && id !== ownId) {
+        console.warn(`[RBAC scout2] Accesso negato per esploratore a scheda ${id}. Reindirizzamento a ${ownId}`);
+        location.replace(`scout2.html?id=${ownId}&readonly=1`);
+        return;
+      }
+      // Nascondi sidebar e navigazione generale per gli esploratori
+      const sidebar = this.qs('#mainSidebar') || document.getElementById('mainSidebar');
+      if (sidebar) sidebar.style.display = 'none';
+      const sidebarToggle = this.qs('#sidebarToggle') || document.getElementById('sidebarToggle');
+      if (sidebarToggle) sidebarToggle.style.display = 'none';
+    }
+
     if (!id) {
       this.qs('#scoutTitle').textContent = 'Scheda Esploratore — ID mancante';
       return;

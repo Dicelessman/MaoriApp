@@ -662,7 +662,9 @@ export class LocalAdapter {
     async addAccessRequest({ nome, cognome, email, ruoloRichiesto, uid }) {
         if (!this.state.accessRequests) this.state.accessRequests = [];
         const ADMIN_ROLES = ['CR', 'VCR'];
+        const SCOUT_ROLES = ['Esploratore', 'esploratore'];
         const needsApproval = ADMIN_ROLES.includes(ruoloRichiesto);
+        const isScout = SCOUT_ROLES.includes(ruoloRichiesto);
         const id = 'req_' + Math.random().toString(36).slice(2, 10);
         const req = {
             id,
@@ -677,16 +679,33 @@ export class LocalAdapter {
         };
         this.state.accessRequests.push(req);
         if (!needsApproval) {
-            if (!this.state.staff) this.state.staff = [];
-            this.state.staff.push({
-                id: 'st_' + Math.random().toString(36).slice(2, 8),
-                nome: req.nome,
-                cognome: req.cognome,
-                email: req.email,
-                ruolo: req.ruoloRichiesto,
-                uid: uid || null,
-                autoApproved: true
-            });
+            if (isScout) {
+                // Gli esploratori vanno nella collezione scouts, non staff
+                if (!this.state.scouts) this.state.scouts = [];
+                const alreadyInScouts = this.state.scouts.some(s => (s.anag_email || '').toLowerCase() === req.email);
+                if (!alreadyInScouts) {
+                    this.state.scouts.push({
+                        id: 's_' + Math.random().toString(36).slice(2, 8),
+                        nome: req.nome,
+                        cognome: req.cognome,
+                        anag_email: req.email,
+                        uid: uid || null,
+                        autoApproved: true
+                    });
+                }
+            } else {
+                // SiSR, RiS: vanno nello staff
+                if (!this.state.staff) this.state.staff = [];
+                this.state.staff.push({
+                    id: 'st_' + Math.random().toString(36).slice(2, 8),
+                    nome: req.nome,
+                    cognome: req.cognome,
+                    email: req.email,
+                    ruolo: req.ruoloRichiesto,
+                    uid: uid || null,
+                    autoApproved: true
+                });
+            }
         }
         this.persist();
         console.log('LocalAdapter: addAccessRequest', { id, email: req.email, status: req.status });

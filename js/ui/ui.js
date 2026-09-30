@@ -1009,19 +1009,44 @@ export const UI = {
                             this.checkPaymentReminders();
                             this.checkBirthdayReminders();
                         }, 3000);
-                        const match = (this.state.staff || []).find(s => (s.email || '').toLowerCase() === (user.email || '').toLowerCase());
-                        if (match) {
-                            this.selectStaff(match.id);
+                        // Determina il ruolo DOPO aver caricato lo stato
+                        const roleInfo = this.getUserRole();
+                        const role = roleInfo.ruolo;
+
+                        if (roleInfo.type === 'esploratore' || role === 'esploratore') {
+                            // Esploratori: NON mostrare staffSelectionModal, nessuna modifica abilitata, redirige alla propria scheda
+                            this.selectedStaffId = null;
+                            if (typeof this.renderCurrentPage === 'function') {
+                                this.renderCurrentPage();
+                            }
+                            this.applyRoleBasedUI();
+                        } else if (role === 'CR' || role === 'VCR') {
+                            // CR e VCR: modifiche già abilitate immediatamente, auto-seleziona il proprio ID staff
+                            const staffId = roleInfo.record?.id || (this.state.staff?.[0]?.id) || 'cr_admin';
+                            this.selectStaff(staffId);
+                            if (typeof this.renderCurrentPage === 'function') {
+                                this.renderCurrentPage();
+                            }
+                            this.applyRoleBasedUI();
+                        } else if (role === 'SiSR' || role === 'RiS') {
+                            // SiSR e RiS: NON mostrare staffSelectionModal
+                            if (roleInfo.record && roleInfo.record.id) {
+                                this.selectStaff(roleInfo.record.id);
+                            }
+                            if (typeof this.renderCurrentPage === 'function') {
+                                this.renderCurrentPage();
+                            }
+                            this.applyRoleBasedUI();
+                        } else {
+                            // Ruolo non riconosciuto / ospite generico
+                            if (roleInfo.record && roleInfo.record.id) {
+                                this.selectStaff(roleInfo.record.id);
+                            }
+                            if (typeof this.renderCurrentPage === 'function') {
+                                this.renderCurrentPage();
+                            }
+                            this.applyRoleBasedUI();
                         }
-                        else {
-                            this.renderStaffSelectionList();
-                            if (this.showModal)
-                                this.showModal('staffSelectionModal');
-                        }
-                        if (typeof this.renderCurrentPage === 'function') {
-                            this.renderCurrentPage();
-                        }
-                        this.applyRoleBasedUI();
                     }
                     finally {
                         this.hideLoadingOverlay();
@@ -2217,6 +2242,7 @@ export const UI = {
 
     /** Apre la command palette e mette il focus sull'input */
     openCommandPalette() {
+        if (this.getUserRole?.().ruolo === 'esploratore') return;
         const cp = document.getElementById('commandPalette');
         const input = document.getElementById('commandPaletteInput');
         if (!cp) return;
@@ -2877,19 +2903,7 @@ export const UI = {
         if (!this.currentUser) return { type: null, ruolo: null, record: null };
         const email = (this.currentUser.email || '').toLowerCase().trim();
 
-        // Cerca nello staff
-        const staffMatch = (this.state.staff || []).find(
-            s => (s.email || '').toLowerCase().trim() === email
-        );
-        if (staffMatch) {
-            return {
-                type: 'staff',
-                ruolo: this.normalizeRole(staffMatch.ruolo),
-                record: staffMatch
-            };
-        }
-
-        // Cerca negli esploratori
+        // Cerca PRIMA negli esploratori (scouts collection ha priorità assoluta)
         const scoutMatch = (this.state.scouts || []).find(
             s => (s.anag_email || '').toLowerCase().trim() === email
         );
@@ -2897,9 +2911,52 @@ export const UI = {
             return { type: 'esploratore', ruolo: 'esploratore', record: scoutMatch };
         }
 
-        // Se è loggato con Firebase Auth ma non trovato in tabella staff (es. admin o primo login),
-        // fallback di sicurezza a CR per non bloccare l'amministratore
-        return { type: 'staff', ruolo: 'CR', record: { nome: this.currentUser.displayName || 'Capo Reparto', email } };
+        // Cerca nello staff
+        const staffMatch = (this.state.staff || []).find(
+            s => (s.email || '').toLowerCase().trim() === email
+        );
+        if (staffMatch) {
+            const normalizedRuolo = this.normalizeRole(staffMatch.ruolo);
+            // Se un record staff ha ruolo Esploratore (migrazione legacy), trattalo come esploratore
+            if (normalizedRuolo === 'esploratore') {
+                const linkedScout = (this.state.scouts || []).find(
+                    s => (s.anag_email || '').toLowerCase().trim() === email
+                ) || { id: staffMatch.id, nome: staffMatch.nome, cognome: staffMatch.cognome, anag_email: email };
+                return { type: 'esploratore', ruolo: 'esploratore', record: linkedScout };
+            }
+            return {
+                type: 'staff',
+                ruolo: normalizedRuolo,
+                record: staffMatch
+            };
+        }
+
+        // Cerca nelle richieste di accesso (es. utente appena registrato)
+        const accessReq = (this.state.accessRequests || []).find(
+            r => (r.email || '').toLowerCase().trim() === email
+        );
+        if (accessReq) {
+            const reqRuolo = this.normalizeRole(accessReq.ruoloRichiesto);
+            if (reqRuolo === 'esploratore') {
+                const linkedScout = (this.state.scouts || []).find(
+                    s => (s.anag_email || '').toLowerCase().trim() === email
+                ) || { id: accessReq.id, nome: accessReq.nome, cognome: accessReq.cognome, anag_email: email };
+                return { type: 'esploratore', ruolo: 'esploratore', record: linkedScout };
+            }
+            return {
+                type: 'staff',
+                ruolo: reqRuolo,
+                record: accessReq
+            };
+        }
+
+        // Utente autenticato ma non ancora registrato nelle collezioni note:
+        // Se email contiene admin o cr, assegna CR per sicurezza amministrativa
+        if (email.includes('admin') || email.includes('cr@') || email.startsWith('cr.')) {
+            return { type: 'staff', ruolo: 'CR', record: { id: 'cr_admin', nome: this.currentUser.displayName || 'Capo Reparto', email } };
+        }
+
+        return { type: 'guest', ruolo: null, record: { nome: this.currentUser.displayName || '', email } };
     },
 
     /**
@@ -2971,7 +3028,24 @@ export const UI = {
      */
     _enforcePageAccess(ruolo) {
         const page = window.location.pathname.split('/').pop() || 'index.html';
-        if (!page || page === 'index.html') return;   // Home sempre accessibile
+
+        // Gli esploratori possono stare SOLO su scout2.html — index.html e tutte le altre pagine vietate
+        if (ruolo === 'esploratore') {
+            if (page !== 'scout2.html') {
+                const { record } = this.getUserRole();
+                const scoutId = record?.id || '';
+                console.warn(`[RBAC] Esploratore non autorizzato su ${page}. Redirect a scout2.html`);
+                if (scoutId) {
+                    window.location.replace(`scout2.html?id=${scoutId}&readonly=1`);
+                } else {
+                    window.location.replace('scout2.html');
+                }
+            }
+            return;
+        }
+
+        // Per tutti gli altri ruoli: home è sempre accessibile
+        if (!page || page === 'index.html') return;
 
         // Trova il nav item corrispondente alla pagina corrente
         const link = document.querySelector(`[data-roles][href="${page}"]`);
@@ -2989,18 +3063,32 @@ export const UI = {
      */
     _redirectEsploratore(scoutId) {
         const page = window.location.pathname.split('/').pop() || 'index.html';
-        const targetPage = `scout2.html?id=${scoutId}&readonly=1`;
 
-        // Se già sulla pagina corretta, non fare altro
-        if (page === 'scout2.html') return;
-
-        // Nascondi tutta la navigazione per gli esploratori
+        // Nascondi sempre la navigazione e link di ritorno per gli esploratori
         const sidebar = this.qs('#mainSidebar');
         if (sidebar) sidebar.style.display = 'none';
         const sidebarToggle = this.qs('#sidebarToggle');
         if (sidebarToggle) sidebarToggle.style.display = 'none';
+        const backLinks = document.querySelectorAll('a[href="esploratori.html"], a[href="index.html"]');
+        backLinks.forEach(el => el.style.display = 'none');
 
-        window.location.replace(targetPage);
+        const targetUrl = scoutId ? `scout2.html?id=${scoutId}&readonly=1` : 'scout2.html?readonly=1';
+
+        if (page === 'scout2.html') {
+            // Già sulla scheda: verifica che l'id nel URL sia quello corretto e readonly sia attivo
+            const params = new URLSearchParams(window.location.search);
+            const currentId = params.get('id');
+            const readonlyParam = params.get('readonly');
+            if (scoutId && (currentId !== scoutId || readonlyParam !== '1')) {
+                // Sta cercando di vedere la scheda di un altro scout o senza readonly — blocca
+                console.warn(`[RBAC] Esploratore tentativo accesso non consentito a id=${currentId}. Redirect a ${scoutId}`);
+                window.location.replace(targetUrl);
+            }
+            return;
+        }
+
+        // Su qualsiasi altra pagina: redirige alla propria scheda
+        window.location.replace(targetUrl);
     },
 
     checkRateLimit(key) { return true; },

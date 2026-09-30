@@ -449,15 +449,29 @@ export const UI = {
                             this.checkBirthdayReminders();
                         }, 3000);
 
-                        const match = (this.state.staff || []).find(s => (s.email || '').toLowerCase() === (user.email || '').toLowerCase());
-                        if (match) {
-                            this.selectStaff(match.id);
+                        // Determina il ruolo DOPO aver caricato lo stato
+                        const roleInfo = this.getUserRole();
+                        if (roleInfo.type === 'esploratore' && roleInfo.record) {
+                            // Esploratori: NON mostrare staffSelectionModal, redirige alla propria scheda
+                            if (typeof this.renderCurrentPage === 'function') {
+                                this.renderCurrentPage();
+                            }
+                            this.applyRoleBasedUI();
+                        } else if (roleInfo.record && (roleInfo.record as any).id) {
+                            // Staff (CR, VCR, SiSR, RiS): seleziona automaticamente il proprio record
+                            this.selectStaff((roleInfo.record as any).id);
+                            if (typeof this.renderCurrentPage === 'function') {
+                                this.renderCurrentPage();
+                            }
+                            this.applyRoleBasedUI();
                         } else {
+                            // Utente non trovato in alcuna collezione (primo accesso / admin Firebase non in DB)
                             this.renderStaffSelectionList();
                             if (this.showModal) this.showModal('staffSelectionModal');
-                        }
-                        if (typeof this.renderCurrentPage === 'function') {
-                            this.renderCurrentPage();
+                            if (typeof this.renderCurrentPage === 'function') {
+                                this.renderCurrentPage();
+                            }
+                            this.applyRoleBasedUI();
                         }
                     } finally {
                         this.hideLoadingOverlay();
