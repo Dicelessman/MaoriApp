@@ -182,6 +182,30 @@ export class LocalAdapter {
                     assegnatoDa: 'staff@scoutmaori.it',
                     createdAt: past2.toISOString()
                 }
+            ],
+            accessRequests: saved.accessRequests || [
+                {
+                    id: 'req_1',
+                    nome: 'Chiara',
+                    cognome: 'Neri',
+                    email: 'chiara.neri@scout.it',
+                    ruoloRichiesto: 'CR',
+                    uid: 'uid_chiara',
+                    status: 'pending',
+                    createdAt: past1.toISOString(),
+                    updatedAt: past1.toISOString()
+                },
+                {
+                    id: 'req_2',
+                    nome: 'Lorenzo',
+                    cognome: 'Ferrari',
+                    email: 'lorenzo.ferrari@scout.it',
+                    ruoloRichiesto: 'Esploratore',
+                    uid: 'uid_lorenzo',
+                    status: 'approved',
+                    createdAt: past2.toISOString(),
+                    updatedAt: past2.toISOString()
+                }
             ]
         };
         // Restore dates
@@ -632,6 +656,82 @@ export class LocalAdapter {
     async getAuditLogs(limitCount = 100) {
         const logs = this.state.auditLogs || [];
         return logs.slice(0, limitCount);
+    }
+
+    // Access Requests (Registrazioni)
+    async addAccessRequest({ nome, cognome, email, ruoloRichiesto, uid }) {
+        if (!this.state.accessRequests) this.state.accessRequests = [];
+        const ADMIN_ROLES = ['CR', 'VCR'];
+        const needsApproval = ADMIN_ROLES.includes(ruoloRichiesto);
+        const id = 'req_' + Math.random().toString(36).slice(2, 10);
+        const req = {
+            id,
+            nome: (nome || '').trim(),
+            cognome: (cognome || '').trim(),
+            email: (email || '').trim().toLowerCase(),
+            ruoloRichiesto: ruoloRichiesto || 'Esploratore',
+            uid: uid || null,
+            status: needsApproval ? 'pending' : 'approved',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        this.state.accessRequests.push(req);
+        if (!needsApproval) {
+            if (!this.state.staff) this.state.staff = [];
+            this.state.staff.push({
+                id: 'st_' + Math.random().toString(36).slice(2, 8),
+                nome: req.nome,
+                cognome: req.cognome,
+                email: req.email,
+                ruolo: req.ruoloRichiesto,
+                uid: uid || null,
+                autoApproved: true
+            });
+        }
+        this.persist();
+        console.log('LocalAdapter: addAccessRequest', { id, email: req.email, status: req.status });
+        return id;
+    }
+
+    async getAccessRequests() {
+        return this.state.accessRequests || [];
+    }
+
+    async approveAccessRequest(requestId, currentUser) {
+        if (!this.state.accessRequests) this.state.accessRequests = [];
+        const req = this.state.accessRequests.find(r => r.id === requestId);
+        if (!req) throw new Error('Richiesta non trovata');
+        req.status = 'approved';
+        req.approvedBy = currentUser?.email || 'admin';
+        req.updatedAt = new Date().toISOString();
+        if (!this.state.staff) this.state.staff = [];
+        const alreadyInStaff = this.state.staff.some(s => (s.email || '').toLowerCase() === req.email.toLowerCase());
+        if (!alreadyInStaff) {
+            this.state.staff.push({
+                id: 'st_' + Math.random().toString(36).slice(2, 8),
+                nome: req.nome,
+                cognome: req.cognome,
+                email: req.email,
+                ruolo: req.ruoloRichiesto,
+                uid: req.uid || null,
+                approvedBy: currentUser?.email || null,
+                approvedAt: new Date().toISOString()
+            });
+        }
+        this.persist();
+        console.log('LocalAdapter: approveAccessRequest', { requestId, currentUser: currentUser?.email });
+    }
+
+    async rejectAccessRequest(requestId, reason, currentUser) {
+        if (!this.state.accessRequests) this.state.accessRequests = [];
+        const req = this.state.accessRequests.find(r => r.id === requestId);
+        if (!req) throw new Error('Richiesta non trovata');
+        req.status = 'rejected';
+        req.rejectedBy = currentUser?.email || 'admin';
+        req.rejectReason = reason || '';
+        req.updatedAt = new Date().toISOString();
+        this.persist();
+        console.log('LocalAdapter: rejectAccessRequest', { requestId, currentUser: currentUser?.email });
     }
 }
 

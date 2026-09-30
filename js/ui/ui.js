@@ -4,7 +4,7 @@
  * @module ui/ui
  */
 import { DATA } from '../data/data-facade.js';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, getToken, onMessage, collection, doc, getDocs, addDoc, setDoc, updateDoc, getDoc, query, limit, orderBy, where, Timestamp } from '../core/firebase.js';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence, getToken, onMessage, collection, doc, getDocs, addDoc, setDoc, updateDoc, getDoc, query, limit, orderBy, where, Timestamp } from '../core/firebase.js';
 import { APP_VERSION, THEME } from '../utils/constants.js';
 import {
     escapeHtml, toJsDate, formatTimeAgo, debounceWithRateLimit,
@@ -1333,6 +1333,93 @@ export const UI = {
                 }
             });
         }
+        // ── Register form ──────────────────────────────────────────────────
+        const registerForm = this.qs('#registerForm');
+        if (registerForm && !registerForm._bound) {
+            registerForm._bound = true;
+            // Mostra/nascondi avviso approvazione al cambio ruolo
+            const regRuolo = this.qs('#regRuolo');
+            const approvalWarning = this.qs('#regApprovalWarning');
+            const ADMIN_ROLES = ['CR', 'VCR'];
+            if (regRuolo && approvalWarning) {
+                regRuolo.addEventListener('change', () => {
+                    const needsApproval = ADMIN_ROLES.includes(regRuolo.value);
+                    approvalWarning.classList.toggle('hidden', !needsApproval);
+                });
+            }
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const nome = (this.qs('#regNome')?.value || '').trim();
+                const cognome = (this.qs('#regCognome')?.value || '').trim();
+                const email = (this.qs('#regEmail')?.value || '').trim().toLowerCase();
+                const password = this.qs('#regPassword')?.value || '';
+                const ruoloRichiesto = regRuolo?.value || 'Esploratore';
+                const errorEl = this.qs('#registerError');
+                const successEl = this.qs('#registerSuccess');
+                if (errorEl) errorEl.textContent = '';
+                if (successEl) successEl.classList.add('hidden');
+                // Validazione base
+                if (!nome || !cognome) {
+                    if (errorEl) errorEl.textContent = 'Nome e cognome sono obbligatori.';
+                    return;
+                }
+                if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    if (errorEl) errorEl.textContent = 'Email non valida.';
+                    return;
+                }
+                if (password.length < 6) {
+                    if (errorEl) errorEl.textContent = 'La password deve essere di almeno 6 caratteri.';
+                    return;
+                }
+                const submitBtn = registerForm.querySelector('button[type="submit"]');
+                const originalText = submitBtn?.textContent;
+                this.setButtonLoading(submitBtn, true, originalText);
+                try {
+                    // 1. Crea l'utente Firebase Auth (se auth è disponibile)
+                    let uid = null;
+                    if (DATA.adapter?.auth && typeof createUserWithEmailAndPassword === 'function') {
+                        const userCredential = await createUserWithEmailAndPassword(DATA.adapter.auth, email, password);
+                        uid = userCredential.user.uid;
+                    } else {
+                        uid = 'usr_' + Math.random().toString(36).slice(2, 9);
+                    }
+                    // 2. Salva la richiesta di accesso in Firestore / Adapter
+                    await DATA.addAccessRequest({ nome, cognome, email, ruoloRichiesto, uid });
+                    // Feedback all'utente
+                    const needsApproval = ADMIN_ROLES.includes(ruoloRichiesto);
+                    registerForm.reset();
+                    if (successEl) {
+                        successEl.textContent = needsApproval
+                            ? `✅ Richiesta inviata! Il ruolo ${ruoloRichiesto} richiede l'approvazione di un Admin (CR/VCR).`
+                            : `✅ Account creato con successo! Puoi ora accedere con le tue credenziali.`;
+                        successEl.classList.remove('hidden');
+                    }
+                    this.showToast(
+                        needsApproval ? 'Richiesta inviata — in attesa di approvazione Admin' : 'Account creato! Puoi accedere.',
+                        { type: 'success', duration: 4000 }
+                    );
+                    // Se non richiede approvazione, passa subito al tab di login
+                    if (!needsApproval) {
+                        setTimeout(() => this._switchAuthTab('login'), 2000);
+                    }
+                } catch (error) {
+                    console.error('Register error:', error);
+                    let msg = 'Registrazione non riuscita.';
+                    if (error.code === 'auth/email-already-in-use')
+                        msg = 'Email già in uso. Prova ad accedere.';
+                    else if (error.code === 'auth/invalid-email')
+                        msg = 'Email non valida.';
+                    else if (error.code === 'auth/weak-password')
+                        msg = 'Password troppo debole (minimo 6 caratteri).';
+                    else if (error.message)
+                        msg = error.message;
+                    if (errorEl) errorEl.textContent = msg;
+                    this.showToast(msg, { type: 'error' });
+                } finally {
+                    this.setButtonLoading(submitBtn, false, originalText);
+                }
+            });
+        }
         this.setupModalEventListeners();
         if (this.currentUser?.uid) {
             this.setupInAppNotifications();
@@ -1358,6 +1445,32 @@ export const UI = {
     openModal(id) {
         this.showModal(id);
     },
+    /** Switcha tra il pannello "login" e "register" nel modale di accesso. */
+    _switchAuthTab(tab) {
+        const loginPanel = document.getElementById('loginPanel');
+        const registerPanel = document.getElementById('registerPanel');
+        const loginTabBtn = document.getElementById('loginTabBtn');
+        const registerTabBtn = document.getElementById('registerTabBtn');
+        if (!loginPanel || !registerPanel) return;
+        const isLogin = (tab === 'login');
+        loginPanel.classList.toggle('hidden', !isLogin);
+        registerPanel.classList.toggle('hidden', isLogin);
+        if (loginTabBtn) {
+            loginTabBtn.classList.toggle('bg-green-600', isLogin);
+            loginTabBtn.classList.toggle('text-white', isLogin);
+            loginTabBtn.classList.toggle('bg-white', !isLogin);
+            loginTabBtn.classList.toggle('text-gray-600', !isLogin);
+            loginTabBtn.setAttribute('aria-selected', String(isLogin));
+        }
+        if (registerTabBtn) {
+            registerTabBtn.classList.toggle('bg-green-600', !isLogin);
+            registerTabBtn.classList.toggle('text-white', !isLogin);
+            registerTabBtn.classList.toggle('bg-white', isLogin);
+            registerTabBtn.classList.toggle('text-gray-600', isLogin);
+            registerTabBtn.setAttribute('aria-selected', String(!isLogin));
+        }
+    },
+
     closeModal(id) {
         const m = document.getElementById(id);
         if (m) {

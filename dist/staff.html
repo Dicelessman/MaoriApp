@@ -19,9 +19,9 @@
     <!-- CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/staff-DjzSUjRt.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/date-picker-BTKzc1qv.js">
-  <link rel="modulepreload" crossorigin href="/assets/shared-BrQJEBhv.js">
+  <script type="module" crossorigin src="/assets/staff-BDpBS4dO.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-B0jTovoo.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-6ETycm_Z.js">
   <link rel="stylesheet" crossorigin href="/assets/presenze-BvwRKHx7.css">
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -77,8 +77,88 @@
             <h3 class="text-xl font-semibold text-gray-700 mb-4">Membri Staff</h3>
             <div id="staffList" class="space-y-2"></div>
           </div>
+
+          <!-- Sezione Utenti Registrati o in Attesa di Approvazione -->
+          <div id="accessRequestsSection" class="mt-8 border-t border-gray-200 pt-6">
+            <!-- Avviso per utenti non admin -->
+            <div id="accessRequestsAuthNotice" class="hidden rounded-xl bg-amber-50 border border-amber-200 p-5 text-amber-900 shadow-sm">
+              <div class="flex items-center gap-3">
+                <span class="text-2xl">🔒</span>
+                <div>
+                  <h4 class="font-semibold text-base">Area Riservata ai Capi Reparto (CR / VCR)</h4>
+                  <p class="text-xs text-amber-700 mt-1">L'elenco degli utenti registrati e l'approvazione delle richieste di accesso è visibile solo agli amministratori. Accedi con il tuo account o usa la modalità Demo.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contenuto completo per Admin -->
+            <div id="accessRequestsAdminContent" class="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-inner">
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-2xl">📋</span>
+                    <h3 class="text-xl font-bold text-gray-800">Utenti Registrati o in Attesa di Approvazione</h3>
+                    <span id="accessRequestsBadge" class="hidden text-xs font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full animate-pulse"></span>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-1">Elenco degli utenti registrati dall'app. I ruoli CR e VCR richiedono approvazione per abilitare le autorizzazioni di gestione.</p>
+                </div>
+                <button
+                  id="refreshAccessRequestsBtn"
+                  class="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3"
+                  onclick="UI.loadAccessRequests()"
+                  aria-label="Aggiorna elenco richieste"
+                ><span>↻</span> Aggiorna</button>
+              </div>
+
+              <!-- Filtri & Ricerca -->
+              <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between mb-4">
+                <div class="flex items-center gap-1.5 flex-wrap" role="tablist" id="accessRequestsFilterTabs">
+                  <button
+                    type="button"
+                    class="access-filter-btn px-3 py-1 text-xs font-semibold rounded-full bg-green-600 text-white shadow-sm transition-colors"
+                    data-filter="all"
+                    onclick="UI.filterAccessRequests('all')"
+                  >Tutti <span id="countReqAll" class="ml-1 opacity-80">(0)</span></button>
+                  <button
+                    type="button"
+                    class="access-filter-btn px-3 py-1 text-xs font-semibold rounded-full bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 transition-colors"
+                    data-filter="pending"
+                    onclick="UI.filterAccessRequests('pending')"
+                  >⏳ In attesa <span id="countReqPending" class="ml-1 opacity-80">(0)</span></button>
+                  <button
+                    type="button"
+                    class="access-filter-btn px-3 py-1 text-xs font-semibold rounded-full bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 transition-colors"
+                    data-filter="approved"
+                    onclick="UI.filterAccessRequests('approved')"
+                  >✅ Approvati / Registrati <span id="countReqApproved" class="ml-1 opacity-80">(0)</span></button>
+                  <button
+                    type="button"
+                    class="access-filter-btn px-3 py-1 text-xs font-semibold rounded-full bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 transition-colors"
+                    data-filter="rejected"
+                    onclick="UI.filterAccessRequests('rejected')"
+                  >❌ Rifiutati <span id="countReqRejected" class="ml-1 opacity-80">(0)</span></button>
+                </div>
+                <div class="w-full sm:w-64">
+                  <input
+                    type="search"
+                    id="searchAccessRequestsInput"
+                    placeholder="Cerca nome o email..."
+                    class="w-full text-xs px-3 py-1.5 rounded-lg border border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-200"
+                    oninput="UI.searchAccessRequests(this.value)"
+                  />
+                </div>
+              </div>
+
+              <!-- Lista Richieste -->
+              <div id="accessRequestsList" class="space-y-3">
+                <p class="text-sm text-gray-500 italic">Caricamento...</p>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
+
     </main>
   </div>
 

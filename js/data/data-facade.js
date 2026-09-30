@@ -382,6 +382,36 @@ export const DATA = {
             return await this.adapter.getAuditLogs(limitCount);
         }
         return [];
-    }
+    },
+
+    // ── Access Requests ──────────────────────────────────────────────────────
+    async addAccessRequest(p) {
+        if (typeof this.adapter.addAccessRequest === 'function') {
+            const result = await this.adapter.addAccessRequest(p);
+            this._invalidateCache();
+            return result;
+        }
+        throw new Error('addAccessRequest non supportato dall\'adapter corrente');
+    },
+    async getAccessRequests() {
+        if (typeof this.adapter.getAccessRequests === 'function') {
+            return await this.adapter.getAccessRequests();
+        }
+        return [];
+    },
+    async approveAccessRequest(requestId, currentUser) {
+        if (typeof this.adapter.approveAccessRequest === 'function') {
+            const result = await this.adapter.approveAccessRequest(requestId, currentUser);
+            this._invalidateCache();
+            return result;
+        }
+        throw new Error('approveAccessRequest non supportato dall\'adapter corrente');
+    },
+    async rejectAccessRequest(requestId, reason, currentUser) {
+        if (typeof this.adapter.rejectAccessRequest === 'function') {
+            return await this.adapter.rejectAccessRequest(requestId, reason, currentUser);
+        }
+        throw new Error('rejectAccessRequest non supportato dall\'adapter corrente');
+    },
 };
 

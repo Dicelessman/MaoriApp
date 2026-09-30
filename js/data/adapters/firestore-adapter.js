@@ -615,5 +615,89 @@ export class FirestoreAdapter {
             return [];
         }
     }
+
+    // ── Access Requests (self-registration) ─────────────────────────────────
+    /**
+     * Crea una richiesta di accesso da parte di un nuovo utente.
+     * @param {Object} p  - { nome, cognome, email, ruoloRichiesto, uid }
+     */
+    async addAccessRequest({ nome, cognome, email, ruoloRichiesto, uid }) {
+        const ADMIN_ROLES = ['CR', 'VCR'];
+        const needsApproval = ADMIN_ROLES.includes(ruoloRichiesto);
+        const docData = {
+            nome: (nome || '').trim(),
+            cognome: (cognome || '').trim(),
+            email: (email || '').trim().toLowerCase(),
+            ruoloRichiesto: ruoloRichiesto || 'Esploratore',
+            uid: uid || null,
+            status: needsApproval ? 'pending' : 'approved',
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+        };
+        const ref = await addDoc(collection(this.db, 'access_requests'), docData);
+        // Se non necessita approvazione (Esploratore, SiSR, RiS), aggiunge subito lo staff record
+        if (!needsApproval) {
+            await addDoc(this.cols.staff, {
+                nome: docData.nome,
+                cognome: docData.cognome,
+                email: docData.email,
+                ruolo: docData.ruoloRichiesto,
+                uid: uid || null,
+                autoApproved: true,
+            });
+        }
+        return ref.id;
+    }
+
+    /** Legge tutte le richieste di accesso (per admin). */
+    async getAccessRequests() {
+        try {
+            const snapshot = await getDocs(collection(this.db, 'access_requests'));
+            return snapshot.docs.map(d => ({
+                id: d.id,
+                ...d.data(),
+                createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : d.data().createdAt,
+                updatedAt: d.data().updatedAt?.toDate ? d.data().updatedAt.toDate() : d.data().updatedAt,
+            }));
+        } catch (error) {
+            console.error('Error fetching access_requests:', error);
+            return [];
+        }
+    }
+
+    /** Approva una richiesta: crea il record staff e aggiorna lo status. */
+    async approveAccessRequest(requestId, currentUser) {
+        const reqRef = doc(this.db, 'access_requests', requestId);
+        const snap = await getDoc(reqRef);
+        if (!snap.exists()) throw new Error('Richiesta non trovata');
+        const data = snap.data();
+        // Crea/aggiorna il profilo staff
+        await addDoc(this.cols.staff, {
+            nome: data.nome,
+            cognome: data.cognome,
+            email: data.email,
+            ruolo: data.ruoloRichiesto,
+            uid: data.uid || null,
+            approvedBy: currentUser?.email || null,
+            approvedAt: Timestamp.now(),
+        });
+        // Segna la richiesta come approvata
+        await setDoc(reqRef, {
+            status: 'approved',
+            approvedBy: currentUser?.email || null,
+            updatedAt: Timestamp.now(),
+        }, { merge: true });
+    }
+
+    /** Rifiuta una richiesta. */
+    async rejectAccessRequest(requestId, reason, currentUser) {
+        const reqRef = doc(this.db, 'access_requests', requestId);
+        await setDoc(reqRef, {
+            status: 'rejected',
+            rejectedBy: currentUser?.email || null,
+            rejectReason: reason || '',
+            updatedAt: Timestamp.now(),
+        }, { merge: true });
+    }
 }
 
