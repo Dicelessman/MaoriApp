@@ -64,8 +64,8 @@ describe('Home Page Controller & Widgets', () => {
 
         UI.state = {
             activities: [
-                { id: 'act_1', tipo: 'Attività lunga', descrizione: 'Uscita Parco Naturale', data: '2026-10-15', costo: 0 },
-                { id: 'act_2', tipo: 'Riunione', descrizione: 'Pianificazione Impresa', data: '2026-10-22', costo: 0 },
+                { id: 'act_1', tipo: 'Attività lunga', descrizione: 'Uscita Parco Naturale', data: '2026-10-25', costo: 0 },
+                { id: 'act_2', tipo: 'Riunione', descrizione: 'Pianificazione Impresa', data: '2026-10-30', costo: 0 },
                 { id: 'act_3', tipo: 'Uscita', descrizione: 'Bivacco in rifugio', data: '2026-11-05', dataFine: '2026-11-06', costo: 15 },
                 { id: 'act_4', tipo: 'Campo', descrizione: 'Campo Invernale', data: '2026-12-27', costo: 80 }
             ],

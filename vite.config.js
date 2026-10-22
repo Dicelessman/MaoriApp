@@ -13,6 +13,48 @@ export default defineConfig(({ mode }) => {
         // Public directory for static assets
         publicDir: 'public',
 
+        // Dev plugin for ricetta-import serverless function
+        plugins: [
+            {
+                name: 'ricetta-import-dev-handler',
+                configureServer(server) {
+                    server.middlewares.use(async (req, res, next) => {
+                        if (req.url && req.url.startsWith('/api/ricetta-import')) {
+                            try {
+                                const urlObj = new URL(req.url, 'http://localhost');
+                                const handler = (await import('./api/ricetta-import.js')).default || require('./api/ricetta-import.js');
+                                const customReq = {
+                                    method: req.method,
+                                    query: Object.fromEntries(urlObj.searchParams.entries()),
+                                    body: {}
+                                };
+                                const customRes = {
+                                    setHeader: (k, v) => res.setHeader(k, v),
+                                    status: (code) => {
+                                        res.statusCode = code;
+                                        return {
+                                            json: (data) => {
+                                                res.setHeader('Content-Type', 'application/json');
+                                                res.end(JSON.stringify(data));
+                                            },
+                                            end: () => res.end()
+                                        };
+                                    }
+                                };
+                                await handler(customReq, customRes);
+                            } catch (err) {
+                                res.statusCode = 500;
+                                res.setHeader('Content-Type', 'application/json');
+                                res.end(JSON.stringify({ error: err.message }));
+                            }
+                            return;
+                        }
+                        next();
+                    });
+                }
+            }
+        ],
+
         // Development server proxy for secure CNGEI API access
         server: {
             proxy: {
@@ -52,7 +94,8 @@ export default defineConfig(({ mode }) => {
                 scadenze: resolve(__dirname, 'scadenze.html'),
                 scorte: resolve(__dirname, 'scorte.html'),
                 preventivo: resolve(__dirname, 'preventivo.html'),
-                gara: resolve(__dirname, 'gara.html')
+                gara: resolve(__dirname, 'gara.html'),
+                menu: resolve(__dirname, 'menu.html')
             }
         }
     },

@@ -20,7 +20,10 @@ export class FirestoreAdapter {
             staff: collection(db, COLLECTIONS.STAFF),
             activities: collection(db, COLLECTIONS.ACTIVITIES),
             presences: collection(db, COLLECTIONS.PRESENCES),
-            accessRequests: collection(db, 'access_requests')
+            accessRequests: collection(db, 'access_requests'),
+            ricette: collection(db, COLLECTIONS.RICETTE || 'ricette'),
+            menu: collection(db, COLLECTIONS.MENU || 'menu'),
+            alimenti: collection(db, COLLECTIONS.ALIMENTI || 'alimenti')
         };
     }
     async loadAll(options = {}) {
@@ -734,6 +737,211 @@ export class FirestoreAdapter {
             rejectReason: reason || '',
             updatedAt: Timestamp.now(),
         }, { merge: true });
+    }
+
+    // --- Ricette (Menù & Cambusa) ---
+    async getRicette() {
+        try {
+            const snap = await getDocs(this.cols.ricette);
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (error) {
+            console.error('Error fetching ricette:', error);
+            return [];
+        }
+    }
+
+    async getRicetta(id) {
+        try {
+            const snap = await getDoc(doc(this.cols.ricette, id));
+            if (!snap.exists()) return null;
+            return { id: snap.id, ...snap.data() };
+        } catch (error) {
+            console.error('Error fetching ricetta:', error);
+            return null;
+        }
+    }
+
+    async addRicetta(recipe, currentUser) {
+        const data = {
+            nome: (recipe.nome || '').trim(),
+            categoria: recipe.categoria || 'Pranzo',
+            descrizione: (recipe.descrizione || '').trim(),
+            porzioniBase: Number(recipe.porzioniBase) || 4,
+            tempoPreparazione: Number(recipe.tempoPreparazione) || 0,
+            tempoCottura: Number(recipe.tempoCottura) || 0,
+            difficolta: recipe.difficolta || 'Facile',
+            metodoCottura: Array.isArray(recipe.metodoCottura) ? recipe.metodoCottura : ['Fornellone'],
+            fonte: recipe.fonte || { tipo: 'manuale' },
+            allergeni: Array.isArray(recipe.allergeni) ? recipe.allergeni : [],
+            diete: Array.isArray(recipe.diete) ? recipe.diete : [],
+            noteAlimentari: (recipe.noteAlimentari || '').trim(),
+            ingredienti: Array.isArray(recipe.ingredienti) ? recipe.ingredienti : [],
+            passaggi: Array.isArray(recipe.passaggi) ? recipe.passaggi : [],
+            strumenti: Array.isArray(recipe.strumenti) ? recipe.strumenti : [],
+            nutrizione: recipe.nutrizione || {
+                origine: 'stimata',
+                perPorzione: { kcal: 0, proteine: 0, carboidrati: 0, zuccheri: 0, grassi: 0, saturi: 0, fibre: 0, sale: 0 },
+                per100g: { kcal: 0, proteine: 0, carboidrati: 0, zuccheri: 0, grassi: 0, saturi: 0, fibre: 0, sale: 0 }
+            },
+            storicoManuale: Array.isArray(recipe.storicoManuale) ? recipe.storicoManuale : [],
+            createdAt: Timestamp.now(),
+            createdBy: currentUser?.email || 'user'
+        };
+        if (recipe.id) {
+            await setDoc(doc(this.cols.ricette, recipe.id), data, { merge: true });
+            return recipe.id;
+        }
+        const ref = await addDoc(this.cols.ricette, data);
+        return ref.id;
+    }
+
+    async updateRicetta(id, updates, currentUser) {
+        const ref = doc(this.cols.ricette, id);
+        await setDoc(ref, {
+            ...updates,
+            updatedAt: Timestamp.now(),
+            updatedBy: currentUser?.email || 'user'
+        }, { merge: true });
+    }
+
+    async deleteRicetta(id, currentUser) {
+        await deleteDoc(doc(this.cols.ricette, id));
+    }
+
+    async importRicetteBatch(items, replaceExisting = false, currentUser) {
+        if (replaceExisting) {
+            const existing = await this.getRicette();
+            await Promise.all(existing.map(r => this.deleteRicetta(r.id, currentUser)));
+        }
+        for (const item of items) {
+            await this.addRicetta(item, currentUser);
+        }
+        return items.length;
+    }
+
+    // --- Menù (Uscite & Campi) ---
+    async getMenus(attivitaId = null) {
+        try {
+            let q = this.cols.menu;
+            if (attivitaId) {
+                q = query(this.cols.menu, where('attivitaId', '==', attivitaId));
+            }
+            const snap = await getDocs(q);
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (error) {
+            console.error('Error fetching menus:', error);
+            return [];
+        }
+    }
+
+    async getMenu(id) {
+        try {
+            const snap = await getDoc(doc(this.cols.menu, id));
+            if (!snap.exists()) return null;
+            return { id: snap.id, ...snap.data() };
+        } catch (error) {
+            console.error('Error fetching menu:', error);
+            return null;
+        }
+    }
+
+    async saveMenu(menuData, currentUser) {
+        const id = menuData.id || null;
+        const data = {
+            titolo: (menuData.titolo || 'Nuovo Menù').trim(),
+            attivitaId: menuData.attivitaId || null,
+            attivitaNome: menuData.attivitaNome || '',
+            dataInizio: menuData.dataInizio || '',
+            dataFine: menuData.dataFine || '',
+            partecipantiDefault: Number(menuData.partecipantiDefault) || 20,
+            giorni: Array.isArray(menuData.giorni) ? menuData.giorni : [],
+            totaliNutrizionali: menuData.totaliNutrizionali || {},
+            listaSpesaGenerata: menuData.listaSpesaGenerata || null,
+            listaStrumentiGenerata: menuData.listaStrumentiGenerata || null,
+            preventivoId: menuData.preventivoId || null,
+            costoTotaleStimato: Number(menuData.costoTotaleStimato) || 0,
+            stato: menuData.stato || 'bozza',
+            note: (menuData.note || '').trim(),
+            updatedAt: Timestamp.now(),
+            updatedBy: currentUser?.email || 'user'
+        };
+        if (id) {
+            await setDoc(doc(this.cols.menu, id), data, { merge: true });
+            return id;
+        } else {
+            data.createdAt = Timestamp.now();
+            data.createdBy = currentUser?.email || 'user';
+            const ref = await addDoc(this.cols.menu, data);
+            return ref.id;
+        }
+    }
+
+    async deleteMenu(id, currentUser) {
+        await deleteDoc(doc(this.cols.menu, id));
+    }
+
+    // --- Database Alimenti & Nutrizione ---
+    async getAlimenti() {
+        try {
+            const snap = await getDocs(this.cols.alimenti);
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (error) {
+            console.error('Error fetching alimenti:', error);
+            return [];
+        }
+    }
+
+    async getAlimento(id) {
+        try {
+            const snap = await getDoc(doc(this.cols.alimenti, id));
+            if (!snap.exists()) return null;
+            return { id: snap.id, ...snap.data() };
+        } catch (error) {
+            console.error('Error fetching alimento:', error);
+            return null;
+        }
+    }
+
+    async saveAlimento(alimento, currentUser) {
+        const id = alimento.id || null;
+        const data = {
+            nome: (alimento.nome || '').trim(),
+            categoria: alimento.categoria || 'Generale',
+            unitaDefault: alimento.unitaDefault || 'g',
+            prezzoStimatoKg: Number(alimento.prezzoStimatoKg) || 0,
+            allergeni: Array.isArray(alimento.allergeni) ? alimento.allergeni : [],
+            dieteCompatibili: Array.isArray(alimento.dieteCompatibili) ? alimento.dieteCompatibili : [],
+            nutrizione100g: alimento.nutrizione100g || {
+                kcal: Number(alimento.kcal) || 0,
+                proteine: Number(alimento.proteine) || 0,
+                carboidrati: Number(alimento.carboidrati) || 0,
+                zuccheri: Number(alimento.zuccheri) || 0,
+                grassi: Number(alimento.grassi) || 0,
+                saturi: Number(alimento.saturi) || 0,
+                fibre: Number(alimento.fibre) || 0,
+                sale: Number(alimento.sale) || 0
+            },
+            fonte: alimento.fonte || 'custom',
+            codiceABarre: alimento.codiceABarre || null,
+            updatedAt: Timestamp.now(),
+            updatedBy: currentUser?.email || 'user'
+        };
+        if (id) {
+            await setDoc(doc(this.cols.alimenti, id), data, { merge: true });
+            return id;
+        } else {
+            data.createdAt = Timestamp.now();
+            data.createdBy = currentUser?.email || 'user';
+            const ref = await addDoc(this.cols.alimenti, data);
+            return ref.id;
+        }
+    }
+
+    async saveAlimentiBatch(alimentiList, currentUser) {
+        for (const alim of alimentiList) {
+            await this.saveAlimento(alim, currentUser);
+        }
+        return alimentiList.length;
     }
 }
 

@@ -413,5 +413,97 @@ export const DATA = {
         }
         throw new Error('rejectAccessRequest non supportato dall\'adapter corrente');
     },
+
+    // ── Menù & Cambusa ────────────────────────────────────────────────────────
+    async getRicette() {
+        const cacheKey = 'ricette';
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await this.adapter.getRicette();
+        this.cache.set(cacheKey, data, 3 * 60 * 1000);
+        return data;
+    },
+    async getRicetta(id) {
+        if (typeof this.adapter.getRicetta === 'function') {
+            return await this.adapter.getRicetta(id);
+        }
+        const all = await this.getRicette();
+        return all.find(r => r.id === id) || null;
+    },
+    async addRicetta(recipe, currentUser) {
+        const result = await this.adapter.addRicetta(recipe, currentUser);
+        this.cache.invalidate('ricette');
+        return result;
+    },
+    async updateRicetta(id, updates, currentUser) {
+        const result = await this.adapter.updateRicetta(id, updates, currentUser);
+        this.cache.invalidate('ricette');
+        return result;
+    },
+    async deleteRicetta(id, currentUser) {
+        const result = await this.adapter.deleteRicetta(id, currentUser);
+        this.cache.invalidate('ricette');
+        return result;
+    },
+    async importRicetteBatch(items, replaceExisting = false, currentUser) {
+        const result = await this.adapter.importRicetteBatch(items, replaceExisting, currentUser);
+        this.cache.invalidate('ricette');
+        return result;
+    },
+
+    async getMenus(attivitaId = null) {
+        const cacheKey = `menu_${attivitaId || 'all'}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await this.adapter.getMenus(attivitaId);
+        this.cache.set(cacheKey, data, 2 * 60 * 1000);
+        return data;
+    },
+    async getMenu(id) {
+        if (typeof this.adapter.getMenu === 'function') {
+            return await this.adapter.getMenu(id);
+        }
+        const all = await this.getMenus();
+        return all.find(m => m.id === id) || null;
+    },
+    async saveMenu(menuData, currentUser) {
+        const result = await this.adapter.saveMenu(menuData, currentUser);
+        this.cache.invalidate('menu_all');
+        if (menuData.attivitaId) {
+            this.cache.invalidate(`menu_${menuData.attivitaId}`);
+        }
+        return result;
+    },
+    async deleteMenu(id, currentUser) {
+        const result = await this.adapter.deleteMenu(id, currentUser);
+        this.cache.invalidate('menu_all');
+        return result;
+    },
+
+    async getAlimenti() {
+        const cacheKey = 'alimenti';
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await this.adapter.getAlimenti();
+        this.cache.set(cacheKey, data, 10 * 60 * 1000);
+        return data;
+    },
+    async getAlimento(id) {
+        if (typeof this.adapter.getAlimento === 'function') {
+            return await this.adapter.getAlimento(id);
+        }
+        const all = await this.getAlimenti();
+        return all.find(a => a.id === id) || null;
+    },
+    async saveAlimento(alimento, currentUser) {
+        const result = await this.adapter.saveAlimento(alimento, currentUser);
+        this.cache.invalidate('alimenti');
+        return result;
+    },
+    async saveAlimentiBatch(alimentiList, currentUser) {
+        const result = await this.adapter.saveAlimentiBatch(alimentiList, currentUser);
+        this.cache.invalidate('alimenti');
+        return result;
+    },
 };
 

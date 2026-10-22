@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menù & Cambusa - Scout Maori</title>
+  <meta name="description" content="Pianificazione menù per Uscite e Campi, ricettario scout, calcolo nutrizionale, lista della spesa aggregata con scorte e preventivo" />
+  <meta name="theme-color" content="#16a34a" />
+
+  <!-- Favicon e icone -->
+  <link rel="icon" type="image/x-icon" href="/assets/favicon-D0S-PLtV.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192-BnNgNRfN.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512-DmSUEAR1.png" />
+  <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="/assets/manifest-DovV98Et.json" />
+
+  <!-- CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+
+  <style>
+    @media screen {
+      #printArea {
+        display: none !important;
+      }
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm 12mm;
+      }
+
+      body > *:not(#printArea),
+      #app,
+      #shared-header,
+      #shared-modals,
+      .modal,
+      header,
+      nav,
+      button,
+      .no-print {
+        display: none !important;
+        visibility: hidden !important;
+      }
+
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+      }
+
+      #printArea {
+        display: block !important;
+        visibility: visible !important;
+        position: static !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+
+      .print-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-top: 12px !important;
+        font-size: 12px !important;
+      }
+
+      .print-table th, .print-table td {
+        border: 1px solid #374151 !important;
+        padding: 6px 8px !important;
+      }
+
+      .print-table th {
+        background-color: #f3f4f6 !important;
+        font-weight: bold !important;
+      }
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/menu-DFQ2-Klt.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-BZHlqqPP.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-L_JrPNul.js">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-BvwRKHx7.css">
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col min-h-screen">
+  <div id="app" class="max-w-7xl mx-auto w-full bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden my-1.5 transition-colors">
+
+    <!-- Header condiviso -->
+    <div id="shared-header"></div>
+
+    <!-- Main Content -->
+    <main id="main-content" class="p-4 sm:p-6">
+      <!-- Modali condivisi -->
+      <div id="shared-modals"></div>
+
+      <!-- Intestazione pagina -->
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-3xl">🍳</span>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+              Menù & Cambusa
+            </h1>
+          </div>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Ricettario di reparto, pianificatore pasti per Uscite/Campi, bilancio nutrizionale e lista della spesa intelligente
+          </p>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="openImportRecipeBtn" type="button" class="btn-secondary flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg shadow-sm">
+            <span>🌐</span> Importa da URL
+          </button>
+          <button id="openNewRecipeBtn" type="button" class="btn-primary flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg shadow-sm">
+            <span>➕</span> Nuova Ricetta
+          </button>
+        </div>
+      </div>
+
+      <!-- Statistiche veloci in alto -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-3.5 flex items-center gap-3">
+          <span class="text-2xl p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/60">📖</span>
+          <div>
+            <div id="statTotalRecipes" class="text-xl sm:text-2xl font-bold text-emerald-800 dark:text-emerald-300">0</div>
+            <div class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Ricette Archiviate</div>
+          </div>
+        </div>
+        <div class="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-xl p-3.5 flex items-center gap-3">
+          <span class="text-2xl p-2 rounded-lg bg-blue-100 dark:bg-blue-900/60">📅</span>
+          <div>
+            <div id="statTotalMenus" class="text-xl sm:text-2xl font-bold text-blue-800 dark:text-blue-300">0</div>
+            <div class="text-xs font-medium text-blue-600 dark:text-blue-400">Piani Menù</div>
+          </div>
+        </div>
+        <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3.5 flex items-center gap-3">
+          <span class="text-2xl p-2 rounded-lg bg-amber-100 dark:bg-amber-900/60">🥗</span>
+          <div>
+            <div id="statTotalFoods" class="text-xl sm:text-2xl font-bold text-amber-800 dark:text-amber-300">0</div>
+            <div class="text-xs font-medium text-amber-600 dark:text-amber-400">Alimenti in DB</div>
+          </div>
+        </div>
+        <div class="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 rounded-xl p-3.5 flex items-center gap-3">
+          <span class="text-2xl p-2 rounded-lg bg-purple-100 dark:bg-purple-900/60">💰</span>
+          <div>
+            <div id="statEstimatedCost" class="text-xl sm:text-2xl font-bold text-purple-800 dark:text-purple-300">0,00 €</div>
+            <div class="text-xs font-medium text-purple-600 dark:text-purple-400">Stima Spesa Attiva</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
+        <nav class="flex space-x-2 sm:space-x-4 overflow-x-auto pb-1" aria-label="Tabs Menù">
+          <button id="tabBtnRicette" type="button" class="tab-btn px-4 py-2.5 text-sm font-bold border-b-2 border-green-600 text-green-700 dark:text-green-400 flex items-center gap-2 whitespace-nowrap">
+            <span>📖</span> Ricettario di Reparto
+          </button>
+          <button id="tabBtnPlanner" type="button" class="tab-btn px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-2 whitespace-nowrap">
+            <span>📅</span> Pianificatore Menù & Nutrizione
+          </button>
+          <button id="tabBtnListe" type="button" class="tab-btn px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-2 whitespace-nowrap">
+            <span>🛒</span> Liste Spesa & Strumenti
+          </button>
+        </nav>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 1: RICETTARIO DI REPARTO              -->
+      <!-- ========================================== -->
+      <section id="tabContentRicette" class="space-y-6">
+        <!-- Barra filtri e ricerca -->
+        <div class="bg-gray-50 dark:bg-gray-900/60 p-4 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            <!-- Ricerca testo -->
+            <div class="sm:col-span-5 relative">
+              <input type="text" id="recipeSearchInput" placeholder="Cerca per nome, ingrediente o nota..."
+                class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+              <span class="absolute left-3 top-2.5 text-gray-400 text-sm">🔍</span>
+            </div>
+
+            <!-- Filtro Categoria pasto -->
+            <div class="sm:col-span-4">
+              <select id="recipeCategoryFilter"
+                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                <option value="all">Tutte le categorie</option>
+                <option value="Colazione">Colazione</option>
+                <option value="Pranzo">Pranzo</option>
+                <option value="Merenda">Merenda</option>
+                <option value="Cena">Cena</option>
+                <option value="Spuntino">Spuntino</option>
+                <option value="Gara di Cucina">Gara di Cucina</option>
+                <option value="Altro">Altro</option>
+              </select>
+            </div>
+
+            <!-- Filtro Dieta -->
+            <div class="sm:col-span-3">
+              <select id="recipeDietFilter"
+                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                <option value="all">Tutte le esigenze alimentari</option>
+                <option value="senza_glutine">Senza Glutine (Celiaci)</option>
+                <option value="senza_lattosio">Senza Lattosio</option>
+                <option value="vegetariana">Vegetariana</option>
+                <option value="vegana">Vegana</option>
+                <option value="senza_maiale">Senza Maiale</option>
+                <option value="halal">Halal</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Griglia schede ricette -->
+        <div id="recipesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Inserite dinamicamente da menu.js -->
+        </div>
+
+        <!-- Empty state ricette -->
+        <div id="recipesEmptyState" class="hidden text-center py-12 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+          <span class="text-4xl">🍲</span>
+          <h3 class="text-lg font-bold text-gray-700 dark:text-gray-300 mt-2">Nessuna ricetta trovata</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Modifica i filtri di ricerca o aggiungi una nuova ricetta per iniziare.</p>
+          <button id="emptyStateNewRecipeBtn" type="button" class="btn-primary mt-4 px-4 py-2 text-sm font-semibold">
+            ➕ Aggiungi Nuova Ricetta
+          </button>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 2: PIANIFICATORE MENÙ & NUTRIZIONE    -->
+      <!-- ========================================== -->
+      <section id="tabContentPlanner" class="hidden space-y-6">
+        <!-- Barra di selezione Menù & Attività -->
+        <div class="bg-gray-50 dark:bg-gray-900/70 p-4 sm:p-5 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex flex-wrap items-center gap-4 flex-1 min-w-[280px]">
+            <div>
+              <label for="currentMenuSelect" class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
+                Menù Attivo
+              </label>
+              <select id="currentMenuSelect"
+                class="px-3 py-2 text-sm font-semibold rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none min-w-[200px]">
+                <!-- Popolato da menu.js -->
+              </select>
+            </div>
+
+            <div>
+              <label for="menuActivitySelect" class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
+                Collega ad Attività / Uscita
+              </label>
+              <select id="menuActivitySelect"
+                class="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none min-w-[200px]">
+                <option value="">Nessuna (Menù generico)</option>
+                <!-- Popolato con attività da DATA -->
+              </select>
+            </div>
+
+            <div>
+              <label for="menuParticipantsInput" class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
+                Numero Partecipanti
+              </label>
+              <div class="flex items-center gap-1">
+                <button id="decrementParticipantsBtn" type="button" class="w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold flex items-center justify-center">-</button>
+                <input type="number" id="menuParticipantsInput" min="1" max="200" value="20"
+                  class="w-16 text-center py-1.5 text-sm font-bold rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                <button id="incrementParticipantsBtn" type="button" class="w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold flex items-center justify-center">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="newMenuBtn" type="button" class="btn-secondary px-3 py-2 text-sm font-semibold rounded-lg">
+              ✨ Nuovo Menù
+            </button>
+            <button id="saveMenuBtn" type="button" class="btn-primary px-4 py-2 text-sm font-semibold rounded-lg shadow-sm">
+              💾 Salva Menù
+            </button>
+            <button id="confirmAndGenerateListsBtn" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-sm font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-all">
+              <span>🛒</span> Conferma Menù & Liste
+            </button>
+          </div>
+        </div>
+
+        <!-- Banner di allarme Allergeni e Intolleranze partecipanti -->
+        <div id="allergenAlertBanner" class="hidden p-4 rounded-xl border border-amber-300 dark:border-amber-700/80 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 space-y-1.5">
+          <div class="flex items-center gap-2 font-bold text-sm text-amber-800 dark:text-amber-300">
+            <span class="text-xl">⚠️</span> AVVISO DI SICUREZZA ALIMENTARE - SCHEDE SANITARIE PARTECIPANTI
+          </div>
+          <div id="allergenAlertContent" class="text-xs space-y-1">
+            <!-- Avvisi generati dinamicamente -->
+          </div>
+        </div>
+
+        <!-- Giorni del Menù -->
+        <div id="menuDaysContainer" class="space-y-6">
+          <!-- Popolato dinamicamente da menu.js -->
+        </div>
+
+        <!-- Pulsante Aggiungi Giorno -->
+        <div class="text-center pt-2">
+          <button id="addDayBtn" type="button" class="btn-secondary px-4 py-2.5 text-sm font-semibold rounded-lg border-dashed">
+            ➕ Aggiungi Giorno al Menù
+          </button>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 3: LISTE SPESA & STRUMENTI            -->
+      <!-- ========================================== -->
+      <section id="tabContentListe" class="hidden space-y-6">
+        <!-- Intestazione azioni e riepilogo -->
+        <div class="flex flex-wrap items-center justify-between gap-4 bg-gray-50 dark:bg-gray-900/60 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+          <div>
+            <h2 id="listeMenuTitle" class="text-lg font-bold text-gray-900 dark:text-white">Liste Generate per il Menù</h2>
+            <p id="listeMenuSubtitle" class="text-xs text-gray-500 dark:text-gray-400">Confronto automatico con inventario Scorte e stima costi</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="sendToPreventivoBtn" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-1.5 transition-all">
+              <span>💰</span> Invia a Preventivo
+            </button>
+            <button id="copyWhatsAppShoppingBtn" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-1.5 transition-all">
+              <span>📲</span> Copia per WhatsApp
+            </button>
+            <button id="printShoppingBtn" type="button" class="btn-secondary px-3.5 py-2 text-sm font-semibold rounded-lg flex items-center gap-1.5">
+              <span>🖨️</span> Stampa Lista Spesa
+            </button>
+          </div>
+        </div>
+
+        <!-- Dual Column: Spesa e Strumenti -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+          <!-- Colonna Sinistra (8/12): Lista Spesa -->
+          <div class="lg:col-span-8 space-y-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+              <div class="p-4 bg-gray-50 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🛒</span>
+                  <h3 class="font-bold text-gray-900 dark:text-white text-base">Ingredienti da Acquistare</h3>
+                </div>
+                <div id="shoppingCostBadge" class="text-sm font-bold px-2.5 py-1 rounded-lg bg-green-100 text-green-800 dark:bg-green-900/60 dark:text-green-300">
+                  Totale: 0,00 €
+                </div>
+              </div>
+
+              <!-- Tabella Spesa -->
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                  <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <tr>
+                      <th class="p-3 w-10 text-center">Fatto</th>
+                      <th class="p-3">Ingrediente</th>
+                      <th class="p-3 text-right">Fabbisogno</th>
+                      <th class="p-3 text-right">In Scorte</th>
+                      <th class="p-3 text-right font-bold text-gray-900 dark:text-white">Da Comprare</th>
+                      <th class="p-3 text-right">Stima Costo</th>
+                    </tr>
+                  </thead>
+                  <tbody id="shoppingListTbody" class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <!-- Popolato da menu.js -->
+                  </tbody>
+                </table>
+              </div>
+
+              <div id="shoppingEmptyMessage" class="hidden p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                Nessun ingrediente da acquistare. Tutti gli articoli sono già presenti in scorte o non ci sono ricette nel menù.
+              </div>
+            </div>
+
+            <!-- Sezione Scorte Disponibili (Non da comprare) -->
+            <div class="bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800/60 p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold text-sm">
+                  <span>✅</span> Disponibile in Scorte (Non da comprare)
+                </div>
+                <span id="scorteCountBadge" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 dark:bg-emerald-900/80 dark:text-emerald-200">
+                  0 articoli
+                </span>
+              </div>
+              <p class="text-xs text-emerald-700 dark:text-emerald-400">
+                Questi ingredienti sono già presenti nel magazzino di reparto in quantità sufficiente e non devono essere acquistati.
+              </p>
+              <div id="scortePresentiContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <!-- Popolato da menu.js -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Colonna Destra (4/12): Lista Attrezzature e Strumenti -->
+          <div class="lg:col-span-4 space-y-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+              <div class="p-4 bg-gray-50 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🍳</span>
+                  <h3 class="font-bold text-gray-900 dark:text-white text-base">Strumenti di Cucina</h3>
+                </div>
+                <button id="copyToolsBtn" type="button" class="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline">
+                  Copia
+                </button>
+              </div>
+
+              <div id="toolsListContainer" class="p-4 space-y-2.5 max-h-[500px] overflow-y-auto">
+                <!-- Popolato da menu.js -->
+              </div>
+
+              <div id="toolsEmptyMessage" class="hidden p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                Nessuno strumento registrato nelle ricette selezionate.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODALE: NUOVA / MODIFICA RICETTA           -->
+  <!-- ========================================== -->
+  <div id="recipeModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 hidden overflow-y-auto" role="dialog" aria-modal="true">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full my-8 overflow-hidden border border-gray-200 dark:border-gray-700">
+      <div class="bg-green-700 text-white px-6 py-4 flex items-center justify-between">
+        <h3 id="recipeModalTitle" class="text-lg font-bold flex items-center gap-2">
+          <span>🍳</span> Dettagli Ricetta
+        </h3>
+        <button id="closeRecipeModalBtn" type="button" class="text-white hover:text-green-200 text-2xl font-bold p-1">✕</button>
+      </div>
+
+      <form id="recipeForm" class="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+        <input type="hidden" id="recipeIdInput" />
+
+        <!-- Info base -->
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+          <div class="sm:col-span-8">
+            <label for="recipeNomeInput" class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
+              Nome Ricetta *
+            </label>
+            <input type="text" id="recipeNomeInput" required placeholder="es. Risotto ai Funghi da Campo"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+
+          <div class="sm:col-span-4">
+            <label for="recipeCategoriaInput" class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
+              Categoria Pasto *
+            </label>
+            <select id="recipeCategoriaInput" required
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+              <option value="Colazione">Colazione</option>
+              <option value="Pranzo">Pranzo</option>
+              <option value="Merenda">Merenda</option>
+              <option value="Cena">Cena</option>
+              <option value="Spuntino">Spuntino</option>
+              <option value="Gara di Cucina">Gara di Cucina</option>
+              <option value="Altro">Altro</option>
+            </select>
+          </div>
+
+          <div class="sm:col-span-12">
+            <label for="recipeDescrizioneInput" class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
+              Descrizione o Note
+            </label>
+            <textarea id="recipeDescrizioneInput" rows="2" placeholder="Breve introduzione, consigli o aneddoti di pattuglia..."
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none"></textarea>
+          </div>
+
+          <div class="sm:col-span-3">
+            <label for="recipePorzioniBaseInput" class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
+              Porzioni Base *
+            </label>
+            <input type="number" id="recipePorzioniBaseInput" min="1" max="100" value="4" required
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+
+          <div class="sm:col-span-3">
+            <label for="recipeTempoPrepInput" class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
+              Prep. (min)
+            </label>
+            <input type="number" id="recipeTempoPrepInput" min="0" value="15"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+
+          <div class="sm:col-span-3">
+            <label for="recipeTempoCotturaInput" class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
+              Cottura (min)
+            </label>
+            <input type="number" id="recipeTempoCotturaInput" min="0" value="20"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+
+          <div class="sm:col-span-3">
+            <label for="recipeDifficoltaInput" class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
+              Difficoltà
+            </label>
+            <select id="recipeDifficoltaInput"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+              <option value="Facile">Facile</option>
+              <option value="Media">Media</option>
+              <option value="Impegnativa">Impegnativa</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Allergeni & Regimi Alimentari -->
+        <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-600 space-y-3">
+          <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+            ⚠️ Allergeni Presenti
+          </label>
+          <div id="recipeAllergeniCheckboxes" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <!-- Popolato da menu.js -->
+          </div>
+
+          <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 pt-2 border-t border-gray-200 dark:border-gray-600">
+            🥗 Diete Compatibili
+          </label>
+          <div id="recipeDieteCheckboxes" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <!-- Popolato da menu.js -->
+          </div>
+
+          <div>
+            <label for="recipeNoteAlimentariInput" class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
+              Note per Intolleranze / Varianti (es. come adattare per celiaci o vegani)
+            </label>
+            <input type="text" id="recipeNoteAlimentariInput" placeholder="es. Cuocere pasta senza glutine a parte in pentolino dedicato"
+              class="w-full px-3 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Ingredienti -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">
+              🥕 Elenco Ingredienti (per porzioni base)
+            </h4>
+            <button id="addIngredientRowBtn" type="button" class="text-xs text-green-700 dark:text-green-400 font-bold hover:underline flex items-center gap-1">
+              ➕ Aggiungi Ingrediente
+            </button>
+          </div>
+          <div id="recipeIngredientsRows" class="space-y-2">
+            <!-- Righe ingredienti -->
+          </div>
+        </div>
+
+        <!-- Passaggi di Preparazione -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">
+              👨‍🍳 Processo di Preparazione
+            </h4>
+            <button id="addStepRowBtn" type="button" class="text-xs text-green-700 dark:text-green-400 font-bold hover:underline flex items-center gap-1">
+              ➕ Aggiungi Passaggio
+            </button>
+          </div>
+          <div id="recipeStepsRows" class="space-y-2">
+            <!-- Righe passaggi -->
+          </div>
+        </div>
+
+        <!-- Strumenti di cucina -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-sm font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">
+              🛠️ Strumenti Utili per Cucinare
+            </h4>
+            <button id="addToolRowBtn" type="button" class="text-xs text-green-700 dark:text-green-400 font-bold hover:underline flex items-center gap-1">
+              ➕ Aggiungi Strumento
+            </button>
+          </div>
+          <div id="recipeToolsRows" class="space-y-2">
+            <!-- Righe strumenti -->
+          </div>
+        </div>
+
+        <!-- Valori Nutrizionali per porzione e per 100g -->
+        <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-600 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+              📊 Indicazioni Nutrizionali (per Porzione / per 100g)
+            </h4>
+            <button id="calcNutritionFromIngredientsBtn" type="button" class="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline">
+              ⚡ Calcola dagli Ingredienti
+            </button>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div>
+              <label class="block text-gray-500 dark:text-gray-400 mb-0.5">Kcal / porz.</label>
+              <input type="number" id="nutrKcalPorz" class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div>
+              <label class="block text-gray-500 dark:text-gray-400 mb-0.5">Proteine (g)</label>
+              <input type="number" step="0.1" id="nutrProtPorz" class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div>
+              <label class="block text-gray-500 dark:text-gray-400 mb-0.5">Carboidrati (g)</label>
+              <input type="number" step="0.1" id="nutrCarbPorz" class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div>
+              <label class="block text-gray-500 dark:text-gray-400 mb-0.5">Grassi (g)</label>
+              <input type="number" step="0.1" id="nutrFatPorz" class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Storico attività in cui è già stata preparata -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+            ⛺ Storico Attività in cui è stata preparata prima
+          </h4>
+          <div id="recipeHistoryContainer" class="text-xs text-gray-600 dark:text-gray-400 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600">
+            Nessuna attività registrata in precedenza.
+          </div>
+        </div>
+
+        <!-- Bottoni finali -->
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button id="cancelRecipeModalBtn" type="button" class="btn-secondary px-4 py-2 text-sm font-semibold">Annulla</button>
+          <button type="submit" class="btn-primary px-5 py-2 text-sm font-semibold">Salva Ricetta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODALE: IMPORTA DA INTERNET (URL)          -->
+  <!-- ========================================== -->
+  <div id="importRecipeModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 hidden" role="dialog" aria-modal="true">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200 dark:border-gray-700">
+      <div class="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
+        <h3 class="text-lg font-bold flex items-center gap-2">
+          <span>🌐</span> Importa Ricetta da Internet
+        </h3>
+        <button id="closeImportModalBtn" type="button" class="text-white hover:text-blue-200 text-2xl font-bold p-1">✕</button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          Incolla il link di una ricetta da qualsiasi sito di cucina (es. GialloZafferano, Cookaround, AllRecipes, ecc.). I dati e i passaggi verranno estratti automaticamente.
+        </p>
+
+        <div>
+          <label for="importUrlInput" class="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
+            URL della Ricetta *
+          </label>
+          <input type="url" id="importUrlInput" placeholder="https://www.giallozafferano.it/ricetta/..."
+            class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+        </div>
+
+        <div id="importStatusMessage" class="hidden text-xs p-3 rounded-lg"></div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <button id="cancelImportBtn" type="button" class="btn-secondary px-4 py-2 text-sm font-semibold">Annulla</button>
+          <button id="startImportBtn" type="button" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-1.5">
+            <span>🚀</span> Importa ed Analizza
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Area di Stampa Dinamica -->
+  <div id="printArea"></div>
+
+  <!-- Scripts -->
+  <script src="/config.js"></script>
+</body>
+
+</html>

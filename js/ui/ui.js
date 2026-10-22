@@ -961,7 +961,7 @@ export const UI = {
             this.runConnectivityProbe();
             await this.loadSharedComponents();
             try {
-                const links = ['presenze.html', 'storico-presenze.html', 'dashboard.html', 'calendario.html', 'esploratori.html', 'staff.html', 'preventivo.html', 'scadenze.html', 'scorte.html'];
+                const links = ['presenze.html', 'storico-presenze.html', 'dashboard.html', 'calendario.html', 'esploratori.html', 'staff.html', 'preventivo.html', 'scadenze.html', 'scorte.html', 'menu.html'];
                 links.forEach(href => {
                     const l = document.createElement('link');
                     l.rel = 'prefetch';
@@ -1215,6 +1215,7 @@ export const UI = {
             'preventivo.html': 'Preventivo',
             'scadenze.html': 'Scadenze',
             'scorte.html': 'Scorte',
+            'menu.html': 'Menù & Cambusa',
             'gara.html': 'Gara di Reparto',
             'scout2.html': 'Scheda Esploratore',
             'liste.html': 'Progressione Verticale e Orizzontale',
@@ -2400,7 +2401,23 @@ export const UI = {
                 };
             });
 
-        const allResults = [...scoutResults, ...activityResults, ...staffResults, ...scorteResults, ...scadenzeResults];
+        // Ricerca Ricette Menù
+        const ricette = this.state?.ricette || [];
+        const ricetteResults = ricette
+            .filter(r => {
+                const full = `${r.nome || ''} ${r.categoria || ''} ${r.descrizione || ''}`.toLowerCase();
+                return full.includes(q);
+            })
+            .slice(0, 5)
+            .map(r => ({
+                icon: '🍳',
+                text: r.nome || 'Ricetta',
+                meta: `${r.categoria || 'Pasto'} · ${r.porzioniBase || 4} porz.`,
+                href: 'menu.html',
+                category: 'Menù & Cambusa'
+            }));
+
+        const allResults = [...scoutResults, ...activityResults, ...staffResults, ...scorteResults, ...scadenzeResults, ...ricetteResults];
 
         if (allResults.length === 0) {
             if (resultsContainer) resultsContainer.classList.add('hidden');

@@ -35,6 +35,9 @@ interface Presence {
     [key: string]: any;
 }
 
+import { ALIMENTI_BASE } from '../alimenti-base.js';
+import { RICETTE_BASE } from '../ricette-base.js';
+
 interface LocalState {
     scouts: Scout[];
     staff: Staff[];
@@ -48,6 +51,9 @@ interface LocalState {
     garaCategories?: any[];
     garaPunti?: any[];
     accessRequests?: any[];
+    ricette?: any[];
+    menu?: any[];
+    alimenti?: any[];
 }
 
 export class LocalAdapter {
@@ -255,7 +261,10 @@ export class LocalAdapter {
                     createdAt: past2.toISOString(),
                     updatedAt: past2.toISOString()
                 }
-            ]
+            ],
+            ricette: saved.ricette || [...RICETTE_BASE],
+            menu: saved.menu || [],
+            alimenti: saved.alimenti || [...ALIMENTI_BASE]
         };
         // Restore dates
         this.state.activities.forEach(a => {
@@ -810,6 +819,249 @@ export class LocalAdapter {
         req.updatedAt = new Date().toISOString();
         this.persist();
         console.log('LocalAdapter: rejectAccessRequest', { requestId, currentUser: currentUser?.email });
+    }
+
+    // --- Ricette (Menù & Cambusa) ---
+    async getRicette(): Promise<any[]> {
+        return this.state.ricette || [];
+    }
+
+    async getRicetta(id: string): Promise<any | null> {
+        return (this.state.ricette || []).find(r => r.id === id) || null;
+    }
+
+    async addRicetta(recipe: any, currentUser?: any): Promise<string> {
+        const id = recipe.id || ('rec_' + Math.random().toString(36).slice(2, 10));
+        const record = {
+            id,
+            nome: (recipe.nome || '').trim(),
+            categoria: recipe.categoria || 'Pranzo',
+            descrizione: (recipe.descrizione || '').trim(),
+            porzioniBase: Number(recipe.porzioniBase) || 4,
+            tempoPreparazione: Number(recipe.tempoPreparazione) || 0,
+            tempoCottura: Number(recipe.tempoCottura) || 0,
+            difficolta: recipe.difficolta || 'Facile',
+            metodoCottura: Array.isArray(recipe.metodoCottura) ? recipe.metodoCottura : ['Fornellone'],
+            fonte: recipe.fonte || { tipo: 'manuale' },
+            allergeni: Array.isArray(recipe.allergeni) ? recipe.allergeni : [],
+            diete: Array.isArray(recipe.diete) ? recipe.diete : [],
+            noteAlimentari: (recipe.noteAlimentari || '').trim(),
+            ingredienti: Array.isArray(recipe.ingredienti) ? recipe.ingredienti : [],
+            passaggi: Array.isArray(recipe.passaggi) ? recipe.passaggi : [],
+            strumenti: Array.isArray(recipe.strumenti) ? recipe.strumenti : [],
+            nutrizione: recipe.nutrizione || {
+                origine: 'stimata',
+                perPorzione: { kcal: 0, proteine: 0, carboidrati: 0, zuccheri: 0, grassi: 0, saturi: 0, fibre: 0, sale: 0 },
+                per100g: { kcal: 0, proteine: 0, carboidrati: 0, zuccheri: 0, grassi: 0, saturi: 0, fibre: 0, sale: 0 }
+            },
+            storicoManuale: Array.isArray(recipe.storicoManuale) ? recipe.storicoManuale : [],
+            createdAt: new Date().toISOString(),
+            createdBy: currentUser?.email || 'user'
+        };
+        if (!this.state.ricette) this.state.ricette = [];
+        this.state.ricette.push(record);
+        this.persist();
+        console.log('LocalAdapter: addRicetta', { id, currentUser: currentUser?.email });
+        return id;
+    }
+
+    async updateRicetta(id: string, updates: any, currentUser?: any): Promise<void> {
+        if (!this.state.ricette) this.state.ricette = [];
+        const index = this.state.ricette.findIndex(r => r.id === id);
+        if (index >= 0) {
+            this.state.ricette[index] = {
+                ...this.state.ricette[index],
+                ...updates,
+                updatedAt: new Date().toISOString(),
+                updatedBy: currentUser?.email || 'user'
+            };
+            this.persist();
+            console.log('LocalAdapter: updateRicetta', { id, currentUser: currentUser?.email });
+        }
+    }
+
+    async deleteRicetta(id: string, currentUser?: any): Promise<void> {
+        if (!this.state.ricette) return;
+        this.state.ricette = this.state.ricette.filter(r => r.id !== id);
+        this.persist();
+        console.log('LocalAdapter: deleteRicetta', { id, currentUser: currentUser?.email });
+    }
+
+    async importRicetteBatch(items: any[], replaceExisting = false, currentUser?: any): Promise<number> {
+        if (!this.state.ricette || replaceExisting) this.state.ricette = [];
+        const now = new Date().toISOString();
+        const records = items.map(item => ({
+            id: item.id || ('rec_' + Math.random().toString(36).slice(2, 10)),
+            nome: (item.nome || '').trim(),
+            categoria: item.categoria || 'Pranzo',
+            descrizione: (item.descrizione || '').trim(),
+            porzioniBase: Number(item.porzioniBase) || 4,
+            tempoPreparazione: Number(item.tempoPreparazione) || 0,
+            tempoCottura: Number(item.tempoCottura) || 0,
+            difficolta: item.difficolta || 'Facile',
+            metodoCottura: Array.isArray(item.metodoCottura) ? item.metodoCottura : ['Fornellone'],
+            fonte: item.fonte || { tipo: 'manuale' },
+            allergeni: Array.isArray(item.allergeni) ? item.allergeni : [],
+            diete: Array.isArray(item.diete) ? item.diete : [],
+            noteAlimentari: (item.noteAlimentari || '').trim(),
+            ingredienti: Array.isArray(item.ingredienti) ? item.ingredienti : [],
+            passaggi: Array.isArray(item.passaggi) ? item.passaggi : [],
+            strumenti: Array.isArray(item.strumenti) ? item.strumenti : [],
+            nutrizione: item.nutrizione || {
+                origine: 'stimata',
+                perPorzione: { kcal: 0, proteine: 0, carboidrati: 0, zuccheri: 0, grassi: 0, saturi: 0, fibre: 0, sale: 0 },
+                per100g: { kcal: 0, proteine: 0, carboidrati: 0, zuccheri: 0, grassi: 0, saturi: 0, fibre: 0, sale: 0 }
+            },
+            storicoManuale: Array.isArray(item.storicoManuale) ? item.storicoManuale : [],
+            createdAt: now,
+            createdBy: currentUser?.email || 'user'
+        }));
+        this.state.ricette.push(...records);
+        this.persist();
+        console.log('LocalAdapter: importRicetteBatch', { count: records.length, replaceExisting });
+        return records.length;
+    }
+
+    // --- Menù (Uscite & Campi) ---
+    async getMenus(attivitaId: string | null = null): Promise<any[]> {
+        const list = this.state.menu || [];
+        if (attivitaId) {
+            return list.filter(m => m.attivitaId === attivitaId);
+        }
+        return list;
+    }
+
+    async getMenu(id: string): Promise<any | null> {
+        return (this.state.menu || []).find(m => m.id === id) || null;
+    }
+
+    async saveMenu(menuData: any, currentUser?: any): Promise<string> {
+        if (!this.state.menu) this.state.menu = [];
+        const now = new Date().toISOString();
+        const id = menuData.id || ('menu_' + Math.random().toString(36).slice(2, 10));
+        const index = this.state.menu.findIndex(m => m.id === id);
+
+        const record = {
+            id,
+            titolo: (menuData.titolo || 'Nuovo Menù').trim(),
+            attivitaId: menuData.attivitaId || null,
+            attivitaNome: menuData.attivitaNome || '',
+            dataInizio: menuData.dataInizio || '',
+            dataFine: menuData.dataFine || '',
+            partecipantiDefault: Number(menuData.partecipantiDefault) || 20,
+            giorni: Array.isArray(menuData.giorni) ? menuData.giorni : [],
+            totaliNutrizionali: menuData.totaliNutrizionali || {},
+            listaSpesaGenerata: menuData.listaSpesaGenerata || null,
+            listaStrumentiGenerata: menuData.listaStrumentiGenerata || null,
+            preventivoId: menuData.preventivoId || null,
+            costoTotaleStimato: Number(menuData.costoTotaleStimato) || 0,
+            stato: menuData.stato || 'bozza',
+            note: (menuData.note || '').trim(),
+            updatedAt: now,
+            updatedBy: currentUser?.email || 'user'
+        };
+
+        if (index >= 0) {
+            this.state.menu[index] = {
+                ...this.state.menu[index],
+                ...record
+            };
+        } else {
+            (record as any).createdAt = now;
+            (record as any).createdBy = currentUser?.email || 'user';
+            this.state.menu.push(record);
+        }
+        this.persist();
+        console.log('LocalAdapter: saveMenu', { id, currentUser: currentUser?.email });
+        return id;
+    }
+
+    async deleteMenu(id: string, currentUser?: any): Promise<void> {
+        if (!this.state.menu) return;
+        this.state.menu = this.state.menu.filter(m => m.id !== id);
+        this.persist();
+        console.log('LocalAdapter: deleteMenu', { id, currentUser: currentUser?.email });
+    }
+
+    // --- Database Alimenti & Nutrizione ---
+    async getAlimenti(): Promise<any[]> {
+        const list = this.state.alimenti || [];
+        return list.map(a => {
+            const nut = a.per100g || a.nutrizione100g || {};
+            const pr = a.prezzoStimatoKg ?? a.prezzoMedioKg ?? 0;
+            return {
+                ...a,
+                per100g: nut,
+                nutrizione100g: nut,
+                prezzoStimatoKg: pr,
+                prezzoMedioKg: pr,
+                dieteCompatibili: a.dieteCompatibili || a.diete || []
+            };
+        });
+    }
+
+    async getAlimento(id: string): Promise<any | null> {
+        const a = (this.state.alimenti || []).find(x => x.id === id);
+        if (!a) return null;
+        const nut = a.per100g || a.nutrizione100g || {};
+        const pr = a.prezzoStimatoKg ?? a.prezzoMedioKg ?? 0;
+        return {
+            ...a,
+            per100g: nut,
+            nutrizione100g: nut,
+            prezzoStimatoKg: pr,
+            prezzoMedioKg: pr,
+            dieteCompatibili: a.dieteCompatibili || a.diete || []
+        };
+    }
+
+    async saveAlimento(alimento: any, currentUser?: any): Promise<string> {
+        if (!this.state.alimenti) this.state.alimenti = [];
+        const now = new Date().toISOString();
+        const id = alimento.id || ('alim_' + Math.random().toString(36).slice(2, 10));
+        const index = this.state.alimenti.findIndex(a => a.id === id || (a.nome && a.nome.toLowerCase() === (alimento.nome || '').toLowerCase().trim()));
+
+        const record = {
+            id: index >= 0 ? this.state.alimenti[index].id : id,
+            nome: (alimento.nome || '').trim(),
+            categoria: alimento.categoria || 'Generale',
+            unitaDefault: alimento.unitaDefault || 'g',
+            prezzoStimatoKg: Number(alimento.prezzoStimatoKg) || 0,
+            allergeni: Array.isArray(alimento.allergeni) ? alimento.allergeni : [],
+            dieteCompatibili: Array.isArray(alimento.dieteCompatibili) ? alimento.dieteCompatibili : [],
+            nutrizione100g: alimento.nutrizione100g || {
+                kcal: Number(alimento.kcal) || 0,
+                proteine: Number(alimento.proteine) || 0,
+                carboidrati: Number(alimento.carboidrati) || 0,
+                zuccheri: Number(alimento.zuccheri) || 0,
+                grassi: Number(alimento.grassi) || 0,
+                saturi: Number(alimento.saturi) || 0,
+                fibre: Number(alimento.fibre) || 0,
+                sale: Number(alimento.sale) || 0
+            },
+            fonte: alimento.fonte || 'custom',
+            codiceABarre: alimento.codiceABarre || null,
+            updatedAt: now
+        };
+
+        if (index >= 0) {
+            this.state.alimenti[index] = { ...this.state.alimenti[index], ...record };
+        } else {
+            (record as any).createdAt = now;
+            (record as any).createdBy = currentUser?.email || 'user';
+            this.state.alimenti.push(record);
+        }
+        this.persist();
+        console.log('LocalAdapter: saveAlimento', { id: record.id });
+        return record.id;
+    }
+
+    async saveAlimentiBatch(alimentiList: any[], currentUser?: any): Promise<number> {
+        if (!this.state.alimenti) this.state.alimenti = [];
+        for (const alim of alimentiList) {
+            await this.saveAlimento(alim, currentUser);
+        }
+        return this.state.alimenti.length;
     }
 }
 

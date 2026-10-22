@@ -410,7 +410,7 @@ export const UI = {
 
             await this.loadSharedComponents();
             try {
-                const links = ['presenze.html', 'storico-presenze.html', 'dashboard.html', 'calendario.html', 'esploratori.html', 'staff.html', 'audit-logs.html', 'preventivo.html', 'scadenze.html', 'scorte.html'];
+                const links = ['presenze.html', 'storico-presenze.html', 'dashboard.html', 'calendario.html', 'esploratori.html', 'staff.html', 'audit-logs.html', 'preventivo.html', 'scadenze.html', 'scorte.html', 'menu.html'];
                 links.forEach(href => {
                     const l = document.createElement('link');
                     l.rel = 'prefetch';
@@ -628,6 +628,7 @@ export const UI = {
             'preventivo.html': 'Preventivo',
             'scadenze.html': 'Scadenze',
             'scorte.html': 'Scorte',
+            'menu.html': 'Menù & Cambusa',
             'gara.html': 'Gara di Reparto',
             'scout2.html': 'Scheda Esploratore',
             'liste.html': 'Progressione Verticale e Orizzontale',

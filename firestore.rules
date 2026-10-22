@@ -452,7 +452,32 @@ service cloud.firestore {
         && isValidEmail(request.resource.data.email);
 
       // Aggiornamento ed eliminazione: solo staff autenticato
-      allow update, delete: if isStaff();
+    // ============== COLLEZIONE: ricette ==============
+    match /ricette/{ricettaId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isStaff();
+    }
+
+    // ============== COLLEZIONE: menu ==============
+    match /menu/{menuId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isStaff();
+    }
+
+    // ============== COLLEZIONE: alimenti ==============
+    match /alimenti/{alimentoId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isStaff();
+    }
+
+    // ============== COLLEZIONI: scorte e liste_scorte ==============
+    match /scorte/{scortaId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isStaff();
+    }
+    match /liste_scorte/{listaId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isStaff();
     }
 
     // ============== Default: nega tutto il resto ==============

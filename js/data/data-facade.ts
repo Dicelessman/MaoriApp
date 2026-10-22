@@ -438,5 +438,97 @@ export const DATA = {
             return await (this.adapter as any).getAuditLogs(limitCount);
         }
         return [];
-    }
+    },
+
+    // ── Menù & Cambusa ────────────────────────────────────────────────────────
+    async getRicette(): Promise<any[]> {
+        const cacheKey = 'ricette';
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await (this.adapter as any).getRicette();
+        this.cache.set(cacheKey, data, 3 * 60 * 1000);
+        return data;
+    },
+    async getRicetta(id: string): Promise<any | null> {
+        if (typeof (this.adapter as any).getRicetta === 'function') {
+            return await (this.adapter as any).getRicetta(id);
+        }
+        const all = await this.getRicette();
+        return all.find(r => r.id === id) || null;
+    },
+    async addRicetta(recipe: any, currentUser?: any): Promise<string> {
+        const result = await (this.adapter as any).addRicetta(recipe, currentUser);
+        this.cache.invalidate('ricette');
+        return result;
+    },
+    async updateRicetta(id: string, updates: any, currentUser?: any): Promise<void> {
+        const result = await (this.adapter as any).updateRicetta(id, updates, currentUser);
+        this.cache.invalidate('ricette');
+        return result;
+    },
+    async deleteRicetta(id: string, currentUser?: any): Promise<void> {
+        const result = await (this.adapter as any).deleteRicetta(id, currentUser);
+        this.cache.invalidate('ricette');
+        return result;
+    },
+    async importRicetteBatch(items: any[], replaceExisting = false, currentUser?: any): Promise<number> {
+        const result = await (this.adapter as any).importRicetteBatch(items, replaceExisting, currentUser);
+        this.cache.invalidate('ricette');
+        return result;
+    },
+
+    async getMenus(attivitaId: string | null = null): Promise<any[]> {
+        const cacheKey = `menu_${attivitaId || 'all'}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await (this.adapter as any).getMenus(attivitaId);
+        this.cache.set(cacheKey, data, 2 * 60 * 1000);
+        return data;
+    },
+    async getMenu(id: string): Promise<any | null> {
+        if (typeof (this.adapter as any).getMenu === 'function') {
+            return await (this.adapter as any).getMenu(id);
+        }
+        const all = await this.getMenus();
+        return all.find(m => m.id === id) || null;
+    },
+    async saveMenu(menuData: any, currentUser?: any): Promise<string> {
+        const result = await (this.adapter as any).saveMenu(menuData, currentUser);
+        this.cache.invalidate('menu_all');
+        if (menuData.attivitaId) {
+            this.cache.invalidate(`menu_${menuData.attivitaId}`);
+        }
+        return result;
+    },
+    async deleteMenu(id: string, currentUser?: any): Promise<void> {
+        const result = await (this.adapter as any).deleteMenu(id, currentUser);
+        this.cache.invalidate('menu_all');
+        return result;
+    },
+
+    async getAlimenti(): Promise<any[]> {
+        const cacheKey = 'alimenti';
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+        const data = await (this.adapter as any).getAlimenti();
+        this.cache.set(cacheKey, data, 10 * 60 * 1000);
+        return data;
+    },
+    async getAlimento(id: string): Promise<any | null> {
+        if (typeof (this.adapter as any).getAlimento === 'function') {
+            return await (this.adapter as any).getAlimento(id);
+        }
+        const all = await this.getAlimenti();
+        return all.find(a => a.id === id) || null;
+    },
+    async saveAlimento(alimento: any, currentUser?: any): Promise<string> {
+        const result = await (this.adapter as any).saveAlimento(alimento, currentUser);
+        this.cache.invalidate('alimenti');
+        return result;
+    },
+    async saveAlimentiBatch(alimentiList: any[], currentUser?: any): Promise<number> {
+        const result = await (this.adapter as any).saveAlimentiBatch(alimentiList, currentUser);
+        this.cache.invalidate('alimenti');
+        return result;
+    },
 };

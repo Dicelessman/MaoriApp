@@ -25,7 +25,10 @@ export const COLLECTIONS = {
     NOTIFICATIONS: 'in-app-notifications',
     DEADLINES: 'scadenze',
     GARA_CATEGORIES: 'gara_categories',
-    GARA_PUNTI: 'gara_punti'
+    GARA_PUNTI: 'gara_punti',
+    RICETTE: 'ricette',
+    MENU: 'menu',
+    ALIMENTI: 'alimenti'
 } as const;
 
 export const NOTIFICATION_TYPES = {
