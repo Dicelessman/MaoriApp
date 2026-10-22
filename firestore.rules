@@ -452,9 +452,12 @@ service cloud.firestore {
         && isValidEmail(request.resource.data.email);
 
       // Aggiornamento ed eliminazione: solo staff autenticato
+      allow update, delete: if isStaff();
+    }
+
     // ============== COLLEZIONE: ricette ==============
     match /ricette/{ricettaId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update, delete: if isStaff();
     }
 
@@ -466,7 +469,7 @@ service cloud.firestore {
 
     // ============== COLLEZIONE: alimenti ==============
     match /alimenti/{alimentoId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update, delete: if isStaff();
     }
 

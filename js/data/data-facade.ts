@@ -531,4 +531,19 @@ export const DATA = {
         this.cache.invalidate('alimenti');
         return result;
     },
+
+    async getActivities(): Promise<any[]> {
+        if (typeof (this.adapter as any).getActivities === 'function') {
+            return await (this.adapter as any).getActivities();
+        }
+        const all = await this.loadAll();
+        return (all as any)?.activities || [];
+    },
+    async getScouts(): Promise<any[]> {
+        if (typeof (this.adapter as any).getScouts === 'function') {
+            return await (this.adapter as any).getScouts();
+        }
+        const all = await this.loadAll();
+        return (all as any)?.scouts || [];
+    },
 };

@@ -505,5 +505,20 @@ export const DATA = {
         this.cache.invalidate('alimenti');
         return result;
     },
+
+    async getActivities() {
+        if (typeof this.adapter.getActivities === 'function') {
+            return await this.adapter.getActivities();
+        }
+        const all = await this.loadAll();
+        return all?.activities || [];
+    },
+    async getScouts() {
+        if (typeof this.adapter.getScouts === 'function') {
+            return await this.adapter.getScouts();
+        }
+        const all = await this.loadAll();
+        return all?.scouts || [];
+    },
 };
 

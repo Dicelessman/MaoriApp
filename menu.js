@@ -18,6 +18,7 @@ import {
     verificaAllarmiAllergeni
 } from './js/utils/menu-utils.js';
 import { NutritionService } from './js/services/nutrition-service.js';
+import { RICETTE_BASE } from './js/data/ricette-base.js';
 
 // Stato globale del controller Menù
 const MenuState = {
@@ -33,35 +34,76 @@ const MenuState = {
     filterDiet: 'all'
 };
 
+// Hook per il caricamento e rendering quando UI.init autentica l'utente
+UI.renderCurrentPage = async function () {
+    await loadData();
+    renderCheckboxes();
+    renderCurrentTab();
+    updateTopStats();
+};
+
 // Inizializzazione al caricamento della pagina
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        await UI.init();
-        await loadData();
         setupEventListeners();
+        await loadData();
         renderCheckboxes();
         renderCurrentTab();
         updateTopStats();
     } catch (err) {
         console.error('Errore inizializzazione Menù & Cambusa:', err);
-        UI.showToast('Errore durante il caricamento dei dati: ' + err.message, { type: 'error' });
     }
 });
 
 /**
- * Carica i dati necessari dalla Facade
+ * Carica i dati necessari dalla Facade con fallback robusto
  */
 async function loadData() {
-    MenuState.ricette = await DATA.getRicette();
-    MenuState.menus = await DATA.getMenus();
-    MenuState.scorte = await DATA.getScorte();
-    MenuState.activities = await DATA.getActivities();
-    MenuState.scouts = await DATA.getScouts();
+    try {
+        MenuState.ricette = await DATA.getRicette();
+    } catch (e) {
+        console.warn('Avviso: impossibile leggere ricette da Firestore:', e);
+        MenuState.ricette = [];
+    }
+    // Fallback a ricette base locali se archivio vuoto o offline
+    if (!Array.isArray(MenuState.ricette) || MenuState.ricette.length === 0) {
+        MenuState.ricette = [...RICETTE_BASE];
+    }
 
-    // Se esiste almeno un menù, seleziona il più recente, altrimenti inizializza una bozza vuota
-    if (MenuState.menus.length > 0) {
-        MenuState.currentMenu = MenuState.menus[0];
-    } else {
+    try {
+        MenuState.menus = await DATA.getMenus();
+    } catch (e) {
+        console.warn('Avviso: impossibile leggere menù da Firestore:', e);
+        MenuState.menus = [];
+    }
+
+    try {
+        MenuState.scorte = await DATA.getScorte();
+    } catch (e) {
+        console.warn('Avviso: impossibile leggere scorte:', e);
+        MenuState.scorte = [];
+    }
+
+    try {
+        MenuState.activities = UI.state?.activities || (await DATA.getActivities?.()) || [];
+    } catch (e) {
+        console.warn('Avviso: impossibile leggere attività:', e);
+        MenuState.activities = [];
+    }
+
+    try {
+        MenuState.scouts = UI.state?.scouts || (await DATA.getScouts?.()) || [];
+    } catch (e) {
+        console.warn('Avviso: impossibile leggere esploratori:', e);
+        MenuState.scouts = [];
+    }
+
+    // Se esiste almeno un menù salvato, mantienilo o seleziona il primo, altrimenti inizializza una bozza vuota
+    if (MenuState.menus && MenuState.menus.length > 0) {
+        if (!MenuState.currentMenu || !MenuState.currentMenu.id) {
+            MenuState.currentMenu = MenuState.menus[0];
+        }
+    } else if (!MenuState.currentMenu) {
         MenuState.currentMenu = createDefaultMenu();
     }
 }
