@@ -418,6 +418,8 @@ UI.setupCalendarEvents = function () {
       const data = new Date(dataValue);
       const dataFineValue = this.qs('#activityDataFine')?.value || null;
       const dataFine = dataFineValue ? new Date(dataFineValue) : null;
+      const oraInizio = (this.qs('#activityOraInizio')?.value || '').trim();
+      const oraFine = (this.qs('#activityOraFine')?.value || '').trim();
       const descrizione = this.qs('#activityDescrizione').value.trim();
       const costoValue = this.qs('#activityCosto').value || '0';
       const costo = costoValue ? Number(costoValue) : 0;
@@ -435,6 +437,14 @@ UI.setupCalendarEvents = function () {
         return;
       }
 
+      // Validazione orari se stessa giornata
+      const isSameDay = !dataFine || (data.getFullYear() === dataFine.getFullYear() && data.getMonth() === dataFine.getMonth() && data.getDate() === dataFine.getDate());
+      if (isSameDay && oraInizio && oraFine && oraFine <= oraInizio) {
+        this.showToast("L'ora di fine/uscita deve essere successiva all'ora di inizio", { type: 'error' });
+        this.qs('#activityOraFine')?.focus();
+        return;
+      }
+
       if (dateValidation.warning) {
         // Warning non blocca, ma informa
         this.showToast(dateValidation.warning, { type: 'warning', duration: 3000 });
@@ -445,15 +455,19 @@ UI.setupCalendarEvents = function () {
       this.setButtonLoading(submitBtn, true, originalText);
       try {
         const annoScout = (this.getScoutYear ? this.getScoutYear(data) : null) || '2025/2026';
-        await DATA.addActivity({ tipo, data, dataFine, descrizione, costo, annoScout }, this.currentUser);
+        await DATA.addActivity({ tipo, data, dataFine, oraInizio, oraFine, descrizione, costo, annoScout }, this.currentUser);
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();
         this.setupScoutYearSelector();
         this.renderCalendarList();
         form.reset();
-        // Reset manuale data fine se necessario
+        // Reset manuale data fine e orari se necessario
         const df = this.qs('#activityDataFine');
         if (df) { df.value = ''; df.parentElement.style.display = 'none'; }
+        const oi = this.qs('#activityOraInizio');
+        if (oi) oi.value = '';
+        const ofEl = this.qs('#activityOraFine');
+        if (ofEl) ofEl.value = '';
 
         this.showToast('Attività aggiunta con successo');
 
@@ -517,6 +531,8 @@ UI.setupCalendarEvents = function () {
       const data = new Date(dataValue);
       const dataFineValue = this.qs('#cal_editActivityDataFine')?.value || null;
       const dataFine = dataFineValue ? new Date(dataFineValue) : null;
+      const oraInizio = (this.qs('#cal_editActivityOraInizio')?.value || '').trim();
+      const oraFine = (this.qs('#cal_editActivityOraFine')?.value || '').trim();
       const descrizione = this.qs('#cal_editActivityDescrizione').value.trim();
       const costoValue = this.qs('#cal_editActivityCosto').value;
       const costo = costoValue ? Number(costoValue) : 0;
@@ -532,12 +548,20 @@ UI.setupCalendarEvents = function () {
         return;
       }
 
+      // Validazione orari se stessa giornata
+      const isSameDay = !dataFine || (data.getFullYear() === dataFine.getFullYear() && data.getMonth() === dataFine.getMonth() && data.getDate() === dataFine.getDate());
+      if (isSameDay && oraInizio && oraFine && oraFine <= oraInizio) {
+        this.showToast("L'ora di fine/uscita deve essere successiva all'ora di inizio", { type: 'error' });
+        this.qs('#cal_editActivityOraFine')?.focus();
+        return;
+      }
+
       const submitBtn = editForm.querySelector('button[type="submit"]');
       const originalText = submitBtn?.textContent;
       this.setButtonLoading(submitBtn, true, originalText);
 
       try {
-        await DATA.updateActivity({ id, tipo, data, dataFine, descrizione, costo }, this.currentUser);
+        await DATA.updateActivity({ id, tipo, data, dataFine, oraInizio, oraFine, descrizione, costo }, this.currentUser);
         this.state = await DATA.loadAll();
         this.rebuildPresenceIndex();
         this.renderCalendarList();
@@ -653,6 +677,14 @@ UI.renderCalendarList = function () {
       }
     }
 
+    let timeBadge = '';
+    if (a.oraInizio || a.oraFine) {
+      const timeStr = a.oraInizio && a.oraFine
+        ? `${a.oraInizio} – ${a.oraFine}`
+        : (a.oraInizio ? `dalle ${a.oraInizio}` : `fine/uscita: ${a.oraFine}`);
+      timeBadge = ` <span class="text-xs font-normal text-gray-500 dark:text-gray-400 ml-1.5 inline-flex items-center gap-1"><span>🕒</span><span>${timeStr}</span></span>`;
+    }
+
     const isNext = a.id === nextActivityId;
     const costoLabel = parseFloat(a.costo || '0') > 0 ? ` — Costo: € ${a.costo}` : '';
 
@@ -682,7 +714,7 @@ UI.renderCalendarList = function () {
                 ${nextLabel}
                 ${a.idEventoCngei ? '<span class="text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 px-2 py-0.5 rounded-full" title="Evento Nazionale CNGEI sincronizzato">⛺ Portale CNGEI</span>' : ''}
             </div>
-            <p class="font-medium text-gray-900 dark:text-gray-100 mt-1">📅 ${fullDateStr}</p>
+            <p class="font-medium text-gray-900 dark:text-gray-100 mt-1">📅 ${fullDateStr}${timeBadge}</p>
             <p class="text-gray-700 dark:text-gray-300 mt-1">${a.descrizione}${costoLabel}</p>
           </div>
         </div>
@@ -890,6 +922,11 @@ UI.openEditActivityModal = function (id) {
   this.qs('#cal_editActivityDescrizione').value = activity.descrizione;
   this.qs('#cal_editActivityCosto').value = activity.costo || 0;
 
+  const oraInizioInput = this.qs('#cal_editActivityOraInizio');
+  if (oraInizioInput) oraInizioInput.value = activity.oraInizio || '';
+  const oraFineInput = this.qs('#cal_editActivityOraFine');
+  if (oraFineInput) oraFineInput.value = activity.oraFine || '';
+
   this.showModal('cal_editActivityModal');
 };
 
@@ -964,7 +1001,7 @@ UI.downloadCalendarICS = function () {
     return;
   }
 
-  // Genera il contenuto ICS
+  // Genera il contenuto ICS compatibile RFC 5545 per Google Calendar, Apple Calendar, Outlook
   let icsContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -972,48 +1009,136 @@ UI.downloadCalendarICS = function () {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'X-WR-CALNAME:Reparto Maori - Attività',
-    'X-WR-TIMEZONE:Europe/Rome'
+    'X-WR-TIMEZONE:Europe/Rome',
+    'BEGIN:VTIMEZONE',
+    'TZID:Europe/Rome',
+    'X-LIC-LOCATION:Europe/Rome',
+    'BEGIN:DAYLIGHT',
+    'TZOFFSETFROM:+0100',
+    'TZOFFSETTO:+0200',
+    'TZNAME:CEST',
+    'DTSTART:19700329T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU',
+    'END:DAYLIGHT',
+    'BEGIN:STANDARD',
+    'TZOFFSETFROM:+0200',
+    'TZOFFSETTO:+0100',
+    'TZNAME:CET',
+    'DTSTART:19701025T030000',
+    'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
+    'END:STANDARD',
+    'END:VTIMEZONE'
   ];
+
+  // Helper date ICS (giorno intero): YYYYMMDD
+  const formatICSDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}${month}${day}`;
+  };
+
+  // Helper date+time ICS: YYYYMMDDTHHmmss
+  const formatICSDateTime = (date, hours = 0, minutes = 0) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hh = String(hours).padStart(2, '0');
+    const mm = String(minutes).padStart(2, '0');
+    return `${year}${month}${day}T${hh}${mm}00`;
+  };
+
+  // Timestamp UTC per DTSTAMP
+  const now = new Date();
+  const dtstamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+  // Escape dei caratteri speciali per ICS
+  const escapeICS = (str) => {
+    if (!str) return '';
+    return String(str).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  };
 
   activities.forEach(activity => {
     const startDate = this.toJsDate(activity.data);
     if (isNaN(startDate)) return; // Skip invalid dates
 
-    const endDate = activity.dataFine ? this.toJsDate(activity.dataFine) : new Date(startDate);
-    // Se non c'è data fine, l'evento dura tutto il giorno
-    if (!activity.dataFine) {
-      endDate.setDate(endDate.getDate() + 1);
-    }
-
-    // Formato data ICS: YYYYMMDD o YYYYMMDDTHHmmss
-    const formatICSDate = (date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}${month}${day}`;
-    };
-
-    const dtstart = formatICSDate(startDate);
-    const dtend = formatICSDate(endDate);
-
     // Crea un UID univoco per l'evento
     const uid = `${activity.id}@repartomaori.it`;
-
-    // Escape dei caratteri speciali per ICS
-    const escapeICS = (str) => {
-      if (!str) return '';
-      return String(str).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
-    };
-
     const summary = escapeICS(`${activity.tipo}: ${activity.descrizione}`);
-    const description = escapeICS(activity.descrizione + (activity.costo ? ` - Costo: €${activity.costo}` : ''));
+
+    let orarioInfo = '';
+    if (activity.oraInizio && activity.oraFine) {
+      orarioInfo = ` - Orario: ${activity.oraInizio} - ${activity.oraFine}`;
+    } else if (activity.oraInizio) {
+      orarioInfo = ` - Inizio: ${activity.oraInizio}`;
+    } else if (activity.oraFine) {
+      orarioInfo = ` - Fine/Uscita: ${activity.oraFine}`;
+    }
+
+    const description = escapeICS(activity.descrizione + orarioInfo + (activity.costo ? ` - Costo: €${activity.costo}` : ''));
+
+    const hasTime = !!(activity.oraInizio || activity.oraFine);
+
+    let dtstartLine, dtendLine;
+
+    if (!hasTime) {
+      // Evento tutto il giorno
+      const endDate = activity.dataFine ? this.toJsDate(activity.dataFine) : new Date(startDate);
+      // DTEND per VALUE=DATE è esclusivo in RFC 5545
+      endDate.setDate(endDate.getDate() + 1);
+
+      dtstartLine = `DTSTART;VALUE=DATE:${formatICSDate(startDate)}`;
+      dtendLine = `DTEND;VALUE=DATE:${formatICSDate(endDate)}`;
+    } else {
+      // Evento con orario
+      let sh = 9, sm = 0;
+      if (activity.oraInizio) {
+        const parts = activity.oraInizio.split(':').map(Number);
+        if (!isNaN(parts[0])) sh = parts[0];
+        if (!isNaN(parts[1])) sm = parts[1];
+      } else if (activity.oraFine) {
+        const parts = activity.oraFine.split(':').map(Number);
+        const eh = !isNaN(parts[0]) ? parts[0] : 18;
+        const em = !isNaN(parts[1]) ? parts[1] : 0;
+        sh = Math.max(0, eh - 2);
+        sm = em;
+      }
+
+      const endDate = activity.dataFine ? this.toJsDate(activity.dataFine) : new Date(startDate);
+      let eh, em;
+      if (activity.oraFine) {
+        const parts = activity.oraFine.split(':').map(Number);
+        eh = !isNaN(parts[0]) ? parts[0] : (sh + 2);
+        em = !isNaN(parts[1]) ? parts[1] : sm;
+      } else {
+        // Durata standard di 2 ore se omessa l'ora di fine
+        eh = sh + 2;
+        em = sm;
+        if (eh >= 24) {
+          eh = 23;
+          em = 59;
+        }
+      }
+
+      // Se stessa giornata e ora fine <= ora inizio, aggiungi 2 ore
+      const isSingleDay = !activity.dataFine || formatICSDate(startDate) === formatICSDate(endDate);
+      if (isSingleDay && (eh < sh || (eh === sh && em <= sm))) {
+        eh = Math.min(23, sh + 2);
+      }
+
+      const dtstartStr = formatICSDateTime(startDate, sh, sm);
+      const dtendStr = formatICSDateTime(endDate, eh, em);
+
+      dtstartLine = `DTSTART;TZID=Europe/Rome:${dtstartStr}`;
+      dtendLine = `DTEND;TZID=Europe/Rome:${dtendStr}`;
+    }
 
     icsContent.push(
       'BEGIN:VEVENT',
       `UID:${uid}`,
-      `DTSTAMP:${formatICSDate(new Date())}`,
-      `DTSTART;VALUE=DATE:${dtstart}`,
-      `DTEND;VALUE=DATE:${dtend}`,
+      `DTSTAMP:${dtstamp}`,
+      dtstartLine,
+      dtendLine,
       `SUMMARY:${summary}`,
       `DESCRIPTION:${description}`,
       `STATUS:CONFIRMED`,
@@ -1080,8 +1205,17 @@ UI.downloadCalendarTXT = function () {
       }
     }
 
-    // Formato: data [- data fine] Tipo
-    txtContent += `${dateRange} ${activity.tipo}\n`;
+    let timeRange = '';
+    if (activity.oraInizio && activity.oraFine) {
+      timeRange = ` (${activity.oraInizio} - ${activity.oraFine})`;
+    } else if (activity.oraInizio) {
+      timeRange = ` (dalle ${activity.oraInizio})`;
+    } else if (activity.oraFine) {
+      timeRange = ` (fine/uscita: ${activity.oraFine})`;
+    }
+
+    // Formato: data [- data fine] [(orario)] Tipo: Descrizione
+    txtContent += `${dateRange}${timeRange} ${activity.tipo}: ${activity.descrizione}\n`;
   });
 
   // Download
@@ -1134,10 +1268,12 @@ UI.downloadCalendarODS = function () {
   <office:body>
     <office:spreadsheet>
       <table:table table:name="Calendario">
-        <table:table-column table:number-columns-repeated="5"/>
+        <table:table-column table:number-columns-repeated="7"/>
         <table:table-row>
           <table:table-cell office:value-type="string"><text:p>Data</text:p></table:table-cell>
           <table:table-cell office:value-type="string"><text:p>Data Fine</text:p></table:table-cell>
+          <table:table-cell office:value-type="string"><text:p>Ora Inizio</text:p></table:table-cell>
+          <table:table-cell office:value-type="string"><text:p>Ora Fine / Uscita</text:p></table:table-cell>
           <table:table-cell office:value-type="string"><text:p>Tipo</text:p></table:table-cell>
           <table:table-cell office:value-type="string"><text:p>Descrizione</text:p></table:table-cell>
           <table:table-cell office:value-type="string"><text:p>Costo (€)</text:p></table:table-cell>
@@ -1154,6 +1290,8 @@ UI.downloadCalendarODS = function () {
         <table:table-row>
           <table:table-cell office:value-type="string"><text:p>${escapeXML(formattedStart)}</text:p></table:table-cell>
           <table:table-cell office:value-type="string"><text:p>${escapeXML(formattedEnd)}</text:p></table:table-cell>
+          <table:table-cell office:value-type="string"><text:p>${escapeXML(activity.oraInizio || '')}</text:p></table:table-cell>
+          <table:table-cell office:value-type="string"><text:p>${escapeXML(activity.oraFine || '')}</text:p></table:table-cell>
           <table:table-cell office:value-type="string"><text:p>${escapeXML(activity.tipo)}</text:p></table:table-cell>
           <table:table-cell office:value-type="string"><text:p>${escapeXML(activity.descrizione)}</text:p></table:table-cell>
           <table:table-cell office:value-type="float" office:value="${activity.costo || 0}"><text:p>${activity.costo || 0}</text:p></table:table-cell>

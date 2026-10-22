@@ -20,9 +20,9 @@
   <!-- CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/calendario-BN0piXVM.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/date-picker-DpeW079I.js">
-  <link rel="modulepreload" crossorigin href="/assets/shared-DhWXD-JZ.js">
+  <script type="module" crossorigin src="/assets/calendario-e_5rKJp6.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-DCxebrIQ.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-CJH5clA-.js">
   <link rel="modulepreload" crossorigin href="/assets/cngei-service-DZdKacRO.js">
   <link rel="modulepreload" crossorigin href="/assets/cngei-sync-Dll_EPIb.js">
   <link rel="stylesheet" crossorigin href="/assets/presenze-BvwRKHx7.css">
@@ -148,6 +148,20 @@
                   <input id="activityDataFine" type="date"
                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
                 </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label for="activityOraInizio" class="block text-sm font-medium text-gray-700">Ora Inizio
+                      (Opzionale)</label>
+                    <input id="activityOraInizio" type="time"
+                      class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                  </div>
+                  <div>
+                    <label for="activityOraFine" class="block text-sm font-medium text-gray-700">Ora Fine / Uscita
+                      (Opzionale)</label>
+                    <input id="activityOraFine" type="time"
+                      class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+                  </div>
+                </div>
                 <div>
                   <label for="activityDescrizione" class="block text-sm font-medium text-gray-700">Descrizione</label>
                   <input id="activityDescrizione" required
@@ -212,6 +226,20 @@
                 (Opzionale)</label>
               <input id="cal_editActivityDataFine" type="date"
                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="cal_editActivityOraInizio" class="block text-sm font-medium text-gray-700">Ora Inizio
+                  (Opzionale)</label>
+                <input id="cal_editActivityOraInizio" type="time"
+                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+              </div>
+              <div>
+                <label for="cal_editActivityOraFine" class="block text-sm font-medium text-gray-700">Ora Fine / Uscita
+                  (Opzionale)</label>
+                <input id="cal_editActivityOraFine" type="time"
+                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-200" />
+              </div>
             </div>
             <div>
               <label for="cal_editActivityDescrizione"

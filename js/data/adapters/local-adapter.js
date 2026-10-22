@@ -221,14 +221,18 @@ export class LocalAdapter {
         return this.state;
     }
     // Activities
-    async addActivity({ tipo, data, dataFine, descrizione, costo }, currentUser) {
+    async addActivity({ tipo, data, dataFine, descrizione, costo, oraInizio, oraFine, ...extraFields }, currentUser) {
         const id = 'a' + (Math.random().toString(36).slice(2, 8));
-        this.state.activities.push({ id, tipo, data, dataFine, descrizione, costo });
+        const newAct = { id, tipo, data, dataFine, descrizione, costo };
+        if (oraInizio !== undefined) newAct.oraInizio = oraInizio;
+        if (oraFine !== undefined) newAct.oraFine = oraFine;
+        Object.entries(extraFields).forEach(([k, v]) => { if (v !== undefined) newAct[k] = v; });
+        this.state.activities.push(newAct);
         this.persist();
-        console.log('LocalAdapter: addActivity', { tipo, data, dataFine, descrizione, costo, id, currentUser: currentUser?.email });
+        console.log('LocalAdapter: addActivity', { tipo, data, dataFine, descrizione, costo, oraInizio, oraFine, id, currentUser: currentUser?.email });
         return id;
     }
-    async updateActivity({ id, tipo, data, dataFine, descrizione, costo, ...extraFields }, currentUser) {
+    async updateActivity({ id, tipo, data, dataFine, descrizione, costo, oraInizio, oraFine, ...extraFields }, currentUser) {
         const a = this.state.activities.find(x => x.id === id);
         if (a) {
             if (tipo !== undefined) a.tipo = tipo;
@@ -236,10 +240,12 @@ export class LocalAdapter {
             if (dataFine !== undefined) a.dataFine = dataFine;
             if (descrizione !== undefined) a.descrizione = descrizione;
             if (costo !== undefined) a.costo = costo;
+            if (oraInizio !== undefined) a.oraInizio = oraInizio;
+            if (oraFine !== undefined) a.oraFine = oraFine;
             Object.entries(extraFields).forEach(([k, v]) => { if (v !== undefined) a[k] = v; });
             this.persist();
         }
-        console.log('LocalAdapter: updateActivity', { id, tipo, data, dataFine, descrizione, costo, ...extraFields, currentUser: currentUser?.email });
+        console.log('LocalAdapter: updateActivity', { id, tipo, data, dataFine, descrizione, costo, oraInizio, oraFine, ...extraFields, currentUser: currentUser?.email });
     }
     async deleteActivity(id, currentUser) {
         this.state.activities = this.state.activities.filter(a => a.id !== id);

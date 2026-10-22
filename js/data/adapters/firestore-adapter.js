@@ -111,23 +111,30 @@ export class FirestoreAdapter {
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     }
     // Activities
-    async addActivity({ tipo, data, dataFine, descrizione, costo }, currentUser) {
+    async addActivity({ tipo, data, dataFine, descrizione, costo, oraInizio, oraFine, ...extraFields }, currentUser) {
         // Converti data a Timestamp se è un Date object
         const dataTimestamp = data instanceof Date ? Timestamp.fromDate(data) : data;
         const dataFineTimestamp = dataFine instanceof Date ? Timestamp.fromDate(dataFine) : (dataFine || null);
 
         // Converti costo a numero (se è stringa o undefined/null)
         const costoNum = costo !== undefined && costo !== null && costo !== '' ? Number(costo) : 0;
-        const ref = await addDoc(this.cols.activities, {
+        const activityPayload = {
             tipo,
             data: dataTimestamp,
             dataFine: dataFineTimestamp,
             descrizione,
             costo: costoNum
+        };
+        if (oraInizio !== undefined) activityPayload.oraInizio = oraInizio;
+        if (oraFine !== undefined) activityPayload.oraFine = oraFine;
+        Object.entries(extraFields).forEach(([k, v]) => {
+            if (v !== undefined) activityPayload[k] = v;
         });
+
+        const ref = await addDoc(this.cols.activities, activityPayload);
         return ref.id;
     }
-    async updateActivity({ id, tipo, data, dataFine, descrizione, costo, ...extraFields }, currentUser) {
+    async updateActivity({ id, tipo, data, dataFine, descrizione, costo, oraInizio, oraFine, ...extraFields }, currentUser) {
         // Costruisce il payload filtrando i campi undefined (Firestore non li accetta)
         const payload = {};
 
@@ -145,6 +152,8 @@ export class FirestoreAdapter {
         } else if (costo !== undefined) {
             payload.costo = 0;
         }
+        if (oraInizio !== undefined) payload.oraInizio = oraInizio;
+        if (oraFine !== undefined) payload.oraFine = oraFine;
 
         // Campi extra (es. idMeetingCngei, cngei_sync_date): inclusi solo se definiti
         Object.entries(extraFields).forEach(([k, v]) => {
