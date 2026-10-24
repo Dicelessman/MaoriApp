@@ -704,7 +704,9 @@ UI.renderScorte = function () {
     let badgeImgHtml = '';
     if (badgeInfo) {
       const isPV = badgeInfo.type === 'PV';
-      const badgeTypeClass = isPV ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white';
+      const isPO = badgeInfo.type === 'PO';
+      const badgeTypeClass = isPV ? 'bg-blue-600 text-white' : (isPO ? 'bg-emerald-600 text-white' : 'bg-purple-600 text-white');
+      const badgeTypePill = badgeInfo.type === 'Distintivo' ? 'DIST' : badgeInfo.type;
       badgeImgHtml = `
         <div class="relative group shrink-0" title="${escapeHtml(badgeInfo.label || item.nome)} (${badgeInfo.type})">
           <img src="${escapeHtml(badgeInfo.src)}" 
@@ -712,7 +714,7 @@ UI.renderScorte = function () {
                class="w-9 h-9 object-contain rounded-full shadow-sm bg-white dark:bg-gray-800 p-0.5 border border-gray-200 dark:border-gray-700 hover:scale-110 transition-transform cursor-pointer" 
                onerror="this.style.display='none';" />
           <span class="absolute -bottom-1 -right-1 text-[9px] font-black px-1 py-0.2 rounded ${badgeTypeClass} leading-none shadow-xs">
-            ${badgeInfo.type}
+            ${badgeTypePill}
           </span>
         </div>
       `;
@@ -958,9 +960,11 @@ UI.updateMaterialBadgePreview = function () {
   if (badgeInfo) {
     img.src = badgeInfo.src;
     label.textContent = badgeInfo.label || nome;
-    type.textContent = badgeInfo.type === 'PV' ? 'Progressione Verticale (PV)' : 'Specialità (PO)';
+    const isPV = badgeInfo.type === 'PV';
+    const isPO = badgeInfo.type === 'PO';
+    type.textContent = isPV ? 'Progressione Verticale (PV)' : (isPO ? 'Specialità (PO)' : 'Distintivo Associativo / Reparto');
     type.className = `text-[10px] font-black px-1.5 py-0.2 rounded shrink-0 shadow-xs ${
-      badgeInfo.type === 'PV' ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white'
+      isPV ? 'bg-blue-600 text-white' : (isPO ? 'bg-emerald-600 text-white' : 'bg-purple-600 text-white')
     }`;
     container.classList.remove('hidden');
     container.classList.add('flex');

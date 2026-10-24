@@ -170,78 +170,98 @@ export const OFFICIAL_SPECIALITA_SLUGS = [
 
 export const OFFICIAL_DISTINTIVI_CATALOG = [
     // Progressioni Verticali (PV)
-    { nome: 'Promessa', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/promessa.png', prezzoDefault: 2.50 },
-    { nome: 'Giglio e Trifoglio', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/giglio-trifoglio.png', prezzoDefault: 2.50 },
-    { nome: 'Passo I', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/passo1.png', prezzoDefault: 2.50 },
-    { nome: 'Passo II', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/passo2.png', prezzoDefault: 2.50 },
-    { nome: 'Passo III', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/passo3.png', prezzoDefault: 2.50 },
+    { nome: 'Promessa', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/promessa.png', prezzoDefault: 1.20 },
+    { nome: 'Giglio e Trifoglio', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/giglio-trifoglio.png', prezzoDefault: 1.20 },
+    { nome: 'Passo I', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/passo1.png', prezzoDefault: 1.20 },
+    { nome: 'Passo II', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/passo2.png', prezzoDefault: 1.20 },
+    { nome: 'Passo III', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/passo3.png', prezzoDefault: 1.20 },
+    { nome: 'I Traccia - Scopro', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/traccia-scopro.jpg', prezzoDefault: 1.50 },
+    { nome: 'II Traccia - Conosco', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/traccia-conosco.jpg', prezzoDefault: 1.50 },
+    { nome: 'III Traccia - Condivido', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/traccia-condivido.jpg', prezzoDefault: 1.50 },
+    { nome: 'IV Traccia - Interiorizzo', tipo: 'PV', categoria: 'Progressione Verticale', img: 'img/passi/traccia-interiorizzo.jpg', prezzoDefault: 1.50 },
 
     // Progressioni Orizzontali (PO - Specialità Verdi)
-    { nome: 'Abilità Aquatiche', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/abilita-acquatiche.png', prezzoDefault: 2.50 },
-    { nome: 'Amicizia Internazionale', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/amicizia-internazionale.png', prezzoDefault: 2.50 },
-    { nome: 'Animazione', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/animazione.png', prezzoDefault: 2.50 },
-    { nome: 'Avventura', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/avventura.png', prezzoDefault: 2.50 },
-    { nome: 'Campismo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/campismo.png', prezzoDefault: 2.50 },
-    { nome: 'Comunicazione', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/comunicazione.png', prezzoDefault: 2.50 },
-    { nome: 'Cucina', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/cucina.png', prezzoDefault: 2.50 },
-    { nome: 'Esplorazione', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/esplorazione.png', prezzoDefault: 2.50 },
-    { nome: 'Fuochismo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/fuochismo.png', prezzoDefault: 2.50 },
-    { nome: 'Guida', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/guida.png', prezzoDefault: 2.50 },
-    { nome: 'Hebertismo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/herbertismo.png', prezzoDefault: 2.50 },
-    { nome: 'Impatto Ambientale', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/impatto-ambientale.png', prezzoDefault: 2.50 },
-    { nome: 'Meteo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/meteo.png', prezzoDefault: 2.50 },
-    { nome: 'Navigazione', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/navigazione.png', prezzoDefault: 2.50 },
-    { nome: 'Orientamento', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/orientamento.png', prezzoDefault: 2.50 },
-    { nome: 'Osservazione', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/osservazione.png', prezzoDefault: 2.50 },
-    { nome: 'Pionierismo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/pionierismo.png', prezzoDefault: 2.50 },
-    { nome: 'Primo Soccorso', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/primo-soccorso.png', prezzoDefault: 2.50 },
-    { nome: 'Spiritualità nel Mondo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/spiritualita-nel-mondo.png', prezzoDefault: 2.50 },
-    { nome: 'Trappeur', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/trappeur.png', prezzoDefault: 2.50 },
+    { nome: 'Abilità Aquatiche', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/abilita-acquatiche.png', prezzoDefault: 1.00 },
+    { nome: 'Amicizia Internazionale', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/amicizia-internazionale.png', prezzoDefault: 1.00 },
+    { nome: 'Animazione', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/animazione.png', prezzoDefault: 1.00 },
+    { nome: 'Avventura', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/avventura.png', prezzoDefault: 1.00 },
+    { nome: 'Campismo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/campismo.png', prezzoDefault: 1.00 },
+    { nome: 'Comunicazione', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/comunicazione.png', prezzoDefault: 1.00 },
+    { nome: 'Cucina', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/cucina.png', prezzoDefault: 1.00 },
+    { nome: 'Esplorazione', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/esplorazione.png', prezzoDefault: 1.00 },
+    { nome: 'Fuochismo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/fuochismo.png', prezzoDefault: 1.00 },
+    { nome: 'Guida', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/guida.png', prezzoDefault: 1.00 },
+    { nome: 'Hebertismo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/herbertismo.png', prezzoDefault: 1.00 },
+    { nome: 'Impatto Ambientale', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/impatto-ambientale.png', prezzoDefault: 1.00 },
+    { nome: 'Meteo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/meteo.png', prezzoDefault: 1.00 },
+    { nome: 'Navigazione', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/navigazione.png', prezzoDefault: 1.00 },
+    { nome: 'Orientamento', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/orientamento.png', prezzoDefault: 1.00 },
+    { nome: 'Osservazione', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/osservazione.png', prezzoDefault: 1.00 },
+    { nome: 'Pionierismo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/pionierismo.png', prezzoDefault: 1.00 },
+    { nome: 'Primo Soccorso', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/primo-soccorso.png', prezzoDefault: 1.00 },
+    { nome: 'Spiritualità nel Mondo', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/spiritualita-nel-mondo.png', prezzoDefault: 1.00 },
+    { nome: 'Trappeur', tipo: 'PO', categoria: 'Specialità Verdi', img: 'img/specialita/trappeur.png', prezzoDefault: 1.00 },
 
     // Progressioni Orizzontali (PO - Specialità Gialle)
-    { nome: 'Agroecologia', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/agroecologia.png', prezzoDefault: 2.50 },
-    { nome: 'Archeostoria', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/archeostoria.png', prezzoDefault: 2.50 },
-    { nome: 'Arrampicata', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/arrampicata.png', prezzoDefault: 2.50 },
-    { nome: 'Arte', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/arte.png', prezzoDefault: 2.50 },
-    { nome: 'Arti Grafiche', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/arti-grafiche.png', prezzoDefault: 2.50 },
-    { nome: 'Artigianato', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/artigianato.png', prezzoDefault: 2.50 },
-    { nome: 'Astronomia', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/astronomo.png', prezzoDefault: 2.50 },
-    { nome: 'Benessere', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/wellbeing.png', prezzoDefault: 2.50 },
-    { nome: 'Canottaggio', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/canottaggio.png', prezzoDefault: 2.50 },
-    { nome: 'Carpenteria', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/carpenteria.png', prezzoDefault: 2.50 },
-    { nome: 'Carpenteria Navale', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/carpentiere-navale.png', prezzoDefault: 2.50 },
-    { nome: 'Ciclismo', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/ciclismo.png', prezzoDefault: 2.50 },
-    { nome: 'Cittadinanza Digitale', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/cittadinanza-digitale.png', prezzoDefault: 2.50 },
-    { nome: 'Coding', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/coding.png', prezzoDefault: 2.50 },
-    { nome: 'Collezionismo', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/collezionismo.png', prezzoDefault: 2.50 },
-    { nome: 'Conservazione Mondiale', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/conservazione-mondiale.png', prezzoDefault: 2.50 },
-    { nome: 'Difesa Personale', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/difesa-personale.png', prezzoDefault: 2.50 },
-    { nome: 'Espressione Corporea', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/espressione.png', prezzoDefault: 2.50 },
-    { nome: 'Fai Da Te', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/faidate.png', prezzoDefault: 2.50 },
-    { nome: 'Folklore', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/folklore.png', prezzoDefault: 2.50 },
-    { nome: 'Fotografia', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/fotografia.png', prezzoDefault: 2.50 },
-    { nome: 'Giochi di Squadra', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/giochi-di-squadra.png', prezzoDefault: 2.50 },
-    { nome: 'Giornalismo', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/giornalismo.png', prezzoDefault: 2.50 },
-    { nome: 'Impatto nella Comunità', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/impatto-nella-comunita.png', prezzoDefault: 2.50 },
-    { nome: 'Informatica', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/informatica.png', prezzoDefault: 2.50 },
-    { nome: 'Interprete', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/interprete.png', prezzoDefault: 2.50 },
-    { nome: 'Lettura', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/lettura.png', prezzoDefault: 2.50 },
-    { nome: 'Meccatronica', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/meccatronica.png', prezzoDefault: 2.50 },
-    { nome: 'Musica', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/musica.png', prezzoDefault: 2.50 },
-    { nome: 'Nuoto', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/nuoto.png', prezzoDefault: 2.50 },
-    { nome: 'Olimpia', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/olimpia.png', prezzoDefault: 2.50 },
-    { nome: 'Sartoria', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/sartoria.png', prezzoDefault: 2.50 },
-    { nome: 'Scienze di Laboratorio', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/scienze-di-laboratorio.png', prezzoDefault: 2.50 },
-    { nome: 'Scrittura', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/scrittura.png', prezzoDefault: 2.50 },
-    { nome: 'Sfide Globali', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/sfide-globali.png', prezzoDefault: 2.50 },
-    { nome: 'Sport di Strada', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/sport-di-strada.png', prezzoDefault: 2.50 },
-    { nome: 'Videomaking', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/videomaking.png', prezzoDefault: 2.50 },
+    { nome: 'Agroecologia', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/agroecologia.png', prezzoDefault: 1.00 },
+    { nome: 'Archeostoria', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/archeostoria.png', prezzoDefault: 1.00 },
+    { nome: 'Arrampicata', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/arrampicata.png', prezzoDefault: 1.00 },
+    { nome: 'Arte', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/arte.png', prezzoDefault: 1.00 },
+    { nome: 'Arti Grafiche', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/arti-grafiche.png', prezzoDefault: 1.00 },
+    { nome: 'Artigianato', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/artigianato.png', prezzoDefault: 1.00 },
+    { nome: 'Astronomia', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/astronomo.png', prezzoDefault: 1.00 },
+    { nome: 'Benessere', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/wellbeing.png', prezzoDefault: 1.00 },
+    { nome: 'Canottaggio', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/canottaggio.png', prezzoDefault: 1.00 },
+    { nome: 'Carpenteria', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/carpenteria.png', prezzoDefault: 1.00 },
+    { nome: 'Carpenteria Navale', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/carpentiere-navale.png', prezzoDefault: 1.00 },
+    { nome: 'Ciclismo', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/ciclismo.png', prezzoDefault: 1.00 },
+    { nome: 'Cittadinanza Digitale', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/cittadinanza-digitale.png', prezzoDefault: 1.00 },
+    { nome: 'Coding', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/coding.png', prezzoDefault: 1.00 },
+    { nome: 'Collezionismo', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/collezionismo.png', prezzoDefault: 1.00 },
+    { nome: 'Conservazione Mondiale', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/conservazione-mondiale.png', prezzoDefault: 1.00 },
+    { nome: 'Difesa Personale', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/difesa-personale.png', prezzoDefault: 1.00 },
+    { nome: 'Espressione Corporea', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/espressione.png', prezzoDefault: 1.00 },
+    { nome: 'Fai Da Te', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/faidate.png', prezzoDefault: 1.00 },
+    { nome: 'Folklore', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/folklore.png', prezzoDefault: 1.00 },
+    { nome: 'Fotografia', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/fotografia.png', prezzoDefault: 1.00 },
+    { nome: 'Giochi di Squadra', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/giochi-di-squadra.png', prezzoDefault: 1.00 },
+    { nome: 'Giornalismo', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/giornalismo.png', prezzoDefault: 1.00 },
+    { nome: 'Impatto nella Comunità', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/impatto-nella-comunita.png', prezzoDefault: 1.00 },
+    { nome: 'Informatica', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/informatica.png', prezzoDefault: 1.00 },
+    { nome: 'Interprete', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/interprete.png', prezzoDefault: 1.00 },
+    { nome: 'Lettura', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/lettura.png', prezzoDefault: 1.00 },
+    { nome: 'Meccatronica', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/meccatronica.png', prezzoDefault: 1.00 },
+    { nome: 'Musica', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/musica.png', prezzoDefault: 1.00 },
+    { nome: 'Nuoto', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/nuoto.png', prezzoDefault: 1.00 },
+    { nome: 'Olimpia', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/olimpia.png', prezzoDefault: 1.00 },
+    { nome: 'Sartoria', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/sartoria.png', prezzoDefault: 1.00 },
+    { nome: 'Scienze di Laboratorio', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/scienze-di-laboratorio.png', prezzoDefault: 1.00 },
+    { nome: 'Scrittura', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/scrittura.png', prezzoDefault: 1.00 },
+    { nome: 'Sfide Globali', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/sfide-globali.png', prezzoDefault: 1.00 },
+    { nome: 'Sport di Strada', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/sport-di-strada.png', prezzoDefault: 1.00 },
+    { nome: 'Videomaking', tipo: 'PO', categoria: 'Specialità Gialle', img: 'img/specialita/videomaking.png', prezzoDefault: 1.00 },
 
     // Ambiti CNGEI
-    { nome: 'Ambito Corporeità', tipo: 'PO', categoria: 'Ambiti', img: 'img/specialita/corporeita.png', prezzoDefault: 2.50 },
-    { nome: 'Ambito Carattere', tipo: 'PO', categoria: 'Ambiti', img: 'img/specialita/carattere.png', prezzoDefault: 2.50 },
-    { nome: 'Ambito Creatività', tipo: 'PO', categoria: 'Ambiti', img: 'img/specialita/creativita.png', prezzoDefault: 2.50 },
-    { nome: 'Ambito Impegno Civile', tipo: 'PO', categoria: 'Ambiti', img: 'img/specialita/impegno-civile.png', prezzoDefault: 2.50 }
+    { nome: 'Ambito Corporeità', tipo: 'PO', categoria: 'Ambiti', img: 'img/specialita/corporeita.png', prezzoDefault: 1.00 },
+    { nome: 'Ambito Carattere', tipo: 'PO', categoria: 'Ambiti', img: 'img/specialita/carattere.png', prezzoDefault: 1.00 },
+    { nome: 'Ambito Creatività', tipo: 'PO', categoria: 'Ambiti', img: 'img/specialita/creativita.png', prezzoDefault: 1.00 },
+    { nome: 'Ambito Impegno Civile', tipo: 'PO', categoria: 'Ambiti', img: 'img/specialita/impegno-civile.png', prezzoDefault: 1.00 },
+
+    // Specialità di Pattuglia (PO)
+    { nome: 'Spec. Pattuglia Astuzia al Campo', tipo: 'PO', categoria: 'Specialità di Pattuglia', img: 'img/specialita/specialita-ptg-astuzia.jpg', prezzoDefault: 2.00 },
+    { nome: 'Spec. Pattuglia Cooperazione Scout', tipo: 'PO', categoria: 'Specialità di Pattuglia', img: 'img/specialita/specialita-ptg-cooperazione.jpg', prezzoDefault: 2.00 },
+    { nome: 'Spec. Pattuglia Olimpionica', tipo: 'PO', categoria: 'Specialità di Pattuglia', img: 'img/specialita/specialita-ptg-olimpionica.jpg', prezzoDefault: 2.00 },
+    { nome: 'Spec. Pattuglia Tecnologia e Natura', tipo: 'PO', categoria: 'Specialità di Pattuglia', img: 'img/specialita/specialita-ptg-tecnologia.jpg', prezzoDefault: 2.00 },
+
+    // Distintivi Associativi & Altri Esploratori
+    { nome: 'Distintivo CNGEI', tipo: 'Distintivo', categoria: 'Distintivi Associativi', img: 'img/passi/CNGEI.png', prezzoDefault: 1.50 },
+    { nome: 'Distintivo F.I.S.', tipo: 'Distintivo', categoria: 'Distintivi Associativi', img: 'img/passi/fis.jpg', prezzoDefault: 1.50 },
+    { nome: 'Distintivo WOSM', tipo: 'Distintivo', categoria: 'Distintivi Associativi', img: 'img/passi/wosm.jpg', prezzoDefault: 1.50 },
+    { nome: 'Distintivo WAGGGS', tipo: 'Distintivo', categoria: 'Distintivi Associativi', img: 'img/passi/wagggs.jpg', prezzoDefault: 1.50 },
+    { nome: 'Barretta d\'Incarico', tipo: 'Distintivo', categoria: 'Altri Distintivi', img: 'img/passi/barretta incarico.png', prezzoDefault: 1.20 },
+    { nome: 'Specialista', tipo: 'Distintivo', categoria: 'Altri Distintivi', img: 'img/passi/specialista.png', prezzoDefault: 2.00 },
+    { nome: 'Scout Nautico', tipo: 'Distintivo', categoria: 'Altri Distintivi', img: 'img/passi/scout-nautico.jpg', prezzoDefault: 1.50 },
+    { nome: 'Spilletta dell\'Impegno', tipo: 'Distintivo', categoria: 'Altri Distintivi', img: 'img/passi/spilletta-impegno.jpg', prezzoDefault: 4.00 }
 ];
 
 /**
@@ -268,10 +288,11 @@ export function resolveDistintivoBadge(itemName, itemLista = '', itemCategoria =
         .trim();
 
     const lower = clean.toLowerCase();
+    const rawLower = trimmed.toLowerCase();
 
     // 2. Progressioni Verticali (PV)
     // Promessa
-    if (lower.includes('promess')) {
+    if (lower.includes('promess') || rawLower.includes('promess')) {
         return {
             src: 'img/passi/promessa.png',
             label: 'Promessa',
@@ -280,7 +301,7 @@ export function resolveDistintivoBadge(itemName, itemLista = '', itemCategoria =
     }
 
     // Giglio e Trifoglio
-    if (lower.includes('giglio') || lower.includes('trifoglio')) {
+    if (lower.includes('giglio') || lower.includes('trifoglio') || rawLower.includes('giglio') || rawLower.includes('trifoglio')) {
         return {
             src: 'img/passi/giglio-trifoglio.png',
             label: 'Giglio e Trifoglio',
@@ -288,8 +309,44 @@ export function resolveDistintivoBadge(itemName, itemLista = '', itemCategoria =
         };
     }
 
-    // Passo 1 / Passo I / 1° Passo / Primo Passo / Traccia 1
-    if (/\bpasso\s*(1|i\b|°|\buno\b)|1[°o]\s*passo|primo\s*passo|\btraccia\s*(1|i\b)/i.test(lower)) {
+    // Traccia I / Scopro
+    if (lower.includes('scopro') || rawLower.includes('scopro') || /\b(1[°o]|i|uno)\s*traccia\b|\btraccia\s*(1|i\b)/i.test(rawLower)) {
+        return {
+            src: 'img/passi/traccia-scopro.jpg',
+            label: 'I Traccia (Scopro)',
+            type: 'PV'
+        };
+    }
+
+    // Traccia II / Conosco
+    if (lower.includes('conosco') || rawLower.includes('conosco') || /\b(2[°o]|ii|due)\s*traccia\b|\btraccia\s*(2|ii\b)/i.test(rawLower)) {
+        return {
+            src: 'img/passi/traccia-conosco.jpg',
+            label: 'II Traccia (Conosco)',
+            type: 'PV'
+        };
+    }
+
+    // Traccia III / Condivido
+    if (lower.includes('condivido') || rawLower.includes('condivido') || /\b(3[°o]|iii|tre)\s*traccia\b|\btraccia\s*(3|iii\b)/i.test(rawLower)) {
+        return {
+            src: 'img/passi/traccia-condivido.jpg',
+            label: 'III Traccia (Condivido)',
+            type: 'PV'
+        };
+    }
+
+    // Traccia IV / Interiorizzo
+    if (lower.includes('interiorizzo') || rawLower.includes('interiorizzo') || /\b(4[°o]|iv|quattro)\s*traccia\b|\btraccia\s*(4|iv\b)/i.test(rawLower)) {
+        return {
+            src: 'img/passi/traccia-interiorizzo.jpg',
+            label: 'IV Traccia (Interiorizzo)',
+            type: 'PV'
+        };
+    }
+
+    // Passo 1 / Passo I / 1° Passo / Primo Passo
+    if (/\bpasso\s*(1|i\b|°|\buno\b)|1[°o]\s*passo|primo\s*passo/i.test(lower)) {
         return {
             src: 'img/passi/passo1.png',
             label: 'Passo I',
@@ -297,8 +354,8 @@ export function resolveDistintivoBadge(itemName, itemLista = '', itemCategoria =
         };
     }
 
-    // Passo 2 / Passo II / 2° Passo / Secondo Passo / Traccia 2
-    if (/\bpasso\s*(2|ii\b|°|\bdue\b)|2[°o]\s*passo|secondo\s*passo|\btraccia\s*(2|ii\b)/i.test(lower)) {
+    // Passo 2 / Passo II / 2° Passo / Secondo Passo
+    if (/\bpasso\s*(2|ii\b|°|\bdue\b)|2[°o]\s*passo|secondo\s*passo/i.test(lower)) {
         return {
             src: 'img/passi/passo2.png',
             label: 'Passo II',
@@ -306,12 +363,100 @@ export function resolveDistintivoBadge(itemName, itemLista = '', itemCategoria =
         };
     }
 
-    // Passo 3 / Passo III / 3° Passo / Terzo Passo / Traccia 3
-    if (/\bpasso\s*(3|iii\b|°|\btre\b)|3[°o]\s*passo|terzo\s*passo|\btraccia\s*(3|iii\b)/i.test(lower)) {
+    // Passo 3 / Passo III / 3° Passo / Terzo Passo
+    if (/\bpasso\s*(3|iii\b|°|\btre\b)|3[°o]\s*passo|terzo\s*passo/i.test(lower)) {
         return {
             src: 'img/passi/passo3.png',
             label: 'Passo III',
             type: 'PV'
+        };
+    }
+
+    // 3. Specialità di Pattuglia (PO)
+    if (lower.includes('astuzia')) {
+        return {
+            src: 'img/specialita/specialita-ptg-astuzia.jpg',
+            label: 'Spec. Pattuglia - Astuzia al campo',
+            type: 'PO'
+        };
+    }
+    if (lower.includes('cooperazione')) {
+        return {
+            src: 'img/specialita/specialita-ptg-cooperazione.jpg',
+            label: 'Spec. Pattuglia - Cooperazione scout',
+            type: 'PO'
+        };
+    }
+    if ((lower.includes('olimpionica') || rawLower.includes('olimpionica')) && (lower.includes('pattuglia') || rawLower.includes('ptg') || lower.includes('olimpionica'))) {
+        return {
+            src: 'img/specialita/specialita-ptg-olimpionica.jpg',
+            label: 'Spec. Pattuglia - Olimpionica',
+            type: 'PO'
+        };
+    }
+    if (lower.includes('tecnologia') || (lower.includes('natura') && (lower.includes('tecnologia') || rawLower.includes('pattuglia')))) {
+        return {
+            src: 'img/specialita/specialita-ptg-tecnologia.jpg',
+            label: 'Spec. Pattuglia - Tecnologia e Natura',
+            type: 'PO'
+        };
+    }
+
+    // 4. Distintivi Associativi & Reparto
+    if (/\bcngei\b/i.test(rawLower)) {
+        return {
+            src: 'img/passi/CNGEI.png',
+            label: 'Distintivo CNGEI',
+            type: 'Distintivo'
+        };
+    }
+    if (/\bf\.?i\.?s\.?\b/i.test(rawLower)) {
+        return {
+            src: 'img/passi/fis.jpg',
+            label: 'Distintivo F.I.S.',
+            type: 'Distintivo'
+        };
+    }
+    if (/\bwosm\b/i.test(rawLower)) {
+        return {
+            src: 'img/passi/wosm.jpg',
+            label: 'Distintivo WOSM',
+            type: 'Distintivo'
+        };
+    }
+    if (/\bwagggs\b/i.test(rawLower)) {
+        return {
+            src: 'img/passi/wagggs.jpg',
+            label: 'Distintivo WAGGGS',
+            type: 'Distintivo'
+        };
+    }
+    if (lower.includes('barretta') || lower.includes('incarico')) {
+        return {
+            src: 'img/passi/barretta incarico.png',
+            label: "Barretta d'Incarico",
+            type: 'Distintivo'
+        };
+    }
+    if (lower.includes('specialista')) {
+        return {
+            src: 'img/passi/specialista.png',
+            label: 'Distintivo Specialista',
+            type: 'Distintivo'
+        };
+    }
+    if (lower.includes('nautic')) {
+        return {
+            src: 'img/passi/scout-nautico.jpg',
+            label: 'Scout Nautico',
+            type: 'Distintivo'
+        };
+    }
+    if (lower.includes('spillett') || (lower.includes('impegno') && rawLower.includes('spill'))) {
+        return {
+            src: 'img/passi/spilletta-impegno.jpg',
+            label: "Spilletta dell'Impegno",
+            type: 'Distintivo'
         };
     }
 

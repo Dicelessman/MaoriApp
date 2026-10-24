@@ -131,17 +131,94 @@ describe('Distintivi PO & PV in Scorte & Materiali', () => {
       expect(resolveDistintivoBadge(null)).toBeNull();
     });
 
-    it('dovrebbe includere nel catalogo ufficiale tutti i distintivi PO e PV', () => {
-      expect(OFFICIAL_DISTINTIVI_CATALOG.length).toBeGreaterThanOrEqual(64);
+    it('dovrebbe risolvere correttamente le immagini dei distintivi di Traccia (PV)', () => {
+      const scopro = resolveDistintivoBadge('I Traccia - Scopro');
+      expect(scopro?.src).toBe('img/passi/traccia-scopro.jpg');
+      expect(scopro?.type).toBe('PV');
+
+      const conosco = resolveDistintivoBadge('Traccia Conosco');
+      expect(conosco?.src).toBe('img/passi/traccia-conosco.jpg');
+
+      const condivido = resolveDistintivoBadge('III Traccia');
+      expect(condivido?.src).toBe('img/passi/traccia-condivido.jpg');
+
+      const interiorizzo = resolveDistintivoBadge('Traccia Interiorizzo');
+      expect(interiorizzo?.src).toBe('img/passi/traccia-interiorizzo.jpg');
+    });
+
+    it('dovrebbe risolvere correttamente le Specialità di Pattuglia (PO) e Distintivi Associativi/Reparto', () => {
+      const astuzia = resolveDistintivoBadge('Spec. Pattuglia Astuzia al Campo');
+      expect(astuzia?.src).toBe('img/specialita/specialita-ptg-astuzia.jpg');
+      expect(astuzia?.type).toBe('PO');
+
+      const cooperazione = resolveDistintivoBadge('Cooperazione scout');
+      expect(cooperazione?.src).toBe('img/specialita/specialita-ptg-cooperazione.jpg');
+
+      const cngei = resolveDistintivoBadge('Distintivo CNGEI');
+      expect(cngei?.src).toBe('img/passi/CNGEI.png');
+      expect(cngei?.type).toBe('Distintivo');
+
+      const fis = resolveDistintivoBadge('Distintivo F.I.S.');
+      expect(fis?.src).toBe('img/passi/fis.jpg');
+      expect(fis?.type).toBe('Distintivo');
+
+      const wosm = resolveDistintivoBadge('Distintivo WOSM');
+      expect(wosm?.src).toBe('img/passi/wosm.jpg');
+
+      const wagggs = resolveDistintivoBadge('Distintivo WAGGGS');
+      expect(wagggs?.src).toBe('img/passi/wagggs.jpg');
+
+      const specialista = resolveDistintivoBadge('Specialista');
+      expect(specialista?.src).toBe('img/passi/specialista.png');
+
+      const barretta = resolveDistintivoBadge('Barretta d\'Incarico');
+      expect(barretta?.src).toBe('img/passi/barretta incarico.png');
+
+      const nautico = resolveDistintivoBadge('Scout Nautico');
+      expect(nautico?.src).toBe('img/passi/scout-nautico.jpg');
+
+      const spilletta = resolveDistintivoBadge('Spilletta dell\'Impegno');
+      expect(spilletta?.src).toBe('img/passi/spilletta-impegno.jpg');
+    });
+
+    it('dovrebbe includere nel catalogo ufficiale tutti i distintivi PO, PV e Associativi con i prezzi ufficiali dell\'eshop CNGEI', () => {
+      expect(OFFICIAL_DISTINTIVI_CATALOG.length).toBeGreaterThanOrEqual(80);
       const pvBadges = OFFICIAL_DISTINTIVI_CATALOG.filter(b => b.tipo === 'PV');
       const poBadges = OFFICIAL_DISTINTIVI_CATALOG.filter(b => b.tipo === 'PO');
+      const distBadges = OFFICIAL_DISTINTIVI_CATALOG.filter(b => b.tipo === 'Distintivo');
 
-      expect(pvBadges.length).toBe(5);
-      expect(poBadges.length).toBe(61); // 57 specialita + 4 ambiti
+      expect(pvBadges.length).toBe(9); // 5 passi/promessa + 4 tracce
+      expect(poBadges.length).toBe(65); // 57 specialita + 4 ambiti + 4 specialita di pattuglia
+      expect(distBadges.length).toBe(8); // CNGEI, FIS, WOSM, WAGGGS, barretta, specialista, nautico, spilletta
 
-      // Ogni elemento del catalogo deve avere un'immagine valida
+      // Verifica prezzi ufficiali
+      const promessa = OFFICIAL_DISTINTIVI_CATALOG.find(b => b.nome === 'Promessa');
+      expect(promessa?.prezzoDefault).toBe(1.20);
+
+      const passo1 = OFFICIAL_DISTINTIVI_CATALOG.find(b => b.nome === 'Passo I');
+      expect(passo1?.prezzoDefault).toBe(1.20);
+
+      const scopro = OFFICIAL_DISTINTIVI_CATALOG.find(b => b.nome.includes('Scopro'));
+      expect(scopro?.prezzoDefault).toBe(1.50);
+
+      const cucina = OFFICIAL_DISTINTIVI_CATALOG.find(b => b.nome === 'Cucina');
+      expect(cucina?.prezzoDefault).toBe(1.00);
+
+      const pionierismo = OFFICIAL_DISTINTIVI_CATALOG.find(b => b.nome === 'Pionierismo');
+      expect(pionierismo?.prezzoDefault).toBe(1.00);
+
+      const specPtg = OFFICIAL_DISTINTIVI_CATALOG.find(b => b.nome.includes('Astuzia'));
+      expect(specPtg?.prezzoDefault).toBe(2.00);
+
+      const fisBadge = OFFICIAL_DISTINTIVI_CATALOG.find(b => b.nome.includes('F.I.S.'));
+      expect(fisBadge?.prezzoDefault).toBe(1.50);
+
+      const spillettaBadge = OFFICIAL_DISTINTIVI_CATALOG.find(b => b.nome.includes('Spilletta'));
+      expect(spillettaBadge?.prezzoDefault).toBe(4.00);
+
+      // Ogni elemento del catalogo deve avere un'immagine valida (.png o .jpg)
       OFFICIAL_DISTINTIVI_CATALOG.forEach(badge => {
-        expect(badge.img).toMatch(/\.png$/);
+        expect(badge.img).toMatch(/\.(png|jpg|jpeg|webp)$/);
         expect(badge.nome).toBeTruthy();
         expect(badge.prezzoDefault).toBeGreaterThan(0);
       });
