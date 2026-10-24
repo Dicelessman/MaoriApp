@@ -471,6 +471,7 @@ export class LocalAdapter {
             prezzoUnitario: Number(item.prezzoUnitario) || 0,
             dataControllo: item.dataControllo || new Date().toISOString().split('T')[0],
             note: (item.note || '').trim(),
+            img: item.img || '',
             createdAt: new Date().toISOString(),
             createdBy: currentUser?.email || 'user'
         };
@@ -522,6 +523,7 @@ export class LocalAdapter {
             prezzoUnitario: Number(item.prezzoUnitario) || 0,
             dataControllo: item.dataControllo || dateStr,
             note: (item.note || '').trim(),
+            img: item.img || '',
             createdAt: now,
             createdBy: currentUser?.email || 'user'
         }));

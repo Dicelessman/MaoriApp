@@ -698,20 +698,56 @@ UI.renderScorte = function () {
     tableTotalPreventivo += costoRiordino;
 
     const isDistintiviList = itemLista === 'Distintivi' || activeList === 'Distintivi';
-    const badgeInfo = resolveDistintivoBadge(item.nome, item.lista, item.categoria) ||
-      (item.img ? { src: item.img, label: item.nome, type: 'Distintivo' } : null);
+    const customImg = (item.img || '').trim();
+    const badgeInfo = resolveDistintivoBadge(item.nome, item.lista, item.categoria);
+
+    // Priorità immagine: 1. Immagine personalizzata dell'utente, 2. Distintivo ufficiale
+    let displayImgSrc = '';
+    let displayImgLabel = item.nome;
+    let displayImgType = '';
+    let isCustom = false;
+
+    if (customImg) {
+      displayImgSrc = customImg;
+      isCustom = true;
+      displayImgLabel = item.nome;
+      displayImgType = badgeInfo ? badgeInfo.type : 'FOTO';
+    } else if (badgeInfo) {
+      displayImgSrc = badgeInfo.src;
+      displayImgLabel = badgeInfo.label || item.nome;
+      displayImgType = badgeInfo.type;
+    }
 
     let badgeImgHtml = '';
-    if (badgeInfo) {
-      const isPV = badgeInfo.type === 'PV';
-      const isPO = badgeInfo.type === 'PO';
-      const badgeTypeClass = isPV ? 'bg-blue-600 text-white' : (isPO ? 'bg-emerald-600 text-white' : 'bg-purple-600 text-white');
-      const badgeTypePill = badgeInfo.type === 'Distintivo' ? 'DIST' : badgeInfo.type;
+    if (displayImgSrc) {
+      const isPV = displayImgType === 'PV';
+      const isPO = displayImgType === 'PO';
+      const isDist = displayImgType === 'Distintivo' || displayImgType === 'DIST';
+
+      let badgeTypeClass = 'bg-teal-600 text-white';
+      let badgeTypePill = displayImgType;
+
+      if (isPV) {
+        badgeTypeClass = 'bg-blue-600 text-white';
+        badgeTypePill = 'PV';
+      } else if (isPO) {
+        badgeTypeClass = 'bg-emerald-600 text-white';
+        badgeTypePill = 'PO';
+      } else if (isDist) {
+        badgeTypeClass = 'bg-purple-600 text-white';
+        badgeTypePill = 'DIST';
+      } else if (isCustom && !badgeInfo) {
+        badgeTypeClass = 'bg-teal-600 text-white';
+        badgeTypePill = '📷';
+      }
+
       badgeImgHtml = `
-        <div class="relative group shrink-0" title="${escapeHtml(badgeInfo.label || item.nome)} (${badgeInfo.type})">
-          <img src="${escapeHtml(badgeInfo.src)}" 
+        <div class="relative group shrink-0" title="${escapeHtml(displayImgLabel)} (${escapeHtml(badgeTypePill)})">
+          <img src="${escapeHtml(displayImgSrc)}" 
                alt="${escapeHtml(item.nome)}" 
-               class="w-9 h-9 object-contain rounded-full shadow-sm bg-white dark:bg-gray-800 p-0.5 border border-gray-200 dark:border-gray-700 hover:scale-110 transition-transform cursor-pointer" 
+               class="w-9 h-9 object-cover rounded-full shadow-sm bg-white dark:bg-gray-800 p-0.5 border border-gray-200 dark:border-gray-700 hover:scale-110 transition-transform cursor-pointer scorte-thumbnail-zoom" 
+               data-img-src="${escapeHtml(displayImgSrc)}"
+               data-img-title="${escapeHtml(item.nome)}"
                onerror="this.style.display='none';" />
           <span class="absolute -bottom-1 -right-1 text-[9px] font-black px-1 py-0.2 rounded ${badgeTypeClass} leading-none shadow-xs">
             ${badgeTypePill}
@@ -860,6 +896,79 @@ UI.renderScorte = function () {
       this.deleteMaterial(b.getAttribute('data-id'));
     });
   });
+
+  tbody.querySelectorAll('.scorte-thumbnail-zoom').forEach(img => {
+    img.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const src = img.getAttribute('data-img-src');
+      const title = img.getAttribute('data-img-title');
+      if (src) this.openImageLightbox(src, title);
+    });
+  });
+};
+
+UI.openImageLightbox = function (src, title) {
+  const modal = document.getElementById('imageLightboxModal');
+  const modalImg = document.getElementById('lightboxModalImg');
+  const modalTitle = document.getElementById('lightboxModalTitle');
+  const closeBtn = document.getElementById('closeLightboxBtn');
+
+  if (!modal || !modalImg) return;
+  modalImg.src = src;
+  if (modalTitle) modalTitle.textContent = title || 'Foto Articolo';
+  modal.classList.remove('hidden');
+
+  const close = () => {
+    modal.classList.add('hidden');
+    modalImg.src = '';
+  };
+
+  if (closeBtn) closeBtn.onclick = close;
+  modal.onclick = (e) => {
+    if (e.target === modal) close();
+  };
+};
+
+UI.compressImageFile = function (file, maxWidth = 400, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) {
+      return reject(new Error('Il file selezionato non è un\'immagine valida'));
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Errore durante la lettura del file'));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Impossibile caricare l\'immagine selezionata'));
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxWidth) {
+              width = Math.round((width * maxWidth) / height);
+              height = maxWidth;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 };
 
 UI.adjustItemQuantity = async function (id, delta) {
@@ -898,11 +1007,75 @@ UI.setupMaterialModalEvents = function () {
   const nomeInput = document.getElementById('materialNome');
   const listaInput = document.getElementById('materialLista');
 
+  const triggerUploadBtn = document.getElementById('triggerImageUploadBtn');
+  const fileInput = document.getElementById('materialImageFile');
+  const imgDataInput = document.getElementById('materialImgData');
+  const imgUrlInput = document.getElementById('materialImgUrl');
+  const removeImgBtn = document.getElementById('removeCustomImageBtn');
+  const previewImg = document.getElementById('materialImagePreviewImg');
+
   if (closeBtn) closeBtn.onclick = () => modal?.classList.add('hidden');
   if (cancelBtn) cancelBtn.onclick = () => modal?.classList.add('hidden');
   if (modal) {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.classList.add('hidden');
+    });
+  }
+
+  // Upload file o fotocamera
+  if (triggerUploadBtn && fileInput) {
+    triggerUploadBtn.addEventListener('click', () => {
+      fileInput.click();
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const compressedBase64 = await this.compressImageFile(file, 400, 0.82);
+        if (imgDataInput) imgDataInput.value = compressedBase64;
+        if (imgUrlInput) imgUrlInput.value = '';
+        this.updateCustomImagePreview();
+        this.showToast('Foto caricata e ottimizzata con successo!', { type: 'success' });
+      } catch (err) {
+        console.error('Errore compressione immagine:', err);
+        this.showToast(err.message || 'Errore durante il caricamento dell\'immagine', { type: 'error' });
+      } finally {
+        fileInput.value = '';
+      }
+    });
+  }
+
+  // Input URL Web
+  if (imgUrlInput) {
+    imgUrlInput.addEventListener('input', () => {
+      const v = imgUrlInput.value.trim();
+      if (v && imgDataInput) {
+        imgDataInput.value = '';
+      }
+      this.updateCustomImagePreview();
+    });
+  }
+
+  // Rimozione Immagine Personalizzata
+  if (removeImgBtn) {
+    removeImgBtn.addEventListener('click', () => {
+      if (imgDataInput) imgDataInput.value = '';
+      if (imgUrlInput) imgUrlInput.value = '';
+      if (fileInput) fileInput.value = '';
+      this.updateCustomImagePreview();
+      this.showToast('Immagine personalizzata rimossa');
+    });
+  }
+
+  // Click su preview per ingrandire con lightbox
+  if (previewImg) {
+    previewImg.addEventListener('click', () => {
+      const src = previewImg.src;
+      const title = document.getElementById('materialNome')?.value || 'Foto Articolo';
+      if (src) this.openImageLightbox(src, title);
     });
   }
 
@@ -942,6 +1115,56 @@ UI.setupMaterialModalEvents = function () {
       e.preventDefault();
       await this.saveMaterialForm();
     };
+  }
+};
+
+UI.updateCustomImagePreview = function () {
+  const dataInput = document.getElementById('materialImgData');
+  const urlInput = document.getElementById('materialImgUrl');
+  const previewContainer = document.getElementById('materialImagePreviewContainer');
+  const previewImg = document.getElementById('materialImagePreviewImg');
+  const previewName = document.getElementById('materialImagePreviewName');
+  const previewSize = document.getElementById('materialImagePreviewSize');
+  const removeBtn = document.getElementById('removeCustomImageBtn');
+  const badge = document.getElementById('customImageStatusBadge');
+
+  const dataVal = (dataInput?.value || '').trim();
+  const urlVal = (urlInput?.value || '').trim();
+  const effectiveSrc = dataVal || urlVal;
+
+  if (effectiveSrc) {
+    if (previewImg) previewImg.src = effectiveSrc;
+    if (previewContainer) {
+      previewContainer.classList.remove('hidden');
+      previewContainer.classList.add('flex');
+    }
+    if (removeBtn) {
+      removeBtn.classList.remove('hidden');
+      removeBtn.classList.add('inline-flex');
+    }
+    if (badge) badge.classList.remove('hidden');
+
+    if (previewName) {
+      if (dataVal.startsWith('data:')) {
+        previewName.textContent = 'Foto caricata da dispositivo';
+        const kbSize = Math.max(1, Math.round((dataVal.length * 3 / 4) / 1024));
+        if (previewSize) previewSize.textContent = `Immagine ottimizzata (~${kbSize} KB)`;
+      } else {
+        previewName.textContent = 'Immagine da URL web';
+        if (previewSize) previewSize.textContent = urlVal.length > 40 ? urlVal.substring(0, 37) + '...' : urlVal;
+      }
+    }
+  } else {
+    if (previewImg) previewImg.src = '';
+    if (previewContainer) {
+      previewContainer.classList.add('hidden');
+      previewContainer.classList.remove('flex');
+    }
+    if (removeBtn) {
+      removeBtn.classList.add('hidden');
+      removeBtn.classList.remove('inline-flex');
+    }
+    if (badge) badge.classList.add('hidden');
   }
 };
 
@@ -990,6 +1213,9 @@ UI.openMaterialModal = function (id = null) {
   const dataInput = document.getElementById('materialDataControllo');
   const noteInput = document.getElementById('materialNote');
 
+  const imgDataInput = document.getElementById('materialImgData');
+  const imgUrlInput = document.getElementById('materialImgUrl');
+
   if (!modal) return;
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -1025,6 +1251,15 @@ UI.openMaterialModal = function (id = null) {
     if (prezzoInput) prezzoInput.value = item.prezzoUnitario !== undefined ? item.prezzoUnitario : 0;
     if (dataInput) dataInput.value = item.dataControllo || todayStr;
     if (noteInput) noteInput.value = item.note || '';
+
+    const customImg = (item.img || '').trim();
+    if (customImg.startsWith('data:')) {
+      if (imgDataInput) imgDataInput.value = customImg;
+      if (imgUrlInput) imgUrlInput.value = '';
+    } else {
+      if (imgDataInput) imgDataInput.value = '';
+      if (imgUrlInput) imgUrlInput.value = customImg;
+    }
   } else {
     const isDistintivi = defaultList === 'Distintivi';
     if (title) title.textContent = isDistintivi ? 'Nuovo Distintivo in Inventario' : 'Nuovo Articolo Scorte';
@@ -1038,9 +1273,13 @@ UI.openMaterialModal = function (id = null) {
     if (prezzoInput) prezzoInput.value = isDistintivi ? '2.50' : '0.00';
     if (dataInput) dataInput.value = todayStr;
     if (noteInput) noteInput.value = '';
+
+    if (imgDataInput) imgDataInput.value = '';
+    if (imgUrlInput) imgUrlInput.value = '';
   }
 
   this.updateMaterialBadgePreview();
+  this.updateCustomImagePreview();
   modal.classList.remove('hidden');
   nomeInput?.focus();
 };
@@ -1058,6 +1297,10 @@ UI.saveMaterialForm = async function () {
   const dataControllo = document.getElementById('materialDataControllo')?.value || new Date().toISOString().split('T')[0];
   const note = document.getElementById('materialNote')?.value.trim();
 
+  const imgData = document.getElementById('materialImgData')?.value?.trim() || '';
+  const imgUrl = document.getElementById('materialImgUrl')?.value?.trim() || '';
+  const img = imgData || imgUrl || '';
+
   if (!nome) {
     this.showToast('Il nome dell\'articolo è obbligatorio', { type: 'error' });
     return;
@@ -1072,7 +1315,8 @@ UI.saveMaterialForm = async function () {
     quantitaMinima,
     prezzoUnitario,
     dataControllo,
-    note
+    note,
+    img
   };
 
   const authUser = this.currentUser || DATA.adapter?.auth?.currentUser;
@@ -1243,6 +1487,7 @@ UI.processImportText = function (rawText) {
           unitaMisura: parts[5] || 'pz',
           note: parts[6] || '',
           lista: forcedList || parts[7] || activeDefaultList,
+          img: parts[8] || '',
           dataControllo: todayStr
         };
       }
@@ -1259,6 +1504,7 @@ UI.processImportText = function (rawText) {
           unitaMisura: 'pz',
           note: '',
           lista: forcedList || activeDefaultList,
+          img: '',
           dataControllo: todayStr
         };
       }
@@ -1273,6 +1519,7 @@ UI.processImportText = function (rawText) {
         unitaMisura: 'pz',
         note: '',
         lista: forcedList || activeDefaultList,
+        img: '',
         dataControllo: todayStr
       };
     }
@@ -1302,8 +1549,10 @@ UI.processImportText = function (rawText) {
 
   if (tbody) {
     tbody.innerHTML = parsedItems.slice(0, 50).map(i => {
+      const customImg = (i.img || '').trim();
       const badge = resolveDistintivoBadge(i.nome, i.lista, i.categoria);
-      const badgeImg = badge ? `<img src="${escapeHtml(badge.src)}" alt="${escapeHtml(i.nome)}" class="w-5 h-5 object-contain rounded-full shadow-xs bg-white p-0.5 border border-gray-200 shrink-0" onerror="this.style.display='none';" />` : '';
+      const displaySrc = customImg || (badge ? badge.src : '');
+      const badgeImg = displaySrc ? `<img src="${escapeHtml(displaySrc)}" alt="${escapeHtml(i.nome)}" class="w-5 h-5 object-cover rounded-full shadow-xs bg-white p-0.5 border border-gray-200 shrink-0" onerror="this.style.display='none';" />` : '';
       return `
       <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
         <td class="p-2 font-medium">
@@ -1499,10 +1748,17 @@ UI.openPreventivoRiordinoModal = function () {
         const unita = i.unitaMisura || 'pz';
         const itemLista = (i.lista || 'Generale').trim();
 
-        const badgeInfo = resolveDistintivoBadge(i.nome, i.lista, i.categoria) ||
-          (i.img ? { src: i.img, label: i.nome, type: 'Distintivo' } : null);
-        const badgeImg = badgeInfo ? `
-          <img src="${escapeHtml(badgeInfo.src)}" alt="${escapeHtml(i.nome)}" class="w-6 h-6 object-contain rounded-full shadow-xs bg-white dark:bg-gray-800 p-0.5 border border-gray-200 dark:border-gray-700 shrink-0" onerror="this.style.display='none';" />
+        const customImg = (i.img || '').trim();
+        const badgeInfo = resolveDistintivoBadge(i.nome, i.lista, i.categoria);
+        const displaySrc = customImg || (badgeInfo ? badgeInfo.src : '');
+        const displayLabel = badgeInfo ? (badgeInfo.label || i.nome) : i.nome;
+        const badgeImg = displaySrc ? `
+          <img src="${escapeHtml(displaySrc)}" 
+               alt="${escapeHtml(displayLabel)}" 
+               class="w-6 h-6 object-cover rounded-full shadow-xs bg-white dark:bg-gray-800 p-0.5 border border-gray-200 dark:border-gray-700 shrink-0 cursor-pointer hover:scale-110 transition-transform scorte-thumbnail-zoom" 
+               data-img-src="${escapeHtml(displaySrc)}"
+               data-img-title="${escapeHtml(i.nome)}"
+               onerror="this.style.display='none';" />
         ` : '';
 
         return `
@@ -1525,6 +1781,15 @@ UI.openPreventivoRiordinoModal = function () {
           </tr>
         `;
       }).join('');
+
+      tbody.querySelectorAll('.scorte-thumbnail-zoom').forEach(img => {
+        img.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const src = img.getAttribute('data-img-src');
+          const title = img.getAttribute('data-img-title');
+          if (src) this.openImageLightbox(src, title);
+        });
+      });
     }
   }
 
@@ -1627,10 +1892,11 @@ UI.printListaSpesa = function (targetList = null) {
             const cat = (i.categoria || 'Generale').trim();
             const noteText = (i.note || '').trim();
 
-            const badgeInfo = resolveDistintivoBadge(i.nome, i.lista, i.categoria) ||
-              (i.img ? { src: i.img, label: i.nome, type: 'Distintivo' } : null);
-            const badgePrintImg = badgeInfo ? `
-              <img src="${escapeHtml(badgeInfo.src)}" alt="${escapeHtml(i.nome)}" style="width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; vertical-align: middle;" onerror="this.style.display='none';" />
+            const customImg = (i.img || '').trim();
+            const badgeInfo = resolveDistintivoBadge(i.nome, i.lista, i.categoria);
+            const displayPrintSrc = customImg || (badgeInfo ? badgeInfo.src : '');
+            const badgePrintImg = displayPrintSrc ? `
+              <img src="${escapeHtml(displayPrintSrc)}" alt="${escapeHtml(i.nome)}" style="width: 22px; height: 22px; object-fit: cover; border-radius: 9999px; flex-shrink: 0; vertical-align: middle; border: 1px solid #d1d5db;" onerror="this.style.display='none';" />
             ` : '';
 
             return `

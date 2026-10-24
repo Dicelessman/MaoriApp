@@ -258,6 +258,24 @@ describe('Distintivi PO & PV in Scorte & Materiali', () => {
             <span id="materialBadgePreviewLabel"></span>
             <span id="materialBadgePreviewType"></span>
           </div>
+
+          <!-- Custom Image Elements -->
+          <input type="hidden" id="materialImgData" />
+          <input type="url" id="materialImgUrl" />
+          <button id="removeCustomImageBtn" class="hidden"></button>
+          <span id="customImageStatusBadge" class="hidden"></span>
+          <div id="materialImagePreviewContainer" class="hidden">
+            <img id="materialImagePreviewImg" src="" />
+            <p id="materialImagePreviewName"></p>
+            <p id="materialImagePreviewSize"></p>
+          </div>
+        </div>
+
+        <!-- Lightbox Modal -->
+        <div id="imageLightboxModal" class="hidden">
+          <img id="lightboxModalImg" src="" />
+          <h3 id="lightboxModalTitle"></h3>
+          <button id="closeLightboxBtn"></button>
         </div>
       `;
 
@@ -288,7 +306,8 @@ describe('Distintivi PO & PV in Scorte & Materiali', () => {
             lista: 'Campo Estivo',
             quantita: 20,
             quantitaMinima: 50,
-            prezzoUnitario: 1.20
+            prezzoUnitario: 1.20,
+            img: 'https://example.com/picchetti.jpg'
           }
         ],
         lists: ['Campo Estivo', 'Uniformi', 'Distintivi', 'Generale'],
@@ -358,6 +377,84 @@ describe('Distintivi PO & PV in Scorte & Materiali', () => {
       nomeInput.value = 'Corda da roccia';
       UI.updateMaterialBadgePreview();
       expect(container.classList.contains('hidden')).toBe(true);
+    });
+
+    it('dovrebbe mostrare la miniatura personalizzata con icona 📷 per un articolo con immagine allegata', () => {
+      UI._scorteState.activeList = 'all';
+      UI.renderScorte();
+
+      const tbody = document.getElementById('scorteTableBody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const picchettiRow = rows.find(r => r.textContent.includes('Picchetti tenda'));
+
+      expect(picchettiRow).toBeDefined();
+      const img = picchettiRow.querySelector('img.scorte-thumbnail-zoom');
+      expect(img).not.toBeNull();
+      expect(img.getAttribute('src')).toBe('https://example.com/picchetti.jpg');
+      expect(picchettiRow.textContent).toContain('📷');
+    });
+
+    it('dovrebbe dare priorità all\'immagine personalizzata dell\'utente se allegata anche a un distintivo', () => {
+      UI._scorteState.items[0].img = 'data:image/jpeg;base64,/9j/customPassoPhoto';
+      UI._scorteState.activeList = 'Distintivi';
+      UI.renderScorte();
+
+      const tbody = document.getElementById('scorteTableBody');
+      const rows = tbody.querySelectorAll('tr');
+      const passoRow = rows[0];
+
+      const img = passoRow.querySelector('img.scorte-thumbnail-zoom');
+      expect(img).not.toBeNull();
+      expect(img.getAttribute('src')).toBe('data:image/jpeg;base64,/9j/customPassoPhoto');
+      expect(passoRow.textContent).toContain('PV');
+    });
+
+    it('dovrebbe aggiornare l\'anteprima e lo stato dell\'immagine personalizzata (updateCustomImagePreview)', () => {
+      const dataInput = document.getElementById('materialImgData');
+      const urlInput = document.getElementById('materialImgUrl');
+      const container = document.getElementById('materialImagePreviewContainer');
+      const previewImg = document.getElementById('materialImagePreviewImg');
+      const removeBtn = document.getElementById('removeCustomImageBtn');
+      const badge = document.getElementById('customImageStatusBadge');
+
+      // 1. Nessuna immagine
+      dataInput.value = '';
+      urlInput.value = '';
+      UI.updateCustomImagePreview();
+      expect(container.classList.contains('hidden')).toBe(true);
+      expect(removeBtn.classList.contains('hidden')).toBe(true);
+      expect(badge.classList.contains('hidden')).toBe(true);
+
+      // 2. Immagine da URL
+      urlInput.value = 'https://example.com/fornellino.jpg';
+      UI.updateCustomImagePreview();
+      expect(container.classList.contains('hidden')).toBe(false);
+      expect(previewImg.getAttribute('src')).toBe('https://example.com/fornellino.jpg');
+      expect(removeBtn.classList.contains('hidden')).toBe(false);
+      expect(badge.classList.contains('hidden')).toBe(false);
+
+      // 3. Immagine base64 da fotocamera/dispositivo
+      dataInput.value = 'data:image/jpeg;base64,1234567890';
+      urlInput.value = '';
+      UI.updateCustomImagePreview();
+      expect(container.classList.contains('hidden')).toBe(false);
+      expect(previewImg.getAttribute('src')).toBe('data:image/jpeg;base64,1234567890');
+      const nameEl = document.getElementById('materialImagePreviewName');
+      expect(nameEl.textContent).toContain('Foto caricata da dispositivo');
+    });
+
+    it('dovrebbe aprire la lightbox modale con l\'immagine e il titolo corretti', () => {
+      const lightboxModal = document.getElementById('imageLightboxModal');
+      const lightboxImg = document.getElementById('lightboxModalImg');
+      const lightboxTitle = document.getElementById('lightboxModalTitle');
+
+      expect(lightboxModal.classList.contains('hidden')).toBe(true);
+
+      UI.openImageLightbox('https://example.com/foto.jpg', 'Tenda Canadese');
+
+      expect(lightboxModal.classList.contains('hidden')).toBe(false);
+      expect(lightboxImg.getAttribute('src')).toBe('https://example.com/foto.jpg');
+      expect(lightboxTitle.textContent).toBe('Tenda Canadese');
     });
   });
 });

@@ -448,6 +448,7 @@ export class FirestoreAdapter {
             prezzoUnitario: Number(item.prezzoUnitario) || 0,
             dataControllo: item.dataControllo || new Date().toISOString().split('T')[0],
             note: (item.note || '').trim(),
+            img: item.img || '',
             createdAt: Timestamp.now(),
             createdBy: currentUser?.email || currentUser?.uid || 'user'
         };
