@@ -1,7 +1,7 @@
 // scorte.js - Logica per la gestione scorte, inventario e preventivo di riordino con liste separate
 import { DATA } from './js/data/data-facade.js';
 import { UI } from './js/ui/ui.js';
-import { escapeHtml } from './js/utils/utils.js';
+import { escapeHtml, resolveDistintivoBadge, OFFICIAL_DISTINTIVI_CATALOG } from './js/utils/utils.js';
 
 if (typeof window !== 'undefined') {
   window.DATA = DATA;
@@ -244,11 +244,19 @@ UI.renderListeTabs = function () {
 
   // Aggiorna visibilità azioni lista attiva
   const actionsEl = document.getElementById('activeListActions');
+  const initDistintiviBtn = document.getElementById('initOfficialDistintiviBtn');
   if (actionsEl) {
     if (activeList !== 'all' && activeList !== 'Generale') {
       actionsEl.classList.remove('hidden');
     } else {
       actionsEl.classList.add('hidden');
+    }
+  }
+  if (initDistintiviBtn) {
+    if (activeList === 'Distintivi') {
+      initDistintiviBtn.classList.remove('hidden');
+    } else {
+      initDistintiviBtn.classList.add('hidden');
     }
   }
 };
@@ -298,6 +306,13 @@ UI.setupListManagementEvents = function () {
     });
   }
 
+  const initDistintiviBtn = document.getElementById('initOfficialDistintiviBtn');
+  if (initDistintiviBtn) {
+    initDistintiviBtn.addEventListener('click', () => {
+      this.initOfficialDistintiviCatalog();
+    });
+  }
+
   if (closeBtn) closeBtn.onclick = () => modal?.classList.add('hidden');
   if (cancelBtn) cancelBtn.onclick = () => modal?.classList.add('hidden');
 
@@ -306,6 +321,70 @@ UI.setupListManagementEvents = function () {
       e.preventDefault();
       await this.saveListForm();
     };
+  }
+};
+
+UI.initOfficialDistintiviCatalog = async function () {
+  const currentItems = this._scorteState.items || [];
+  const existingNames = new Set(
+    currentItems
+      .filter(i => (i.lista || 'Generale') === 'Distintivi')
+      .map(i => (i.nome || '').trim().toLowerCase())
+  );
+
+  const missingBadges = OFFICIAL_DISTINTIVI_CATALOG.filter(
+    b => !existingNames.has(b.nome.toLowerCase())
+  );
+
+  if (missingBadges.length === 0) {
+    this.showToast('Tutti i distintivi ufficiali PO e PV sono già presenti nella lista Distintivi!', { type: 'info' });
+    return;
+  }
+
+  const proceed = async () => {
+    try {
+      this.showLoadingOverlay ? this.showLoadingOverlay('Caricamento catalogo distintivi...') : null;
+      const todayStr = new Date().toISOString().split('T')[0];
+      const newScorte = missingBadges.map(b => ({
+        nome: b.nome,
+        categoria: b.categoria,
+        lista: 'Distintivi',
+        quantita: 0,
+        quantitaMinima: 5,
+        unitaMisura: 'pz',
+        prezzoUnitario: b.prezzoDefault,
+        dataControllo: todayStr,
+        note: `Distintivo ufficiale ${b.tipo}`
+      }));
+
+      await DATA.importScorteBatch(newScorte, false, this.currentUser);
+      this.showToast(`${missingBadges.length} distintivi ufficiali aggiunti al catalogo Distintivi!`);
+
+      this._scorteState.items = await DATA.getScorte();
+      this._scorteState.lists = await DATA.getListeScorte();
+      this.renderListeTabs();
+      this.populateCategoryFilter();
+      this.renderScorte();
+    } catch (err) {
+      console.error('Errore importazione distintivi ufficiali:', err);
+      this.showToast('Errore durante il caricamento dei distintivi', { type: 'error' });
+    } finally {
+      this.hideLoadingOverlay ? this.hideLoadingOverlay() : null;
+    }
+  };
+
+  if (typeof this.showConfirmModal === 'function') {
+    this.showConfirmModal({
+      title: 'Carica Distintivi Ufficiali (PO e PV)',
+      message: `Verranno inseriti ${missingBadges.length} distintivi ufficiali CNGEI (Passi PV e Specialità PO) nella lista "Distintivi" con immagini sincronizzate. Vuoi procedere?`,
+      confirmText: 'Carica Distintivi',
+      cancelText: 'Annulla',
+      onConfirm: proceed
+    });
+  } else {
+    if (confirm(`Verranno inseriti ${missingBadges.length} distintivi ufficiali CNGEI nella lista Distintivi. Procedere?`)) {
+      await proceed();
+    }
   }
 };
 
@@ -569,9 +648,22 @@ UI.renderScorte = function () {
   if (!tbody) return;
 
   if (filtered.length === 0) {
-    const emptyMsg = totalItems === 0 && activeList !== 'all'
-      ? `Nessun articolo presente nella lista "${activeList}". Clicca su "+ Nuovo Articolo" o "Importa Lista" per aggiungerne.`
-      : 'Nessun articolo trovato con i filtri selezionati.';
+    const emptyMsg = totalItems === 0 && activeList === 'Distintivi'
+      ? `
+        <div class="py-4 text-center">
+          <div class="text-3xl mb-2">⚜️</div>
+          <p class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1">Nessun distintivo presente nel catalogo</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 max-w-md mx-auto">
+            La lista Distintivi è vuota. Puoi inserire i singoli distintivi oppure caricare subito l'intero catalogo ufficiale dei distintivi PO (Specialità) e PV (Passi) con le rispettive immagini sincronizzate.
+          </p>
+          <button type="button" id="emptyInitDistintiviBtn" class="btn-primary text-xs px-4 py-2 inline-flex items-center gap-2 shadow-sm cursor-pointer">
+            <span>⚜️</span><span>Carica Catalogo Distintivi Ufficiali (PO e PV)</span>
+          </button>
+        </div>
+      `
+      : (totalItems === 0 && activeList !== 'all'
+        ? `Nessun articolo presente nella lista "${activeList}". Clicca su "+ Nuovo Articolo" o "Importa Lista" per aggiungerne.`
+        : 'Nessun articolo trovato con i filtri selezionati.');
 
     tbody.innerHTML = `
       <tr>
@@ -580,6 +672,12 @@ UI.renderScorte = function () {
         </td>
       </tr>
     `;
+    const emptyBtn = document.getElementById('emptyInitDistintiviBtn');
+    if (emptyBtn) {
+      emptyBtn.addEventListener('click', () => {
+        this.initOfficialDistintiviCatalog();
+      });
+    }
     if (tfoot) tfoot.innerHTML = '';
     return;
   }
@@ -599,6 +697,33 @@ UI.renderScorte = function () {
     tableTotalDaRiordinare += diff;
     tableTotalPreventivo += costoRiordino;
 
+    const isDistintiviList = itemLista === 'Distintivi' || activeList === 'Distintivi';
+    const badgeInfo = resolveDistintivoBadge(item.nome, item.lista, item.categoria) ||
+      (item.img ? { src: item.img, label: item.nome, type: 'Distintivo' } : null);
+
+    let badgeImgHtml = '';
+    if (badgeInfo) {
+      const isPV = badgeInfo.type === 'PV';
+      const badgeTypeClass = isPV ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white';
+      badgeImgHtml = `
+        <div class="relative group shrink-0" title="${escapeHtml(badgeInfo.label || item.nome)} (${badgeInfo.type})">
+          <img src="${escapeHtml(badgeInfo.src)}" 
+               alt="${escapeHtml(item.nome)}" 
+               class="w-9 h-9 object-contain rounded-full shadow-sm bg-white dark:bg-gray-800 p-0.5 border border-gray-200 dark:border-gray-700 hover:scale-110 transition-transform cursor-pointer" 
+               onerror="this.style.display='none';" />
+          <span class="absolute -bottom-1 -right-1 text-[9px] font-black px-1 py-0.2 rounded ${badgeTypeClass} leading-none shadow-xs">
+            ${badgeInfo.type}
+          </span>
+        </div>
+      `;
+    } else if (isDistintiviList) {
+      badgeImgHtml = `
+        <div class="w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-sm shrink-0 shadow-xs" title="Distintivo">
+          ⚜️
+        </div>
+      `;
+    }
+
     const isSottoScorta = diff > 0;
     const statusBadge = isSottoScorta
       ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
@@ -614,10 +739,15 @@ UI.renderScorte = function () {
       <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${rowBg}" data-id="${escapeHtml(item.id)}">
         <!-- Nome & Note -->
         <td class="p-3">
-          <div class="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-            <span>${escapeHtml(item.nome)}</span>
+          <div class="flex items-center gap-3">
+            ${badgeImgHtml}
+            <div class="min-w-0">
+              <div class="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                <span>${escapeHtml(item.nome)}</span>
+              </div>
+              ${item.note ? `<div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs mt-0.5" title="${escapeHtml(item.note)}">📝 ${escapeHtml(item.note)}</div>` : ''}
+            </div>
           </div>
-          ${item.note ? `<div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs mt-0.5" title="${escapeHtml(item.note)}">📝 ${escapeHtml(item.note)}</div>` : ''}
         </td>
 
         <!-- Lista -->
@@ -763,12 +893,45 @@ UI.setupMaterialModalEvents = function () {
   const closeBtn = document.getElementById('closeMaterialModalBtn');
   const cancelBtn = document.getElementById('cancelMaterialBtn');
   const form = document.getElementById('materialForm');
+  const nomeInput = document.getElementById('materialNome');
+  const listaInput = document.getElementById('materialLista');
 
   if (closeBtn) closeBtn.onclick = () => modal?.classList.add('hidden');
   if (cancelBtn) cancelBtn.onclick = () => modal?.classList.add('hidden');
   if (modal) {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.classList.add('hidden');
+    });
+  }
+
+  if (nomeInput) {
+    nomeInput.addEventListener('input', () => {
+      this.updateMaterialBadgePreview();
+    });
+    nomeInput.addEventListener('change', () => {
+      const v = (nomeInput.value || '').trim();
+      const match = OFFICIAL_DISTINTIVI_CATALOG.find(b => b.nome.toLowerCase() === v.toLowerCase());
+      if (match) {
+        const catInput = document.getElementById('materialCategoria');
+        const listaInputEl = document.getElementById('materialLista');
+        const prezzoInput = document.getElementById('materialPrezzo');
+        if (catInput && (!catInput.value || catInput.value === 'Campeggio' || catInput.value === 'Generale')) {
+          catInput.value = match.categoria;
+        }
+        if (listaInputEl && (!listaInputEl.value || listaInputEl.value === 'Generale')) {
+          listaInputEl.value = 'Distintivi';
+        }
+        if (prezzoInput && (!prezzoInput.value || Number(prezzoInput.value) === 0)) {
+          prezzoInput.value = match.prezzoDefault.toFixed(2);
+        }
+      }
+      this.updateMaterialBadgePreview();
+    });
+  }
+
+  if (listaInput) {
+    listaInput.addEventListener('change', () => {
+      this.updateMaterialBadgePreview();
     });
   }
 
@@ -780,6 +943,33 @@ UI.setupMaterialModalEvents = function () {
   }
 };
 
+UI.updateMaterialBadgePreview = function () {
+  const nome = document.getElementById('materialNome')?.value || '';
+  const lista = document.getElementById('materialLista')?.value || '';
+  const cat = document.getElementById('materialCategoria')?.value || '';
+  const container = document.getElementById('materialBadgePreviewContainer');
+  const img = document.getElementById('materialBadgePreviewImg');
+  const label = document.getElementById('materialBadgePreviewLabel');
+  const type = document.getElementById('materialBadgePreviewType');
+
+  if (!container || !img || !label || !type) return;
+
+  const badgeInfo = resolveDistintivoBadge(nome, lista, cat);
+  if (badgeInfo) {
+    img.src = badgeInfo.src;
+    label.textContent = badgeInfo.label || nome;
+    type.textContent = badgeInfo.type === 'PV' ? 'Progressione Verticale (PV)' : 'Specialità (PO)';
+    type.className = `text-[10px] font-black px-1.5 py-0.2 rounded shrink-0 shadow-xs ${
+      badgeInfo.type === 'PV' ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white'
+    }`;
+    container.classList.remove('hidden');
+    container.classList.add('flex');
+  } else {
+    container.classList.add('hidden');
+    container.classList.remove('flex');
+  }
+};
+
 UI.openMaterialModal = function (id = null) {
   const modal = document.getElementById('materialModal');
   const title = document.getElementById('materialModalTitle');
@@ -787,6 +977,7 @@ UI.openMaterialModal = function (id = null) {
   const nomeInput = document.getElementById('materialNome');
   const listaInput = document.getElementById('materialLista');
   const listeDataList = document.getElementById('listeScorteDataList');
+  const distintiviDataList = document.getElementById('distintiviSuggestions');
   const catInput = document.getElementById('materialCategoria');
   const unitaSelect = document.getElementById('materialUnita');
   const qInput = document.getElementById('materialQuantita');
@@ -803,6 +994,13 @@ UI.openMaterialModal = function (id = null) {
   if (listeDataList) {
     const lists = this._scorteState.lists || ['Campo Estivo', 'Uniformi', 'Distintivi', 'Generale'];
     listeDataList.innerHTML = lists.map(l => `<option value="${l}"></option>`).join('');
+  }
+
+  // Popola datalist suggerimenti distintivi PO e PV
+  if (distintiviDataList) {
+    distintiviDataList.innerHTML = OFFICIAL_DISTINTIVI_CATALOG.map(
+      b => `<option value="${escapeHtml(b.nome)}">${escapeHtml(b.tipo)}: ${escapeHtml(b.categoria)}</option>`
+    ).join('');
   }
 
   const defaultList = this._scorteState.activeList !== 'all'
@@ -824,19 +1022,21 @@ UI.openMaterialModal = function (id = null) {
     if (dataInput) dataInput.value = item.dataControllo || todayStr;
     if (noteInput) noteInput.value = item.note || '';
   } else {
-    if (title) title.textContent = 'Nuovo Articolo Scorte';
+    const isDistintivi = defaultList === 'Distintivi';
+    if (title) title.textContent = isDistintivi ? 'Nuovo Distintivo in Inventario' : 'Nuovo Articolo Scorte';
     if (idInput) idInput.value = '';
     if (nomeInput) nomeInput.value = '';
     if (listaInput) listaInput.value = defaultList;
-    if (catInput) catInput.value = this._scorteState.category || 'Campeggio';
+    if (catInput) catInput.value = isDistintivi ? 'Distintivi' : (this._scorteState.category || 'Campeggio');
     if (unitaSelect) unitaSelect.value = 'pz';
     if (qInput) qInput.value = '0';
-    if (qMinInput) qMinInput.value = '10';
-    if (prezzoInput) prezzoInput.value = '0.00';
+    if (qMinInput) qMinInput.value = isDistintivi ? '5' : '10';
+    if (prezzoInput) prezzoInput.value = isDistintivi ? '2.50' : '0.00';
     if (dataInput) dataInput.value = todayStr;
     if (noteInput) noteInput.value = '';
   }
 
+  this.updateMaterialBadgePreview();
   modal.classList.remove('hidden');
   nomeInput?.focus();
 };
@@ -1097,16 +1297,25 @@ UI.processImportText = function (rawText) {
   if (confirmBtn) confirmBtn.disabled = false;
 
   if (tbody) {
-    tbody.innerHTML = parsedItems.slice(0, 50).map(i => `
+    tbody.innerHTML = parsedItems.slice(0, 50).map(i => {
+      const badge = resolveDistintivoBadge(i.nome, i.lista, i.categoria);
+      const badgeImg = badge ? `<img src="${escapeHtml(badge.src)}" alt="${escapeHtml(i.nome)}" class="w-5 h-5 object-contain rounded-full shadow-xs bg-white p-0.5 border border-gray-200 shrink-0" onerror="this.style.display='none';" />` : '';
+      return `
       <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-        <td class="p-2 font-medium">${escapeHtml(i.nome)}</td>
+        <td class="p-2 font-medium">
+          <div class="flex items-center gap-2">
+            ${badgeImg}
+            <span>${escapeHtml(i.nome)}</span>
+          </div>
+        </td>
         <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">${escapeHtml(i.lista)}</span></td>
         <td class="p-2">${escapeHtml(i.categoria)}</td>
         <td class="p-2 text-center">${Number(i.quantita) || 0} ${escapeHtml(i.unitaMisura)}</td>
         <td class="p-2 text-center">${Number(i.quantitaMinima) || 0}</td>
         <td class="p-2 text-right">€ ${Number(i.prezzoUnitario).toFixed(2)}</td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   }
 
   this.showToast(`${parsedItems.length} articoli riconosciuti. Verifica e conferma l'importazione.`);
@@ -1286,9 +1495,20 @@ UI.openPreventivoRiordinoModal = function () {
         const unita = i.unitaMisura || 'pz';
         const itemLista = (i.lista || 'Generale').trim();
 
+        const badgeInfo = resolveDistintivoBadge(i.nome, i.lista, i.categoria) ||
+          (i.img ? { src: i.img, label: i.nome, type: 'Distintivo' } : null);
+        const badgeImg = badgeInfo ? `
+          <img src="${escapeHtml(badgeInfo.src)}" alt="${escapeHtml(i.nome)}" class="w-6 h-6 object-contain rounded-full shadow-xs bg-white dark:bg-gray-800 p-0.5 border border-gray-200 dark:border-gray-700 shrink-0" onerror="this.style.display='none';" />
+        ` : '';
+
         return `
           <tr class="hover:bg-amber-50/50 dark:hover:bg-amber-950/20">
-            <td class="p-2.5 font-bold text-gray-800 dark:text-gray-100">${i.nome}</td>
+            <td class="p-2.5 font-bold text-gray-800 dark:text-gray-100">
+              <div class="flex items-center gap-2">
+                ${badgeImg}
+                <span>${escapeHtml(i.nome)}</span>
+              </div>
+            </td>
             <td class="p-2.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">${itemLista}</span></td>
             <td class="p-2.5">${i.categoria || 'Generale'}</td>
             <td class="p-2.5 text-center">${q} ${unita}</td>
@@ -1403,10 +1623,19 @@ UI.printListaSpesa = function (targetList = null) {
             const cat = (i.categoria || 'Generale').trim();
             const noteText = (i.note || '').trim();
 
+            const badgeInfo = resolveDistintivoBadge(i.nome, i.lista, i.categoria) ||
+              (i.img ? { src: i.img, label: i.nome, type: 'Distintivo' } : null);
+            const badgePrintImg = badgeInfo ? `
+              <img src="${escapeHtml(badgeInfo.src)}" alt="${escapeHtml(i.nome)}" style="width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; vertical-align: middle;" onerror="this.style.display='none';" />
+            ` : '';
+
             return `
               <tr style="page-break-inside: avoid;">
                 <td style="border: 1px solid #4b5563; padding: 7px 6px; vertical-align: middle;">
-                  <div style="font-weight: 700; font-size: 12px; color: #111;">${escapeHtml(i.nome)}</div>
+                  <div style="font-weight: 700; font-size: 12px; color: #111; display: flex; align-items: center; gap: 6px;">
+                    ${badgePrintImg}
+                    <span>${escapeHtml(i.nome)}</span>
+                  </div>
                   <div style="font-size: 9.5px; color: #555; margin-top: 1px;">
                     ${escapeHtml(cat)}${activeList === 'all' && i.lista ? ` &bull; ${escapeHtml(i.lista)}` : ''}
                   </div>
