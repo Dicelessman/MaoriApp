@@ -171,13 +171,13 @@ UI.formatDisplayDate = function (value) {
   return `${giorno} ${data}`;
 };
 
-UI._scoutSortField = UI._scoutSortField || 'cognome';
+UI._scoutSortField = UI._scoutSortField || 'nome';
 UI._scoutSortDir = UI._scoutSortDir || 'asc';
 UI._scoutSortActivityId = UI._scoutSortActivityId || null;
 UI._presenceTableScrollLeft = UI._presenceTableScrollLeft || 0;
 
 UI.sortScouts = function (scouts, targetActId) {
-  const field = this._scoutSortField || 'cognome';
+  const field = this._scoutSortField || 'nome';
   const dir = this._scoutSortDir || 'asc';
   const isDesc = dir === 'desc';
 
@@ -585,7 +585,7 @@ UI.renderPresenceTable = function () {
 
   // Checkbox "Seleziona tutti" nell'header
   const selectAllChecked = this.batchSelection?.isSelectAll ? 'checked' : '';
-  const currentSortVal = `${this._scoutSortField || 'cognome'}_${this._scoutSortDir || 'asc'}`;
+  const currentSortVal = `${this._scoutSortField || 'nome'}_${this._scoutSortDir || 'asc'}`;
 
   let sortActBadge = '';
   if (this._scoutSortField === 'stato' && targetSortAct) {
@@ -595,15 +595,14 @@ UI.renderPresenceTable = function () {
     sortActBadge = `<div class="text-[10px] text-green-200/90 font-normal truncate mt-0.5" title="Ordinamento presenze per: ${actLabel} (${actDateStr})">📍 Rif: ${actLabel} (${actDateStr})</div>`;
   }
 
-  thDates.innerHTML = `<th id="thScoutName" rowspan="2" class="select-none sticky left-0 !bg-green-800 !text-white !p-3 !border-r !border-white/50 text-left z-20 min-w-[220px]" title="Colonna Esploratore">
-    <div class="flex flex-col gap-1.5">
-      <div class="flex items-center gap-2">
-        <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 cursor-pointer rounded" ${selectAllChecked} title="Seleziona tutti gli esploratori visibili">
-        <span class="font-bold text-sm">Esploratore</span>
+  thDates.innerHTML = `<th id="thScoutName" rowspan="2" class="select-none sticky left-0 !bg-green-800 !text-white !p-2 sm:!p-3 !border-r !border-white/50 text-left z-20 w-[125px] sm:w-[190px] min-w-[120px] sm:min-w-[180px] max-w-[135px] sm:max-w-none" title="Colonna Esploratore">
+    <div class="flex flex-col gap-1 sm:gap-1.5">
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <input type="checkbox" id="selectAllCheckbox" class="w-3.5 h-3.5 sm:w-4 sm:h-4 cursor-pointer rounded shrink-0" ${selectAllChecked} title="Seleziona tutti gli esploratori visibili">
+        <span class="font-bold text-xs sm:text-sm truncate">Esploratore</span>
       </div>
-      <div class="flex items-center gap-1.5">
-        <label for="scoutSortSelect" class="text-[11px] text-green-200 font-medium whitespace-nowrap">Ordina:</label>
-        <select id="scoutSortSelect" class="w-full text-xs bg-green-950/80 hover:bg-green-950 text-white font-medium border border-green-500/50 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-white cursor-pointer shadow-sm transition-colors" title="Ordina la colonna Esploratore">
+      <div class="flex items-center gap-1">
+        <select id="scoutSortSelect" class="w-full text-[10px] sm:text-xs bg-green-950/80 hover:bg-green-950 text-white font-medium border border-green-500/50 rounded px-1 sm:px-2 py-0.5 sm:py-1 focus:outline-none focus:ring-1 focus:ring-white cursor-pointer shadow-sm transition-colors" title="Ordina la colonna Esploratore">
           <option value="nome_asc" ${currentSortVal === 'nome_asc' ? 'selected' : ''}>Nome (A → Z)</option>
           <option value="nome_desc" ${currentSortVal === 'nome_desc' ? 'selected' : ''}>Nome (Z → A)</option>
           <option value="cognome_asc" ${currentSortVal === 'cognome_asc' ? 'selected' : ''}>Cognome (A → Z)</option>
@@ -794,16 +793,28 @@ UI.renderPresenceTable = function () {
     const perc = totalActsConsidered ? Math.round((presentCount / totalActsConsidered) * 100) : 0;
     const isSelected = this.batchSelection?.selectedScoutIds?.has(s.id) || false;
     const checkedAttr = isSelected ? 'checked' : '';
-    const patrolBadge = s.pv_pattuglia ? `<span class="text-[10px] uppercase font-bold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded ml-1.5">${s.pv_pattuglia}</span>` : '';
+    const patrolBadge = s.pv_pattuglia ? `<span class="text-[9px] sm:text-[10px] uppercase font-bold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded ml-1 shrink-0">${s.pv_pattuglia}</span>` : '';
+    const scoutNomeCompleto = `${s.nome || ''} ${s.cognome || ''}`.trim();
 
     let row = `<tr data-scout-id="${s.id}" class="${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}">
-      <td class=\"p-4 border-r-2 border-gray-200 bg-gray-50 dark:bg-gray-800 font-semibold text-left sticky left-0\">
-        <div class="flex items-center gap-2">
-          <input type="checkbox" class="batch-checkbox w-4 h-4 cursor-pointer" data-scout-id="${s.id}" ${checkedAttr} title="Seleziona esploratore">
-          <span>${s.nome} ${s.cognome}</span>
-          ${patrolBadge}
+      <td class="p-1.5 sm:p-2.5 border-r-2 border-gray-200 bg-gray-50 dark:bg-gray-800 text-left sticky left-0 w-[125px] sm:w-[190px] min-w-[120px] sm:min-w-[180px] max-w-[135px] sm:max-w-none select-none">
+        <div class="flex items-start gap-1 sm:gap-2">
+          <input type="checkbox" class="batch-checkbox mt-0.5 w-3.5 h-3.5 sm:w-4 sm:h-4 cursor-pointer rounded shrink-0" data-scout-id="${s.id}" ${checkedAttr} title="Seleziona esploratore">
+          <div class="flex flex-col min-w-0 flex-1 leading-tight">
+            <div class="flex items-center gap-1 flex-wrap">
+              <span class="font-bold text-xs sm:text-sm text-gray-900 dark:text-gray-100 truncate" title="${scoutNomeCompleto}">${scoutNomeCompleto}</span>
+              ${patrolBadge}
+            </div>
+            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <a href="scout2.html?id=${encodeURIComponent(s.id)}" class="inline-flex items-center gap-0.5 text-green-700 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 font-medium hover:underline text-[10px] sm:text-xs" title="Apri scheda di ${scoutNomeCompleto}">
+                <span>📄</span>
+                <span>Scheda</span>
+              </a>
+              <span class="text-[10px] text-gray-300 dark:text-gray-600 hidden sm:inline">·</span>
+              <div class="text-[10px] sm:text-xs font-normal text-gray-500 dark:text-gray-400 truncate" data-scout-stats="${s.id}">${presentCount} / ${totalActsConsidered} (${perc}%)</div>
+            </div>
+          </div>
         </div>
-        <div class=\"text-xs font-normal text-gray-500 dark:text-gray-400 ml-6\" data-scout-stats=\"${s.id}\">${presentCount} / ${totalActsConsidered} (${perc}%)</div>
       </td>`;
 
     displayedActs.forEach(a => {
@@ -854,30 +865,42 @@ UI.renderPresenceTable = function () {
   // Setup barra azioni batch
   this.setupBatchOperations();
 
-  // Setup pulsanti di navigazione colonne dopo che la tabella è stata renderizzata
+  // Setup sincronizzazione scrollbar e posizionamento automatico alla prossima attività
+  this.setupTableScrollbar();
+  requestAnimationFrame(() => {
+    if (this._scrollToNextActivity) {
+      this._scrollToNextActivity(false);
+    }
+  });
   setTimeout(() => {
-    this.setupColumnNavigation();
-    // Scroll automatico alla prossima attività dopo il setup
-    setTimeout(() => {
-      if (this._scrollToNextActivity) {
-        this._scrollToNextActivity();
-      }
-    }, 50);
+    if (this._scrollToNextActivity) {
+      this._scrollToNextActivity(false);
+    }
   }, 100);
+  setTimeout(() => {
+    if (this._scrollToNextActivity) {
+      this._scrollToNextActivity(false);
+    }
+  }, 350);
 };
 
-// Setup sincronizzazione barra di scorrimento orizzontale
+// Setup sincronizzazione barra di scorrimento orizzontale e posizionamento automatico
 UI.setupTableScrollbar = function () {
   const tableContainer = this.qs('#presenceTableContainer');
   const topContainer = this.qs('#presenceTopScrollContainer');
   const topContent = this.qs('#presenceTopScrollContent');
 
   if (!tableContainer) return;
-
   const table = tableContainer.querySelector('.presence-table');
-  if (topContainer && topContent && table) {
-    topContent.style.width = `${table.scrollWidth}px`;
-  }
+
+  // Aggiorna larghezza del contenuto di scorrimento superiore
+  const updateScrollWidth = () => {
+    const tbl = tableContainer.querySelector('.presence-table');
+    if (topContainer && topContent && tbl) {
+      topContent.style.width = `${tbl.scrollWidth}px`;
+    }
+  };
+  updateScrollWidth();
 
   // Helper per aggiornare ombre laterali di scroll
   const updateScrollShadows = () => {
@@ -895,36 +918,85 @@ UI.setupTableScrollbar = function () {
     }
   };
 
+  // Helper per larghezza colonna sticky
+  const getStickyWidth = () => {
+    const stickyTh = tableContainer.querySelector('th.sticky.left-0');
+    return stickyTh ? stickyTh.getBoundingClientRect().width : 0;
+  };
+
+  // Funzione per scrollare alla prossima attività (o ultima attività se tutte passate)
+  const scrollToNextActivity = (smooth = false) => {
+    const tbl = tableContainer.querySelector('.presence-table');
+    if (!tbl) return;
+
+    updateScrollWidth();
+    const stickyWidth = getStickyWidth();
+
+    // Trova colonna prossima attività (.next-col)
+    const nextCol = tbl.querySelector('thead th.next-col, tbody td.next-col');
+    let targetScroll = 0;
+    const tableRect = tableContainer.getBoundingClientRect();
+
+    if (nextCol) {
+      const nextRect = nextCol.getBoundingClientRect();
+      targetScroll = Math.max(0, Math.round(nextRect.left - tableRect.left + tableContainer.scrollLeft - stickyWidth));
+    } else {
+      const headers = tbl.querySelectorAll('thead th:not(.sticky)');
+      if (headers.length > 0) {
+        const lastHeader = headers[headers.length - 1];
+        const lastRect = lastHeader.getBoundingClientRect();
+        targetScroll = Math.max(0, Math.round(lastRect.left - tableRect.left + tableContainer.scrollLeft - stickyWidth));
+      }
+    }
+
+    // Blocca loop di sincronizzazione durante scroll automatico
+    tableContainer._activeScrollSource = 'programmatic';
+    if (smooth) {
+      tableContainer.scrollTo({ left: targetScroll, behavior: 'smooth' });
+    } else {
+      tableContainer.scrollLeft = targetScroll;
+    }
+    if (topContainer) {
+      topContainer.scrollLeft = targetScroll;
+    }
+    updateScrollShadows();
+    clearTimeout(tableContainer._programmaticScrollTimer);
+    tableContainer._programmaticScrollTimer = setTimeout(() => {
+      tableContainer._activeScrollSource = null;
+    }, smooth ? 400 : 80);
+  };
+
+  this._scrollToNextActivity = scrollToNextActivity;
+
   if (topContainer && !topContainer._scrollBound) {
     topContainer._scrollBound = true;
-    let isSyncingTop = false;
-    let isSyncingTable = false;
 
     topContainer.addEventListener('scroll', () => {
-      if (isSyncingTop) return;
-      isSyncingTable = true;
+      if (tableContainer._activeScrollSource === 'table' || tableContainer._activeScrollSource === 'programmatic') return;
+      tableContainer._activeScrollSource = 'top';
       tableContainer.scrollLeft = topContainer.scrollLeft;
       updateScrollShadows();
-      requestAnimationFrame(() => {
-        isSyncingTable = false;
-      });
+      clearTimeout(tableContainer._scrollTimer);
+      tableContainer._scrollTimer = setTimeout(() => {
+        tableContainer._activeScrollSource = null;
+      }, 50);
     });
 
     tableContainer.addEventListener('scroll', () => {
-      if (isSyncingTable) return;
-      isSyncingTop = true;
-      topContainer.scrollLeft = tableContainer.scrollLeft;
+      if (tableContainer._activeScrollSource === 'top' || tableContainer._activeScrollSource === 'programmatic') return;
+      tableContainer._activeScrollSource = 'table';
+      if (topContainer) topContainer.scrollLeft = tableContainer.scrollLeft;
       updateScrollShadows();
-      requestAnimationFrame(() => {
-        isSyncingTop = false;
-      });
+      clearTimeout(tableContainer._scrollTimer);
+      tableContainer._scrollTimer = setTimeout(() => {
+        tableContainer._activeScrollSource = null;
+      }, 50);
     });
 
     if (window.ResizeObserver) {
       const ro = new ResizeObserver(() => {
-        const tbl = tableContainer.querySelector('.presence-table');
-        if (tbl && topContent) {
-          topContent.style.width = `${tbl.scrollWidth}px`;
+        updateScrollWidth();
+        if (topContainer && tableContainer._activeScrollSource !== 'programmatic') {
           topContainer.scrollLeft = tableContainer.scrollLeft;
         }
         updateScrollShadows();
@@ -933,44 +1005,12 @@ UI.setupTableScrollbar = function () {
       ro.observe(tableContainer);
     }
   } else if (topContainer && topContent && table) {
-    topContent.style.width = `${table.scrollWidth}px`;
-    topContainer.scrollLeft = tableContainer.scrollLeft;
+    if (tableContainer._activeScrollSource !== 'programmatic') {
+      topContainer.scrollLeft = tableContainer.scrollLeft;
+    }
   }
 
   updateScrollShadows();
-
-  // Helper per larghezza colonna sticky
-  const getStickyWidth = () => {
-    const stickyTh = tableContainer.querySelector('th.sticky.left-0');
-    return stickyTh ? stickyTh.offsetWidth : 0;
-  };
-
-  // Funzione per scrollare alla prossima attività (riutilizzabile)
-  const scrollToNextActivity = () => {
-    const tbl = tableContainer.querySelector('.presence-table');
-    if (!tbl) return;
-
-    const stickyWidth = getStickyWidth();
-
-    // Trova la colonna con classe "next-col" (prossima attività)
-    const nextCol = tbl.querySelector('thead th.next-col, tbody td.next-col');
-    if (nextCol) {
-      // Offset per non farla finire sotto la sticky
-      const targetScroll = Math.max(0, nextCol.offsetLeft - stickyWidth);
-      tableContainer.scrollTo({ left: targetScroll, behavior: 'smooth' });
-    } else {
-      // Se non trova la classe next-col, cerca l'ultima colonna
-      const headers = tbl.querySelectorAll('thead th:not(.sticky)');
-      if (headers.length > 0) {
-        const lastHeader = headers[headers.length - 1];
-        const targetScroll = Math.max(0, lastHeader.offsetLeft - stickyWidth);
-        tableContainer.scrollTo({ left: targetScroll, behavior: 'smooth' });
-      }
-    }
-  };
-
-  // Espone la funzione per uso esterno
-  this._scrollToNextActivity = scrollToNextActivity;
 };
 
 UI.setupColumnNavigation = function () {

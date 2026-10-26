@@ -743,6 +743,16 @@ header a {
   background: var(--card-bg);
 }
 
+@media (max-width: 640px) {
+  .presence-table th.sticky.left-0,
+  .presence-table td.sticky.left-0 {
+    min-width: 120px !important;
+    max-width: 135px !important;
+    width: 125px !important;
+    padding: 0.35rem 0.4rem !important;
+  }
+}
+
 [data-theme="dark"] .presence-table th.sticky.left-0,
 [data-theme="dark"] .presence-table td.sticky.left-0 {
   background: var(--card-bg) !important;

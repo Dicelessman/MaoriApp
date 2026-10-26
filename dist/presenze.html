@@ -22,11 +22,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/presenze-DfnLdg5u.js"></script>
+  <script type="module" crossorigin src="/assets/presenze-X432EUC3.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/date-picker-3zVDvute.js">
   <link rel="modulepreload" crossorigin href="/assets/cngei-service-DZdKacRO.js">
   <link rel="modulepreload" crossorigin href="/assets/cngei-meeting-sync-7wknh0Nm.js">
-  <link rel="stylesheet" crossorigin href="/assets/presenze-CacbQfej.css">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-CcfVWhjg.css">
 </head>
 
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -208,18 +208,17 @@
           <table class="presence-table bg-white">
             <thead>
               <tr id="tableHeaderDates">
-                <th id="thScoutName" rowspan="2" class="select-none sticky left-0 !bg-green-800 !text-white !p-3 !border-r !border-white/50 text-left z-20 min-w-[220px]" title="Colonna Esploratore">
-                  <div class="flex flex-col gap-1.5">
-                    <div class="flex items-center gap-2">
-                      <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 cursor-pointer rounded" title="Seleziona tutti gli esploratori visibili">
-                      <span class="font-bold text-sm">Esploratore</span>
+                <th id="thScoutName" rowspan="2" class="select-none sticky left-0 !bg-green-800 !text-white !p-2 sm:!p-3 !border-r !border-white/50 text-left z-20 w-[125px] sm:w-[190px] min-w-[120px] sm:min-w-[180px] max-w-[135px] sm:max-w-none" title="Colonna Esploratore">
+                  <div class="flex flex-col gap-1 sm:gap-1.5">
+                    <div class="flex items-center gap-1.5 sm:gap-2">
+                      <input type="checkbox" id="selectAllCheckbox" class="w-3.5 h-3.5 sm:w-4 sm:h-4 cursor-pointer rounded shrink-0" title="Seleziona tutti gli esploratori visibili">
+                      <span class="font-bold text-xs sm:text-sm truncate">Esploratore</span>
                     </div>
-                    <div class="flex items-center gap-1.5">
-                      <label for="scoutSortSelect" class="text-[11px] text-green-200 font-medium whitespace-nowrap">Ordina:</label>
-                      <select id="scoutSortSelect" class="w-full text-xs bg-green-950/80 hover:bg-green-950 text-white font-medium border border-green-500/50 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-white cursor-pointer shadow-sm transition-colors" title="Ordina la colonna Esploratore">
-                        <option value="nome_asc">Nome (A → Z)</option>
+                    <div class="flex items-center gap-1">
+                      <select id="scoutSortSelect" class="w-full text-[10px] sm:text-xs bg-green-950/80 hover:bg-green-950 text-white font-medium border border-green-500/50 rounded px-1 sm:px-2 py-0.5 sm:py-1 focus:outline-none focus:ring-1 focus:ring-white cursor-pointer shadow-sm transition-colors" title="Ordina la colonna Esploratore">
+                        <option value="nome_asc" selected>Nome (A → Z)</option>
                         <option value="nome_desc">Nome (Z → A)</option>
-                        <option value="cognome_asc" selected>Cognome (A → Z)</option>
+                        <option value="cognome_asc">Cognome (A → Z)</option>
                         <option value="cognome_desc">Cognome (Z → A)</option>
                         <option value="stato_asc">Presenza (P → A → NR)</option>
                         <option value="stato_desc">Presenza (NR → A → P)</option>
