@@ -180,8 +180,34 @@ UI.renderScoutPage = async function () {
     setVal('#san_disabilita_note', s.san_disabilita_note);
 
     setVal('#pv_promessa', this.toYyyyMmDd(s.pv_promessa));
-    const vcp = this.qs(`input[name="pv_vcp_cp"][value="${s.pv_vcp_cp}"]`);
-    if (vcp) vcp.checked = true;
+    const vcpVal = s.pv_vcp_cp || '';
+    const vcp = this.qs(`input[name="pv_vcp_cp"][value="${vcpVal}"]`);
+    if (vcp) {
+      vcp.checked = true;
+    } else {
+      const noneRadio = this.qs('input[name="pv_vcp_cp"][value=""]');
+      if (noneRadio) noneRadio.checked = true;
+    }
+
+    // Permetti deselezione rapida cliccando nuovamente sul radio attivo
+    const vcpRadios = document.querySelectorAll('input[name="pv_vcp_cp"]');
+    vcpRadios.forEach(radio => {
+      if (!radio._deselectBound) {
+        radio._deselectBound = true;
+        let wasChecked = false;
+        radio.addEventListener('mousedown', () => {
+          wasChecked = radio.checked;
+        });
+        radio.addEventListener('click', () => {
+          if (wasChecked && radio.value !== '') {
+            radio.checked = false;
+            const noneRadio = this.qs('input[name="pv_vcp_cp"][value=""]');
+            if (noneRadio) noneRadio.checked = true;
+          }
+        });
+      }
+    });
+
     setVal('#pv_giglio_data', this.toYyyyMmDd(s.pv_giglio_data));
     setVal('#pv_giglio_note', s.pv_giglio_note);
     setVal('#pv_pattuglia', s.pv_pattuglia);

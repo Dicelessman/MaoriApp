@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="/assets/icon-192-BnNgNRfN.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/scout2-DaIASjAf.js"></script>
+  <script type="module" crossorigin src="/assets/scout2-Be6eA7HK.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/date-picker-3zVDvute.js">
   <link rel="modulepreload" crossorigin href="/assets/shared-CirsxLkL.js">
   <link rel="modulepreload" crossorigin href="/assets/cngei-service-DZdKacRO.js">
@@ -361,10 +361,17 @@
               <input id="pv_promessa" type="date" class="input" />
             </div>
             <div>
-              <label class="block text-sm">VCP/CP</label>
-              <div class="flex gap-4">
-                <label><input type="radio" name="pv_vcp_cp" value="VCP" /> VCP</label>
-                <label><input type="radio" name="pv_vcp_cp" value="CP" /> CP</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ruolo in Pattuglia (VCP/CP)</label>
+              <div class="flex items-center gap-4 py-2">
+                <label class="inline-flex items-center gap-1.5 cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+                  <input type="radio" name="pv_vcp_cp" value="" class="text-green-600 focus:ring-green-500" /> Nessuno
+                </label>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+                  <input type="radio" name="pv_vcp_cp" value="VCP" class="text-green-600 focus:ring-green-500" /> VCP
+                </label>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+                  <input type="radio" name="pv_vcp_cp" value="CP" class="text-green-600 focus:ring-green-500" /> CP
+                </label>
               </div>
             </div>
             <div class="md:col-span-2">
