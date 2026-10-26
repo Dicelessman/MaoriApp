@@ -22,11 +22,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/presenze-TB1xJjsW.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/date-picker-CTlV5RSQ.js">
+  <script type="module" crossorigin src="/assets/presenze-DfnLdg5u.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-3zVDvute.js">
   <link rel="modulepreload" crossorigin href="/assets/cngei-service-DZdKacRO.js">
   <link rel="modulepreload" crossorigin href="/assets/cngei-meeting-sync-7wknh0Nm.js">
-  <link rel="stylesheet" crossorigin href="/assets/presenze-BvwRKHx7.css">
+  <link rel="stylesheet" crossorigin href="/assets/presenze-CacbQfej.css">
 </head>
 
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -199,17 +199,9 @@
           </div>
         </div>
 
-        <!-- Pulsanti di navigazione colonne 2 -->
-        <div class="flex items-center justify-center gap-2 mb-3 w-full">
-          <button id="scrollPrevBtn"
-            class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg"
-            title="Colonna precedente">‹</button>
-          <button id="scrollNextBtn"
-            class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg"
-            title="Colonna successiva">›</button>
-          <button id="scrollToNextActivityBtn"
-            class="px-4 py-1.5 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors font-semibold text-sm"
-            title="Vai alla prossima attività">Prossima</button>
+        <!-- Barra di scorrimento orizzontale tabella presenze -->
+        <div id="presenceTopScrollContainer" class="presence-top-scrollbar overflow-x-auto overflow-y-hidden w-full mb-2 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-inner" title="Barra di scorrimento orizzontale tabella">
+          <div id="presenceTopScrollContent" style="height: 14px; min-width: 100%;"></div>
         </div>
 
         <div id="presenceTableContainer" class="overflow-x-auto rounded-lg shadow-sm border border-gray-200 w-full">

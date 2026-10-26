@@ -853,6 +853,51 @@ header a {
   opacity: 1;
 }
 
+/* Barra di scorrimento orizzontale superiore per tabella presenze */
+.presence-top-scrollbar {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: #16a34a #e5e7eb;
+}
+
+.presence-top-scrollbar::-webkit-scrollbar {
+  height: 10px;
+}
+
+.presence-top-scrollbar::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 6px;
+}
+
+.presence-top-scrollbar::-webkit-scrollbar-thumb {
+  background: #16a34a;
+  border-radius: 6px;
+  border: 1px solid #f3f4f6;
+}
+
+.presence-top-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #15803d;
+}
+
+[data-theme='dark'] .presence-top-scrollbar {
+  scrollbar-color: #22c55e #1f2937;
+}
+
+[data-theme='dark'] .presence-top-scrollbar::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+[data-theme='dark'] .presence-top-scrollbar::-webkit-scrollbar-thumb {
+  background: #22c55e;
+  border: 1px solid #1f2937;
+}
+
+[data-theme='dark'] .presence-top-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #16a34a;
+}
+
 /* Focus rings */
 button:focus-visible,
 select:focus-visible,

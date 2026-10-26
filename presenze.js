@@ -91,6 +91,77 @@ UI.getDedupedPresences = function () {
   return Array.from(this.presenceIndex?.values() || []);
 };
 
+UI.calculateActivityStats = function (activityId) {
+  const acts = this.state.activities || [];
+  const a = acts.find(act => act.id === activityId);
+  if (!a) return { perc: 0, presentCount: 0, expectedCount: 0 };
+
+  const allPresences = this.getDedupedPresences();
+  const activityPresences = allPresences.filter(p => p.attivitaId === a.id);
+
+  // Check type for stats exclusion
+  const isExcludedType = ['Evento Adulti', 'Riunione Adulti', 'Eventi con esterni'].includes(a.tipo);
+  const expectedCount = isExcludedType ? 0 : activityPresences.filter(p => p.stato !== 'X').length;
+
+  const presentCount = activityPresences.filter(p => p.stato === 'Presente').length;
+  const perc = expectedCount ? Math.round((presentCount / expectedCount) * 100) : 0;
+
+  return { perc, presentCount, expectedCount };
+};
+
+UI.updateActivityStatsInHeader = function (activityId) {
+  const el = this.qs(`[data-stats-activity-id="${activityId}"]`);
+  if (!el) return;
+  const { perc, presentCount, expectedCount } = this.calculateActivityStats(activityId);
+  el.textContent = `${perc}% (${presentCount}/${expectedCount})`;
+};
+
+UI.calculateScoutStats = function (scoutId) {
+  const currentScoutYear = this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026';
+  const activeYear = this.presenceFilters?.scoutYear || currentScoutYear;
+  const allSortedActs = this.getActivitiesSorted();
+  const acts = allSortedActs.filter(a => this.isActivityInScoutYear ? this.isActivityInScoutYear(a, activeYear) : true);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let nextActivityId = null;
+  acts.forEach(a => {
+    const ad = (a.data && a.data.toDate) ? a.data.toDate() : new Date(a.data);
+    const aday = new Date(ad); aday.setHours(0, 0, 0, 0);
+    if (nextActivityId === null && aday >= today) { nextActivityId = a.id; }
+  });
+
+  const pastIds = acts.filter(a => {
+    const ad = (a.data && a.data.toDate) ? a.data.toDate() : new Date(a.data);
+    const aday = new Date(ad); aday.setHours(0, 0, 0, 0);
+    return aday < today;
+  }).map(a => a.id);
+  const consideredIds = nextActivityId ? [...pastIds, nextActivityId] : pastIds;
+
+  const allPresences = this.getDedupedPresences();
+  const validActIds = consideredIds.filter(aid => {
+    const actObject = acts.find(act => act.id === aid);
+    if (!actObject) return false;
+    const isExcludedType = ['Evento Adulti', 'Riunione Adulti', 'Eventi con esterni'].includes(actObject.tipo);
+    if (isExcludedType) return false;
+    const pr = allPresences.find(p => p.esploratoreId === scoutId && p.attivitaId === aid);
+    return pr && (pr.stato === 'Presente' || pr.stato === 'Assente');
+  });
+
+  const totalActsConsidered = validActIds.length;
+  const presentCount = allPresences.filter(p => p.esploratoreId === scoutId && p.stato === 'Presente' && validActIds.includes(p.attivitaId)).length;
+  const perc = totalActsConsidered ? Math.round((presentCount / totalActsConsidered) * 100) : 0;
+
+  return { presentCount, totalActsConsidered, perc };
+};
+
+UI.updateScoutStatsInRow = function (scoutId) {
+  const el = this.qs(`[data-scout-stats="${scoutId}"]`);
+  if (!el) return;
+  const { presentCount, totalActsConsidered, perc } = this.calculateScoutStats(scoutId);
+  el.textContent = `${presentCount} / ${totalActsConsidered} (${perc}%)`;
+};
+
 UI.formatDisplayDate = function (value) {
   const d = value && value.toDate ? value.toDate() : new Date(value);
   if (isNaN(d)) return '';
@@ -625,7 +696,7 @@ UI.renderPresenceTable = function () {
         </button>
       </div>
     </th>`);
-    thNames.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${finalHeaderClass} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${a.tipo}</a><div class="text-xs font-normal text-white/90">${perc}% (${presentCount}/${expectedCount})</div></th>`);
+    thNames.insertAdjacentHTML('beforeend', `<th class="p-2 border-b-2 border-gray-200 ${finalHeaderClass} text-white font-semibold sticky top-0 border-r border-white/40"><a href="#" data-activity-id="${a.id}" class="activity-header-link text-white hover:underline cursor-pointer" title="Apri dettaglio attività">${a.tipo}</a><div data-stats-activity-id="${a.id}" class="text-xs font-normal text-white/90">${perc}% (${presentCount}/${expectedCount})</div></th>`);
   });
 
   // Event listeners per i link delle intestazioni
@@ -732,7 +803,7 @@ UI.renderPresenceTable = function () {
           <span>${s.nome} ${s.cognome}</span>
           ${patrolBadge}
         </div>
-        <div class=\"text-xs font-normal text-gray-500 dark:text-gray-400 ml-6\">${presentCount} / ${totalActsConsidered} (${perc}%)</div>
+        <div class=\"text-xs font-normal text-gray-500 dark:text-gray-400 ml-6\" data-scout-stats=\"${s.id}\">${presentCount} / ${totalActsConsidered} (${perc}%)</div>
       </td>`;
 
     displayedActs.forEach(a => {
@@ -745,7 +816,7 @@ UI.renderPresenceTable = function () {
       row += `<td class=\"p-2 border-r border-b border-gray-200${cellClass}\">
         <div class=\"flex flex-col items-center gap-1\">
           <select class=\"presence-select\" data-selected=\"${presence.stato}\" ${disabled}
-            onchange=\"UI.updatePresenceCell({field:'stato', value:this.value, scoutId:'${s.id}', activityId:'${a.id}'})\">
+            onchange=\"UI.updatePresenceCell({field:'stato', value:this.value, scoutId:'${s.id}', activityId:'${a.id}', element:this})\">
             <option value=\"Presente\" ${presence.stato === 'Presente' ? 'selected' : ''}>P</option>
             <option value=\"Assente\" ${presence.stato === 'Assente' ? 'selected' : ''}>A</option>
             <option value=\"NR\" ${presence.stato === 'NR' ? 'selected' : ''}>NR</option>
@@ -754,7 +825,7 @@ UI.renderPresenceTable = function () {
           ${needsPayment ? `
           <div class=\"payment-section\">
             <select class=\"payment-select mt-1\" data-selected=\"${presence.pagato ? (presence.tipoPagamento || 'Pagato') : ''}\" ${disabled}
-              onchange=\"UI.updatePaymentCombined({value:this.value, scoutId:'${s.id}', activityId:'${a.id}'})\">
+              onchange=\"UI.updatePaymentCombined({value:this.value, scoutId:'${s.id}', activityId:'${a.id}', element:this})\">
               <option value=\"\" ${!presence.pagato ? 'selected' : ''}>Non Pagato</option>
               <option value=\"Contanti\" ${(presence.pagato && presence.tipoPagamento === 'Contanti') ? 'selected' : ''}>Contanti</option>
               <option value=\"Satispay\" ${(presence.pagato && presence.tipoPagamento === 'Satispay') ? 'selected' : ''}>Satispay</option>
@@ -795,153 +866,115 @@ UI.renderPresenceTable = function () {
   }, 100);
 };
 
-// Setup pulsanti di navigazione colonne
-UI.setupColumnNavigation = function () {
-  const container = this.qs('#presenceTableContainer');
-  const prevBtn = this.qs('#scrollPrevBtn');
-  const nextBtn = this.qs('#scrollNextBtn');
-  const nextActivityBtn = this.qs('#scrollToNextActivityBtn');
+// Setup sincronizzazione barra di scorrimento orizzontale
+UI.setupTableScrollbar = function () {
+  const tableContainer = this.qs('#presenceTableContainer');
+  const topContainer = this.qs('#presenceTopScrollContainer');
+  const topContent = this.qs('#presenceTopScrollContent');
 
-  if (!container) return;
+  if (!tableContainer) return;
 
-  // Rimuovi listener esistenti se presenti (per evitare duplicati)
-  if (prevBtn && prevBtn._bound) {
-    prevBtn.removeEventListener('click', prevBtn._clickHandler);
-  }
-  if (nextBtn && nextBtn._bound) {
-    nextBtn.removeEventListener('click', nextBtn._clickHandler);
-  }
-  if (nextActivityBtn && nextActivityBtn._bound) {
-    nextActivityBtn.removeEventListener('click', nextActivityBtn._clickHandler);
+  const table = tableContainer.querySelector('.presence-table');
+  if (topContainer && topContent && table) {
+    topContent.style.width = `${table.scrollWidth}px`;
   }
 
-  // Pulsante precedente
-  if (prevBtn) {
-    prevBtn._clickHandler = () => {
-      const table = container.querySelector('.presence-table');
-      if (!table) return;
+  // Helper per aggiornare ombre laterali di scroll
+  const updateScrollShadows = () => {
+    const scrollLeft = tableContainer.scrollLeft;
+    const maxScroll = tableContainer.scrollWidth - tableContainer.clientWidth;
+    if (scrollLeft > 10) {
+      tableContainer.classList.add('scroll-shadow-left');
+    } else {
+      tableContainer.classList.remove('scroll-shadow-left');
+    }
+    if (scrollLeft < maxScroll - 10) {
+      tableContainer.classList.add('scroll-shadow-right');
+    } else {
+      tableContainer.classList.remove('scroll-shadow-right');
+    }
+  };
 
-      // Trova tutte le colonne (th) tranne la prima (sticky)
-      const headers = table.querySelectorAll('thead th:not(.sticky)');
-      if (headers.length === 0) return;
+  if (topContainer && !topContainer._scrollBound) {
+    topContainer._scrollBound = true;
+    let isSyncingTop = false;
+    let isSyncingTable = false;
 
-      // Calcola la posizione attuale dello scroll
-      const currentScroll = container.scrollLeft;
-      const containerWidth = container.clientWidth;
-
-      // Trova la colonna più vicina a sinistra rispetto alla posizione corrente
-      let targetCol = null;
-      let minDistance = Infinity;
-
-      headers.forEach((th, index) => {
-        const colLeft = th.offsetLeft;
-        const colRight = colLeft + th.offsetWidth;
-
-        // Se la colonna è completamente a sinistra della vista corrente
-        if (colRight < currentScroll) {
-          const distance = currentScroll - colRight;
-          if (distance < minDistance) {
-            minDistance = distance;
-            targetCol = th;
-          }
-        }
+    topContainer.addEventListener('scroll', () => {
+      if (isSyncingTop) return;
+      isSyncingTable = true;
+      tableContainer.scrollLeft = topContainer.scrollLeft;
+      updateScrollShadows();
+      requestAnimationFrame(() => {
+        isSyncingTable = false;
       });
+    });
 
-      if (targetCol) {
-        // Scrolla per mostrare la colonna precedente
-        const targetScroll = Math.max(0, targetCol.offsetLeft - 20);
-        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
-      } else {
-        // Se non c'è una colonna precedente, vai all'inizio
-        container.scrollTo({ left: 0, behavior: 'smooth' });
-      }
-    };
-    prevBtn.addEventListener('click', prevBtn._clickHandler);
-    prevBtn._bound = true;
+    tableContainer.addEventListener('scroll', () => {
+      if (isSyncingTable) return;
+      isSyncingTop = true;
+      topContainer.scrollLeft = tableContainer.scrollLeft;
+      updateScrollShadows();
+      requestAnimationFrame(() => {
+        isSyncingTop = false;
+      });
+    });
+
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => {
+        const tbl = tableContainer.querySelector('.presence-table');
+        if (tbl && topContent) {
+          topContent.style.width = `${tbl.scrollWidth}px`;
+          topContainer.scrollLeft = tableContainer.scrollLeft;
+        }
+        updateScrollShadows();
+      });
+      if (table) ro.observe(table);
+      ro.observe(tableContainer);
+    }
+  } else if (topContainer && topContent && table) {
+    topContent.style.width = `${table.scrollWidth}px`;
+    topContainer.scrollLeft = tableContainer.scrollLeft;
   }
+
+  updateScrollShadows();
 
   // Helper per larghezza colonna sticky
   const getStickyWidth = () => {
-    const stickyTh = container.querySelector('th.sticky.left-0');
+    const stickyTh = tableContainer.querySelector('th.sticky.left-0');
     return stickyTh ? stickyTh.offsetWidth : 0;
   };
 
-  // Pulsante successivo
-  if (nextBtn) {
-    nextBtn._clickHandler = () => {
-      const table = container.querySelector('.presence-table');
-      if (!table) return;
-
-      const headers = table.querySelectorAll('thead th:not(.sticky)');
-      if (headers.length === 0) return;
-
-      const currentScroll = container.scrollLeft;
-      const containerWidth = container.clientWidth;
-      // Il punto "visibile" a destra deve considerare che a sinistra c'è la colonna sticky che copre
-      // In realtà scrollLeft sposta tutto sotto la sticky. Quindi quello che vediamo inizia da scrollLeft + stickyWidth
-      // Ma quando clicchiamo "next", vogliamo scrollare in avanti.
-
-      const stickyWidth = getStickyWidth();
-      const visibleRight = currentScroll + containerWidth;
-
-      // Trova la prima colonna che è parzialmente o completamente a destra della vista corrente
-      let targetCol = null;
-
-      headers.forEach((th) => {
-        const colLeft = th.offsetLeft;
-        // Consideriamo una colonna "a destra" se il suo inizio è oltre l'area visibile attuale
-        if (colLeft > visibleRight - 50) {
-          if (!targetCol || colLeft < targetCol.offsetLeft) {
-            targetCol = th;
-          }
-        }
-      });
-
-      if (targetCol) {
-        // Scrolla in modo che targetCol sia subito dopo la sticky
-        const targetScroll = Math.max(0, targetCol.offsetLeft - stickyWidth);
-        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
-      } else {
-        container.scrollTo({ left: table.scrollWidth, behavior: 'smooth' });
-      }
-    };
-    nextBtn.addEventListener('click', nextBtn._clickHandler);
-    nextBtn._bound = true;
-  }
-
   // Funzione per scrollare alla prossima attività (riutilizzabile)
   const scrollToNextActivity = () => {
-    const table = container.querySelector('.presence-table');
-    if (!table) return;
+    const tbl = tableContainer.querySelector('.presence-table');
+    if (!tbl) return;
 
     const stickyWidth = getStickyWidth();
 
     // Trova la colonna con classe "next-col" (prossima attività)
-    const nextCol = table.querySelector('thead th.next-col, tbody td.next-col');
+    const nextCol = tbl.querySelector('thead th.next-col, tbody td.next-col');
     if (nextCol) {
       // Offset per non farla finire sotto la sticky
       const targetScroll = Math.max(0, nextCol.offsetLeft - stickyWidth);
-      container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      tableContainer.scrollTo({ left: targetScroll, behavior: 'smooth' });
     } else {
       // Se non trova la classe next-col, cerca l'ultima colonna
-      const headers = table.querySelectorAll('thead th:not(.sticky)');
+      const headers = tbl.querySelectorAll('thead th:not(.sticky)');
       if (headers.length > 0) {
         const lastHeader = headers[headers.length - 1];
         const targetScroll = Math.max(0, lastHeader.offsetLeft - stickyWidth);
-        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+        tableContainer.scrollTo({ left: targetScroll, behavior: 'smooth' });
       }
     }
   };
 
-  // Pulsante "Prossima" - va alla colonna della prossima attività
-  if (nextActivityBtn) {
-    nextActivityBtn._clickHandler = scrollToNextActivity;
-    nextActivityBtn.addEventListener('click', nextActivityBtn._clickHandler);
-    nextActivityBtn._bound = true;
-  }
-
   // Espone la funzione per uso esterno
   this._scrollToNextActivity = scrollToNextActivity;
+};
+
+UI.setupColumnNavigation = function () {
+  this.setupTableScrollbar();
 };
 
 UI.showActivityDetailModal = function (activityId) {
@@ -1086,52 +1119,99 @@ UI.showActivityDetailModal = function (activityId) {
 /**
  * Aggiorna una singola cella presenza (stato)
  */
-UI.updatePresenceCell = async function ({ field, value, scoutId, activityId }) {
+UI.updatePresenceCell = async function ({ field, value, scoutId, activityId, element }) {
   if (!this.currentUser) {
     this.showToast('Devi essere loggato.', { type: 'error' });
     return;
   }
 
-  try {
-    // Aggiorna DB
-    await DATA.updatePresence({ field, value, scoutId, activityId }, this.currentUser);
+  // 1. Memorizza valore precedente per eventuale rollback
+  const key = `${scoutId}_${activityId}`;
+  let p = this.presenceIndex.get(key);
+  const previousValue = p ? p[field] : (field === 'stato' ? 'NR' : false);
 
-    // Aggiorna stato locale (ricaricando o ottimisticamente)
-    // Aggiorniamo l'indice locale manualmente per calcoli rapidi
-    const key = `${scoutId}_${activityId}`;
-    let p = this.presenceIndex.get(key);
-    if (!p) {
-      // Se è nuovo record fittizio
-      p = {
-        id: key,
-        esploratoreId: scoutId,
-        attivitaId: activityId,
-        stato: 'NR',
-        pagato: false,
-        tipoPagamento: null
-      };
+  // 2. Aggiornamento ottimistico dell'indice locale
+  if (!p) {
+    p = {
+      id: key,
+      esploratoreId: scoutId,
+      attivitaId: activityId,
+      stato: 'NR',
+      pagato: false,
+      tipoPagamento: null
+    };
+  }
+  p[field] = value;
+  this.presenceIndex.set(key, p);
+
+  // Mantieni sincronizzato this.state.presences
+  if (Array.isArray(this.state?.presences)) {
+    const existingIdx = this.state.presences.findIndex(
+      item => item.esploratoreId === scoutId && item.attivitaId === activityId
+    );
+    if (existingIdx >= 0) {
+      this.state.presences[existingIdx][field] = value;
+    } else {
+      this.state.presences.push({ ...p });
     }
-    p[field] = value;
-    this.presenceIndex.set(key, p);
+  }
 
-    // Se vogliamo essere sicuri di avere i dati freschi (incluso ID generato se era nuovo doc)
-    // una reload in background è utile, ma non bloccante.
-    // DATA.loadAll().then(s => { this.state = s; this.rebuildPresenceIndex(); });
+  // 3. Aggiornamento immediato del DOM
+  // Aggiorna data-selected per visualizzazione del colore P/A/NR/X
+  const selectEl = element || this.qs(`select.presence-select[onchange*="${scoutId}"][onchange*="${activityId}"]`);
+  if (selectEl) {
+    selectEl.setAttribute('data-selected', value);
+  }
 
+  // Aggiorna conteggio e percentuali nella prima riga (header colonna attività) e riga esploratore
+  if (field === 'stato') {
+    this.updateActivityStatsInHeader(activityId);
+    this.updateScoutStatsInRow(scoutId);
+  }
+
+  // 4. Salvataggio asincrono su DB con eventuale rollback
+  try {
+    await DATA.updatePresence({ field, value, scoutId, activityId }, this.currentUser);
   } catch (error) {
     console.error('Errore updatePresenceCell:', error);
-    this.showToast('Errore salvataggio', { type: 'error' });
+    this.showToast('Errore salvataggio presenza', { type: 'error' });
+
+    // Rollback
+    p[field] = previousValue;
+    this.presenceIndex.set(key, p);
+    if (Array.isArray(this.state?.presences)) {
+      const existingIdx = this.state.presences.findIndex(
+        item => item.esploratoreId === scoutId && item.attivitaId === activityId
+      );
+      if (existingIdx >= 0) {
+        this.state.presences[existingIdx][field] = previousValue;
+      }
+    }
+    if (selectEl) {
+      selectEl.value = previousValue;
+      selectEl.setAttribute('data-selected', previousValue);
+    }
+    if (field === 'stato') {
+      this.updateActivityStatsInHeader(activityId);
+      this.updateScoutStatsInRow(scoutId);
+    }
   }
 };
 
 /**
  * Aggiorna pagamento (combinato pagato + tipo)
  */
-UI.updatePaymentCombined = async function ({ value, scoutId, activityId }) {
+UI.updatePaymentCombined = async function ({ value, scoutId, activityId, element }) {
   if (!this.currentUser) return;
 
   const pagato = !!value; // se value non è vuoto, è pagato
   const tipoPagamento = value || null;
+
+  // Aggiorna data-selected subito per il colore
+  const selectEl = element || this.qs(`select.payment-select[onchange*="${scoutId}"][onchange*="${activityId}"]`);
+  if (selectEl) {
+    selectEl.setAttribute('data-selected', tipoPagamento || '');
+  }
 
   try {
     await DATA.updatePresence({ field: 'pagato', value: pagato, scoutId, activityId }, this.currentUser);
@@ -1146,6 +1226,15 @@ UI.updatePaymentCombined = async function ({ value, scoutId, activityId }) {
       p.pagato = pagato;
       p.tipoPagamento = tipoPagamento;
       this.presenceIndex.set(key, p);
+    }
+    if (Array.isArray(this.state?.presences)) {
+      const existingIdx = this.state.presences.findIndex(
+        item => item.esploratoreId === scoutId && item.attivitaId === activityId
+      );
+      if (existingIdx >= 0) {
+        this.state.presences[existingIdx].pagato = pagato;
+        this.state.presences[existingIdx].tipoPagamento = tipoPagamento;
+      }
     }
 
   } catch (error) {
