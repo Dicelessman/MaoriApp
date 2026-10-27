@@ -509,6 +509,9 @@ UI.populateCategoryFilter = function () {
 UI.renderScorte = function () {
   const allItems = this._scorteState.items || [];
   const activeList = this._scorteState.activeList;
+  const lists = this._scorteState.lists || [];
+  const allKnownLists = Array.from(new Set([...lists, ...allItems.map(i => (i.lista || 'Generale').trim())])).filter(Boolean);
+  if (!allKnownLists.includes('Generale')) allKnownLists.push('Generale');
 
   // Filtra per lista attiva
   const listItems = activeList === 'all'
@@ -776,74 +779,141 @@ UI.renderScorte = function () {
     return `
       <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${rowBg}" data-id="${escapeHtml(item.id)}">
         <!-- Nome & Note -->
-        <td class="p-3">
-          <div class="flex items-center gap-3">
+        <td class="p-2.5 min-w-[200px]">
+          <div class="flex items-center gap-2.5">
             ${badgeImgHtml}
-            <div class="min-w-0">
-              <div class="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                <span>${escapeHtml(item.nome)}</span>
+            <div class="min-w-0 flex-1">
+              <span class="sr-only">${escapeHtml(item.nome)}</span>
+              <input type="text"
+                     class="inline-edit inline-nome font-bold text-gray-900 dark:text-white bg-transparent hover:bg-white dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-700 border border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-green-500 rounded px-1.5 py-0.5 w-full text-sm focus:outline-none transition-colors"
+                     value="${escapeHtml(item.nome)}"
+                     data-id="${escapeHtml(item.id)}"
+                     data-field="nome"
+                     title="Nome articolo (modifica al volo)" />
+              <div class="flex items-center gap-1 mt-0.5">
+                <span class="text-[11px] text-gray-400">📝</span>
+                <input type="text"
+                       placeholder="Note / ubicazione..."
+                       class="inline-edit inline-note text-xs text-gray-500 dark:text-gray-400 placeholder-gray-400 bg-transparent hover:bg-white dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-700 border border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-green-500 rounded px-1.5 py-0.5 w-full focus:outline-none transition-colors"
+                       value="${escapeHtml(item.note || '')}"
+                       data-id="${escapeHtml(item.id)}"
+                       data-field="note"
+                       title="${escapeHtml(item.note || 'Aggiungi note o ubicazione')}" />
               </div>
-              ${item.note ? `<div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs mt-0.5" title="${escapeHtml(item.note)}">📝 ${escapeHtml(item.note)}</div>` : ''}
             </div>
           </div>
         </td>
 
         <!-- Lista -->
-        <td class="p-3 whitespace-nowrap">
-          <span class="inline-block px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-            📑 ${escapeHtml(itemLista)}
-          </span>
+        <td class="p-2.5 whitespace-nowrap">
+          <span class="sr-only">${escapeHtml(itemLista)}</span>
+          <select class="inline-edit inline-lista text-xs font-semibold bg-blue-50 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border border-blue-200 dark:border-blue-700 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors"
+                  data-id="${escapeHtml(item.id)}"
+                  data-field="lista"
+                  title="Cambia lista di appartenenza">
+            ${allKnownLists.map(l => `<option value="${escapeHtml(l)}" ${l === itemLista ? 'selected' : ''}>📑 ${escapeHtml(l)}</option>`).join('')}
+          </select>
         </td>
 
         <!-- Categoria -->
-        <td class="p-3 whitespace-nowrap">
-          <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-            🏷️ ${escapeHtml(item.categoria || 'Generale')}
-          </span>
+        <td class="p-2.5 whitespace-nowrap">
+          <span class="sr-only">${escapeHtml(item.categoria || 'Generale')}</span>
+          <input type="text"
+                 list="categoriesList"
+                 class="inline-edit inline-categoria text-xs font-medium bg-gray-50 dark:bg-gray-700/60 hover:bg-white dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:border-green-500 text-gray-700 dark:text-gray-200 rounded-lg px-2 py-1 w-28 focus:outline-none transition-colors"
+                 value="${escapeHtml(item.categoria || 'Generale')}"
+                 data-id="${escapeHtml(item.id)}"
+                 data-field="categoria"
+                 title="Categoria (seleziona o digita)" />
         </td>
 
-        <!-- Quantità Attuale con pulsanti rapidi + e - -->
-        <td class="p-3 text-center whitespace-nowrap">
-          <div class="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600">
-            <button type="button" class="btn-qty-minus text-gray-500 hover:text-red-600 font-bold px-1.5 py-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600" data-id="${item.id}" title="Diminuisci scorta">-</button>
-            <span class="font-bold text-sm w-8 text-center text-gray-800 dark:text-gray-200">${q}</span>
-            <button type="button" class="btn-qty-plus text-gray-500 hover:text-green-600 font-bold px-1.5 py-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600" data-id="${item.id}" title="Aumenta scorta">+</button>
-            <span class="text-xs text-gray-400 ml-0.5">${unita}</span>
+        <!-- Quantità Attuale con pulsanti rapidi + e - e unità -->
+        <td class="p-2.5 text-center whitespace-nowrap">
+          <div class="inline-flex items-center gap-1 bg-gray-50 dark:bg-gray-700 px-1.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600">
+            <button type="button" class="btn-qty-minus text-gray-500 hover:text-red-600 font-bold px-1.5 py-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600" data-id="${escapeHtml(item.id)}" title="Diminuisci scorta">-</button>
+            <input type="number"
+                   min="0"
+                   step="any"
+                   class="inline-edit inline-quantita w-14 text-center font-bold text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                   value="${q}"
+                   data-id="${escapeHtml(item.id)}"
+                   data-field="quantita"
+                   title="Quantità attuale in magazzino" />
+            <button type="button" class="btn-qty-plus text-gray-500 hover:text-green-600 font-bold px-1.5 py-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600" data-id="${escapeHtml(item.id)}" title="Aumenta scorta">+</button>
+            <select class="inline-edit inline-unita text-xs text-gray-500 dark:text-gray-400 bg-transparent border-0 cursor-pointer focus:outline-none ml-0.5"
+                    data-id="${escapeHtml(item.id)}"
+                    data-field="unitaMisura"
+                    title="Unità di misura">
+              <option value="pz" ${unita === 'pz' ? 'selected' : ''}>pz</option>
+              <option value="m" ${unita === 'm' ? 'selected' : ''}>m</option>
+              <option value="rotoli" ${unita === 'rotoli' ? 'selected' : ''}>rotoli</option>
+              <option value="confezioni" ${unita === 'confezioni' ? 'selected' : ''}>conf.</option>
+              <option value="kg" ${unita === 'kg' ? 'selected' : ''}>kg</option>
+              <option value="litri" ${unita === 'litri' ? 'selected' : ''}>litri</option>
+              <option value="scatole" ${unita === 'scatole' ? 'selected' : ''}>scatole</option>
+            </select>
           </div>
         </td>
 
         <!-- Scorta Minima -->
-        <td class="p-3 text-center whitespace-nowrap font-medium text-gray-600 dark:text-gray-300">
-          ${min} <span class="text-xs text-gray-400">${unita}</span>
+        <td class="p-2.5 text-center whitespace-nowrap">
+          <div class="inline-flex items-center justify-center gap-1">
+            <input type="number"
+                   min="0"
+                   step="any"
+                   class="inline-edit inline-min w-14 text-center font-semibold text-xs bg-gray-50 dark:bg-gray-700/60 hover:bg-white dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:border-green-500 rounded px-1.5 py-1 text-gray-800 dark:text-gray-200 focus:outline-none transition-colors"
+                   value="${min}"
+                   data-id="${escapeHtml(item.id)}"
+                   data-field="quantitaMinima"
+                   title="Soglia minima per riordino" />
+            <span class="row-unita-label text-xs text-gray-400">${escapeHtml(unita)}</span>
+          </div>
         </td>
 
         <!-- Da Riordinare -->
-        <td class="p-3 text-center whitespace-nowrap">
-          ${statusBadge}
+        <td class="p-2.5 text-center whitespace-nowrap">
+          <div class="row-status-container">${statusBadge}</div>
         </td>
 
         <!-- Prezzo Unitario -->
-        <td class="p-3 text-right whitespace-nowrap font-mono text-gray-700 dark:text-gray-300">
-          € ${price.toFixed(2)}
+        <td class="p-2.5 text-right whitespace-nowrap">
+          <div class="inline-flex items-center justify-end gap-1 font-mono">
+            <span class="text-xs text-gray-400">€</span>
+            <input type="number"
+                   min="0"
+                   step="0.01"
+                   class="inline-edit inline-prezzo w-16 text-right font-mono text-xs bg-gray-50 dark:bg-gray-700/60 hover:bg-white dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:border-green-500 rounded px-1.5 py-1 text-gray-800 dark:text-gray-200 focus:outline-none transition-colors"
+                   value="${price.toFixed(2)}"
+                   data-id="${escapeHtml(item.id)}"
+                   data-field="prezzoUnitario"
+                   title="Prezzo unitario stimato (€)" />
+          </div>
         </td>
 
         <!-- Preventivo Riordino -->
-        <td class="p-3 text-right whitespace-nowrap font-mono font-bold ${isSottoScorta ? 'text-amber-700 dark:text-amber-400' : 'text-gray-400'}">
-          € ${costoRiordino.toFixed(2)}
+        <td class="p-2.5 text-right whitespace-nowrap">
+          <span class="row-costo-badge font-mono font-bold ${isSottoScorta ? 'text-amber-700 dark:text-amber-400' : 'text-gray-400'}">
+            € ${costoRiordino.toFixed(2)}
+          </span>
         </td>
 
         <!-- Data Controllo -->
-        <td class="p-3 text-center whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
-          ${item.dataControllo ? new Date(item.dataControllo).toLocaleDateString('it-IT') : '-'}
+        <td class="p-2.5 text-center whitespace-nowrap text-xs">
+          <input type="date"
+                 class="inline-edit inline-data text-xs text-gray-600 dark:text-gray-300 bg-transparent hover:bg-white dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-700 border border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-green-500 rounded px-1 py-0.5 focus:outline-none cursor-pointer transition-colors"
+                 value="${item.dataControllo || ''}"
+                 data-id="${escapeHtml(item.id)}"
+                 data-field="dataControllo"
+                 title="Data ultimo controllo inventario" />
         </td>
 
         <!-- Azioni -->
-        <td class="p-3 text-center whitespace-nowrap">
+        <td class="p-2.5 text-center whitespace-nowrap">
           <div class="inline-flex items-center gap-1">
-            <button type="button" class="btn-edit-item p-1 text-blue-600 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded transition-colors" data-id="${item.id}" title="Modifica articolo">
+            <button type="button" class="btn-edit-item p-1 text-blue-600 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded transition-colors" data-id="${escapeHtml(item.id)}" title="Modifica completa e foto articolo">
               ✏️
             </button>
-            <button type="button" class="btn-delete-item p-1 text-red-600 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-gray-700 rounded transition-colors" data-id="${item.id}" title="Elimina articolo">
+            <button type="button" class="btn-delete-item p-1 text-red-600 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-gray-700 rounded transition-colors" data-id="${escapeHtml(item.id)}" title="Elimina articolo">
               🗑️
             </button>
           </div>
@@ -860,11 +930,11 @@ UI.renderScorte = function () {
         <td colspan="5" class="p-3 text-right text-gray-600 dark:text-gray-300 uppercase text-xs tracking-wider">
           Totale Preventivo Riordino (${listLabel}):
         </td>
-        <td class="p-3 text-center text-amber-700 dark:text-amber-300 font-extrabold">
+        <td class="p-3 text-center text-amber-700 dark:text-amber-300 font-extrabold" id="scorteFootTotalUnits">
           ${tableTotalDaRiordinare > 0 ? `+${tableTotalDaRiordinare} unità` : '0'}
         </td>
         <td></td>
-        <td class="p-3 text-right font-mono font-extrabold text-green-700 dark:text-green-300 text-base">
+        <td class="p-3 text-right font-mono font-extrabold text-green-700 dark:text-green-300 text-base" id="scorteFootTotalCost">
           € ${tableTotalPreventivo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </td>
         <td colspan="2"></td>
@@ -904,6 +974,31 @@ UI.renderScorte = function () {
       const title = img.getAttribute('data-img-title');
       if (src) this.openImageLightbox(src, title);
     });
+  });
+
+  // Collega inline editing su tutti gli input e select della tabella
+  tbody.querySelectorAll('.inline-edit').forEach(el => {
+    el.addEventListener('change', () => {
+      this.handleInlineEdit(el);
+    });
+
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        el.blur();
+      }
+    });
+
+    if (el.classList.contains('inline-quantita') || el.classList.contains('inline-min') || el.classList.contains('inline-prezzo') || el.classList.contains('inline-unita')) {
+      el.addEventListener('input', () => {
+        const row = el.closest('tr');
+        const id = el.dataset.id;
+        const item = (this._scorteState.items || []).find(i => i.id === id);
+        if (row && item) {
+          this.updateRowCalculations(row, item);
+          this.updateKpiAndTotals();
+        }
+      });
+    }
   });
 };
 
@@ -971,6 +1066,219 @@ UI.compressImageFile = function (file, maxWidth = 400, quality = 0.82) {
   });
 };
 
+UI.updateRowCalculations = function (row, item) {
+  if (!row || !item) return;
+
+  const qInp = row.querySelector('.inline-quantita');
+  const minInp = row.querySelector('.inline-min');
+  const pInp = row.querySelector('.inline-prezzo');
+  const unitaSel = row.querySelector('.inline-unita');
+
+  const q = qInp ? (parseFloat(qInp.value) || 0) : (Number(item.quantita) || 0);
+  const min = minInp ? (parseFloat(minInp.value) || 0) : (Number(item.quantitaMinima) || 0);
+  const price = pInp ? (parseFloat(pInp.value) || 0) : (Number(item.prezzoUnitario) || 0);
+  const unita = unitaSel ? unitaSel.value : (item.unitaMisura || 'pz');
+
+  const diff = Math.max(0, min - q);
+  const cost = diff * price;
+  const isSotto = diff > 0;
+
+  // Aggiorna badge stato
+  const statusContainer = row.querySelector('.row-status-container');
+  if (statusContainer) {
+    statusContainer.innerHTML = isSotto
+      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+           ⚠️ +${diff} <span class="row-unita-label">${escapeHtml(unita)}</span>
+         </span>`
+      : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+           ✓ In scorta
+         </span>`;
+  }
+
+  // Aggiorna costo preventivo
+  const costoBadge = row.querySelector('.row-costo-badge');
+  if (costoBadge) {
+    costoBadge.textContent = `€ ${cost.toFixed(2)}`;
+    costoBadge.className = `row-costo-badge font-mono font-bold ${isSotto ? 'text-amber-700 dark:text-amber-400' : 'text-gray-400'}`;
+  }
+
+  // Aggiorna etichette unità di misura nella riga
+  row.querySelectorAll('.row-unita-label').forEach(el => {
+    el.textContent = unita;
+  });
+
+  // Aggiorna sfondo riga
+  if (isSotto) {
+    row.classList.add('bg-amber-50/30', 'dark:bg-amber-950/10');
+  } else {
+    row.classList.remove('bg-amber-50/30', 'dark:bg-amber-950/10');
+  }
+
+  // Aggiorna badge distintivo se il nome è cambiato e non c'è foto personalizzata
+  const customImg = (item.img || '').trim();
+  if (!customImg) {
+    const badgeInfo = resolveDistintivoBadge(item.nome, item.lista, item.categoria);
+    const imgThumb = row.querySelector('.scorte-thumbnail-zoom');
+    if (badgeInfo && imgThumb) {
+      imgThumb.src = badgeInfo.src;
+      imgThumb.alt = item.nome;
+      imgThumb.setAttribute('data-img-src', badgeInfo.src);
+      imgThumb.setAttribute('data-img-title', item.nome);
+    }
+  }
+};
+
+UI.updateKpiAndTotals = function () {
+  const allItems = this._scorteState.items || [];
+  const activeList = this._scorteState.activeList;
+
+  const listItems = activeList === 'all'
+    ? allItems
+    : allItems.filter(i => (i.lista || 'Generale') === activeList);
+
+  let toRestockCount = 0;
+  let toRestockUnitsCount = 0;
+  let totalRestockCost = 0;
+
+  listItems.forEach(item => {
+    const row = document.querySelector(`tr[data-id="${item.id}"]`);
+    let q = Number(item.quantita) || 0;
+    let min = Number(item.quantitaMinima) || 0;
+    let price = Number(item.prezzoUnitario) || 0;
+
+    if (row) {
+      const qInp = row.querySelector('.inline-quantita');
+      const minInp = row.querySelector('.inline-min');
+      const pInp = row.querySelector('.inline-prezzo');
+      if (qInp) q = parseFloat(qInp.value) || 0;
+      if (minInp) min = parseFloat(minInp.value) || 0;
+      if (pInp) price = parseFloat(pInp.value) || 0;
+    }
+
+    const diff = Math.max(0, min - q);
+    if (diff > 0) {
+      toRestockCount++;
+      toRestockUnitsCount += diff;
+      totalRestockCost += (diff * price);
+    }
+  });
+
+  const kpiToRestock = document.getElementById('kpiToRestockItems');
+  const kpiUnits = document.getElementById('kpiToRestockUnits');
+  const kpiCost = document.getElementById('kpiRestockTotalCost');
+
+  if (kpiToRestock) kpiToRestock.textContent = String(toRestockCount);
+  if (kpiUnits) kpiUnits.textContent = `${toRestockUnitsCount} unità mancanti per l'obiettivo`;
+  if (kpiCost) {
+    kpiCost.textContent = `€ ${totalRestockCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  // Footer tabella
+  const tfootTotalUnits = document.getElementById('scorteFootTotalUnits');
+  const tfootTotalCost = document.getElementById('scorteFootTotalCost');
+  if (tfootTotalUnits) {
+    tfootTotalUnits.textContent = toRestockUnitsCount > 0 ? `+${toRestockUnitsCount} unità` : '0';
+  }
+  if (tfootTotalCost) {
+    tfootTotalCost.textContent = `€ ${totalRestockCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  // Riepilogo filtri in alto
+  const summaryEl = document.getElementById('scorteFilterSummary');
+  if (summaryEl) {
+    const listInfo = activeList === 'all' ? 'Tutte le liste' : `Lista: "${activeList}"`;
+    const visibleCount = document.querySelectorAll('#scorteTableBody tr[data-id]').length;
+    summaryEl.textContent = `[${listInfo}] Visualizzati: ${visibleCount} di ${listItems.length} articoli (${toRestockCount} sotto scorta)`;
+  }
+};
+
+UI.handleInlineEdit = async function (el) {
+  const id = el.dataset.id;
+  const field = el.dataset.field;
+  if (!id || !field) return;
+
+  const item = (this._scorteState.items || []).find(i => i.id === id);
+  if (!item) return;
+
+  let rawVal = el.value;
+  let parsedVal = rawVal;
+
+  if (field === 'quantita' || field === 'quantitaMinima') {
+    parsedVal = Math.max(0, parseFloat(rawVal) || 0);
+    el.value = parsedVal;
+  } else if (field === 'prezzoUnitario') {
+    parsedVal = Math.max(0, parseFloat(rawVal) || 0);
+    el.value = parsedVal.toFixed(2);
+  } else if (field === 'nome' || field === 'categoria' || field === 'lista' || field === 'note') {
+    parsedVal = rawVal.trim();
+    if (field === 'nome' && !parsedVal) {
+      this.showToast('Il nome dell\'articolo non può essere vuoto', { type: 'warning' });
+      el.value = item.nome;
+      return;
+    }
+  }
+
+  // Se il valore non è cambiato, esci
+  if (item[field] === parsedVal) return;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const updates = { [field]: parsedVal };
+
+  // Se si modifica la quantità o la scorta minima, aggiorniamo anche la data di controllo a oggi
+  if (field === 'quantita' || field === 'quantitaMinima') {
+    updates.dataControllo = todayStr;
+    item.dataControllo = todayStr;
+    const row = el.closest('tr');
+    const dataInp = row?.querySelector('.inline-data');
+    if (dataInp) dataInp.value = todayStr;
+  }
+
+  try {
+    const authUser = this.currentUser || DATA.adapter?.auth?.currentUser;
+    await DATA.updateScorta(id, updates, authUser);
+    item[field] = parsedVal;
+
+    // Feedback visivo immediato sulla riga
+    const row = el.closest('tr');
+    if (row) {
+      row.classList.add('bg-green-50/70', 'dark:bg-green-950/40');
+      setTimeout(() => {
+        row.classList.remove('bg-green-50/70', 'dark:bg-green-950/40');
+      }, 700);
+
+      // Aggiorna anche testo sr-only per screen reader e test
+      const srOnlySpan = row.querySelector('.sr-only');
+      if (srOnlySpan && field === 'nome') srOnlySpan.textContent = parsedVal;
+    }
+
+    if (field === 'lista') {
+      this.renderListeTabs();
+      this.populateCategoryFilter();
+      if (this._scorteState.activeList !== 'all' && parsedVal !== this._scorteState.activeList) {
+        this.renderScorte();
+      } else {
+        this.updateRowCalculations(row, item);
+        this.updateKpiAndTotals();
+      }
+      this.showToast(`Lista aggiornata: "${parsedVal}"`);
+      return;
+    }
+
+    if (field === 'categoria') {
+      this.populateCategoryFilter();
+      this.showToast(`Categoria aggiornata: "${parsedVal}"`);
+    }
+
+    this.updateRowCalculations(row, item);
+    this.updateKpiAndTotals();
+    this.renderListeTabs();
+  } catch (err) {
+    console.error('Errore salvataggio inline:', err);
+    this.showToast('Errore durante il salvataggio: ' + (err?.message || 'riprova'), { type: 'error' });
+    el.value = item[field] ?? '';
+  }
+};
+
 UI.adjustItemQuantity = async function (id, delta) {
   const item = (this._scorteState.items || []).find(i => i.id === id);
   if (!item) return;
@@ -982,16 +1290,29 @@ UI.adjustItemQuantity = async function (id, delta) {
   const todayStr = new Date().toISOString().split('T')[0];
 
   try {
+    const authUser = this.currentUser || DATA.adapter?.auth?.currentUser;
     await DATA.updateScorta(id, {
       quantita: newQ,
       dataControllo: todayStr
-    }, this.currentUser);
+    }, authUser);
 
     item.quantita = newQ;
     item.dataControllo = todayStr;
 
-    this.renderListeTabs();
-    this.renderScorte();
+    // Aggiorna l'input e i calcoli nella riga senza ricaricare tutta la tabella
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    if (row) {
+      const qInput = row.querySelector('.inline-quantita');
+      if (qInput) qInput.value = newQ;
+      const dataInput = row.querySelector('.inline-data');
+      if (dataInput) dataInput.value = todayStr;
+      this.updateRowCalculations(row, item);
+      this.updateKpiAndTotals();
+      this.renderListeTabs();
+    } else {
+      this.renderListeTabs();
+      this.renderScorte();
+    }
   } catch (err) {
     console.error('Errore aggiornamento rapido quantità:', err);
     this.showToast('Errore durante l\'aggiornamento', { type: 'error' });
@@ -2066,5 +2387,5 @@ UI.exportRiordinoCsv = function () {
   this.showToast(`Lista riordino (${fileSuffix}) esportata in formato CSV`);
 };
 
-export { UI };
+export { UI, DATA };
 

@@ -475,6 +475,174 @@ describe('Scorte & Materiali Inventory Module', () => {
         expect.anything()
       );
     });
+
+    it('dovrebbe garantire che #printArea in scorte.html non sia nidificato nei modali nascosti alla stampa', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const htmlPath = path.resolve(__dirname, '../scorte.html');
+      const html = fs.readFileSync(htmlPath, 'utf-8');
+
+      // 1. #printArea deve essere presente
+      expect(html).toContain('<div id="printArea"></div>');
+
+      // 2. #listModal deve essere chiuso correttamente prima di #printArea
+      const listModalPos = html.indexOf('id="listModal"');
+      const printAreaPos = html.indexOf('id="printArea"');
+      expect(listModalPos).toBeGreaterThan(-1);
+      expect(printAreaPos).toBeGreaterThan(listModalPos);
+
+      // Tra listModal e printArea deve esserci la chiusura del modale
+      const sliceBetween = html.substring(listModalPos, printAreaPos);
+      const openDivs = (sliceBetween.match(/<div(\s|>)/gi) || []).length;
+      const closeDivs = (sliceBetween.match(/<\/div>/gi) || []).length;
+      expect(openDivs).toBe(closeDivs); // Stesso numero di div aperti e chiusi -> listModal è chiuso!
+
+      // 3. Regole print CSS devono mostrare #printArea e nascondere il resto
+      expect(html).toContain('#printArea {');
+      expect(html).toContain('display: block !important;');
+    });
+  });
+
+  describe('Modifica diretta inline in tabella (senza modale)', () => {
+    it('dovrebbe generare controlli inline per ogni attributo dell\'articolo', async () => {
+      const { UI } = await import('../scorte.js');
+
+      document.body.innerHTML = `
+        <div id="kpiTotaleArticoli"></div>
+        <div id="kpiSottoScorta"></div>
+        <div id="kpiValoreTotale"></div>
+        <div id="kpiPreventivoRiordino"></div>
+        <table id="tabellaScorte">
+          <tbody id="scorteTableBody"></tbody>
+          <tfoot>
+            <tr>
+              <td id="totaleRigheValore"></td>
+              <td id="totalePreventivoValore"></td>
+            </tr>
+          </tfoot>
+        </table>
+      `;
+
+      UI._scorteState.activeList = 'all';
+      UI._scorteState.categories = ['Cibo', 'Pionieristica'];
+      UI._scorteState.lists = ['Campo Estivo', 'Generale'];
+      UI._scorteState.items = [
+        {
+          id: 'item-100',
+          nome: 'Corda Canapa',
+          categoria: 'Pionieristica',
+          lista: 'Campo Estivo',
+          quantita: 2,
+          quantitaMinima: 5,
+          prezzoUnitario: 4.50,
+          unitaMisura: 'm',
+          dataControllo: '2026-10-25',
+          note: 'Bobina 10mm'
+        }
+      ];
+
+      UI.renderScorte();
+
+      const tbody = document.getElementById('scorteTableBody');
+      const row = tbody.querySelector('tr[data-id="item-100"]');
+      expect(row).toBeDefined();
+
+      // Verifica presenza dei controlli interattivi inline
+      const nameInput = row.querySelector('.inline-nome');
+      const noteInput = row.querySelector('.inline-note');
+      const listSelect = row.querySelector('.inline-lista');
+      const catInput = row.querySelector('.inline-categoria');
+      const qtyInput = row.querySelector('.inline-quantita');
+      const unitSelect = row.querySelector('.inline-unita');
+      const minInput = row.querySelector('.inline-min');
+      const priceInput = row.querySelector('.inline-prezzo');
+      const dateInput = row.querySelector('.inline-data');
+
+      expect(nameInput.value).toBe('Corda Canapa');
+      expect(noteInput.value).toBe('Bobina 10mm');
+      expect(listSelect.value).toBe('Campo Estivo');
+      expect(catInput.value).toBe('Pionieristica');
+      expect(Number(qtyInput.value)).toBe(2);
+      expect(unitSelect.value).toBe('m');
+      expect(Number(minInput.value)).toBe(5);
+      expect(Number(priceInput.value)).toBe(4.50);
+      expect(dateInput.value).toBe('2026-10-25');
+
+      // Calcoli di riga iniziali: diff = 5 - 2 = 3; costo = 3 * 4.50 = 13.50
+      const statusBadge = row.querySelector('.row-status-container');
+      const costBadge = row.querySelector('.row-costo-badge');
+      expect(statusBadge.textContent).toContain('+3 m');
+      expect(costBadge.textContent).toContain('13.50');
+    });
+
+    it('dovrebbe aggiornare modello, calcoli e persistenza tramite UI.handleInlineEdit', async () => {
+      const { UI, DATA } = await import('../scorte.js');
+
+      const updateSpy = vi.fn().mockResolvedValue(true);
+      DATA.updateScorta = updateSpy;
+
+      document.body.innerHTML = `
+        <div id="kpiTotalItems"></div>
+        <div id="kpiToRestockItems"></div>
+        <div id="kpiToRestockUnits"></div>
+        <div id="kpiRestockTotalCost"></div>
+        <div id="kpiInventoryDate"></div>
+        <table id="tabellaScorte">
+          <tbody id="scorteTableBody"></tbody>
+          <tfoot>
+            <tr>
+              <td id="scorteFootTotalUnits"></td>
+              <td id="scorteFootTotalCost"></td>
+            </tr>
+          </tfoot>
+        </table>
+      `;
+
+      UI._scorteState.activeList = 'all';
+      UI._scorteState.items = [
+        {
+          id: 'item-200',
+          nome: 'Biscotti',
+          categoria: 'Cibo',
+          lista: 'Campo Estivo',
+          quantita: 1,
+          quantitaMinima: 4,
+          prezzoUnitario: 2.00,
+          unitaMisura: 'confezioni'
+        }
+      ];
+
+      UI.renderScorte();
+      const row = document.querySelector('tr[data-id="item-200"]');
+      const qtyInput = row.querySelector('.inline-quantita');
+
+      // Modifica quantità da 1 a 3 (diff passa da 3 a 1, costo da 6 a 2)
+      qtyInput.value = '3';
+      await UI.handleInlineEdit(qtyInput);
+
+      expect(updateSpy).toHaveBeenCalledWith(
+        'item-200',
+        expect.objectContaining({ quantita: 3 }),
+        undefined
+      );
+
+      // Verifica modello aggiornato
+      const itemInState = UI._scorteState.items.find(i => i.id === 'item-200');
+      expect(itemInState.quantita).toBe(3);
+
+      // Verifica ricalcolo riga nel DOM
+      const statusBadge = row.querySelector('.row-status-container');
+      const costBadge = row.querySelector('.row-costo-badge');
+      expect(statusBadge.textContent).toContain('+1 confezioni');
+      expect(costBadge.textContent).toContain('2.00');
+
+      // Ora incrementa con adjustItemQuantity (+2 -> quantità diventa 5)
+      await UI.adjustItemQuantity('item-200', 2);
+      expect(qtyInput.value).toBe('5');
+      // Con 5 e minimo 4: scorta sufficiente (diff 0, costo 0)
+      expect(statusBadge.textContent).toContain('In scorta');
+      expect(costBadge.textContent).toContain('0.00');
+    });
   });
 });
 

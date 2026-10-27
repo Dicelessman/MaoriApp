@@ -45,6 +45,7 @@
       #importModal,
       #preventivoRiordinoModal,
       #listModal,
+      #imageLightboxModal,
       #mainSidebar,
       #sidebarOverlay,
       header,
@@ -55,11 +56,14 @@
         visibility: hidden !important;
       }
 
+      html,
       body {
         background: #ffffff !important;
         color: #000000 !important;
         margin: 0 !important;
         padding: 0 !important;
+        height: auto !important;
+        min-height: auto !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
       }
 
@@ -330,7 +334,7 @@
               </p>
             </div>
             <div id="tableFastActions" class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-              <span>💡 Suggerimento: usa i tasti <span class="font-bold">+</span> e <span class="font-bold">-</span> per aggiornare le scorte al volo</span>
+              <span>💡 Modifica i campi direttamente nella tabella (nome, lista, categoria, scorta, prezzi, date): salvataggio automatico</span>
             </div>
           </div>
 
@@ -786,6 +790,8 @@ Disinfettante spray, Pronto Soccorso, 5, 5, 4.80, pz"
         </div>
       </form>
     </div>
+  </div>
+
   <!-- Modal Lightbox Ingrandimento Immagine -->
   <div id="imageLightboxModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="relative max-w-lg w-full bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-2xl flex flex-col items-center">
