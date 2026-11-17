@@ -33,7 +33,8 @@ const createDefaultBudgetState = () => ({
     galley: { mode: 'meal', qty: 0, rate: 0, compActive: false, compBudget: 0 },
     various: [], // { id, category, desc, cost }
 
-    proposedQuota: 0
+    proposedQuota: 0,
+    actualSpent: 0
 });
 
 UI.qs = UI.qs || ((sel) => document.querySelector(sel));
@@ -82,6 +83,7 @@ UI.initBudgetCalculator = async function () {
         compBudget: this.qs('#compBudget'),
         galleyQtyLabel: this.qs('#galleyQtyLabel'),
         galleyRateLabel: this.qs('#galleyRateLabel'),
+        importFromMenuBtn: this.qs('#importFromMenuBtn'),
 
         // Various & Scorte
         variousList: this.qs('#variousItemsList'),
@@ -125,7 +127,13 @@ UI.initBudgetCalculator = async function () {
         marginDisplay: this.qs('#marginDisplay'),
         simTable: this.qs('#simulationTableBody'),
         applyBreakEvenQuotaBtn: this.qs('#applyBreakEvenQuotaBtn'),
-        exactCostPerScoutText: this.qs('#exactCostPerScoutText')
+        applyQuotaToActivityBtn: this.qs('#applyQuotaToActivityBtn'),
+        exactCostPerScoutText: this.qs('#exactCostPerScoutText'),
+
+        // Consuntivo
+        collectedQuotesDisplay: this.qs('#collectedQuotesDisplay'),
+        actualSpentInput: this.qs('#actualSpentInput'),
+        actualBalanceDisplay: this.qs('#actualBalanceDisplay')
     };
     this.els = els;
 
@@ -158,6 +166,7 @@ UI.initBudgetCalculator = async function () {
                 scoutsCount: Number(savedBudget.scoutsCount) || 0,
                 staffCount: Number(savedBudget.staffCount) || 0,
                 proposedQuota: Number(savedBudget.proposedQuota) || 0,
+                actualSpent: Number(savedBudget.actualSpent) || 0,
                 transport: {
                     ...defaults.transport,
                     ...(savedBudget.transport || {}),
@@ -296,11 +305,21 @@ UI.initBudgetCalculator = async function () {
         }
     });
 
-    // 6. Quota
+    // 6. Quota & Consuntivo
     els.proposedQuota?.addEventListener('input', (e) => {
         this.budgetState.proposedQuota = parseFloat(e.target.value) || 0;
         this.renderAll();
     });
+    els.actualSpentInput?.addEventListener('input', (e) => {
+        this.budgetState.actualSpent = parseFloat(e.target.value) || 0;
+        this.renderAll();
+    });
+    if (els.importFromMenuBtn) {
+        els.importFromMenuBtn.addEventListener('click', () => this.importGalleyFromMenu());
+    }
+    if (els.applyQuotaToActivityBtn) {
+        els.applyQuotaToActivityBtn.addEventListener('click', () => this.applyQuotaToActivity());
+    }
 
     // 7. Scorte & Quota Actions
     if (els.openImportScorteBtn) {
@@ -403,7 +422,7 @@ UI.updateVarItemCost = function (id, newCost) {
 // --- CORE LOGIC & RENDERING ---
 
 UI.renderAll = function () {
-    const { scoutsCount, staffCount, transport, structure, galley, various, proposedQuota } = this.budgetState;
+    const { activityId, scoutsCount, staffCount, transport, structure, galley, various, proposedQuota, actualSpent } = this.budgetState;
 
     // Update Inputs (Two-way binding sync for inputs that might change programmatically)
     this.els.scoutsCount.value = scoutsCount;
@@ -472,6 +491,30 @@ UI.renderAll = function () {
         marginEl.className = 'font-bold text-lg text-green-600';
     } else {
         marginEl.className = 'font-bold text-lg text-red-600';
+    }
+
+    // 4b. Consuntivo vs Preventivo
+    if (this.els.actualSpentInput && (typeof document === 'undefined' || document.activeElement !== this.els.actualSpentInput)) {
+        this.els.actualSpentInput.value = Number(actualSpent) || 0;
+    }
+    const act = activityId ? (this.state?.activities || []).find(a => a.id === activityId) : null;
+    const actCost = parseFloat(act?.costo || '0') || 0;
+    const effectiveQuota = actCost > 0 ? actCost : (parseFloat(proposedQuota) || 0);
+    const paidCount = activityId
+        ? (this.state?.presences || []).filter(p => p.attivitaId === activityId && p.stato === 'Presente' && !!p.pagato).length
+        : 0;
+    const collectedQuotes = paidCount * effectiveQuota;
+    const actualSpentVal = parseFloat(actualSpent) || 0;
+    const actualBalance = collectedQuotes - actualSpentVal;
+
+    if (this.els.collectedQuotesDisplay) {
+        this.els.collectedQuotesDisplay.textContent = '€ ' + collectedQuotes.toFixed(2);
+    }
+    if (this.els.actualBalanceDisplay) {
+        this.els.actualBalanceDisplay.textContent = '€ ' + actualBalance.toFixed(2);
+        this.els.actualBalanceDisplay.className = actualBalance >= 0
+            ? 'font-bold text-lg text-emerald-600 dark:text-emerald-400'
+            : 'font-bold text-lg text-red-600 dark:text-red-400';
     }
 
     // 5. Simulation
@@ -959,6 +1002,78 @@ UI.applyBreakEvenQuota = function () {
     if (this.els.proposedQuota) this.els.proposedQuota.value = breakEven.toFixed(2);
     this.renderAll();
     this.showToast(`Quota proposta aggiornata a € ${breakEven.toFixed(2)} (copertura completa)`, { type: 'success' });
+};
+
+UI.importGalleyFromMenu = async function () {
+    try {
+        if (!DATA.getMenus) {
+            this.showToast('Funzionalità Menù non disponibile', { type: 'warning' });
+            return;
+        }
+        let menus = [];
+        if (this.budgetState.activityId) {
+            menus = await DATA.getMenus(this.budgetState.activityId);
+        }
+        if (!menus || menus.length === 0) {
+            menus = await DATA.getMenus();
+        }
+        if (!menus || menus.length === 0) {
+            this.showToast('Nessun menù pianificato trovato. Crea prima un menù nella sezione Menù & Cambusa.', { type: 'info' });
+            return;
+        }
+
+        const menu = (this.budgetState.activityId && menus.find(m => m.attivitaId === this.budgetState.activityId)) || menus[0];
+        const totalCost = Number(menu.costoTotaleStimato) || 0;
+        if (totalCost <= 0) {
+            this.showToast(`Il menù "${menu.titolo || 'Menù'}" non ha un costo totale stimato > 0.`, { type: 'warning' });
+            return;
+        }
+
+        const currentPax = (parseInt(this.budgetState.scoutsCount) || 0) + (parseInt(this.budgetState.staffCount) || 0);
+        const totalPax = currentPax > 0 ? currentPax : (Number(menu.partecipantiDefault) || 1);
+        const mealsCount = (menu.giorni || []).reduce((acc, g) => acc + ((g.pasti || []).length), 0) || 1;
+        const ratePerMeal = Number((totalCost / (mealsCount * totalPax)).toFixed(2));
+
+        this.budgetState.galley.mode = 'meal';
+        this.budgetState.galley.qty = mealsCount;
+        this.budgetState.galley.rate = ratePerMeal;
+
+        this.renderAll();
+        this.showToast(`Cambusa importata da "${menu.titolo || 'Menù'}": ${mealsCount} pasti × € ${ratePerMeal.toFixed(2)}`, { type: 'success' });
+    } catch (err) {
+        console.error('Errore importazione cambusa da menù:', err);
+        this.showToast('Errore durante l\'importazione dal menù', { type: 'error' });
+    }
+};
+
+UI.applyQuotaToActivity = async function () {
+    const activityId = this.budgetState.activityId;
+    if (!activityId) {
+        this.showToast('Seleziona un\'attività prima di applicare la quota', { type: 'warning' });
+        return;
+    }
+
+    const quota = parseFloat(this.budgetState.proposedQuota) || 0;
+    if (quota <= 0) {
+        this.showToast('Imposta una quota proposta maggiore di € 0.00', { type: 'warning' });
+        return;
+    }
+
+    try {
+        const roundedQuota = Number(quota.toFixed(2));
+        if (DATA.updateActivity) {
+            await DATA.updateActivity({ id: activityId, costo: roundedQuota }, this.currentUser);
+        }
+        const act = (this.state?.activities || []).find(a => a.id === activityId);
+        if (act) {
+            act.costo = roundedQuota;
+        }
+        this.renderAll();
+        this.showToast(`Quota di € ${roundedQuota.toFixed(2)} applicata all'attività!`, { type: 'success' });
+    } catch (err) {
+        console.error('Errore applicazione quota all\'attività:', err);
+        this.showToast('Errore durante l\'aggiornamento dell\'attività', { type: 'error' });
+    }
 };
 
 export { UI };

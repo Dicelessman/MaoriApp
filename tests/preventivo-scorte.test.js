@@ -39,6 +39,7 @@ describe('Collegamento Scorte -> Preventivo Uscita/Campo', () => {
             <input type="radio" name="galleyMode" value="day">
             <input type="number" id="galleyQty" value="0">
             <input type="number" id="galleyRate" value="0">
+            <button id="importFromMenuBtn"></button>
             <input type="checkbox" id="compActive">
             <input type="number" id="compBudget" value="0">
             <span id="galleyQtyLabel"></span>
@@ -64,7 +65,11 @@ describe('Collegamento Scorte -> Preventivo Uscita/Campo', () => {
             <span id="marginDisplay"></span>
             <table><tbody id="simulationTableBody"></tbody></table>
             <button id="applyBreakEvenQuotaBtn"></button>
+            <button id="applyQuotaToActivityBtn"></button>
             <span id="exactCostPerScoutText"></span>
+            <span id="collectedQuotesDisplay"></span>
+            <input type="number" id="actualSpentInput" value="0">
+            <span id="actualBalanceDisplay"></span>
 
             <!-- Modal Scorte -->
             <div id="importScorteModal" class="hidden">
@@ -307,5 +312,57 @@ describe('Collegamento Scorte -> Preventivo Uscita/Campo', () => {
             globalThis.DATA = prevGlobalData;
             if (typeof window !== 'undefined') window.DATA = prevWindowData;
         }
+    });
+
+    it('dovrebbe importare i costi di cambusa da un menù collegato all\'attività (importGalleyFromMenu)', async () => {
+        await adapter.saveMenu({
+            id: 'menu_campo_1',
+            titolo: 'Menù Campo Estivo',
+            attivitaId: 'act_campo_estivo_1',
+            partecipantiDefault: 24,
+            costoTotaleStimato: 360,
+            giorni: [
+                { giornoIndex: 1, pasti: [{ tipo: 'Pranzo' }, { tipo: 'Cena' }] },
+                { giornoIndex: 2, pasti: [{ tipo: 'Colazione' }, { tipo: 'Pranzo' }, { tipo: 'Cena' }] }
+            ]
+        });
+
+        await UI.importGalleyFromMenu();
+
+        // 5 pasti * 24 pax = 120 pasti-persona => 360 / 120 = € 3.00 / pasto
+        expect(UI.budgetState.galley.mode).toBe('meal');
+        expect(UI.budgetState.galley.qty).toBe(5);
+        expect(UI.budgetState.galley.rate).toBe(3);
+        expect(document.getElementById('sumGalley').textContent).toBe('€ 360.00');
+    });
+
+    it('dovrebbe applicare la quota proposta direttamente all\'attività (applyQuotaToActivity) e calcolare il consuntivo', async () => {
+        // Aggiungi l'attività nello state dell'adapter locale per verificare updateActivity
+        adapter.state.activities.push({
+            id: 'act_campo_estivo_1',
+            tipo: 'Campo Estivo',
+            descrizione: 'Campo Estivo Val Venosta 2026',
+            data: '2026-08-01',
+            costo: 0
+        });
+        UI.state.presences = [
+            { esploratoreId: 's1', attivitaId: 'act_campo_estivo_1', stato: 'Presente', pagato: true },
+            { esploratoreId: 's2', attivitaId: 'act_campo_estivo_1', stato: 'Presente', pagato: true },
+            { esploratoreId: 's3', attivitaId: 'act_campo_estivo_1', stato: 'Presente', pagato: false }
+        ];
+
+        UI.budgetState.proposedQuota = 45.5;
+        UI.budgetState.actualSpent = 60;
+
+        await UI.applyQuotaToActivity();
+
+        const updatedAct = adapter.state.activities.find(a => a.id === 'act_campo_estivo_1');
+        expect(updatedAct.costo).toBe(45.5);
+        expect(UI.state.activities.find(a => a.id === 'act_campo_estivo_1').costo).toBe(45.5);
+
+        // 2 paganti * 45.50 = 91.00 incassati; speso = 60.00; bilancio = +31.00
+        expect(document.getElementById('collectedQuotesDisplay').textContent).toBe('€ 91.00');
+        expect(document.getElementById('actualSpentInput').value).toBe('60');
+        expect(document.getElementById('actualBalanceDisplay').textContent).toBe('€ 31.00');
     });
 });

@@ -48,6 +48,10 @@
               <span>📚</span>
               <span>Storico Anni Precedenti</span>
             </a>
+            <button id="openQuickRollcallModalBtn" onclick="UI.openQuickRollcallModal()" class="btn-primary px-3.5 py-2 text-sm flex items-center gap-1.5 shadow-sm bg-blue-600 hover:bg-blue-700 text-white" title="Modalità Appello Rapido mobile/desktop">
+              <span>⚡</span>
+              <span>Appello Rapido</span>
+            </button>
             <button id="openExportModalBtn" onclick="UI.openExportModal()" class="btn-primary px-4 py-2 text-sm flex items-center gap-1.5 shadow-sm" title="Opzioni di esportazione CSV ed Excel">
               <span>📊</span>
               <span>Esporta CSV / Excel</span>
@@ -370,6 +374,50 @@
               <span>⚜️</span>
               <span id="confirmCngeiPresenceSyncBtnText">Invia al Portale</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modale Appello Rapido -->
+      <div id="quickRollcallModal" class="modal" role="dialog" aria-labelledby="quickRollcallModalTitle" aria-modal="true">
+        <div class="modal-content max-w-2xl mx-auto p-0 overflow-hidden max-h-[90vh] flex flex-col">
+          <div class="px-5 py-3 bg-blue-700 text-white flex items-center justify-between shadow-md shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">⚡</span>
+              <div>
+                <h3 id="quickRollcallModalTitle" class="text-base font-bold">Appello Rapido</h3>
+                <p class="text-xs text-blue-100">Segna presenze e assenze in un tap per pattuglia</p>
+              </div>
+            </div>
+            <button type="button" onclick="UI.closeModal('quickRollcallModal')" class="text-blue-100 hover:text-white p-1 text-2xl leading-none" aria-label="Chiudi Appello Rapido">&times;</button>
+          </div>
+
+          <div class="p-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 space-y-2.5 shrink-0">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label for="quickRollcallActivitySelect" class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Attività</label>
+                <select id="quickRollcallActivitySelect" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white"></select>
+              </div>
+              <div>
+                <label for="quickRollcallPatrolSelect" class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Pattuglia</label>
+                <select id="quickRollcallPatrolSelect" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white">
+                  <option value="">Tutte le pattuglie</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <span id="quickRollcallStatsBadge" class="text-xs font-semibold text-gray-700 dark:text-gray-200">0 presenti • 0 assenti</span>
+              <button type="button" id="quickRollcallMarkAllPresentBtn" onclick="UI.markAllQuickRollcallPresent()" class="btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
+                <span>✓</span>
+                <span>Segna tutti Presenti</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="quickRollcallList" class="p-4 overflow-y-auto flex-1 space-y-3"></div>
+
+          <div class="px-5 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-end shrink-0">
+            <button type="button" onclick="UI.closeModal('quickRollcallModal')" class="btn-secondary text-xs px-4 py-1.5">Chiudi</button>
           </div>
         </div>
       </div>

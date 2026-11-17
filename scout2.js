@@ -1,5 +1,5 @@
 // scout2.js - pagina scheda personale esploratore (versione refactored)
-import { generateScoutSentieroHtml, normalizeSpecialitaName, getSpecialitaSlug } from './js/utils/utils.js';
+import { generateScoutSentieroHtml, normalizeSpecialitaName, getSpecialitaSlug, resolveDistintivoBadge } from './js/utils/utils.js';
 import { cngeiService } from './js/services/cngei-service.js';
 import { collectPendingProgressioni, collectSyncedProgressioni, sendProgressioneToCngei, reconcileWithCngeiBrevetti } from './js/services/cngei-progressioni.js';
 
@@ -133,7 +133,7 @@ UI.renderScoutPage = async function () {
       this.state = await DATA.loadAll();
       this.rebuildPresenceIndex();
     }
-    const s = (this.state.allScouts || this.state.scouts || []).find(x => x.id === id);
+    let s = (this.state.allScouts || this.state.scouts || []).find(x => x.id === id);
     if (!s) {
       this.qs('#scoutTitle').textContent = 'Scheda Esploratore — non trovato';
       return;
@@ -343,8 +343,11 @@ UI.renderScoutPage = async function () {
         try {
           const payload = this.collectForm();
           await DATA.updateScout(id, payload, this.currentUser);
+          await this.syncDeliveredBadgesWithScorte(s, payload);
           this.state = await DATA.loadAll();
           this.rebuildPresenceIndex();
+          s = (this.state.allScouts || this.state.scouts || []).find(x => x.id === id) || s;
+          this.currentScout = s;
           this.showToast('Scheda salvata');
         } catch (error) {
           console.error('Errore salvataggio scheda:', error);
@@ -2398,6 +2401,101 @@ UI.printMedicalBatch = async function (scoutIds = null, title = 'Cartellina Sani
     this.hideLoadingOverlay?.();
     console.error('Errore stampa batch schede sanitarie:', e);
     this.showToast?.('Errore stampa cartellina: ' + e.message, { type: 'error', duration: 4000 });
+  }
+};
+
+/**
+ * Scala automaticamente di 1 dalle Scorte i distintivi appena consegnati/ottenuti
+ * @param {Object} prevScout - Stato precedente dell'esploratore
+ * @param {Object} newPayload - Nuovo payload salvato
+ * @returns {Promise<Array>} Lista delle scorte scalate
+ */
+UI.syncDeliveredBadgesWithScorte = async function (prevScout, newPayload) {
+  if (!newPayload || typeof DATA === 'undefined' || !DATA.getScorte || !DATA.updateScorta) {
+    return [];
+  }
+
+  const newlyDelivered = [];
+  if (!prevScout?.pv_promessa && newPayload.pv_promessa) {
+    newlyDelivered.push('Promessa');
+  }
+  if (!prevScout?.pv_giglio_data && newPayload.pv_giglio_data) {
+    newlyDelivered.push('Giglio e Trifoglio');
+  }
+  if (!prevScout?.pv_traccia1?.ottenuto && newPayload.pv_traccia1?.ottenuto) {
+    newlyDelivered.push('1 Traccia');
+  }
+  if (!prevScout?.pv_traccia2?.ottenuto && newPayload.pv_traccia2?.ottenuto) {
+    newlyDelivered.push('2 Traccia');
+  }
+  if (!prevScout?.pv_traccia3?.ottenuto && newPayload.pv_traccia3?.ottenuto) {
+    newlyDelivered.push('3 Traccia');
+  }
+
+  const prevSpecs = Array.isArray(prevScout?.specialita) ? prevScout.specialita : [];
+  const newSpecs = Array.isArray(newPayload.specialita) ? newPayload.specialita : [];
+  newSpecs.forEach(sp => {
+    if (!sp || typeof sp !== 'object' || !sp.nome) return;
+    const isNowDelivered = !!(sp.distintivo || sp.ottenuta);
+    if (!isNowDelivered) return;
+    const spNameLower = sp.nome.trim().toLowerCase();
+    const prevSp = prevSpecs.find(ps => {
+      const pName = typeof ps === 'object' ? (ps?.nome || '') : String(ps || '');
+      return pName.trim().toLowerCase() === spNameLower;
+    });
+    const wasDelivered = !!(prevSp && typeof prevSp === 'object' && (prevSp.distintivo || prevSp.ottenuta));
+    if (!wasDelivered) {
+      newlyDelivered.push(sp.nome.trim());
+    }
+  });
+
+  if (newlyDelivered.length === 0) return [];
+
+  try {
+    const scorteItems = await DATA.getScorte();
+    const decremented = [];
+
+    for (const badgeName of newlyDelivered) {
+      const targetBadge = resolveDistintivoBadge(badgeName);
+      const lowerTarget = badgeName.toLowerCase();
+      const matchedItem = (scorteItems || []).find(item => {
+        if (!item || !item.nome) return false;
+        const itemBadge = resolveDistintivoBadge(item.nome, item.lista, item.categoria);
+        if (targetBadge && itemBadge && targetBadge.src === itemBadge.src) {
+          return true;
+        }
+        const itemLower = item.nome.trim().toLowerCase();
+        return itemLower === lowerTarget || (!targetBadge && itemLower.includes(lowerTarget));
+      });
+
+      if (matchedItem && (Number(matchedItem.quantita) || 0) > 0) {
+        const newQty = Math.max(0, (Number(matchedItem.quantita) || 0) - 1);
+        matchedItem.quantita = newQty;
+        await DATA.updateScorta(matchedItem.id, { quantita: newQty }, this.currentUser);
+        decremented.push({
+          id: matchedItem.id,
+          nome: matchedItem.nome,
+          newQty,
+          minQty: Number(matchedItem.quantitaMinima) || 0
+        });
+      }
+    }
+
+    if (decremented.length > 0 && this.showToast) {
+      const names = decremented.map(d => `${d.nome} (rimasti ${d.newQty})`).join(', ');
+      const hasLowStock = decremented.some(d => d.newQty < d.minQty);
+      this.showToast(
+        hasLowStock
+          ? `Scorte scalate (-1): ${names}. Attenzione: sotto scorta minima!`
+          : `Scorte aggiornate (-1): ${names}`,
+        { type: hasLowStock ? 'warning' : 'info', duration: 4500 }
+      );
+    }
+
+    return decremented;
+  } catch (err) {
+    console.warn('Errore aggiornamento automatico scorte distintivi:', err);
+    return [];
   }
 };
 

@@ -47,7 +47,9 @@ import {
   OFFICIAL_SPECIALITA_SLUGS,
   OFFICIAL_DISTINTIVI_CATALOG
 } from '../js/utils/utils.js';
+import { DATA } from '../js/data/data-facade.js';
 import '../scorte.js';
+import '../scout2.js';
 
 describe('Distintivi PO & PV in Scorte & Materiali', () => {
 
@@ -455,6 +457,39 @@ describe('Distintivi PO & PV in Scorte & Materiali', () => {
       expect(lightboxModal.classList.contains('hidden')).toBe(false);
       expect(lightboxImg.getAttribute('src')).toBe('https://example.com/foto.jpg');
       expect(lightboxTitle.textContent).toBe('Tenda Canadese');
+    });
+
+    it('dovrebbe scalare automaticamente le scorte di 1 alla consegna di distintivi (syncDeliveredBadgesWithScorte)', async () => {
+      const mockScorte = [
+        { id: 'sc_prom', nome: 'Distintivo Promessa', lista: 'Distintivi', quantita: 5, quantitaMinima: 3 },
+        { id: 'sc_cucina', nome: 'Distintivo Specialità Cucina', lista: 'Distintivi', quantita: 2, quantitaMinima: 4 }
+      ];
+      const getScorteSpy = vi.spyOn(DATA, 'getScorte').mockResolvedValue(mockScorte);
+      const updateScortaSpy = vi.spyOn(DATA, 'updateScorta').mockResolvedValue(true);
+
+      const prevScout = {
+        pv_promessa: null,
+        pv_giglio_data: null,
+        pv_traccia1: { ottenuto: false, data: null },
+        specialita: [{ nome: 'Cucina', ottenuta: false, distintivo: false }]
+      };
+      const newPayload = {
+        pv_promessa: '2026-11-17',
+        pv_giglio_data: null,
+        pv_traccia1: { ottenuto: false, data: null },
+        specialita: [{ nome: 'Cucina', ottenuta: true, distintivo: true }]
+      };
+
+      const decremented = await UI.syncDeliveredBadgesWithScorte(prevScout, newPayload);
+
+      expect(getScorteSpy).toHaveBeenCalledTimes(1);
+      expect(updateScortaSpy).toHaveBeenCalledTimes(2);
+      expect(updateScortaSpy).toHaveBeenCalledWith('sc_prom', { quantita: 4 }, UI.currentUser);
+      expect(updateScortaSpy).toHaveBeenCalledWith('sc_cucina', { quantita: 1 }, UI.currentUser);
+      expect(decremented).toHaveLength(2);
+
+      getScorteSpy.mockRestore();
+      updateScortaSpy.mockRestore();
     });
   });
 });

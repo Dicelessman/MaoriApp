@@ -3,6 +3,7 @@ import { DATA } from './js/data/data-facade.js';
 import { UI } from './js/ui/ui.js';
 import { cngeiService } from './js/services/cngei-service.js';
 import { syncActivityToCngei } from './js/services/cngei-meeting-sync.js';
+import { escapeHtml } from './js/utils/utils.js';
 
 // Assicura la disponibilità globale per inline event handlers
 if (typeof window !== 'undefined') {
@@ -2126,6 +2127,189 @@ UI.executeCngeiPresencesSync = async function () {
   } finally {
     this.setButtonLoading(confirmBtn, false, origText);
   }
+};
+
+// ==========================================
+// APPELLO RAPIDO (MOBILE / TAP VELOCE)
+// ==========================================
+
+UI.openQuickRollcallModal = function () {
+  const actSelect = this.qs('#quickRollcallActivitySelect');
+  const patrolSelect = this.qs('#quickRollcallPatrolSelect');
+  if (!actSelect || !patrolSelect) return;
+
+  const currentYear = this.presenceFilters?.scoutYear || (this.getCurrentScoutYear ? this.getCurrentScoutYear() : '2025/2026');
+  const sortedActs = this.getActivitiesSorted().filter(a =>
+    this.isActivityInScoutYear ? this.isActivityInScoutYear(a, currentYear) : true
+  );
+
+  if (sortedActs.length === 0) {
+    this.showToast('Nessuna attività disponibile per l\'anno selezionato.', { type: 'warning' });
+    return;
+  }
+
+  const { todayIndex, nextIndex } = this._getTodayAndNextIndexes(sortedActs);
+  const defaultIdx = todayIndex >= 0 ? todayIndex : (nextIndex >= 0 ? nextIndex : sortedActs.length - 1);
+  const defaultActId = sortedActs[defaultIdx]?.id || sortedActs[0].id;
+
+  const displayActs = [...sortedActs].reverse();
+  actSelect.innerHTML = displayActs.map(a => {
+    const d = (a.data && a.data.toDate) ? a.data.toDate() : new Date(a.data);
+    const ds = isNaN(d) ? '??/??' : d.toLocaleDateString('it-IT');
+    const label = `${ds} - ${a.tipo || 'Attività'}${a.descrizione ? ' (' + a.descrizione + ')' : ''}`;
+    return `<option value="${escapeHtml(a.id)}">${escapeHtml(label)}</option>`;
+  }).join('');
+  actSelect.value = defaultActId;
+
+  const patrols = Array.from(new Set(
+    (this.state.scouts || []).map(s => (s.pv_pattuglia || '').trim()).filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b, 'it'));
+
+  const prevPatrol = patrolSelect.value;
+  patrolSelect.innerHTML = '<option value="">Tutte le pattuglie</option>' +
+    patrols.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  if (prevPatrol && patrols.includes(prevPatrol)) {
+    patrolSelect.value = prevPatrol;
+  }
+
+  if (!actSelect._rollcallBound) {
+    actSelect._rollcallBound = true;
+    actSelect.addEventListener('change', () => this.renderQuickRollcallList());
+  }
+  if (!patrolSelect._rollcallBound) {
+    patrolSelect._rollcallBound = true;
+    patrolSelect.addEventListener('change', () => this.renderQuickRollcallList());
+  }
+
+  this.renderQuickRollcallList();
+  this.showModal('quickRollcallModal');
+};
+
+UI.renderQuickRollcallList = function () {
+  const actSelect = this.qs('#quickRollcallActivitySelect');
+  const patrolSelect = this.qs('#quickRollcallPatrolSelect');
+  const listEl = this.qs('#quickRollcallList');
+  const statsBadge = this.qs('#quickRollcallStatsBadge');
+  if (!actSelect || !listEl) return;
+
+  const activityId = actSelect.value;
+  const patrolFilter = patrolSelect?.value || '';
+
+  const scouts = (this.state.scouts || [])
+    .filter(s => !s.archived && (!patrolFilter || (s.pv_pattuglia || '').trim() === patrolFilter))
+    .sort((a, b) => {
+      const pa = (a.pv_pattuglia || 'ZZZ').trim();
+      const pb = (b.pv_pattuglia || 'ZZZ').trim();
+      if (pa !== pb) return pa.localeCompare(pb, 'it');
+      return `${a.cognome || ''} ${a.nome || ''}`.localeCompare(`${b.cognome || ''} ${b.nome || ''}`, 'it');
+    });
+
+  let presentCount = 0;
+  let absentCount = 0;
+  let nrCount = 0;
+
+  const grouped = new Map();
+  scouts.forEach(s => {
+    const p = this.getPresence(s.id, activityId);
+    const stato = p?.stato || 'NR';
+    if (stato === 'Presente') presentCount++;
+    else if (stato === 'Assente') absentCount++;
+    else if (stato === 'NR') nrCount++;
+
+    const ptg = (s.pv_pattuglia || '').trim() || 'Senza Pattuglia';
+    if (!grouped.has(ptg)) grouped.set(ptg, []);
+    grouped.get(ptg).push({ scout: s, stato });
+  });
+
+  if (statsBadge) {
+    statsBadge.textContent = `✓ ${presentCount} presenti • ✗ ${absentCount} assenti • ⏳ ${nrCount} NR`;
+  }
+
+  if (scouts.length === 0) {
+    listEl.innerHTML = '<div class="text-center text-sm text-gray-500 py-4">Nessun esploratore trovato.</div>';
+    return;
+  }
+
+  const mkBtn = (scoutId, status, label, currentStatus, activeCls) => {
+    const isActive = currentStatus === status;
+    const cls = isActive
+      ? `${activeCls} text-white shadow-sm`
+      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600';
+    return `<button type="button" onclick="UI.setQuickRollcallStatus('${escapeHtml(scoutId)}', '${escapeHtml(activityId)}', '${status}')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${cls}">${label}</button>`;
+  };
+
+  let html = '';
+  grouped.forEach((items, ptgName) => {
+    html += `
+      <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700/70 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex justify-between items-center">
+          <span>${escapeHtml(ptgName)}</span>
+          <span class="text-[11px] font-semibold">${items.filter(x => x.stato === 'Presente').length}/${items.length}</span>
+        </div>
+        <div class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
+          ${items.map(({ scout, stato }) => `
+            <div class="px-3 py-2 flex items-center justify-between gap-2">
+              <span class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">${escapeHtml(`${scout.cognome || ''} ${scout.nome || ''}`.trim())}</span>
+              <div class="flex items-center gap-1.5 shrink-0">
+                ${mkBtn(scout.id, 'Presente', 'P', stato, 'bg-green-600 hover:bg-green-700')}
+                ${mkBtn(scout.id, 'Assente', 'A', stato, 'bg-red-600 hover:bg-red-700')}
+                ${mkBtn(scout.id, 'NR', 'NR', stato, 'bg-blue-600 hover:bg-blue-700')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  });
+  listEl.innerHTML = html;
+};
+
+UI.setQuickRollcallStatus = async function (scoutId, activityId, status) {
+  await this.updatePresenceCell({ field: 'stato', value: status, scoutId, activityId });
+  const tableSelect = this.qs(`select.presence-select[onchange*="${scoutId}"][onchange*="${activityId}"]`);
+  if (tableSelect) {
+    tableSelect.value = status;
+    tableSelect.setAttribute('data-selected', status);
+  }
+  this.renderQuickRollcallList();
+};
+
+UI.markAllQuickRollcallPresent = async function () {
+  if (!this.currentUser) {
+    this.showToast('Devi essere loggato.', { type: 'error' });
+    return;
+  }
+  const actSelect = this.qs('#quickRollcallActivitySelect');
+  const patrolSelect = this.qs('#quickRollcallPatrolSelect');
+  const activityId = actSelect?.value;
+  if (!activityId) return;
+
+  const patrolFilter = patrolSelect?.value || '';
+  const targets = (this.state.scouts || []).filter(s =>
+    !s.archived && (!patrolFilter || (s.pv_pattuglia || '').trim() === patrolFilter)
+  );
+
+  let updatedCount = 0;
+  for (const s of targets) {
+    const p = this.getPresence(s.id, activityId);
+    const stato = p?.stato || 'NR';
+    if (stato !== 'Presente' && stato !== 'X') {
+      await this.updatePresenceCell({ field: 'stato', value: 'Presente', scoutId: s.id, activityId });
+      const tableSelect = this.qs(`select.presence-select[onchange*="${s.id}"][onchange*="${activityId}"]`);
+      if (tableSelect) {
+        tableSelect.value = 'Presente';
+        tableSelect.setAttribute('data-selected', 'Presente');
+      }
+      updatedCount++;
+    }
+  }
+
+  this.renderQuickRollcallList();
+  this.showToast(
+    updatedCount > 0
+      ? `Segnati ${updatedCount} esploratori come Presenti`
+      : 'Tutti gli esploratori risultano già presenti',
+    { type: updatedCount > 0 ? 'success' : 'info' }
+  );
 };
 
 // Inizializza la pagina presenze

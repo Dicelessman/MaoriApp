@@ -1057,10 +1057,24 @@ async function handleSendToPreventivo() {
             updatedVoci = [cambusaEntry];
         }
 
+        const mealsCount = (MenuState.currentMenu.giorni || []).reduce((acc, g) => acc + ((g.pasti || []).length), 0) || 1;
+        const pax = (budget && (Number(budget.scoutsCount) + Number(budget.staffCount)) > 0)
+            ? (Number(budget.scoutsCount) + Number(budget.staffCount))
+            : (Number(MenuState.currentMenu.partecipantiDefault) || 20);
+        const ratePerMeal = Number((estimatedCost / (mealsCount * pax)).toFixed(2));
+
         if (typeof DATA.saveBudget === 'function') {
             await DATA.saveBudget({
+                ...(budget || {}),
                 id: budget?.id || null,
+                activityId: actId,
                 attivitaId: actId,
+                galley: {
+                    ...(budget?.galley || {}),
+                    mode: 'meal',
+                    qty: mealsCount,
+                    rate: ratePerMeal
+                },
                 voci: updatedVoci,
                 totaleSpesaCambusa: estimatedCost,
                 updatedAt: new Date().toISOString()

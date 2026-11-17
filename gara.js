@@ -3,7 +3,9 @@
 // Data Proxy per compatibilità con ambienti browser e test Node.js
 const DATA = new Proxy({}, {
     get(target, prop) {
-        const facade = (typeof window !== 'undefined' && window.DATA) || (typeof globalThis !== 'undefined' && globalThis.DATA);
+        const winData = (typeof window !== 'undefined' && window.DATA && window.DATA !== DATA) ? window.DATA : null;
+        const globData = (typeof globalThis !== 'undefined' && globalThis.DATA && globalThis.DATA !== DATA) ? globalThis.DATA : null;
+        const facade = winData || globData;
         if (facade && typeof facade[prop] === 'function') {
             return facade[prop].bind(facade);
         }

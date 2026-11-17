@@ -473,16 +473,6 @@ service cloud.firestore {
       allow create, update, delete: if isStaff();
     }
 
-    // ============== COLLEZIONI: scorte e liste_scorte ==============
-    match /scorte/{scortaId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isStaff();
-    }
-    match /liste_scorte/{listaId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isStaff();
-    }
-
     // ============== Default: nega tutto il resto ==============
     match /{document=**} {
       allow read, write: if false;

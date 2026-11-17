@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 vi.mock('../js/core/firebase.js', () => ({
     db: {},
@@ -34,6 +34,9 @@ describe('Home Page Controller & Widgets', () => {
     let mockLocalStorage = {};
 
     beforeEach(() => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-10-15T10:00:00Z'));
+
         mockLocalStorage = {};
         global.localStorage = {
             getItem: vi.fn(key => mockLocalStorage[key] || null),
@@ -82,6 +85,10 @@ describe('Home Page Controller & Widgets', () => {
                 { id: 'c2', titolo: 'Acquisto materiale cambusa', dataScadenza: '2026-10-12', completata: false, categoria: 'Cambusa' }
             ]
         };
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
     describe('Widget Prossima Attività (Home)', () => {
