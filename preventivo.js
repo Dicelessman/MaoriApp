@@ -4,7 +4,9 @@
 const UI = (typeof window !== 'undefined' && window.UI) ? window.UI : (typeof globalThis !== 'undefined' && globalThis.UI) ? globalThis.UI : {};
 const DATA = new Proxy({}, {
     get(target, prop) {
-        const source = (typeof window !== 'undefined' && window.DATA) || (typeof globalThis !== 'undefined' && globalThis.DATA) || {};
+        const winData = (typeof window !== 'undefined' && window.DATA && window.DATA !== DATA) ? window.DATA : null;
+        const globData = (typeof globalThis !== 'undefined' && globalThis.DATA && globalThis.DATA !== DATA) ? globalThis.DATA : null;
+        const source = winData || globData || {};
         const val = source[prop];
         return typeof val === 'function' ? val.bind(source) : val;
     }
@@ -12,12 +14,27 @@ const DATA = new Proxy({}, {
 
 if (typeof window !== 'undefined') {
     window.UI = UI;
-    window.DATA = DATA;
 }
 if (typeof globalThis !== 'undefined') {
     globalThis.UI = UI;
-    globalThis.DATA = DATA;
 }
+
+const createDefaultBudgetState = () => ({
+    activityId: null,
+    scoutsCount: 0,
+    staffCount: 0,
+
+    transport: { legs: [] },
+    structure: {
+        nights: 0, days: 0, rateType: 'person_night', rate: 0,
+        elecStart: 0, elecEnd: 0, elecRate: 0,
+        gasStart: 0, gasEnd: 0, gasRate: 0
+    },
+    galley: { mode: 'meal', qty: 0, rate: 0, compActive: false, compBudget: 0 },
+    various: [], // { id, category, desc, cost }
+
+    proposedQuota: 0
+});
 
 UI.qs = UI.qs || ((sel) => document.querySelector(sel));
 UI.showToast = UI.showToast || ((msg) => console.log(msg));
@@ -29,22 +46,7 @@ UI.renderCurrentPage = async function () {
 
 UI.initBudgetCalculator = async function () {
     // STATE
-    this.budgetState = {
-        activityId: null,
-        scoutsCount: 0,
-        staffCount: 0,
-
-        transport: { legs: [] },
-        structure: {
-            nights: 0, days: 0, rateType: 'person_night', rate: 0,
-            elecStart: 0, elecEnd: 0, elecRate: 0,
-            gasStart: 0, gasEnd: 0, gasRate: 0
-        },
-        galley: { mode: 'meal', qty: 0, rate: 0, compActive: false, compBudget: 0 },
-        various: [], // { id, category, desc, cost }
-
-        proposedQuota: 0
-    };
+    this.budgetState = createDefaultBudgetState();
 
     // DOM - Bindings
     const els = {
@@ -137,9 +139,40 @@ UI.initBudgetCalculator = async function () {
         this.budgetState.activityId = id;
 
         // Load existing budget if present
-        const savedBudget = DATA.getBudgetByActivity ? await DATA.getBudgetByActivity(id) : null;
+        let savedBudget = null;
+        if (id && DATA.getBudgetByActivity) {
+            try {
+                savedBudget = await DATA.getBudgetByActivity(id);
+            } catch (err) {
+                console.error('Errore caricamento preventivo:', err);
+                this.showToast('Errore nel caricamento del preventivo salvato', { type: 'error' });
+            }
+        }
+
         if (savedBudget) {
-            this.budgetState = { ...this.budgetState, ...savedBudget }; // Merge
+            const defaults = createDefaultBudgetState();
+            this.budgetState = {
+                ...this.budgetState,
+                ...savedBudget,
+                activityId: id,
+                scoutsCount: Number(savedBudget.scoutsCount) || 0,
+                staffCount: Number(savedBudget.staffCount) || 0,
+                proposedQuota: Number(savedBudget.proposedQuota) || 0,
+                transport: {
+                    ...defaults.transport,
+                    ...(savedBudget.transport || {}),
+                    legs: Array.isArray(savedBudget.transport?.legs) ? savedBudget.transport.legs : []
+                },
+                structure: {
+                    ...defaults.structure,
+                    ...(savedBudget.structure || {})
+                },
+                galley: {
+                    ...defaults.galley,
+                    ...(savedBudget.galley || {})
+                },
+                various: Array.isArray(savedBudget.various) ? savedBudget.various : []
+            };
 
             // Backwards compatibility for old 'diff' format if loading old budget
             if (savedBudget.structure) {
@@ -151,6 +184,10 @@ UI.initBudgetCalculator = async function () {
                     this.budgetState.structure.gasStart = 0;
                     this.budgetState.structure.gasEnd = savedBudget.structure.gasDiff;
                 }
+            }
+
+            if (this.els.proposedQuota) {
+                this.els.proposedQuota.value = this.budgetState.proposedQuota;
             }
 
             this.showToast('Preventivo salvato caricato');

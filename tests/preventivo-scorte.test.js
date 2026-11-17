@@ -245,4 +245,67 @@ describe('Collegamento Scorte -> Preventivo Uscita/Campo', () => {
         expect(rows.length).toBe(1);
         expect(rows[0].textContent).toContain('Distintivo Pattuglia Lupi');
     });
+
+    it('dovrebbe richiamare un\'attività salvata dal selettore senza errori di stack e aggiornare i calcolatori', async () => {
+        await adapter.saveBudget({
+            activityId: 'act_uscita_1',
+            scoutsCount: 15,
+            staffCount: 3,
+            transport: { legs: [{ id: 1, name: 'Treno', cost: 10, convention: false }] },
+            structure: { nights: 1, days: 2, rateType: 'person_night', rate: 12 },
+            galley: { mode: 'meal', qty: 3, rate: 5, compActive: false, compBudget: 0 },
+            various: [{ id: 2, category: 'Altro', desc: 'Extra', cost: 20 }],
+            proposedQuota: 40
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(globalThis.DATA).toBe(adapter);
+
+        const select = document.getElementById('selectActivity');
+        select.value = 'act_uscita_1';
+        select.dispatchEvent(new Event('change'));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(UI.budgetState.activityId).toBe('act_uscita_1');
+        expect(UI.budgetState.scoutsCount).toBe(15);
+        expect(UI.budgetState.staffCount).toBe(3);
+        expect(document.getElementById('scoutsCount').value).toBe('15');
+        expect(document.getElementById('proposedQuota').value).toBe('40');
+        expect(document.getElementById('totalParticipantsDisplay').textContent).toBe('18');
+        expect(document.getElementById('sumTransport').textContent).toBe('€ 180.00');
+        expect(document.getElementById('sumStructure').textContent).toBe('€ 216.00');
+        expect(document.getElementById('sumGalley').textContent).toBe('€ 270.00');
+        expect(document.getElementById('sumVarious').textContent).toBe('€ 20.00');
+        expect(document.getElementById('finalTotalCost').textContent).toBe('€ 686.00');
+    });
+
+    it('dovrebbe gestire la selezione attività anche se globalThis.DATA non è impostato senza ricorsione infinita', async () => {
+        UI.state.presences = [
+            { attivitaId: 'act_campo_estivo_1', stato: 'Presente' },
+            { attivitaId: 'act_campo_estivo_1', stato: 'Presente' },
+            { attivitaId: 'act_campo_estivo_1', stato: 'Assente' }
+        ];
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const prevGlobalData = globalThis.DATA;
+        const prevWindowData = typeof window !== 'undefined' ? window.DATA : undefined;
+        try {
+            delete globalThis.DATA;
+            if (typeof window !== 'undefined') delete window.DATA;
+
+            const select = document.getElementById('selectActivity');
+            select.value = 'act_campo_estivo_1';
+            select.dispatchEvent(new Event('change'));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+
+            expect(UI.budgetState.activityId).toBe('act_campo_estivo_1');
+            expect(UI.budgetState.scoutsCount).toBe(2);
+            expect(document.getElementById('scoutsCount').value).toBe('2');
+            expect(document.getElementById('totalParticipantsDisplay').textContent).toBe('6');
+        } finally {
+            globalThis.DATA = prevGlobalData;
+            if (typeof window !== 'undefined') window.DATA = prevWindowData;
+        }
+    });
 });
