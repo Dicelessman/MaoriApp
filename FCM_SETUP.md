@@ -92,3 +92,26 @@ Il file `firebase-messaging-sw.js` gestisce:
 - Controlla che le condizioni per le notifiche siano soddisfatte
 - Verifica i log della console per errori
 
+## Notifiche Automatiche Server-Side (Vercel Cron + FCM HTTP v1)
+
+Per ricevere notifiche push automatiche anche quando nessun membro dello Staff ha l'app aperta, è configurato il Cron giornaliero in `vercel.json` (`/api/cron-deadlines`, tutti i giorni alle `07:30 UTC` / `08:30–09:30` italiane).
+
+### 1. Genera la chiave Service Account da Firebase
+1. Vai su **Firebase Console** → **Project Settings** → **Service accounts**
+2. Clicca su **Generate new private key** per scaricare il file JSON delle credenziali
+
+### 2. Configura le Environment Variables su Vercel (e in `.env.local` per test locali)
+Imposta almeno una delle due modalità:
+- **Consigliata (JSON singolo)**:
+  - `FIREBASE_SERVICE_ACCOUNT_JSON`: contenuto completo del file JSON (o la sua stringa codificata in Base64)
+- **Alternativa (variabili separate)**:
+  - `FIREBASE_PROJECT_ID` (`presenziariomaori`)
+  - `FIREBASE_CLIENT_EMAIL`
+  - `FIREBASE_PRIVATE_KEY`
+- **Sicurezza Cron (Consigliata)**:
+  - `CRON_SECRET`: stringa segreta casuale inviata automaticamente da Vercel Cron come `Authorization: Bearer <CRON_SECRET>` sulle chiamate `GET /api/cron-deadlines`.
+
+### 3. Funzionamento `GET` e `POST /api/cron-deadlines`
+- `GET /api/cron-deadlines`: eseguito da Vercel Cron, legge `scadenze`, `scouts`, `activities`, `fcm-tokens` e `in-app-notifications` da Firestore ed invia le Web Push via FCM HTTP v1 con deduplicazione giornaliera (`reminderKey`).
+- `POST /api/cron-deadlines`: invocato automaticamente da `scadenze.html` / `UI.triggerSingleDeadlinePush()` (`action: 'send_single'`) o dal pulsante **Attiva/Invia Push Imminenti** (`action: 'run_check'`) per raggiungere tutti i dispositivi Staff registrati.
+

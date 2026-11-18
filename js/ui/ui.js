@@ -1976,8 +1976,40 @@ export const UI = {
         return true;
     },
     async saveFCMToken(token) {
-        if (this.currentUser?.uid && DATA.adapter?.db)
-            await setDoc(doc(DATA.adapter.db, 'fcm-tokens', this.currentUser.uid), { token, userId: this.currentUser.uid, updatedAt: new Date() }, { merge: true });
+        if (this.currentUser?.uid && DATA.adapter?.db) {
+            const docRef = doc(DATA.adapter.db, 'fcm-tokens', this.currentUser.uid);
+            let existingTokens = [];
+            try {
+                const snap = await getDoc(docRef);
+                if (snap.exists && snap.exists()) {
+                    const data = snap.data() || {};
+                    if (Array.isArray(data.tokens)) existingTokens = data.tokens;
+                    else if (data.token) existingTokens = [data.token];
+                }
+            } catch { }
+            const mergedTokens = Array.from(new Set([...existingTokens, token].filter(Boolean)));
+            await setDoc(docRef, {
+                token,
+                tokens: mergedTokens,
+                userId: this.currentUser.uid,
+                userEmail: this.currentUser.email || '',
+                updatedAt: new Date()
+            }, { merge: true });
+        }
+    },
+    async triggerRemoteFcmPush(payload = {}) {
+        if (typeof fetch !== 'function') return null;
+        try {
+            const res = await fetch('/api/cron-deadlines', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload || {})
+            });
+            if (!res || !res.ok) return null;
+            return await res.json().catch(() => null);
+        } catch {
+            return null;
+        }
     },
     async handleForegroundNotification(payload) {
         const title = payload.notification?.title || 'Notifica';
@@ -2233,6 +2265,19 @@ export const UI = {
                 force: true
             });
         }
+
+        this.triggerRemoteFcmPush({
+            action: 'send_single',
+            item: {
+                id: item?.id,
+                titolo: title,
+                body,
+                categoria: item?.categoria,
+                dataScadenza: item?.dataScadenza,
+                daysUntil,
+                url: item?.url || '/scadenze.html'
+            }
+        }).catch(() => null);
 
         this.showToast(`Notifica push inviata per "${item?.titolo || 'scadenza'}"!`, { type: 'success' });
         return true;

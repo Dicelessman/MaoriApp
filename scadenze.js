@@ -678,6 +678,10 @@ class ScadenzeController {
             if (sent) count = imminent.length;
         }
 
+        if (typeof UI.triggerRemoteFcmPush === 'function') {
+            UI.triggerRemoteFcmPush({ action: 'run_check', force: true }).catch(() => null);
+        }
+
         UI.showToast?.(
             count > 0
                 ? `Inviate notifiche push/in-app per le scadenze imminenti!`

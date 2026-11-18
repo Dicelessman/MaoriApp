@@ -31,6 +31,10 @@ messaging.onBackgroundMessage((payload) => {
     requireInteraction: payload.data?.requireInteraction === 'true',
     data: payload.data || {}
   };
+
+  if (self.navigator && typeof self.navigator.setAppBadge === 'function') {
+    self.navigator.setAppBadge().catch(() => {});
+  }
   
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
@@ -42,16 +46,21 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
   // Open app to specific page if URL is provided
-  const urlToOpen = event.notification.data?.url || '/';
+  const rawUrl = event.notification.data?.url || '/';
+  const urlToOpen = rawUrl.startsWith('http') || rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
   
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       // Check if app is already open
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
-        if (client.url === urlToOpen && 'focus' in client) {
+        if ((client.url === urlToOpen || client.url.includes(urlToOpen)) && 'focus' in client) {
           return client.focus();
         }
+      }
+      // Focus any open client window if exact path wasn't matched
+      if (clientList.length > 0 && 'focus' in clientList[0]) {
+        return clientList[0].focus();
       }
       // Open new window if app is not open
       if (clients.openWindow) {
