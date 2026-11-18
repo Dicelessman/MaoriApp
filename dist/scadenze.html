@@ -20,10 +20,10 @@
     <!-- CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/scadenze-BSsBcbke.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/date-picker-3zVDvute.js">
-  <link rel="modulepreload" crossorigin href="/assets/shared-CirsxLkL.js">
-  <link rel="stylesheet" crossorigin href="/assets/presenze-DzDTbNHF.css">
+  <script type="module" crossorigin src="/assets/scadenze-COc2DpqJ.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-Dh0kdinl.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-DGTWfMfg.js">
+  <link rel="stylesheet" crossorigin href="/assets/style.css_v_3-DzDTbNHF.css">
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-950 flex flex-col min-h-screen text-gray-800 dark:text-gray-100 transition-colors">
@@ -52,7 +52,7 @@
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2">
                     <!-- Selettore Anno Scout -->
                     <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">
                         <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Anno:</span>
@@ -60,6 +60,27 @@
                             <!-- Popolato dinamicamente -->
                         </select>
                     </div>
+
+                    <!-- Azioni Push e Multi-Canale -->
+                    <button id="pushDeadlinesBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-semibold rounded-lg transition" title="Attiva o invia notifiche push per le scadenze imminenti">
+                        <span>🔔</span>
+                        <span id="pushDeadlinesBtnLabel">Notifiche Push</span>
+                    </button>
+
+                    <button id="shareDigestWhatsAppBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold rounded-lg transition" title="Invia riepilogo scadenze imminenti su WhatsApp o condividi">
+                        <span>💬</span>
+                        <span>Riepilogo WA</span>
+                    </button>
+
+                    <button id="shareDigestEmailBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-semibold rounded-lg transition" title="Invia riepilogo scadenze via Email allo Staff">
+                        <span>✉️</span>
+                        <span>Email Staff</span>
+                    </button>
+
+                    <button id="exportDeadlinesIcsBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 text-xs font-semibold rounded-lg transition" title="Esporta scadenze nel Calendario (.ics) con sveglie automatiche">
+                        <span>📅</span>
+                        <span>Esporta .ics</span>
+                    </button>
 
                     <!-- Bottone Aggiungi Scadenza -->
                     <button id="addCustomDeadlineBtn" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-all transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
@@ -268,6 +289,29 @@
                         Note o Dettagli Aggiuntivi
                     </label>
                     <textarea id="deadlineNotes" rows="3" placeholder="Informazioni utili, istruzioni o promemoria..." class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"></textarea>
+                </div>
+
+                <!-- Preavviso Notifica Push -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                    <div>
+                        <label for="deadlineReminderDays" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                            Preavviso Notifica Push
+                        </label>
+                        <select id="deadlineReminderDays" class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+                            <option value="0">Solo il giorno stesso</option>
+                            <option value="1">1 giorno prima</option>
+                            <option value="3" selected>3 giorni prima (Consigliato)</option>
+                            <option value="7">7 giorni prima</option>
+                            <option value="15">15 giorni prima</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-2 pb-2">
+                        <input type="checkbox" id="deadlineInstantPush" class="w-4 h-4 text-amber-600 rounded border-gray-300 dark:border-gray-700 focus:ring-amber-500 cursor-pointer">
+                        <label for="deadlineInstantPush" class="text-xs font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                            🔔 Invia subito notifica Push / In-App
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Checkbox Completata -->

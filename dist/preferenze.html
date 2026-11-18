@@ -22,11 +22,11 @@
   <!-- SheetJS per supporto Excel -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script type="module" crossorigin src="/assets/preferenze-V2Rdnbsz.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/date-picker-3zVDvute.js">
-  <link rel="modulepreload" crossorigin href="/assets/shared-CirsxLkL.js">
+  <script type="module" crossorigin src="/assets/preferenze-Bo_U5i9v.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/date-picker-Dh0kdinl.js">
+  <link rel="modulepreload" crossorigin href="/assets/shared-DGTWfMfg.js">
   <link rel="modulepreload" crossorigin href="/assets/cngei-service-DZdKacRO.js">
-  <link rel="stylesheet" crossorigin href="/assets/presenze-DzDTbNHF.css">
+  <link rel="stylesheet" crossorigin href="/assets/style.css_v_3-DzDTbNHF.css">
 </head>
 
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -224,11 +224,16 @@
 
         <!-- Notifiche -->
         <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div class="flex items-center justify-between mb-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
             <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">🔔 Notifiche & Promemoria Automatici</h3>
-            <button id="runRemindersNowBtn" type="button" class="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3">
-              <span>🔄</span> Controlla Ora
-            </button>
+            <div class="flex items-center gap-2">
+              <button id="testPushNotificationBtn" type="button" class="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3">
+                <span>🔔</span> Prova Push
+              </button>
+              <button id="runRemindersNowBtn" type="button" class="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3">
+                <span>🔄</span> Controlla Ora
+              </button>
+            </div>
           </div>
           <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
             I promemoria compaiono nella campanella 🔔 in alto a destra e ti aiutano a tenere traccia di scadenze, quote e compleanni.
@@ -282,6 +287,19 @@
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" id="notificationBirthdayReminders" class="sr-only peer">
+                  <div
+                    class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                  </div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Promemoria Scadenze &amp; Certificati Medici</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Avviso per scadenze personalizzate e certificati medici in scadenza</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notificationDeadlineReminders" class="sr-only peer">
                   <div
                     class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
                   </div>

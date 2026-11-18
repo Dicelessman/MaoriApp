@@ -1931,3 +1931,215 @@ export function computeActivityDashboardKPIs(activity, scouts = [], presences = 
         isSafetyCompliant
     };
 }
+
+/**
+ * Normalizza una data (Date, stringa YYYY-MM-DD, Timestamp) in coppia { startYmd, endYmd, displayDate } UTC-safe.
+ * @param {any} value
+ * @returns {{ startYmd: string, endYmd: string, displayDate: string } | null}
+ */
+function _formatDeadlineDateParts(value) {
+    if (!value) return null;
+    let year, month, day;
+
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+        const parts = value.trim().split('-').map(Number);
+        [year, month, day] = parts;
+    } else {
+        const d = toJsDate(value);
+        if (!d || isNaN(d.getTime())) return null;
+        year = d.getFullYear();
+        month = d.getMonth() + 1;
+        day = d.getDate();
+    }
+
+    const startUtc = new Date(Date.UTC(year, month - 1, day));
+    if (isNaN(startUtc.getTime())) return null;
+    const endUtc = new Date(Date.UTC(year, month - 1, day + 1));
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const startYmd = `${startUtc.getUTCFullYear()}${pad(startUtc.getUTCMonth() + 1)}${pad(startUtc.getUTCDate())}`;
+    const endYmd = `${endUtc.getUTCFullYear()}${pad(endUtc.getUTCMonth() + 1)}${pad(endUtc.getUTCDate())}`;
+    const displayDate = `${pad(day)}/${pad(month)}/${year}`;
+
+    return { startYmd, endYmd, displayDate };
+}
+
+/**
+ * Formatta una etichetta leggibile per lo stato temporale della scadenza.
+ * @param {object} item
+ * @returns {string}
+ */
+function _formatDeadlineWhenText(item) {
+    if (!item) return '';
+    if (item.completata) return 'completata';
+    if (typeof item.daysUntil === 'number') {
+        if (item.daysUntil === 0) return 'oggi';
+        if (item.daysUntil === 1) return 'domani';
+        if (item.daysUntil > 1) return `tra ${item.daysUntil} giorni`;
+        return `scaduta da ${Math.abs(item.daysUntil)} giorni`;
+    }
+    return '';
+}
+
+/**
+ * Genera il testo formattato per condividere una singola scadenza via WhatsApp, Telegram o Web Share API.
+ * @param {object} item
+ * @param {string} [unitName='Reparto Maori']
+ * @returns {string}
+ */
+export function generateDeadlineShareText(item = {}, unitName = 'Reparto Maori') {
+    const parts = _formatDeadlineDateParts(item?.dataScadenza);
+    const formattedDate = parts ? parts.displayDate : (item?.dataScadenza || 'Data da definire');
+    const whenText = _formatDeadlineWhenText(item);
+    const title = (item?.titolo || 'Scadenza').trim();
+    const category = (item?.categoria || 'Generale').trim();
+    const notes = (item?.descrizione || item?.note || '').trim();
+
+    const lines = [
+        `⏰ *Promemoria Scadenza — ${unitName}*`,
+        `📌 *${title}*`,
+        `🏷️ ${category} • 📅 ${formattedDate}${whenText ? ` (${whenText})` : ''}`
+    ];
+
+    if (notes) {
+        lines.push(`📝 ${notes}`);
+    }
+
+    return lines.join('\n');
+}
+
+/**
+ * Genera un bollettino/riepilogo testuale delle scadenze imminenti o scadute non completate per lo Staff.
+ * @param {Array<object>} [items=[]]
+ * @param {string} [unitName='Reparto Maori']
+ * @returns {string}
+ */
+export function generateDeadlinesDigestText(items = [], unitName = 'Reparto Maori') {
+    const list = (Array.isArray(items) ? items : []).filter(d => {
+        if (!d || d.completata) return false;
+        if (typeof d.daysUntil === 'number') {
+            return d.daysUntil <= 15;
+        }
+        return true;
+    });
+
+    if (list.length === 0) {
+        return `📢 *Riepilogo Scadenze Imminenti — ${unitName}*\nNessuna scadenza imminente o in sospeso.`;
+    }
+
+    const lines = [`📢 *Riepilogo Scadenze Imminenti — ${unitName}*`, ''];
+
+    list.forEach(d => {
+        const parts = _formatDeadlineDateParts(d.dataScadenza);
+        const formattedDate = parts ? parts.displayDate : (d.dataScadenza || '-');
+        const when = _formatDeadlineWhenText(d);
+        let badge = '🔵';
+        if (typeof d.daysUntil === 'number') {
+            if (d.daysUntil <= 0) badge = '🔴';
+            else if (d.daysUntil <= 3) badge = '🟡';
+        }
+        lines.push(`- ${badge} *${(d.titolo || 'Scadenza').trim()}* — ${formattedDate}${when ? ` (${when})` : ''}`);
+    });
+
+    return lines.join('\n');
+}
+
+/**
+ * Genera il link diretto per aggiungere una scadenza a Google Calendar (evento giornaliero).
+ * @param {object} item
+ * @returns {string}
+ */
+export function generateGoogleCalendarUrl(item = {}) {
+    const parts = _formatDeadlineDateParts(item?.dataScadenza);
+    const title = (item?.titolo || 'Scadenza Reparto').trim();
+    const detailsParts = [
+        item?.categoria ? `Categoria: ${item.categoria}` : '',
+        (item?.descrizione || item?.note || '').trim()
+    ].filter(Boolean);
+
+    const params = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: title
+    });
+
+    if (parts) {
+        params.set('dates', `${parts.startYmd}/${parts.endYmd}`);
+    }
+    if (detailsParts.length > 0) {
+        params.set('details', detailsParts.join('\n'));
+    }
+
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+/**
+ * Escapa i caratteri speciali secondo RFC 5545 per file iCalendar (.ics).
+ * @param {string} str
+ * @returns {string}
+ */
+function _escapeIcsText(str) {
+    return String(str || '')
+        .replace(/\\/g, '\\\\')
+        .replace(/\r\n|\r|\n/g, '\\n')
+        .replace(/,/g, '\\,')
+        .replace(/;/g, '\\;');
+}
+
+/**
+ * Genera un file iCalendar (.ics) RFC 5545 con eventi giornalieri e sveglie automatiche (-3 gg e -1 gg).
+ * @param {object|Array<object>} [items=[]]
+ * @param {string} [calendarName='Scadenze Reparto Maori']
+ * @returns {string}
+ */
+export function generateDeadlinesIcs(items = [], calendarName = 'Scadenze Reparto Maori') {
+    const rawList = Array.isArray(items) ? items : (items ? [items] : []);
+    const pad = (n) => String(n).padStart(2, '0');
+    const now = new Date();
+    const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`;
+
+    const lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Reparto Maori//Scadenze//IT',
+        'CALSCALE:GREGORIAN',
+        `X-WR-CALNAME:${_escapeIcsText(calendarName)}`
+    ];
+
+    rawList.forEach((item, idx) => {
+        if (!item) return;
+        const parts = _formatDeadlineDateParts(item.dataScadenza);
+        if (!parts) return;
+
+        const safeId = String(item.id || `${parts.startYmd}-${idx}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+        const summary = _escapeIcsText((item.titolo || 'Scadenza Reparto').trim());
+        const descRaw = [
+            item.categoria ? `Categoria: ${item.categoria}` : '',
+            (item.descrizione || item.note || '').trim()
+        ].filter(Boolean).join('\n');
+        const description = _escapeIcsText(descRaw);
+
+        lines.push(
+            'BEGIN:VEVENT',
+            `UID:${safeId}@maori.scout`,
+            `DTSTAMP:${dtstamp}`,
+            `DTSTART;VALUE=DATE:${parts.startYmd}`,
+            `DTEND;VALUE=DATE:${parts.endYmd}`,
+            `SUMMARY:${summary}`,
+            `DESCRIPTION:${description}`,
+            'BEGIN:VALARM',
+            'TRIGGER:-P3D',
+            'ACTION:DISPLAY',
+            `DESCRIPTION:Promemoria scadenza tra 3 giorni: ${summary}`,
+            'END:VALARM',
+            'BEGIN:VALARM',
+            'TRIGGER:-P1D',
+            'ACTION:DISPLAY',
+            `DESCRIPTION:Promemoria scadenza domani: ${summary}`,
+            'END:VALARM',
+            'END:VEVENT'
+        );
+    });
+
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n');
+}

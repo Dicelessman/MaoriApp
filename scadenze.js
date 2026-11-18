@@ -10,7 +10,11 @@ import {
     getCurrentScoutYear,
     getAllScoutYears,
     toJsDate,
-    generateWhatsAppReminderUrl
+    generateWhatsAppReminderUrl,
+    generateDeadlineShareText,
+    generateDeadlinesDigestText,
+    generateGoogleCalendarUrl,
+    generateDeadlinesIcs
 } from './js/utils/utils.js';
 
 class ScadenzeController {
@@ -56,6 +60,15 @@ class ScadenzeController {
             const years = getAllScoutYears ? getAllScoutYears(UI?.state?.activities || [], currentYear) : [currentYear];
             yearSelect.innerHTML = years.map(y => `<option value="${y}" ${y === this.selectedYear ? 'selected' : ''}>${y}</option>`).join('');
         }
+        this.updatePushButtonState();
+    }
+
+    updatePushButtonState() {
+        const label = document.getElementById('pushDeadlinesBtnLabel');
+        if (!label) return;
+        const permGranted = typeof Notification !== 'undefined' && Boolean(Notification) && Notification.permission === 'granted';
+        const prefsEnabled = UI.loadUserPreferences?.()?.notifications?.enabled;
+        label.textContent = (permGranted && prefsEnabled) ? 'Invia Push Imminenti' : 'Attiva Push';
     }
 
     setupEvents() {
@@ -70,6 +83,16 @@ class ScadenzeController {
                 await this.loadData();
             });
         }
+
+        // Notifiche Push e Condivisione Multi-Canale (Header)
+        const pushBtn = document.getElementById('pushDeadlinesBtn');
+        const waDigestBtn = document.getElementById('shareDigestWhatsAppBtn');
+        const emailDigestBtn = document.getElementById('shareDigestEmailBtn');
+        const exportIcsBtn = document.getElementById('exportDeadlinesIcsBtn');
+        if (pushBtn) pushBtn.addEventListener('click', () => this.handlePushImminentDeadlines());
+        if (waDigestBtn) waDigestBtn.addEventListener('click', () => this.handleShareDigestWhatsApp());
+        if (emailDigestBtn) emailDigestBtn.addEventListener('click', () => this.handleShareDigestEmail());
+        if (exportIcsBtn) exportIcsBtn.addEventListener('click', () => this.handleExportDeadlinesIcs());
 
         // Ricerca testuale con debounce
         const searchInput = document.getElementById('searchInput');
@@ -267,6 +290,10 @@ class ScadenzeController {
         if (countCustomEl) countCustomEl.textContent = customs.length;
     }
 
+    isPastOrCompleted(item) {
+        return Boolean(item?.completata) || (typeof item?.daysUntil === 'number' && item.daysUntil < 0);
+    }
+
     getFilteredAndSortedDeadlines() {
         let items = [...this.allDeadlines];
 
@@ -296,15 +323,24 @@ class ScadenzeController {
             );
         }
 
-        // 4. Ordinamento
+        // 4. Ordinamento: scadenze ancora da venire/imminenti sempre prima delle passate/completate
         items.sort((a, b) => {
+            const aPast = this.isPastOrCompleted(a);
+            const bPast = this.isPastOrCompleted(b);
+            if (aPast !== bPast) {
+                return aPast ? 1 : -1;
+            }
+
             if (this.currentSort === 'date-desc') {
                 return b.dataScadenza.localeCompare(a.dataScadenza);
             }
             if (this.currentSort === 'title-asc') {
                 return a.titolo.localeCompare(b.titolo);
             }
-            // Predefinito: date-asc
+            // Predefinito (date-asc): imminenti in ordine crescente, passate dalla più recente
+            if (aPast) {
+                return b.dataScadenza.localeCompare(a.dataScadenza);
+            }
             return a.dataScadenza.localeCompare(b.dataScadenza);
         });
 
@@ -326,7 +362,48 @@ class ScadenzeController {
 
         if (emptyState) emptyState.classList.add('hidden');
 
-        container.innerHTML = items.map(item => this.renderDeadlineCard(item)).join('');
+        // Se l'utente filtra esplicitamente per scadute o completate, mostra l'elenco diretto
+        if (this.currentFilterStatus === 'overdue' || this.currentFilterStatus === 'completed') {
+            container.innerHTML = items.map(item => this.renderDeadlineCard(item)).join('');
+            this.bindCardEvents(container);
+            return;
+        }
+
+        const upcomingItems = items.filter(d => !this.isPastOrCompleted(d));
+        const pastItems = items.filter(d => this.isPastOrCompleted(d));
+
+        let html = '';
+
+        if (upcomingItems.length > 0) {
+            html += upcomingItems.map(item => this.renderDeadlineCard(item)).join('');
+        } else if (pastItems.length > 0) {
+            html += `
+                <div class="bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl p-4 text-center text-sm text-blue-700 dark:text-blue-300">
+                    Nessuna scadenza imminente o futura in questo elenco. Puoi consultare le scadenze passate nella sezione sottostante.
+                </div>
+            `;
+        }
+
+        if (pastItems.length > 0) {
+            const overdueCount = pastItems.filter(d => !d.completata).length;
+            const overdueBadge = overdueCount > 0
+                ? `<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">${overdueCount} da verificare</span>`
+                : '';
+
+            html += `
+                <details id="pastDeadlinesSection" class="mt-6 bg-gray-50/70 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700/80 overflow-hidden">
+                    <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors">
+                        <span class="flex items-center flex-wrap gap-1">⏳ Scadenze Passate e Completate (${pastItems.length})${overdueBadge}</span>
+                        <span class="text-xs font-normal text-gray-400">Mostra / Nascondi</span>
+                    </summary>
+                    <div id="pastDeadlinesList" class="p-3 pt-0 space-y-2.5 border-t border-gray-200/60 dark:border-gray-700/60">
+                        ${pastItems.map(item => this.renderDeadlineCard(item)).join('')}
+                    </div>
+                </details>
+            `;
+        }
+
+        container.innerHTML = html;
 
         // Collega eventi alle card
         this.bindCardEvents(container);
@@ -396,11 +473,27 @@ class ScadenzeController {
             priorityPill = `<span class="text-[11px] font-semibold px-2 py-0.5 rounded ${pColors[item.priorita] || 'bg-gray-100 text-gray-700'}">${item.priorita}</span>`;
         }
 
-        // Azioni
+        // Azioni rapide multi-canale (Push, WhatsApp, Google Calendar)
+        const quickNotifyHtml = `
+            <button data-action="notify-push" data-id="${item.id}" class="p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg transition" title="Invia notifica push adesso">
+                🔔
+            </button>
+            ${item.type !== 'medical' ? `
+                <button data-action="share-whatsapp" data-id="${item.id}" class="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition" title="Condividi su WhatsApp">
+                    💬
+                </button>
+            ` : ''}
+            <button data-action="add-gcal" data-id="${item.id}" class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition" title="Aggiungi a Google Calendar / Scarica .ics">
+                📅
+            </button>
+        `;
+
+        // Azioni principali
         let actionsHtml = '';
         if (item.isCustom) {
             actionsHtml = `
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                    ${quickNotifyHtml}
                     <button data-action="toggle-complete" data-id="${item.id}" class="text-xs px-2.5 py-1 rounded-lg border transition ${item.completata ? 'border-gray-300 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800' : 'border-green-300 dark:border-green-800 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/30'} font-medium">
                         ${item.completata ? '↩️ Riapri' : '✓ Fatto'}
                     </button>
@@ -422,7 +515,8 @@ class ScadenzeController {
             });
 
             actionsHtml = `
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                    ${quickNotifyHtml}
                     <a href="${wa.url}" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg transition inline-flex items-center gap-1 shadow-sm" title="Invia promemoria WhatsApp al genitore">
                         <span>💬</span> <span>WhatsApp</span>
                     </a>
@@ -433,8 +527,9 @@ class ScadenzeController {
             `;
         } else {
             actionsHtml = `
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 flex-wrap justify-end">
                     <span class="text-[10px] text-gray-400 uppercase tracking-wider hidden sm:inline">Rilevata automaticamente</span>
+                    ${quickNotifyHtml}
                     <a href="${item.url || '#'}" class="text-xs font-semibold px-3 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg transition inline-flex items-center gap-1">
                         <span>Vai</span> <span>&rarr;</span>
                     </a>
@@ -474,6 +569,33 @@ class ScadenzeController {
     }
 
     bindCardEvents(container) {
+        // Notifica push rapida
+        container.querySelectorAll('[data-action="notify-push"]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                await this.handleCardPush(id);
+            });
+        });
+
+        // Condivisione WhatsApp / Web Share
+        container.querySelectorAll('[data-action="share-whatsapp"]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                await this.handleCardWhatsAppShare(id);
+            });
+        });
+
+        // Aggiungi a Google Calendar
+        container.querySelectorAll('[data-action="add-gcal"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                this.handleCardCalendar(id);
+            });
+        });
+
         // Toggle completata
         container.querySelectorAll('[data-action="toggle-complete"]').forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -502,6 +624,169 @@ class ScadenzeController {
         });
     }
 
+    _getUnitLabel() {
+        const unitType = typeof localStorage !== 'undefined' ? (localStorage.getItem('unitType') || 'Reparto') : 'Reparto';
+        const unitName = typeof localStorage !== 'undefined' ? (localStorage.getItem('unitName') || 'Maori') : 'Maori';
+        return `${unitType} ${unitName}`.trim();
+    }
+
+    async handlePushImminentDeadlines() {
+        if (typeof window !== 'undefined' && typeof Notification !== 'undefined' && Notification) {
+            if (Notification.permission === 'default' && typeof Notification.requestPermission === 'function') {
+                const perm = await Notification.requestPermission();
+                if (perm !== 'granted') {
+                    UI.showToast?.('Permessi notifiche negati nel browser.', { type: 'warning' });
+                    this.updatePushButtonState();
+                    return 0;
+                }
+            } else if (Notification.permission === 'denied') {
+                UI.showToast?.('Permessi notifiche bloccati. Abilitali dalle impostazioni del browser.', { type: 'error' });
+                this.updatePushButtonState();
+                return 0;
+            }
+        }
+
+        const prefs = UI.loadUserPreferences?.() || {};
+        if (!prefs.notifications?.enabled && typeof UI.saveUserPreferences === 'function') {
+            await UI.saveUserPreferences({
+                ...prefs,
+                notifications: { ...(prefs.notifications || {}), enabled: true, deadlineReminders: true }
+            });
+        }
+        this.updatePushButtonState();
+
+        const imminent = this.allDeadlines.filter(d => !d.completata && typeof d.daysUntil === 'number' && d.daysUntil <= 15);
+        if (imminent.length === 0) {
+            UI.showToast?.('Nessuna scadenza imminente o scaduta da notificare.', { type: 'info' });
+            return 0;
+        }
+
+        let count = typeof UI.checkDeadlineReminders === 'function'
+            ? await UI.checkDeadlineReminders(true)
+            : 0;
+
+        // Se non ci sono custom/mediche nuove ma ci sono altre scadenze imminenti (attività/quote/compleanni), invia riepilogo push
+        if (count === 0 && typeof UI.dispatchBrowserPushNotification === 'function') {
+            const top = imminent[0];
+            const sent = await UI.dispatchBrowserPushNotification({
+                title: `⏰ ${imminent.length} scadenz${imminent.length === 1 ? 'a imminente' : 'e imminenti'}`,
+                body: `Prossima: ${top.titolo}${imminent.length > 1 ? ` e altr${imminent.length - 1 === 1 ? 'a 1' : `e ${imminent.length - 1}`}` : ''}`,
+                url: 'scadenze.html',
+                tag: `deadlines_summary_${Date.now()}`,
+                force: true
+            });
+            if (sent) count = imminent.length;
+        }
+
+        UI.showToast?.(
+            count > 0
+                ? `Inviate notifiche push/in-app per le scadenze imminenti!`
+                : 'Promemoria già inviati per oggi; notifiche push attive.',
+            { type: count > 0 ? 'success' : 'info' }
+        );
+        return count;
+    }
+
+    async handleShareDigestWhatsApp() {
+        const imminent = this.allDeadlines.filter(d => !d.completata && (typeof d.daysUntil !== 'number' || d.daysUntil <= 15));
+        if (imminent.length === 0) {
+            UI.showToast?.('Nessuna scadenza imminente da condividere.', { type: 'info' });
+            return;
+        }
+
+        const unitName = this._getUnitLabel();
+        const text = generateDeadlinesDigestText(imminent, unitName);
+
+        if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+            try {
+                await navigator.share({ title: `Scadenze ${unitName}`, text });
+                return;
+            } catch (err) {
+                if (err?.name === 'AbortError') return;
+            }
+        }
+
+        try {
+            if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+            }
+        } catch { }
+
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+    }
+
+    handleShareDigestEmail() {
+        const imminent = this.allDeadlines.filter(d => !d.completata && (typeof d.daysUntil !== 'number' || d.daysUntil <= 15));
+        if (imminent.length === 0) {
+            UI.showToast?.('Nessuna scadenza imminente da inviare via email.', { type: 'info' });
+            return;
+        }
+
+        const unitName = this._getUnitLabel();
+        const recipients = (UI.state?.staff || []).map(s => (s.email || '').trim()).filter(Boolean);
+        const subject = `Riepilogo Scadenze Imminenti — ${unitName}`;
+        const body = generateDeadlinesDigestText(imminent, unitName).replace(/\*/g, '');
+        const mailto = `mailto:${encodeURIComponent(recipients.join(','))}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailto;
+    }
+
+    handleExportDeadlinesIcs(singleItem = null) {
+        const items = singleItem
+            ? [singleItem]
+            : this.allDeadlines.filter(d => !d.completata && d.dataScadenza);
+
+        if (items.length === 0) {
+            UI.showToast?.('Nessuna scadenza attiva da esportare nel calendario.', { type: 'info' });
+            return;
+        }
+
+        const icsContent = generateDeadlinesIcs(items, `Scadenze ${this._getUnitLabel()}`);
+        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = singleItem ? `scadenza-${singleItem.id}.ics` : 'scadenze-reparto-maori.ics';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        UI.showToast?.('File calendario .ics scaricato con sveglie automatiche (-3 gg e -1 gg)!', { type: 'success' });
+    }
+
+    async handleCardPush(id) {
+        const item = this.allDeadlines.find(d => String(d.id) === String(id));
+        if (!item) return;
+        if (typeof UI.triggerSingleDeadlinePush === 'function') {
+            await UI.triggerSingleDeadlinePush(item);
+            this.updatePushButtonState();
+        }
+    }
+
+    async handleCardWhatsAppShare(id) {
+        const item = this.allDeadlines.find(d => String(d.id) === String(id));
+        if (!item) return;
+        const unitName = this._getUnitLabel();
+        const text = generateDeadlineShareText(item, unitName);
+
+        if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+            try {
+                await navigator.share({ title: item.titolo || 'Scadenza', text });
+                return;
+            } catch (err) {
+                if (err?.name === 'AbortError') return;
+            }
+        }
+
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+    }
+
+    handleCardCalendar(id) {
+        const item = this.allDeadlines.find(d => String(d.id) === String(id));
+        if (!item) return;
+        const gcalUrl = generateGoogleCalendarUrl(item);
+        window.open(gcalUrl, '_blank', 'noopener,noreferrer');
+    }
+
     openDeadlineModal(deadlineId = null) {
         const modal = document.getElementById('customDeadlineModal');
         const modalTitle = document.getElementById('modalTitle');
@@ -509,6 +794,8 @@ class ScadenzeController {
         if (!modal || !form) return;
 
         this.editingDeadlineId = deadlineId;
+        const reminderSelect = document.getElementById('deadlineReminderDays');
+        const instantPushCheck = document.getElementById('deadlineInstantPush');
 
         if (deadlineId) {
             // Modifica
@@ -522,6 +809,8 @@ class ScadenzeController {
             document.getElementById('deadlineCategory').value = item.categoria || 'Iscrizioni & Quote';
             document.getElementById('deadlineNotes').value = item.note || '';
             document.getElementById('deadlineCompleted').checked = Boolean(item.completata);
+            if (reminderSelect) reminderSelect.value = String(item.preavvisoGiorni ?? 3);
+            if (instantPushCheck) instantPushCheck.checked = false;
 
             const p = item.priorita || 'Media';
             const radio = form.querySelector(`input[name="deadlinePriority"][value="${p}"]`);
@@ -533,6 +822,8 @@ class ScadenzeController {
             document.getElementById('customDeadlineId').value = '';
             // Data predefinita: oggi in formato YYYY-MM-DD
             document.getElementById('deadlineDate').value = new Date().toISOString().split('T')[0];
+            if (reminderSelect) reminderSelect.value = '3';
+            if (instantPushCheck) instantPushCheck.checked = false;
             const radioMedia = form.querySelector('input[name="deadlinePriority"][value="Media"]');
             if (radioMedia) radioMedia.checked = true;
         }
@@ -558,6 +849,8 @@ class ScadenzeController {
         const notesInput = document.getElementById('deadlineNotes');
         const completedInput = document.getElementById('deadlineCompleted');
         const priorityInput = document.querySelector('input[name="deadlinePriority"]:checked');
+        const reminderDaysInput = document.getElementById('deadlineReminderDays');
+        const instantPushInput = document.getElementById('deadlineInstantPush');
         const saveBtn = document.getElementById('saveDeadlineBtn');
 
         const titolo = (titleInput?.value || '').trim();
@@ -566,6 +859,8 @@ class ScadenzeController {
         const note = (notesInput?.value || '').trim();
         const completata = Boolean(completedInput?.checked);
         const priorita = priorityInput?.value || 'Media';
+        const preavvisoGiorni = Number(reminderDaysInput?.value ?? 3);
+        const instantPush = Boolean(instantPushInput?.checked);
 
         if (!titolo || !dataScadenza) {
             if (window.UI?.showToast) {
@@ -588,21 +883,37 @@ class ScadenzeController {
                 note,
                 completata,
                 priorita,
+                preavvisoGiorni: Number.isFinite(preavvisoGiorni) ? preavvisoGiorni : 3,
                 annoScout: this.selectedYear
             };
 
             const user = UI.currentUser;
+            const editedId = this.editingDeadlineId;
+            let savedRecord = null;
 
-            if (this.editingDeadlineId) {
-                await DATA.updateCustomDeadline(this.editingDeadlineId, payload, user);
+            if (editedId) {
+                await DATA.updateCustomDeadline(editedId, payload, user);
                 if (window.UI?.showToast) window.UI.showToast('Scadenza modificata con successo.');
             } else {
-                await DATA.addCustomDeadline(payload, user);
+                savedRecord = await DATA.addCustomDeadline(payload, user);
                 if (window.UI?.showToast) window.UI.showToast('Nuova scadenza creata con successo.');
             }
 
             this.closeDeadlineModal();
             await this.loadData();
+
+            if (!completata) {
+                if (instantPush && typeof UI.triggerSingleDeadlinePush === 'function') {
+                    await UI.triggerSingleDeadlinePush({
+                        ...payload,
+                        id: savedRecord?.id || editedId || Date.now(),
+                        url: 'scadenze.html'
+                    });
+                    this.updatePushButtonState();
+                } else if (typeof UI.checkDeadlineReminders === 'function') {
+                    await UI.checkDeadlineReminders();
+                }
+            }
         } catch (error) {
             console.error('Errore durante il salvataggio della scadenza:', error);
             if (window.UI?.showToast) {
@@ -684,4 +995,4 @@ document.addEventListener('DOMContentLoaded', () => {
     scadenzeController.init();
 });
 
-export { scadenzeController };
+export { scadenzeController, ScadenzeController };

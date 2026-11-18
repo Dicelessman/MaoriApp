@@ -1,9 +1,39 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+vi.mock('../js/core/firebase.js', () => ({
+  db: {},
+  auth: {},
+  messaging: null,
+  collection: vi.fn(),
+  doc: vi.fn(),
+  getDocs: vi.fn(),
+  addDoc: vi.fn(),
+  setDoc: vi.fn(),
+  deleteDoc: vi.fn(),
+  updateDoc: vi.fn(),
+  getDoc: vi.fn(),
+  query: vi.fn(),
+  limit: vi.fn(),
+  startAfter: vi.fn(),
+  orderBy: vi.fn(),
+  where: vi.fn(),
+  Timestamp: { now: () => new Date(), fromDate: (d) => d },
+  signInWithEmailAndPassword: vi.fn(),
+  signOut: vi.fn(),
+  onAuthStateChanged: vi.fn(),
+  setPersistence: vi.fn(),
+  browserLocalPersistence: {},
+  getToken: vi.fn(),
+  onMessage: vi.fn()
+}));
+
 import {
   getUpcomingActivities,
   getPendingPaymentsByActivity,
   getUpcomingBirthdays
 } from '../js/utils/utils.js';
+import { UI } from '../js/ui/ui.js';
+import { DATA } from '../js/data/data-facade.js';
 
 describe('Reminders Utilities', () => {
   describe('getUpcomingActivities', () => {
@@ -108,6 +138,212 @@ describe('Reminders Utilities', () => {
       expect(bdays).toHaveLength(1);
       expect(bdays[0].daysUntil).toBe(2);
       expect(bdays[0].turningAge).toBe(13); // Compie 13 nel 2026
+    });
+  });
+
+  describe('UI Reminders & Push Notifications', () => {
+    const origNotification = globalThis.Notification;
+    const origServiceWorker = navigator.serviceWorker;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-18T10:00:00Z'));
+      localStorage.clear();
+      DATA.useLocal();
+      UI.currentUser = { uid: 'user_test_1', email: 'staff@maori.it' };
+      UI.state = {
+        activities: [
+          { id: 'act_soon', tipo: 'Uscita', descrizione: 'Uscita d\'Autunno', data: '2026-11-20', costo: 15 }
+        ],
+        scouts: [
+          { id: 's1', nome: 'Luca', cognome: 'Bianchi', anag_dob: '2012-11-19' }
+        ],
+        presences: [
+          { esploratoreId: 's1', attivitaId: 'act_soon', stato: 'Presente', pagato: false }
+        ]
+      };
+      localStorage.setItem('app-preferences', JSON.stringify({
+        theme: 'light',
+        notifications: {
+          enabled: true,
+          activityReminders: true,
+          paymentReminders: true,
+          birthdayReminders: true,
+          deadlineReminders: true
+        }
+      }));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+      globalThis.Notification = origNotification;
+      Object.defineProperty(navigator, 'serviceWorker', {
+        value: origServiceWorker,
+        configurable: true
+      });
+    });
+
+    it('checkDeadlineReminders genera promemoria solo per scadenze non completate entro 3 giorni', async () => {
+      vi.spyOn(DATA, 'getCustomDeadlines').mockResolvedValue([
+        { id: 'd1', titolo: 'Prenota pulmino', dataScadenza: '2026-11-20', completata: false, categoria: 'Logistica' },
+        { id: 'd2', titolo: 'Già completata', dataScadenza: '2026-11-19', completata: true, categoria: 'Generale' },
+        { id: 'd3', titolo: 'Lontana', dataScadenza: '2026-11-30', completata: false, categoria: 'Generale' }
+      ]);
+
+      const count = await UI.checkDeadlineReminders();
+      expect(count).toBe(1);
+
+      const notes = await UI.loadInAppNotifications();
+      expect(notes).toHaveLength(1);
+      expect(notes[0].type).toBe('deadline_reminder');
+      expect(notes[0].title).toContain('Prenota pulmino');
+      expect(notes[0].url).toBe('scadenze.html');
+    });
+
+    it('dispatchBrowserPushNotification invia la notifica tramite Service Worker quando abilitato e autorizzato', async () => {
+      const showNotification = vi.fn().mockResolvedValue(undefined);
+      globalThis.Notification = vi.fn();
+      globalThis.Notification.permission = 'granted';
+      Object.defineProperty(navigator, 'serviceWorker', {
+        value: {
+          getRegistration: vi.fn().mockResolvedValue({ showNotification })
+        },
+        configurable: true
+      });
+
+      const sent = await UI.dispatchBrowserPushNotification({
+        title: 'Test Push',
+        body: 'Messaggio di test',
+        url: 'scadenze.html',
+        tag: 'test_tag'
+      });
+
+      expect(sent).toBe(true);
+      expect(showNotification).toHaveBeenCalledWith('Test Push', expect.objectContaining({
+        body: 'Messaggio di test',
+        tag: 'test_tag',
+        data: { url: 'scadenze.html' }
+      }));
+    });
+
+    it('runAllRemindersCheck verifica attività, quote, compleanni e scadenze insieme', async () => {
+      vi.spyOn(DATA, 'getCustomDeadlines').mockResolvedValue([
+        { id: 'd_today', titolo: 'Consegna modulo', dataScadenza: '2026-11-18', completata: false }
+      ]);
+
+      const showNotification = vi.fn().mockResolvedValue(undefined);
+      globalThis.Notification = vi.fn();
+      globalThis.Notification.permission = 'granted';
+      Object.defineProperty(navigator, 'serviceWorker', {
+        value: {
+          getRegistration: vi.fn().mockResolvedValue({ showNotification })
+        },
+        configurable: true
+      });
+
+      const res = await UI.runAllRemindersCheck(true);
+
+      expect(res).toEqual({
+        activities: 1,
+        payments: 1,
+        birthdays: 1,
+        deadlines: 1,
+        total: 4
+      });
+      expect(showNotification).toHaveBeenCalledTimes(4);
+
+      const storedNotes = await UI.loadInAppNotifications();
+      expect(storedNotes).toHaveLength(4);
+    });
+
+    it('checkDeadlineReminders rispetta preavvisoGiorni personalizzato e controlla certificati medici in scadenza', async () => {
+      vi.spyOn(DATA, 'getCustomDeadlines').mockResolvedValue([
+        { id: 'd10', titolo: 'Iscrizione Campo', dataScadenza: '2026-11-28', completata: false, preavvisoGiorni: 10, categoria: 'Iscrizioni' },
+        { id: 'd_far', titolo: 'Troppo Lontana', dataScadenza: '2026-12-20', completata: false, preavvisoGiorni: 5, categoria: 'Altro' }
+      ]);
+      UI.state.scouts = [
+        { id: 's1', nome: 'Luca', cognome: 'Bianchi', anag_dob: '2012-11-19', san_cert_scadenza: '2026-11-22' },
+        { id: 's_ok', nome: 'Anna', cognome: 'Verdi', anag_dob: '2012-01-10', san_cert_scadenza: '2027-03-01' }
+      ];
+
+      const showNotification = vi.fn().mockResolvedValue(undefined);
+      globalThis.Notification = vi.fn();
+      globalThis.Notification.permission = 'granted';
+      Object.defineProperty(navigator, 'serviceWorker', {
+        value: {
+          getRegistration: vi.fn().mockResolvedValue({ showNotification })
+        },
+        configurable: true
+      });
+
+      const count = await UI.checkDeadlineReminders();
+      expect(count).toBe(2);
+      expect(showNotification).toHaveBeenCalledTimes(2);
+
+      const notes = await UI.loadInAppNotifications();
+      expect(notes.map(n => n.title)).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('Iscrizione Campo'),
+          expect.stringContaining('Certificato Medico: Luca Bianchi')
+        ])
+      );
+    });
+
+    it('checkDeadlineReminders genera notifica per scadenza superata con notificaScaduta', async () => {
+      vi.spyOn(DATA, 'getCustomDeadlines').mockResolvedValue([
+        { id: 'd_past', titolo: 'Saldo Affitto', dataScadenza: '2026-11-15', completata: false, notificaScaduta: true, categoria: 'Pagamenti' }
+      ]);
+
+      const count = await UI.checkDeadlineReminders();
+      expect(count).toBe(1);
+
+      const notes = await UI.loadInAppNotifications();
+      expect(notes[0].title).toContain('Scadenza superata: Saldo Affitto');
+      expect(notes[0].body).toContain('Scaduta da 3 giorni');
+    });
+
+    it('triggerSingleDeadlinePush invia subito notifica push browser e salva notifica in-app', async () => {
+      localStorage.setItem('app-preferences', JSON.stringify({
+        theme: 'light',
+        notifications: { enabled: false, deadlineReminders: true }
+      }));
+
+      const showNotification = vi.fn().mockResolvedValue(undefined);
+      globalThis.Notification = vi.fn();
+      globalThis.Notification.permission = 'default';
+      globalThis.Notification.requestPermission = vi.fn().mockImplementation(async () => {
+        globalThis.Notification.permission = 'granted';
+        return 'granted';
+      });
+      Object.defineProperty(navigator, 'serviceWorker', {
+        value: {
+          getRegistration: vi.fn().mockResolvedValue({ showNotification })
+        },
+        configurable: true
+      });
+
+      const sent = await UI.triggerSingleDeadlinePush({
+        id: 'single_1',
+        titolo: 'Riunione Capi',
+        dataScadenza: '2026-11-25',
+        daysUntil: 7,
+        categoria: 'Staff'
+      });
+
+      expect(sent).toBe(true);
+      expect(globalThis.Notification.requestPermission).toHaveBeenCalled();
+      expect(showNotification).toHaveBeenCalledTimes(1);
+      expect(showNotification).toHaveBeenCalledWith('⏰ Riunione Capi', expect.objectContaining({
+        data: { url: 'scadenze.html' }
+      }));
+
+      const updatedPrefs = UI.loadUserPreferences();
+      expect(updatedPrefs.notifications.enabled).toBe(true);
+
+      const stored = await UI.loadInAppNotifications();
+      expect(stored).toHaveLength(1);
+      expect(stored[0].title).toBe('⏰ Riunione Capi');
     });
   });
 });

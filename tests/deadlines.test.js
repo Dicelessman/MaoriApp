@@ -1,6 +1,41 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getAllScoutYearDeadlines } from '../js/utils/utils.js';
+
+vi.mock('../js/core/firebase.js', () => ({
+  db: {},
+  auth: {},
+  messaging: null,
+  collection: vi.fn(),
+  doc: vi.fn(),
+  getDocs: vi.fn(),
+  addDoc: vi.fn(),
+  setDoc: vi.fn(),
+  deleteDoc: vi.fn(),
+  updateDoc: vi.fn(),
+  getDoc: vi.fn(),
+  query: vi.fn(),
+  limit: vi.fn(),
+  startAfter: vi.fn(),
+  orderBy: vi.fn(),
+  where: vi.fn(),
+  Timestamp: { now: () => new Date(), fromDate: (d) => d },
+  signInWithEmailAndPassword: vi.fn(),
+  signOut: vi.fn(),
+  onAuthStateChanged: vi.fn(),
+  setPersistence: vi.fn(),
+  browserLocalPersistence: {},
+  getToken: vi.fn(),
+  onMessage: vi.fn()
+}));
+
+import {
+    getAllScoutYearDeadlines,
+    generateDeadlineShareText,
+    generateDeadlinesDigestText,
+    generateGoogleCalendarUrl,
+    generateDeadlinesIcs
+} from '../js/utils/utils.js';
 import { LocalAdapter } from '../js/data/adapters/local-adapter.js';
+import { scadenzeController, ScadenzeController } from '../scadenze.js';
 
 describe('Scout Year Deadlines - Utility & Adapter', () => {
     describe('getAllScoutYearDeadlines', () => {
@@ -200,6 +235,240 @@ describe('Scout Year Deadlines - Utility & Adapter', () => {
             const list = await newAdapter.getCustomDeadlines();
             expect(list.length).toBe(1);
             expect(list[0].titolo).toBe('Revisione cambusa');
+        });
+    });
+
+    describe('ScadenzeController - Ordinamento e separazione scadenze passate', () => {
+        let controller;
+
+        beforeEach(() => {
+            controller = new ScadenzeController();
+            controller.allDeadlines = [
+                {
+                    id: 'past-old',
+                    type: 'activity',
+                    titolo: 'Uscita Autunno',
+                    descrizione: 'Attività passata',
+                    categoria: 'Attività',
+                    dataScadenza: '2025-10-12',
+                    daysUntil: -60,
+                    completata: true,
+                    isCustom: false,
+                    url: 'attivita.html'
+                },
+                {
+                    id: 'past-overdue',
+                    type: 'payment',
+                    titolo: 'Quota Tesseramento Scaduta',
+                    descrizione: 'Quota non ancora saldata',
+                    categoria: 'Quote',
+                    dataScadenza: '2025-11-20',
+                    daysUntil: -20,
+                    completata: false,
+                    isCustom: false,
+                    url: 'pagamenti.html'
+                },
+                {
+                    id: 'future-far',
+                    type: 'custom',
+                    titolo: 'Campo Estivo',
+                    descrizione: 'Preparazione materiali',
+                    categoria: 'Logistica',
+                    dataScadenza: '2026-06-15',
+                    daysUntil: 45,
+                    completata: false,
+                    isCustom: true,
+                    priorita: 'Media'
+                },
+                {
+                    id: 'future-completed',
+                    type: 'custom',
+                    titolo: 'Prenotazione Pulmino',
+                    descrizione: 'Già confermata in anticipo',
+                    categoria: 'Logistica',
+                    dataScadenza: '2026-05-20',
+                    daysUntil: 19,
+                    completata: true,
+                    isCustom: true,
+                    priorita: 'Bassa'
+                },
+                {
+                    id: 'imminent-soon',
+                    type: 'activity',
+                    titolo: 'Uscita di Pasqua',
+                    descrizione: 'Prossima attività',
+                    categoria: 'Attività',
+                    dataScadenza: '2026-05-05',
+                    daysUntil: 4,
+                    completata: false,
+                    isCustom: false,
+                    url: 'attivita.html'
+                }
+            ];
+            document.body.innerHTML = `
+                <div id="deadlinesListContainer"></div>
+                <div id="emptyStateContainer" class="hidden"></div>
+            `;
+        });
+
+        it('dovrebbe esportare istanza scadenzeController e classe ScadenzeController', () => {
+            expect(scadenzeController).toBeInstanceOf(ScadenzeController);
+        });
+
+        it('dovrebbe mettere sempre le scadenze ancora da venire o imminenti prima di quelle passate e completate', () => {
+            controller.currentSort = 'date-asc';
+            const sorted = controller.getFilteredAndSortedDeadlines();
+
+            expect(sorted.map(d => d.id)).toEqual([
+                'imminent-soon',
+                'future-far',
+                'future-completed',
+                'past-overdue',
+                'past-old'
+            ]);
+
+            // Anche con ordinamento alfabetico o data decrescente, le imminenti/future restano prima delle passate
+            controller.currentSort = 'title-asc';
+            const sortedAlpha = controller.getFilteredAndSortedDeadlines();
+            expect(sortedAlpha.slice(0, 2).map(d => d.id)).toEqual(['future-far', 'imminent-soon']);
+        });
+
+        it('dovrebbe separare le scadenze passate e completate dentro #pastDeadlinesSection lasciando le imminenti in alto', () => {
+            controller.renderList();
+
+            const container = document.getElementById('deadlinesListContainer');
+            const pastSection = document.getElementById('pastDeadlinesSection');
+            const pastList = document.getElementById('pastDeadlinesList');
+
+            expect(pastSection).not.toBeNull();
+            expect(pastSection.hasAttribute('open')).toBe(false);
+            expect(pastList).not.toBeNull();
+
+            // Le scadenze da venire devono comparire nella parte principale (fuori da #pastDeadlinesSection)
+            const directCardsHtml = Array.from(container.children)
+                .filter(el => el.id !== 'pastDeadlinesSection')
+                .map(el => el.textContent)
+                .join(' ');
+            expect(directCardsHtml).toContain('Uscita di Pasqua');
+            expect(directCardsHtml).toContain('Campo Estivo');
+            expect(directCardsHtml).not.toContain('Uscita Autunno');
+            expect(directCardsHtml).not.toContain('Quota Tesseramento Scaduta');
+            expect(directCardsHtml).not.toContain('Prenotazione Pulmino');
+
+            // Le passate e completate devono stare in #pastDeadlinesSection
+            expect(pastSection.textContent).toContain('Scadenze Passate e Completate (3)');
+            expect(pastSection.textContent).toContain('1 da verificare');
+            expect(pastList.textContent).toContain('Uscita Autunno');
+            expect(pastList.textContent).toContain('Quota Tesseramento Scaduta');
+            expect(pastList.textContent).toContain('Prenotazione Pulmino');
+        });
+
+        it('dovrebbe mostrare avviso informativo e sezione passate quando non ci sono scadenze future', () => {
+            controller.allDeadlines = controller.allDeadlines.filter(d => controller.isPastOrCompleted(d));
+            controller.renderList();
+
+            const container = document.getElementById('deadlinesListContainer');
+            const pastSection = document.getElementById('pastDeadlinesSection');
+            expect(container.textContent).toContain('Nessuna scadenza imminente o futura');
+            expect(pastSection).not.toBeNull();
+        });
+
+        it('dovrebbe mostrare elenco diretto senza collassare quando si filtra per overdue o completed', () => {
+            controller.currentFilterStatus = 'overdue';
+            controller.renderList();
+            expect(document.getElementById('pastDeadlinesSection')).toBeNull();
+            expect(document.getElementById('deadlinesListContainer').textContent).toContain('Quota Tesseramento Scaduta');
+
+            controller.currentFilterStatus = 'completed';
+            controller.renderList();
+            expect(document.getElementById('pastDeadlinesSection')).toBeNull();
+            expect(document.getElementById('deadlinesListContainer').textContent).toContain('Uscita Autunno');
+        });
+
+        it('dovrebbe renderizzare azioni rapide multi-canale sulle card (notify-push, share-whatsapp, add-gcal)', () => {
+            controller.allDeadlines.push({
+                id: 'med_s1',
+                type: 'medical',
+                scoutId: 's1',
+                titolo: 'Certificato Medico: Marco Rossi',
+                descrizione: 'In scadenza',
+                categoria: 'Certificati & Documenti',
+                dataScadenza: '2026-05-06',
+                daysUntil: 5,
+                completata: false,
+                isCustom: false,
+                medStatus: { certStatus: 'expiring', formattedDate: '06/05/2026', missingDocuments: [] },
+                scout: { id: 's1', nome: 'Marco', cognome: 'Rossi', ct_g1_tel: '3331234567' }
+            });
+            controller.renderList();
+
+            const container = document.getElementById('deadlinesListContainer');
+            expect(container.querySelector('[data-action="notify-push"][data-id="imminent-soon"]')).not.toBeNull();
+            expect(container.querySelector('[data-action="share-whatsapp"][data-id="imminent-soon"]')).not.toBeNull();
+            expect(container.querySelector('[data-action="add-gcal"][data-id="imminent-soon"]')).not.toBeNull();
+
+            // Le card medical hanno già il link WhatsApp genitore dedicato, quindi non duplicano share-whatsapp
+            expect(container.querySelector('[data-action="notify-push"][data-id="med_s1"]')).not.toBeNull();
+            expect(container.querySelector('[data-action="add-gcal"][data-id="med_s1"]')).not.toBeNull();
+            expect(container.querySelector('[data-action="share-whatsapp"][data-id="med_s1"]')).toBeNull();
+        });
+    });
+
+    describe('Scadenze Multi-Canale - Share, Google Calendar e iCalendar (.ics)', () => {
+        const sampleItem = {
+            id: 'scad_1',
+            titolo: 'Consegna Moduli Campo Estivo',
+            categoria: 'Documenti / Burocrazia',
+            dataScadenza: '2026-07-10',
+            daysUntil: 3,
+            descrizione: 'Portare firme di entrambi i genitori',
+            completata: false
+        };
+
+        it('generateDeadlineShareText dovrebbe formattare correttamente il promemoria singolo', () => {
+            const text = generateDeadlineShareText(sampleItem, 'Reparto Maori');
+            expect(text).toContain('Reparto Maori');
+            expect(text).toContain('Consegna Moduli Campo Estivo');
+            expect(text).toContain('10/07/2026');
+            expect(text).toContain('tra 3 giorni');
+            expect(text).toContain('Portare firme di entrambi i genitori');
+        });
+
+        it('generateDeadlinesDigestText dovrebbe generare un bollettino escludendo le scadenze completate', () => {
+            const list = [
+                sampleItem,
+                { id: 'done_1', titolo: 'Già Fatta', dataScadenza: '2026-07-08', daysUntil: 1, completata: true },
+                { id: 'over_1', titolo: 'Quota Scaduta', dataScadenza: '2026-07-05', daysUntil: -2, completata: false }
+            ];
+            const digest = generateDeadlinesDigestText(list, 'Reparto Maori');
+            expect(digest).toContain('Riepilogo Scadenze Imminenti');
+            expect(digest).toContain('Consegna Moduli Campo Estivo');
+            expect(digest).toContain('Quota Scaduta');
+            expect(digest).toContain('scaduta da 2 giorni');
+            expect(digest).not.toContain('Già Fatta');
+        });
+
+        it('generateGoogleCalendarUrl dovrebbe creare link calendar valido con data inizio/fine all-day', () => {
+            const url = generateGoogleCalendarUrl(sampleItem);
+            expect(url).toContain('https://calendar.google.com/calendar/render?');
+            expect(url).toContain('action=TEMPLATE');
+            expect(url).toContain('dates=20260710%2F20260711');
+            expect(url).toContain('Consegna+Moduli+Campo+Estivo');
+        });
+
+        it('generateDeadlinesIcs dovrebbe generare calendario RFC 5545 con VEVENT e doppia sveglia VALARM', () => {
+            const ics = generateDeadlinesIcs([sampleItem], 'Scadenze Reparto Maori');
+            expect(ics).toContain('BEGIN:VCALENDAR');
+            expect(ics).toContain('VERSION:2.0');
+            expect(ics).toContain('BEGIN:VEVENT');
+            expect(ics).toContain('UID:scad_1@maori.scout');
+            expect(ics).toContain('DTSTART;VALUE=DATE:20260710');
+            expect(ics).toContain('DTEND;VALUE=DATE:20260711');
+            expect(ics).toContain('SUMMARY:Consegna Moduli Campo Estivo');
+            expect(ics).toContain('BEGIN:VALARM');
+            expect(ics).toContain('TRIGGER:-P3D');
+            expect(ics).toContain('TRIGGER:-P1D');
+            expect(ics).toContain('END:VCALENDAR');
         });
     });
 });

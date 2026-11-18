@@ -1,4 +1,4 @@
-const CACHE_NAME = "presenziario-cache-v20"; // v20: rimossa pagina audit-logs
+const CACHE_NAME = "presenziario-cache-v21"; // v21: versioning v3.2.0 e notifiche click handler
 const RUNTIME_CACHE = "presenziario-runtime-v5";
 const URLS_TO_CACHE = [
   "/",
@@ -137,5 +137,27 @@ self.addEventListener("fetch", (event) => {
     }
     return fetchPromise;
   })());
+});
+
+// Gestione click sulle notifiche push/browser del Service Worker
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(targetUrl) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clientList.length > 0 && "focus" in clientList[0]) {
+        return clientList[0].focus();
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
 });
 

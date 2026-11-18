@@ -2,7 +2,7 @@
  * Constants and Configuration
  * @module utils/constants
  */
-export const APP_VERSION = 'v3';
+export const APP_VERSION = 'v3.2.0';
 // Defines the theme options
 export const THEME = {
     LIGHT: 'light',

@@ -13,6 +13,8 @@ import {
     getScoutMedicalStatus, generateWhatsAppReminderUrl,
     findUpcomingActivity, computeActivityDashboardKPIs,
     generateScoutSentieroHtml, getAllScoutYearDeadlines,
+    generateDeadlineShareText, generateDeadlinesDigestText,
+    generateGoogleCalendarUrl, generateDeadlinesIcs,
     formatTelUri, formatWhatsAppUri, formatMailtoUri
 } from '../utils/utils.js';
 import { setupFormValidation, validateForm, validateFieldValue, checkDataIntegrity } from '../utils/validation.js';
@@ -38,6 +40,10 @@ export const UI = {
     computeActivityDashboardKPIs,
     generateScoutSentieroHtml,
     getAllScoutYearDeadlines,
+    generateDeadlineShareText,
+    generateDeadlinesDigestText,
+    generateGoogleCalendarUrl,
+    generateDeadlinesIcs,
     formatTelUri,
     formatWhatsAppUri,
     formatMailtoUri,
@@ -1008,6 +1014,7 @@ export const UI = {
                             this.checkActivityReminders();
                             this.checkPaymentReminders();
                             this.checkBirthdayReminders();
+                            this.checkDeadlineReminders();
                         }, 3000);
                         // Determina il ruolo DOPO aver caricato lo stato
                         const roleInfo = this.getUserRole();
@@ -1818,7 +1825,7 @@ export const UI = {
                 return JSON.parse(local);
         }
         catch (e) { }
-        return { theme: this.getCurrentTheme(), notifications: { activityReminders: true, paymentReminders: true, importantChanges: true, birthdayReminders: true, enabled: false } };
+        return { theme: this.getCurrentTheme(), notifications: { activityReminders: true, paymentReminders: true, importantChanges: true, birthdayReminders: true, deadlineReminders: true, enabled: false } };
     },
     async saveUserPreferences(preferences) {
         try {
@@ -1894,13 +1901,19 @@ export const UI = {
         }
     },
     async initializeFCM() {
-        if (!('serviceWorker' in navigator) || !('Notification' in window))
+        if (typeof navigator === 'undefined' || typeof window === 'undefined' || !('Notification' in window))
             return;
         try {
-            const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-            const perm = await Notification.requestPermission();
-            if (perm === 'granted') {
-                const token = await getToken(DATA.adapter.messaging, { vapidKey: 'BBKeE0VbFbvT_BWU78Ddtbt1EhP6-vHYTI_WwQsrBOiki5RvsyBTwkI4X6HFEW0GaVf018JNosFE1eVdb6b62N0', serviceWorkerRegistration: reg });
+            let reg = null;
+            if ('serviceWorker' in navigator) {
+                reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(() => null);
+            }
+            const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+            if (perm === 'granted' && DATA.adapter?.messaging) {
+                const token = await getToken(DATA.adapter.messaging, {
+                    vapidKey: 'BBKeE0VbFbvT_BWU78Ddtbt1EhP6-vHYTI_WwQsrBOiki5RvsyBTwkI4X6HFEW0GaVf018JNosFE1eVdb6b62N0',
+                    serviceWorkerRegistration: reg || undefined
+                });
                 if (token) {
                     await this.saveFCMToken(token);
                     onMessage(DATA.adapter.messaging, payload => this.handleForegroundNotification(payload));
@@ -1911,8 +1924,59 @@ export const UI = {
             console.error(e);
         }
     },
+    async dispatchBrowserPushNotification({ title, body, url = '/', tag = 'maori-notification', force = false } = {}) {
+        try {
+            const prefs = this.loadUserPreferences();
+            if (!force && !prefs.notifications?.enabled) return false;
+            if (typeof window === 'undefined' || typeof Notification === 'undefined' || !Notification || Notification.permission !== 'granted') {
+                return false;
+            }
+            const notifTitle = title || 'Reparto Maori';
+            const options = {
+                body: body || '',
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                tag: tag || 'maori-notification',
+                data: { url: url || '/' }
+            };
+            if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && typeof navigator.serviceWorker.getRegistration === 'function') {
+                const reg = await navigator.serviceWorker.getRegistration();
+                if (reg && typeof reg.showNotification === 'function') {
+                    await reg.showNotification(notifTitle, options);
+                    return true;
+                }
+            }
+            new Notification(notifTitle, options);
+            return true;
+        } catch (err) {
+            console.warn('[Push] Errore invio notifica browser:', err);
+            return false;
+        }
+    },
+    async sendTestPushNotification() {
+        if (!this.currentUser?.uid) {
+            this.showToast('Accedi prima di inviare una notifica di prova.', { type: 'warning' });
+            return false;
+        }
+        const prefs = this.loadUserPreferences();
+        await this.saveInAppNotification({
+            type: 'info',
+            title: '🔔 Notifica Push di Prova — Reparto Maori',
+            body: 'I promemoria in-app e le notifiche push browser funzionano correttamente.',
+            url: 'preferenze.html',
+            notificationType: 'info'
+        });
+        const pushReady = !!(prefs.notifications?.enabled && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted');
+        this.showToast(
+            pushReady
+                ? 'Notifica push e in-app di prova inviata!'
+                : 'Notifica in-app inviata! Attiva i permessi browser per ricevere anche il popup push.',
+            { type: pushReady ? 'success' : 'info' }
+        );
+        return true;
+    },
     async saveFCMToken(token) {
-        if (this.currentUser?.uid)
+        if (this.currentUser?.uid && DATA.adapter?.db)
             await setDoc(doc(DATA.adapter.db, 'fcm-tokens', this.currentUser.uid), { token, userId: this.currentUser.uid, updatedAt: new Date() }, { merge: true });
     },
     async handleForegroundNotification(payload) {
@@ -2018,72 +2082,300 @@ export const UI = {
         }
         return createdCount;
     },
+    async checkDeadlineReminders(force = false) {
+        if (!this.currentUser)
+            return 0;
+        const prefs = this.loadUserPreferences();
+        if (!force && prefs.notifications?.deadlineReminders === false)
+            return 0;
+
+        let deadlines = [];
+        try {
+            deadlines = DATA.getCustomDeadlines
+                ? await DATA.getCustomDeadlines()
+                : (this.state?.scadenze || []);
+        } catch {
+            deadlines = this.state?.scadenze || [];
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = new Date().toISOString().split('T')[0];
+        let createdCount = 0;
+
+        for (const d of (deadlines || [])) {
+            if (!d || d.completata || !d.dataScadenza) continue;
+            const targetDate = this.toJsDate ? this.toJsDate(d.dataScadenza) : new Date(d.dataScadenza);
+            if (!targetDate || isNaN(targetDate.getTime())) continue;
+            targetDate.setHours(0, 0, 0, 0);
+
+            const daysDiff = Math.round((targetDate - today) / (1000 * 60 * 60 * 24));
+            const maxDays = (d.preavvisoGiorni !== undefined && d.preavvisoGiorni !== null && d.preavvisoGiorni !== '' && Number.isFinite(Number(d.preavvisoGiorni)))
+                ? Number(d.preavvisoGiorni)
+                : 3;
+
+            const isUpcomingInWindow = daysDiff >= 0 && daysDiff <= maxDays;
+            const isOverdueTriggered = daysDiff < 0 && (Boolean(d.notificaScaduta) || force);
+            if (!isUpcomingInWindow && !isOverdueTriggered) continue;
+
+            const catPrefix = d.categoria ? `[${d.categoria}] ` : '';
+            let title;
+            let body;
+            if (daysDiff < 0) {
+                const ago = Math.abs(daysDiff);
+                title = `🚨 Scadenza superata: ${d.titolo || 'Scadenza'}`;
+                body = `${catPrefix}Scaduta da ${ago} ${ago === 1 ? 'giorno' : 'giorni'}`;
+            } else {
+                const when = daysDiff === 0 ? 'oggi!' : (daysDiff === 1 ? 'domani!' : `tra ${daysDiff} giorni`);
+                title = `⏰ Scadenza imminente: ${d.titolo || 'Scadenza'}`;
+                body = `${catPrefix}Scade ${when}`;
+            }
+
+            const reminderKey = `deadline_${d.id}_${todayStr}`;
+
+            const res = await this.saveInAppNotification({
+                type: 'deadline_reminder',
+                title,
+                body,
+                url: 'scadenze.html',
+                notificationType: 'warning',
+                reminderKey
+            });
+            if (res) createdCount++;
+        }
+
+        // Controlla anche i certificati medici in scadenza (<= 7 gg) o scaduti con data valorizzata
+        for (const scout of (this.state?.scouts || [])) {
+            if (!scout || scout.archived || !scout.san_cert_scadenza) continue;
+            const med = getScoutMedicalStatus(scout, today);
+            if (med.certStatus === 'expired' || (med.certStatus === 'expiring' && med.daysRemaining !== null && med.daysRemaining <= 7)) {
+                const fullName = `${scout.nome || ''} ${scout.cognome || ''}`.trim() || 'Esploratore';
+                const res = await this.saveInAppNotification({
+                    type: 'deadline_reminder',
+                    title: `🩺 Certificato Medico: ${fullName}`,
+                    body: med.statusLabel,
+                    url: 'scadenze.html',
+                    notificationType: 'warning',
+                    reminderKey: `med_deadline_${scout.id}_${todayStr}`
+                });
+                if (res) createdCount++;
+            }
+        }
+
+        return createdCount;
+    },
+    async triggerSingleDeadlinePush(item = {}) {
+        if (typeof window !== 'undefined' && typeof Notification !== 'undefined' && Notification) {
+            if (Notification.permission === 'default' && typeof Notification.requestPermission === 'function') {
+                const perm = await Notification.requestPermission();
+                if (perm !== 'granted') {
+                    this.showToast('Permessi notifiche negati nel browser.', { type: 'warning' });
+                    return false;
+                }
+            } else if (Notification.permission === 'denied') {
+                this.showToast('Permessi notifiche bloccati nelle impostazioni del browser.', { type: 'error' });
+                return false;
+            }
+        }
+
+        const prefs = this.loadUserPreferences();
+        if (!prefs.notifications?.enabled) {
+            await this.saveUserPreferences({
+                ...prefs,
+                notifications: { ...(prefs.notifications || {}), enabled: true }
+            });
+        }
+
+        const targetDate = item?.dataScadenza
+            ? (this.toJsDate ? this.toJsDate(item.dataScadenza) : new Date(item.dataScadenza))
+            : null;
+        const formattedDate = (targetDate && !isNaN(targetDate.getTime()))
+            ? targetDate.toLocaleDateString('it-IT')
+            : (item?.dataScadenza || '');
+
+        let daysUntil = item?.daysUntil;
+        if (typeof daysUntil !== 'number' && targetDate && !isNaN(targetDate.getTime())) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tCopy = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+            daysUntil = Math.round((tCopy - today) / (1000 * 60 * 60 * 24));
+        }
+
+        let whenText = '';
+        if (typeof daysUntil === 'number') {
+            if (daysUntil === 0) whenText = 'Scade oggi';
+            else if (daysUntil === 1) whenText = 'Scade domani';
+            else if (daysUntil > 1) whenText = `Scade tra ${daysUntil} giorni`;
+            else whenText = `Scaduta da ${Math.abs(daysUntil)} gg`;
+        }
+
+        const catPrefix = item?.categoria ? `[${item.categoria}] ` : '';
+        const title = `⏰ ${item?.titolo || 'Scadenza Reparto'}`;
+        const body = `${catPrefix}${[whenText, formattedDate ? `(${formattedDate})` : ''].filter(Boolean).join(' ')}`.trim() || 'Promemoria scadenza';
+
+        let saved = null;
+        if (this.currentUser?.uid) {
+            saved = await this.saveInAppNotification({
+                type: 'deadline_reminder',
+                title,
+                body,
+                url: item?.url || 'scadenze.html',
+                notificationType: 'warning',
+                forcePush: true
+            });
+        }
+        if (!saved) {
+            await this.dispatchBrowserPushNotification({
+                title,
+                body,
+                url: item?.url || 'scadenze.html',
+                tag: `manual_deadline_${item?.id || Date.now()}`,
+                force: true
+            });
+        }
+
+        this.showToast(`Notifica push inviata per "${item?.titolo || 'scadenza'}"!`, { type: 'success' });
+        return true;
+    },
     async runAllRemindersCheck(force = false) {
         const a = await this.checkActivityReminders(force);
         const p = await this.checkPaymentReminders(force);
         const b = await this.checkBirthdayReminders(force);
+        const d = await this.checkDeadlineReminders(force);
         this.updateNotificationsBadge();
-        return { activities: a, payments: p, birthdays: b, total: a + p + b };
+        return { activities: a, payments: p, birthdays: b, deadlines: d, total: a + p + b + d };
     },
     notifyImportantChange({ type, title, body, url = null }) {
         this.saveInAppNotification({ type, title, body, url, notificationType: 'important' });
     },
+    _getLocalNotificationsKey() {
+        return this.currentUser?.uid ? `local_notifications_${this.currentUser.uid}` : null;
+    },
+    _readLocalNotifications() {
+        const key = this._getLocalNotificationsKey();
+        if (!key || typeof localStorage === 'undefined') return [];
+        try {
+            const raw = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(raw) ? raw : [];
+        } catch {
+            return [];
+        }
+    },
+    _writeLocalNotifications(list) {
+        const key = this._getLocalNotificationsKey();
+        if (!key || typeof localStorage === 'undefined') return;
+        try {
+            localStorage.setItem(key, JSON.stringify((list || []).slice(0, 100)));
+        } catch { }
+    },
     async saveInAppNotification(n) {
-        if (this.currentUser?.uid) {
-            if (n.reminderKey) {
-                const todayKey = new Date().toISOString().split('T')[0];
-                const storageKey = `sent_reminders_${this.currentUser.uid}_${todayKey}`;
-                let sentKeys = [];
-                try {
-                    sentKeys = JSON.parse(localStorage.getItem(storageKey) || '[]');
-                } catch { }
+        if (!this.currentUser?.uid)
+            return null;
 
-                if (sentKeys.includes(n.reminderKey)) {
-                    return null;
-                }
+        if (n.reminderKey) {
+            const todayKey = new Date().toISOString().split('T')[0];
+            const storageKey = `sent_reminders_${this.currentUser.uid}_${todayKey}`;
+            let sentKeys = [];
+            try {
+                sentKeys = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            } catch { }
 
-                sentKeys.push(n.reminderKey);
-                try {
-                    localStorage.setItem(storageKey, JSON.stringify(sentKeys));
-                } catch { }
+            if (sentKeys.includes(n.reminderKey)) {
+                return null;
             }
 
-            const docRef = await addDoc(collection(DATA.adapter.db, 'in-app-notifications'), { ...n, userId: this.currentUser.uid, read: false, createdAt: Timestamp.now() });
-            this.updateNotificationsBadge();
-            return docRef;
+            sentKeys.push(n.reminderKey);
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(sentKeys));
+            } catch { }
         }
-        return null;
+
+        const { forcePush, ...notifData } = n;
+        let result = null;
+        if (DATA.adapter?.db) {
+            try {
+                result = await addDoc(collection(DATA.adapter.db, 'in-app-notifications'), {
+                    ...notifData,
+                    userId: this.currentUser.uid,
+                    read: false,
+                    createdAt: Timestamp.now()
+                });
+            } catch (err) {
+                console.warn('[Notifications] Fallback locale su errore Firestore:', err);
+            }
+        }
+
+        if (!result) {
+            const localRecord = {
+                id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                ...notifData,
+                userId: this.currentUser.uid,
+                read: false,
+                createdAt: new Date().toISOString()
+            };
+            const list = this._readLocalNotifications();
+            list.unshift(localRecord);
+            this._writeLocalNotifications(list);
+            result = localRecord;
+        }
+
+        await this.dispatchBrowserPushNotification({
+            title: notifData.title,
+            body: notifData.body,
+            url: notifData.url || '/',
+            tag: notifData.reminderKey || notifData.type || 'maori-notification',
+            force: Boolean(forcePush)
+        });
+
+        this.updateNotificationsBadge();
+        return result;
     },
     async loadInAppNotifications(limitCount = 50) {
         if (!this.currentUser?.uid)
             return [];
-        try {
-            // Interroga per userId senza orderBy combinato per non richiedere indici compositi Firestore
-            const q = query(
-                collection(DATA.adapter.db, 'in-app-notifications'),
-                where('userId', '==', this.currentUser.uid)
-            );
-            const s = await getDocs(q);
-            const items = s.docs.map(d => ({
-                id: d.id,
-                ...d.data(),
-                createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : (d.data().createdAt ? new Date(d.data().createdAt) : new Date(0))
-            }));
-            // Ordinamento decrescente in memoria
-            items.sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0));
-            return items.slice(0, limitCount);
-        } catch (err) {
-            console.warn('[Notifications] Errore caricamento notifiche:', err);
-            return [];
+
+        let items = [];
+        if (DATA.adapter?.db) {
+            try {
+                // Interroga per userId senza orderBy combinato per non richiedere indici compositi Firestore
+                const q = query(
+                    collection(DATA.adapter.db, 'in-app-notifications'),
+                    where('userId', '==', this.currentUser.uid)
+                );
+                const s = await getDocs(q);
+                items = s.docs.map(d => ({
+                    id: d.id,
+                    ...d.data(),
+                    createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : (d.data().createdAt ? new Date(d.data().createdAt) : new Date(0))
+                }));
+            } catch (err) {
+                console.warn('[Notifications] Errore caricamento notifiche Firestore, uso cache locale:', err);
+            }
         }
+
+        if (items.length === 0) {
+            items = this._readLocalNotifications().map(n => ({
+                ...n,
+                createdAt: n.createdAt ? new Date(n.createdAt) : new Date(0)
+            }));
+        }
+
+        // Ordinamento decrescente in memoria
+        items.sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0));
+        return items.slice(0, limitCount);
     },
     async markAllNotificationsAsRead() {
-        if (!this.currentUser)
+        if (!this.currentUser?.uid)
             return;
         try {
-            const unread = (await this.loadInAppNotifications(100)).filter(n => !n.read);
-            for (const n of unread)
-                await updateDoc(doc(DATA.adapter.db, 'in-app-notifications', n.id), { read: true });
+            const localList = this._readLocalNotifications().map(n => ({ ...n, read: true }));
+            this._writeLocalNotifications(localList);
+
+            if (DATA.adapter?.db) {
+                const unread = (await this.loadInAppNotifications(100)).filter(n => !n.read && !String(n.id).startsWith('local_'));
+                for (const n of unread)
+                    await updateDoc(doc(DATA.adapter.db, 'in-app-notifications', n.id), { read: true });
+            }
             this.updateNotificationsBadge();
             this.renderNotificationsList();
         } catch (err) {
@@ -2099,6 +2391,13 @@ export const UI = {
             if (badge) {
                 badge.textContent = unread > 99 ? '99+' : unread;
                 badge.style.display = unread > 0 ? 'flex' : 'none';
+            }
+            if (typeof navigator !== 'undefined' && typeof navigator.setAppBadge === 'function') {
+                if (unread > 0) {
+                    navigator.setAppBadge(unread).catch(() => {});
+                } else if (typeof navigator.clearAppBadge === 'function') {
+                    navigator.clearAppBadge().catch(() => {});
+                }
             }
         } catch (err) {
             console.warn('[Notifications] Errore updateNotificationsBadge:', err);
@@ -2127,6 +2426,7 @@ export const UI = {
             if (type === 'activity_reminder') return '📅';
             if (type === 'payment_reminder') return '💶';
             if (type === 'birthday_reminder') return '🎂';
+            if (type === 'deadline_reminder') return '⏰';
             if (type === 'important') return '⚠️';
             return '🔔';
         };
@@ -2146,11 +2446,19 @@ export const UI = {
     `).join('');
     },
     async markNotificationAsRead(id) {
-        if (this.currentUser) {
-            await updateDoc(doc(DATA.adapter.db, 'in-app-notifications', id), { read: true });
-            this.updateNotificationsBadge();
-            this.renderNotificationsList();
+        if (!this.currentUser?.uid || !id) return;
+        const localList = this._readLocalNotifications().map(n => n.id === id ? { ...n, read: true } : n);
+        this._writeLocalNotifications(localList);
+
+        if (DATA.adapter?.db && !String(id).startsWith('local_')) {
+            try {
+                await updateDoc(doc(DATA.adapter.db, 'in-app-notifications', id), { read: true });
+            } catch (err) {
+                console.warn('[Notifications] Errore markNotificationAsRead:', err);
+            }
         }
+        this.updateNotificationsBadge();
+        this.renderNotificationsList();
     },
     setupInAppNotifications() {
         if (!this.currentUser)

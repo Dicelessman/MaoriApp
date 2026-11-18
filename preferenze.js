@@ -75,6 +75,7 @@ UI.renderPreferencesPage = function () {
   const notificationPaymentReminders = document.getElementById('notificationPaymentReminders');
   const notificationImportantChanges = document.getElementById('notificationImportantChanges');
   const notificationBirthdayReminders = document.getElementById('notificationBirthdayReminders');
+  const notificationDeadlineReminders = document.getElementById('notificationDeadlineReminders');
 
   // Aggiorna stato permessi
   const updateNotificationPermissionStatus = () => {
@@ -196,6 +197,22 @@ UI.renderPreferencesPage = function () {
     });
   }
 
+  if (notificationDeadlineReminders) {
+    notificationDeadlineReminders.checked = prefs.notifications?.deadlineReminders ?? true;
+    notificationDeadlineReminders.addEventListener('change', async (e) => {
+      const current = this.loadUserPreferences();
+      const updatedPrefs = {
+        ...current,
+        notifications: {
+          ...current.notifications,
+          deadlineReminders: e.target.checked
+        }
+      };
+      await this.saveUserPreferences(updatedPrefs);
+      this.showToast(`Promemoria scadenze ${e.target.checked ? 'attivati' : 'disattivati'}`, { type: 'success', duration: 1500 });
+    });
+  }
+
   if (notificationImportantChanges) {
     notificationImportantChanges.checked = prefs.notifications?.importantChanges ?? true;
     notificationImportantChanges.addEventListener('change', async (e) => {
@@ -223,7 +240,7 @@ UI.renderPreferencesPage = function () {
         const self = window.UI || this;
         const res = self.runAllRemindersCheck ? await self.runAllRemindersCheck(true) : { total: 0 };
         if (res.total > 0) {
-          self.showToast(`Generat${res.total === 1 ? 'o' : 'i'} ${res.total} promemoria (${res.activities} attività, ${res.payments} quote, ${res.birthdays} compleanni)!`, { type: 'success' });
+          self.showToast(`Generat${res.total === 1 ? 'o' : 'i'} ${res.total} promemoria (${res.activities} attività, ${res.payments} quote, ${res.birthdays} compleanni, ${res.deadlines || 0} scadenze)!`, { type: 'success' });
         } else {
           self.showToast('Nessun nuovo promemoria da generare per oggi.', { type: 'info' });
         }
@@ -233,6 +250,18 @@ UI.renderPreferencesPage = function () {
       } finally {
         runRemindersBtn.disabled = false;
         runRemindersBtn.innerHTML = '<span>🔄</span> Controlla Ora';
+      }
+    });
+  }
+
+  // Pulsante per testare invio notifica push browser + in-app
+  const testPushBtn = document.getElementById('testPushNotificationBtn');
+  if (testPushBtn && !testPushBtn._bound) {
+    testPushBtn._bound = true;
+    testPushBtn.addEventListener('click', async () => {
+      const self = window.UI || this;
+      if (self.sendTestPushNotification) {
+        await self.sendTestPushNotification();
       }
     });
   }
@@ -519,6 +548,7 @@ UI.renderPreferencesPage = function () {
             paymentReminders: true,
             importantChanges: true,
             birthdayReminders: true,
+            deadlineReminders: true,
             enabled: false
           },
           shortcuts: {
